@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>version</key>
+	<string>1.19.34</string>
+	<key>formula</key>
+	<string>jxz345/tap/mihomo@1.19.34</string>
+	<key>architectures</key>
+	<dict>
+		<key>arm64</key>
+		<dict>
+			<key>archiveSHA256</key>
+			<string>1a7a20eca63fbbaec90137717465bfde488d0db2a3a79b8fadebf9b2545b6e4c</string>
+			<key>binarySHA256</key>
+			<string>a55a9073f9b7b1fa596a82c034d2dae3407ec34732102b6e42c5513ce3033f34</string>
+		</dict>
+	</dict>
+</dict>
+</plist>
