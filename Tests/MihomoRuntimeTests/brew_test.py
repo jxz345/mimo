@@ -109,6 +109,8 @@ def main():
             brew('cleanup-cask', 'uninstall', '--cask', CASK, check=False)
             brew('cleanup-formula', 'uninstall', '--formula', FORMULA, check=False)
             recovery = [
+                ('trust-original-formula', ['/usr/bin/ssh', 'mimo-vm',
+                    'HOMEBREW_NO_AUTO_UPDATE=1 /opt/homebrew/bin/brew trust --formula ' + FORMULA]),
                 ('restore-original-formula', ['/usr/bin/ssh', 'mimo-vm',
                     'HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_CLEANUP=1 /opt/homebrew/bin/brew install --formula ' + FORMULA]),
                 ('restore-manual-installation', [sys.executable, REPO / 'Scripts/vm-admin.py',

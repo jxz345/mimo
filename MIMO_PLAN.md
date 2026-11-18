@@ -256,7 +256,7 @@ The workflow is saved and the UI prototype is approved and published. Keep the p
 
 ## 12. Implementation checkpoint — 2026-11-18
 
-**Apple silicon and IPv4 only; implementation and acceptance are still in progress. Mimo 1.0 is being published as a preview in its own repository and tap cask; it is not a qualified protected-routing release.** The current source builds and signs successfully for arm64. The signed IPv4-only Release candidate is installed in the VM. Its installation, engine/profile checks and fresh GUI heartbeat pass. Two controlled IPv4-only packet runs pass, while earlier relay timeouts remain recorded as an unresolved acceptance concern. Original uninitialized Direct settings are retained.
+**Apple silicon and IPv4 only; implementation and acceptance are still in progress. Mimo 1.0 is published as a preview in its own repository and tap cask; it is not a qualified protected-routing release.** The current source builds and signs successfully for arm64. The signed IPv4-only Release candidate is installed in the VM. Its installation, engine/profile checks and fresh GUI heartbeat pass. Two controlled IPv4-only packet runs pass, while earlier relay timeouts remain recorded as an unresolved acceptance concern. Original uninitialized Direct settings are retained.
 
 ### Implemented in source
 
@@ -326,6 +326,6 @@ This tailnet returns IPv4 MagicDNS records and successful empty AAAA answers for
 
 ### Mimo 1.0 publication
 
-The user requested a new GitHub repository and a fresh version history. Publish current sources as the initial commit of `jxz345/mimo`, version **1.0 (build 1)**, with a preview release and a new `jxz345/tap/mimo` cask. Keep the legacy `exit-ip-monitor` release and cask unchanged. The new cask conflicts with the legacy one, pins `mihomo@1.19.34`, and states that Rule/Global activation is still disabled pending qualification. Public source contains no VM credentials or generated test evidence.
+The user requested a new GitHub repository and a fresh version history. Current sources were published as the initial commit of `jxz345/mimo`, version **1.0 (build 1)**, with a preview release and a new `jxz345/tap/mimo` cask. Keep the legacy `exit-ip-monitor` release and cask unchanged. The new cask conflicts with the legacy one, pins `mihomo@1.19.34`, and states that Rule/Global activation is still disabled pending qualification. Public source contains no VM credentials or generated test evidence.
 
-Run the real lifecycle suite against the published tap commit and GitHub release URL, including automatic dependency installation/removal, explicit dependency retention, reinstall with stopped core, runtime-profile cleanup, IPv6 restoration, and saved settings. Restore the VM's manual Direct installation after acceptance.
+The real lifecycle suite passes all **11 checks** against published tap commit `db2cc4d3c81b5ea764f5a232024ea634f3477df5` and the GitHub release URL, including automatic dependency installation/removal, explicit dependency retention, reinstall with stopped core, runtime-profile cleanup, IPv6 restoration, and saved settings. The VM's manual Direct installation was restored after acceptance. The published ZIP SHA-256 is `1bc8b1437c4c27b2d035020348a1712f842478a2638b491401ea173001547706`; source tag `v1.0` points to initial commit `173c8cc10a7c4e074ee099cd0ac26aa69afb6a87`. Results are saved in `Tests/ReleaseEvidence/mimo-1.0-brew.json`.
