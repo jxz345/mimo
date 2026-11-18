@@ -8,6 +8,8 @@ enum MimoCoordinatorTests {
         try await heartbeatDuringTransition()
         try await networkChangeDuringPreparation()
         try await networkChangeDuringLookup()
+        try await cancelledLookupCannotApprove()
+        try await heartbeatPulseDoesNotWaitForStatus()
         try await credentialChangeDuringLookup()
         try await directRestoreFailure()
         try await delayedDirectCannotOpenClosedGate()
@@ -131,6 +133,41 @@ enum MimoCoordinatorTests {
         try await cancelled(check)
         require(fixture.approvals.isEmpty && coordinator.state.phase == .blocked,
                 "an IP result from the previous network must never reach approval")
+    }
+
+    private static func cancelledLookupCannotApprove() async throws {
+        let fixture = Fixture()
+        fixture.holdLookup = true
+        let coordinator = fixture.coordinator()
+        let check = Task { try await coordinator.lookup(Fixture.lookupConfiguration) }
+        try await wait { fixture.lookupGate.waiting }
+        check.cancel()
+        fixture.lookupGate.resume(Fixture.snapshot)
+        try await cancelled(check)
+        require(fixture.approvals.isEmpty && !fixture.policy.state.allowsTraffic,
+                "a timed-out or cancelled lookup must not submit a successful late result for approval")
+        require(MimoLookupClient(coordinator).lookupTimeout > PublicIPLookupClient().lookupTimeout,
+                "managed routing must budget preparation and activation separately from the HTTP deadline")
+    }
+
+    private static func heartbeatPulseDoesNotWaitForStatus() async throws {
+        var configuration = MimoConfiguration()
+        configuration.mode = .rule
+        let statusGate = Gate<Bool>()
+        var pulses = 0
+        let coordinator = MimoCoordinator(configuration: configuration, allowlist: Fixture.allowed, revision: 1,
+            transport: { message in
+                if message.livenessOnly == true { pulses += 1 }
+                else if message.command == .heartbeat { _ = await statusGate.wait() }
+                return MimoRoutingState(configuration: configuration)
+            })
+        await coordinator.start()
+        try await wait { statusGate.waiting }
+        let before = pulses
+        try await Task.sleep(for: .milliseconds(1200))
+        require(pulses > before, "liveness must continue while a status reply waits behind profile work")
+        coordinator.stop()
+        statusGate.resume(true)
     }
 
     private static func credentialChangeDuringLookup() async throws {

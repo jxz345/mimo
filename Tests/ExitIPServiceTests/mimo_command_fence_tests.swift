@@ -2,6 +2,7 @@ import Foundation
 
 enum MimoCommandFenceTests {
     static func run() {
+        heartbeatLease()
         var fence = MimoCommandFence()
         let controller = UUID()
         func stamp(_ value: UInt64) -> MimoCommandStamp {
@@ -50,6 +51,25 @@ enum MimoCommandFenceTests {
         require(!MimoCommandFence.matchesSavedRouting(message, configuration: configuration, revision: 10),
                 "approval cannot replace saved Direct")
         print("PASS: supervisor command ordering, live-core identity, heartbeat isolation and saved-revision checks")
+    }
+
+    private static func heartbeatLease() {
+        let lease = MimoHeartbeatLease()
+        let controller = UUID(), start = ContinuousClock.now
+        let stamp = MimoCommandStamp(controller: controller, sequence: 4)
+        require(!lease.receive(stamp, process: 42, at: start), "an unauthenticated heartbeat cannot establish authority")
+        lease.authorize(stamp, process: 42, at: start)
+        require(lease.expired(at: start.advanced(by: .seconds(6))), "a missing core heartbeat expires")
+        require(!lease.receive(stamp, process: 43, at: start.advanced(by: .seconds(4))), "another process cannot renew the lease")
+        require(!lease.receive(.init(controller: controller, sequence: 3), process: 42, at: start.advanced(by: .seconds(4))),
+                "a stale heartbeat cannot renew the lease")
+        require(!lease.receive(.init(controller: UUID(), sequence: 4), process: 42, at: start.advanced(by: .seconds(4))),
+                "another controller cannot renew the lease")
+        require(lease.receive(stamp, process: 42, at: start.advanced(by: .seconds(4))), "queued current heartbeats prove liveness")
+        require(!lease.expired(at: start.advanced(by: .seconds(6))), "actor work must not hide a received heartbeat")
+        require(lease.expired(at: start.advanced(by: .seconds(10))), "receiving one heartbeat does not grant indefinite liveness")
+        lease.reset()
+        require(!lease.receive(stamp, process: 42), "stopping core revokes heartbeat authority")
     }
 
     private static func require(_ value: Bool, _ message: String) {

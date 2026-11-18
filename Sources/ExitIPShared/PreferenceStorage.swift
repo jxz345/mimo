@@ -1,4 +1,9 @@
 import Foundation
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#endif
 
 /// Existing user defaults and daemon-owned storage share the same persistence boundary.
 public protocol PreferenceStorage: AnyObject {
@@ -54,15 +59,32 @@ public final class FilePreferenceStorage: PreferenceStorage, @unchecked Sendable
                 let data = try PropertyListSerialization.data(fromPropertyList: next, format: .binary, options: 0)
                 try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true,
                                                         attributes: [.posixPermissions: 0o700])
-                // Protect the temporary file too, rather than chmod after making secrets readable.
-                try data.write(to: url, options: [.atomic, .completeFileProtectionUnlessOpen])
-                try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+                try writeAtomically(data)
                 values = next
                 failure = nil
             } catch {
                 failure = error.localizedDescription
                 throw error
             }
+        }
+    }
+
+    private func writeAtomically(_ data: Data) throws {
+        // The system daemon must reopen state while the login session is locked.
+        // User-session file protection prevents that. Protect both the temporary
+        // and committed files with owner-only permissions from their creation;
+        // provider/proxy passwords remain in the separate System Keychain.
+        var template = Array(url.deletingLastPathComponent().appendingPathComponent(".state-XXXXXX").path.utf8CString)
+        let descriptor = template.withUnsafeMutableBufferPointer { mkstemp($0.baseAddress!) }
+        guard descriptor >= 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
+        let temporary = String(cString: template)
+        defer { unlink(temporary) }
+        let file = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
+        try file.write(contentsOf: data)
+        try file.synchronize()
+        try file.close()
+        guard rename(temporary, url.path) == 0 else {
+            throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
         }
     }
 }

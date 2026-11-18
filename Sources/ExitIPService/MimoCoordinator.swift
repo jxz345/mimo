@@ -13,8 +13,10 @@ final class MimoCoordinator {
     private var revision: Int
     private var networkGeneration: UInt64 = 0
     private var heartbeat: Task<Void, Never>?
+    private var heartbeatPulse: Task<Void, Never>?
     private var directRestored = false
     private let transport: Transport
+    private let pulse: @MainActor (MimoSupervisorRequest) async throws -> Void
     private let lookupOverride: Lookup?
     private var transitionGeneration: UInt64 = 0
     private var transitionsInFlight = 0
@@ -28,12 +30,24 @@ final class MimoCoordinator {
          transport: Transport? = nil, lookup: Lookup? = nil) {
         self.configuration = configuration; self.allowlist = allowlist; self.revision = revision
         self.transport = transport ?? Self.callSupervisor
+        if let transport { pulse = { _ = try await transport($0) } }
+        else { pulse = Self.callPulse }
         lookupOverride = lookup
         state = MimoRoutingState(configuration: configuration)
     }
 
     func start() async {
         guard heartbeat == nil else { return }
+        heartbeatPulse = Task { [weak self] in
+            while !Task.isCancelled {
+                guard let self else { return }
+                var message = MimoSupervisorRequest(.heartbeat)
+                message.livenessOnly = true
+                message.stamp = MimoCommandStamp(controller: self.controllerID, sequence: self.commandSequence)
+                try? await self.pulse(message)
+                try? await Task.sleep(for: .seconds(1))
+            }
+        }
         heartbeat = Task { [weak self] in
             while !Task.isCancelled {
                 guard let self else { return }
@@ -47,6 +61,8 @@ final class MimoCoordinator {
     func stop() {
         heartbeat?.cancel()
         heartbeat = nil
+        heartbeatPulse?.cancel()
+        heartbeatPulse = nil
         networkGeneration &+= 1
         transitionGeneration &+= 1
     }
@@ -106,6 +122,7 @@ final class MimoCoordinator {
     }
 
     func lookup(_ lookup: LookupConfiguration) async throws -> ExitIPSnapshot {
+        try Task.checkCancellation()
         guard configurationChangesInFlight == 0 else { throw CancellationError() }
         let generation = networkGeneration, revision = revision, mode = configuration.mode
         var check: MimoVerification?
@@ -124,6 +141,7 @@ final class MimoCoordinator {
             }
             check = token
         }
+        try Task.checkCancellation()
         guard generation == networkGeneration, revision == self.revision else { throw CancellationError() }
         do {
             let result: ExitIPSnapshot
@@ -134,6 +152,7 @@ final class MimoCoordinator {
                 defer { session.invalidateAndCancel() }
                 result = try await PublicIPLookupClient(session: session).lookup(configuration: lookup)
             }
+            try Task.checkCancellation()
             guard generation == networkGeneration, revision == self.revision else { throw CancellationError() }
             if let check {
                 var message = MimoSupervisorRequest(.approve); message.verification = check; message.address = result.ipAddress
@@ -221,6 +240,12 @@ final class MimoCoordinator {
         return result
     }
 
+    private static func callPulse(_ message: MimoSupervisorRequest) async throws {
+        var request = DaemonRequest(.supervisor)
+        request.supervisor = message
+        _ = try await DaemonRPC.call(request, timeout: 2, serviceLabel: MimoRuntime.supervisorLabel)
+    }
+
     private func markPending(_ reason: String) {
         state.phase = .unavailable
         state.effectiveMode = nil
@@ -237,6 +262,9 @@ final class MimoCoordinator {
 
 @MainActor
 final class MimoLookupClient: PublicIPLookupClientProtocol {
+    // Two bounded supervisor calls (20s each), a 15s HTTP resource deadline,
+    // and a small scheduling margin. Public HTTP timeouts are unchanged.
+    nonisolated var lookupTimeout: Duration { .seconds(60) }
     let coordinator: MimoCoordinator
     init(_ coordinator: MimoCoordinator) { self.coordinator = coordinator }
     func lookup(configuration: LookupConfiguration) async throws -> ExitIPSnapshot { try await coordinator.lookup(configuration) }

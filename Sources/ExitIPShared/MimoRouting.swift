@@ -196,6 +196,8 @@ public struct MimoCommandStamp: Codable, Equatable, Sendable {
 public struct MimoSupervisorRequest: Codable, Sendable {
     public enum Command: String, Codable, Sendable { case state, heartbeat, prepare, approve, close, direct, service }
     public var command: Command
+    /// A heartbeat receipt only; no state read, policy change, or ordering advance.
+    public var livenessOnly: Bool?
     public var configuration: MimoConfiguration?
     public var verification: MimoVerification?
     public var allowlist: AllowedIPList?

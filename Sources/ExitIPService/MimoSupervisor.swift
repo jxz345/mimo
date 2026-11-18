@@ -11,7 +11,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
     private var endpoint: String?
     private var proxy: ClashProxySettings?
     private var activeProfile: String?
-    private var lastHeartbeat = ContinuousClock.now
+    nonisolated let heartbeatLease = MimoHeartbeatLease()
     private var watchdog: Task<Void, Never>?
     private var profileEnabled = true
     private var engineEnabled = true
@@ -30,12 +30,16 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
     }
 
     func start() {
+#if MIMO_VM_ACCEPTANCE
+        networkObserver.diagnostic = { RuntimeLog.shared.info("mimo_vm_network_diagnostic", fields: ["detail": $0]) }
+#endif
         runtime.profileWillChange = { [weak self] in
             guard let self else { return }
             self.networkObserver.willChangeProfile(engineProcess: self.runtime.runningProcessID(MimoRuntime.engineLabel))
         }
         runtime.profileDidChange = { [weak self] in self?.networkObserver.didChangeProfile() }
         do {
+            try runtime.closeStartupGate()
             try runtime.checkInstallation()
             try runtime.updateNativeTransport(.init())
             try runtime.closeGate()
@@ -82,7 +86,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 }
                 if self.policy.state.configuration.mode.requiresVerification,
                    self.policy.state.phase == .active || self.policy.state.verification != nil,
-                   (self.lastHeartbeat.duration(to: .now) > .seconds(5) || !self.runtime.isRunning(MimoRuntime.engineLabel) ||
+                   (self.heartbeatLease.expired() || !self.runtime.isRunning(MimoRuntime.engineLabel) ||
                     (self.policy.state.phase == .active && self.runtime.gateState != "active")) {
                     self.close("The controller heartbeat or proxy engine was lost.")
                 }
@@ -121,7 +125,8 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
         return true
     }
 
-    func handle(_ request: DaemonRequest, uid: uid_t, pid: pid_t) async -> DaemonResponse {
+    func handle(_ request: DaemonRequest, uid: uid_t, pid: pid_t,
+                receivedAt: ContinuousClock.Instant = .now) async -> DaemonResponse {
         guard request.protocolVersion == ExitIPService.protocolVersion else { return DaemonResponse(failure: .incompatible) }
         guard request.command == .supervisor, let message = request.supervisor else { return DaemonResponse(failure: .invalidRequest) }
         do {
@@ -140,6 +145,10 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                     RuntimeLog.shared.info("mimo_command_rejected", fields: ["command": message.command.rawValue, "reason": "ordering_or_core_identity"])
                     throw DaemonFailure.conflict
                 }
+                // Every ordered request from the live core proves liveness. Profile
+                // preparation can occupy this actor while a heartbeat waits in XPC;
+                // do not measure its deadline from an older idle-state poll.
+                heartbeatLease.authorize(stamp, process: pid, at: receivedAt)
                 if let previousProcess, previousProcess != pid {
                     generation &+= 1
                     if policy.state.configuration.mode.requiresVerification { close("Core restarted. Verification is required.") }
@@ -162,7 +171,6 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
             switch message.command {
             case .state: break
             case .heartbeat:
-                lastHeartbeat = .now
                 refreshTailnetPolicy()
             case .close:
                 directRestorationAllowed = false
@@ -237,6 +245,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                     generation &+= 1
                     if operation != .start || runtime.runningProcessID(ExitIPService.label) == nil {
                         commandFence = MimoCommandFence()
+                        heartbeatLease.reset()
                     }
                     try updateFlag(.core, enabled: operation != .stop)
                     try runtime.service(service, operation: operation)
@@ -350,6 +359,16 @@ private final class MimoSupervisorSession: NSObject, ExitIPDaemonProtocol, @unch
         }
         let uid = connection.effectiveUserIdentifier
         let pid = connection.processIdentifier
-        Task { @MainActor in reply((try? JSONEncoder().encode(await supervisor.handle(request, uid: uid, pid: pid))) ?? Data()) }
+        let receivedAt = ContinuousClock.now
+        if uid == 0, request.protocolVersion == ExitIPService.protocolVersion,
+           request.command == .supervisor, let message = request.supervisor,
+           message.command == .heartbeat, let stamp = message.stamp {
+            let accepted = supervisor.heartbeatLease.receive(stamp, process: pid, at: receivedAt)
+            if message.livenessOnly == true {
+                reply((try? JSONEncoder().encode(DaemonResponse(failure: accepted ? nil : .conflict))) ?? Data())
+                return
+            }
+        }
+        Task { @MainActor in reply((try? JSONEncoder().encode(await supervisor.handle(request, uid: uid, pid: pid, receivedAt: receivedAt))) ?? Data()) }
     }
 }

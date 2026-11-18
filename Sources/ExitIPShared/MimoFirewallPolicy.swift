@@ -6,6 +6,18 @@ public enum MimoFirewallPolicy {
     public static let anchor = "com.apple/000.mimo"
     public static let bootstrapResolver = "1.1.1.1"
     public static let directIPv4 = "pass out quick on lo0 all no state\nblock return out quick inet6 all\n"
+    /// Applied before dependency/group validation. No unverified runtime group
+    /// or native transport receives public access during startup inspection.
+    public static let startupBlocking = """
+    block return out quick on lo0 proto { tcp, udp } to { 127.0.0.1, ::1 } port { \(MimoRuntime.mixedPort), \(MimoRuntime.dnsPort) }
+    pass out quick on lo0 all no state
+    block return out quick inet6 all
+    block return out quick proto { tcp, udp } to any port { 53, 853 }
+    pass out quick inet proto udp from any port 68 to 255.255.255.255 port 67 no state
+    pass out quick to { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16 } no state
+    block drop out quick all
+
+    """
 
     public static func render(group: UInt32, endpoints: [String] = [], proxyPort: Int? = nil,
                               mode: ProxyMode? = nil, tunnel: String? = nil) throws -> String {

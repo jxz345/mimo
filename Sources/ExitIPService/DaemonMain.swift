@@ -9,9 +9,26 @@ enum DaemonMain {
     static func main() {
         guard geteuid() == 0 else { fputs("Run the installed service through launchd.\n", stderr); exit(1) }
         umask(0o077)
-        SecKeychainSetUserInteractionAllowed(false)
         do {
+#if MIMO_VM_ACCEPTANCE
+            try MimoSystemRuntime.requireAcceptanceVM()
+            if CommandLine.arguments.dropFirst() == ["--vm-acceptance-status"] {
+                print("VM-only acceptance runtime; no release qualification granted.")
+                return
+            }
+#endif
             let runtime = MimoSystemRuntime()
+            if CommandLine.arguments.dropFirst() == ["--supervisor"] || CommandLine.arguments.dropFirst() == ["--engine"] {
+                // Establish the public-traffic boundary before touching services
+                // such as Keychain or directory lookups during a cold boot.
+                try runtime.closeStartupGate()
+                let closedAt = Date().timeIntervalSince1970
+                RuntimeLog.shared.info("mimo_startup_guard_closed", fields: [
+                    "confirmed": "true", "closedAt": String(closedAt),
+                    "role": CommandLine.arguments[1]
+                ])
+            }
+            SecKeychainSetUserInteractionAllowed(false)
             switch Array(CommandLine.arguments.dropFirst()) {
             case ["--prepare-runtime"]:
                 try runtime.checkInstallation()
@@ -40,6 +57,7 @@ enum DaemonMain {
                 try MimoIPv4Configuration.apply(restoring: true)
                 return
             case ["--engine"]:
+                try runtime.closeStartupGate()
                 try runtime.checkInstallation()
                 guard let group = getgrnam(MimoRuntime.engineGroup), getegid() == group.pointee.gr_gid else {
                     throw MimoRuntimeError.unavailable("Mihomo must run in its dedicated runtime group.")

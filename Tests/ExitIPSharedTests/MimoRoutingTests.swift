@@ -126,6 +126,17 @@ final class MimoRoutingTests: XCTestCase {
         XCTAssertFalse(MihomoProfile.blocking().contains("fixture-probe-secret"))
     }
 
+    func testStartupGuardDoesNotTrustRuntimeOrNativeTransportBeforeValidation() {
+        let policy = MimoFirewallPolicy.startupBlocking
+        XCTAssertTrue(policy.hasPrefix("block return out quick on lo0"))
+        XCTAssertTrue(policy.contains("port { \(MimoRuntime.mixedPort), \(MimoRuntime.dnsPort) }"))
+        XCTAssertTrue(policy.contains("block return out quick inet6 all"))
+        XCTAssertTrue(policy.hasSuffix("block drop out quick all\n"))
+        XCTAssertFalse(policy.contains("group "))
+        XCTAssertFalse(policy.contains("native-transport"))
+        XCTAssertFalse(policy.contains(MimoFirewallPolicy.bootstrapResolver))
+    }
+
     func testGlobalRetainsLocalExceptionsButRemovesPublicDirectRules() throws {
         let result = try MihomoProfile.render(configuration.proxy!.settings(), mode: .global, stage: .active, probePassword: "fixture")
         let rules = MihomoProfile.routingRules(in: result)

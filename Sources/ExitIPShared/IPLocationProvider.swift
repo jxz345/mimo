@@ -96,8 +96,14 @@ public struct LookupConfiguration: Sendable {
 
 /// Injectable boundary used by the monitor so provider behavior can be tested without network calls.
 public protocol PublicIPLookupClientProtocol: Sendable {
+    /// Includes any managed routing preparation/activation around the HTTP lookup.
+    var lookupTimeout: Duration { get }
     func lookup(configuration: LookupConfiguration) async throws -> ExitIPSnapshot
     func confirmCountryChange(primaryProvider: ProviderID, ipinfoToken: String?) async throws -> ExitIPSnapshot
+}
+
+public extension PublicIPLookupClientProtocol {
+    var lookupTimeout: Duration { .seconds(15) }
 }
 
 /// A confirmation request occurs only after a successful primary lookup reports a country change.

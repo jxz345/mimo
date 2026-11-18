@@ -858,8 +858,9 @@ final class MonitoringEngine: ObservableObject {
         ])
     }
 
-    /// Cancels cooperative provider clients after 15 seconds. Timeouts use the normal
-    /// transport-failure rotation and backoff path. The HTTP session also bounds resource time.
+    /// Ordinary HTTP clients have a 15-second deadline. A managed-routing client
+    /// also budgets its bounded preparation/activation; its HTTP session still
+    /// independently limits provider resource time to 15 seconds.
     private func lookup(configuration: LookupConfiguration) async throws -> ExitIPSnapshot {
         let providerClient = client
         return try await withThrowingTaskGroup(of: ExitIPSnapshot.self) { group in
@@ -867,8 +868,8 @@ final class MonitoringEngine: ObservableObject {
                 return try await providerClient.lookup(configuration: configuration)
             }
             group.addTask {
-                try await Task.sleep(for: .seconds(15))
-                throw LookupError.transport("The provider request timed out.")
+                try await Task.sleep(for: providerClient.lookupTimeout)
+                throw LookupError.transport("The exit-IP check timed out.")
             }
             defer { group.cancelAll() }
             return try await group.next()!

@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """VM-only relay diagnosis. Never qualifies a runtime or changes saved networking.
 
-Compare a warm native connection with reconnect after closing the guard, then
-test explicit IPv6 rejection as a diagnostic variant. Every variant blocks public
-application traffic. The independent packet-test watchdog restores Direct.
+Compare a warm native connection with repeated forced IPv4 relay reconnects
+behind the closed production guard. Retain native observations, packet captures
+and actual loaded rules on failure. The independent watchdog restores Direct.
 """
+import grp
 import ipaddress
 import json
 import os
@@ -31,7 +32,7 @@ def run():
     base = Path(__file__).resolve().parent
     peer = sys.argv[1]
     assert ipaddress.ip_address(peer) in ipaddress.ip_network('100.64.0.0/10')
-    observer = watcher = None
+    observer = watcher = capture = None
     result = {}
 
     def cli(*args):
@@ -48,6 +49,14 @@ def run():
                 print(label + ': relay works', flush=True)
                 return
         result[label] = False
+        for suffix, args in (
+            ('guard', ('/sbin/pfctl', '-a', ANCHOR, '-vvsr')),
+            ('transport', ('/sbin/pfctl', '-a', ANCHOR + '/native-transport', '-vvsr')),
+            ('sockets', ('/usr/sbin/lsof', '-nP', '-iTCP', '-sTCP:^CLOSED')),
+            ('route', ('/sbin/route', '-n', 'get', peer)),
+        ):
+            reply = command(*args, check=False)
+            (root / (label + '-' + suffix + '.txt')).write_text(reply.stdout + reply.stderr)
         print(label + ': relay failed', flush=True)
 
     def policy(path):
@@ -59,16 +68,17 @@ def run():
     signal.signal(signal.SIGTERM, interrupt)
     signal.signal(signal.SIGINT, interrupt)
     try:
+        assert 'IPv6: Off' in command('/usr/sbin/networksetup', '-getinfo', 'Ethernet').stdout
+        ping('Direct-baseline')
+        assert result['Direct-baseline'], 'Direct peer baseline is unavailable'
         with (root / 'watchdog.log').open('w') as log:
             watcher = subprocess.Popen([sys.executable, base / 'packet_test.py', 'watchdog', root, str(os.getpid())], stdout=log, stderr=log)
         for label in (CORE, ENGINE, SUPERVISOR):
             command('/bin/launchctl', 'bootout', 'system/' + label, check=False)
         command(base / 'render-profiles', 'closed-runtime-policy', root / 'closed.pf')
         rules = (root / 'closed.pf').read_text().replace('pass out quick to { 10.0.0.0/8',
-            'block return out quick proto udp group != 10000\npass out quick to { 10.0.0.0/8')
+            'block return out quick proto udp group != ' + str(grp.getgrnam('_mimo').gr_gid) + '\npass out quick to { 10.0.0.0/8')
         (root / 'closed.pf').write_text(rules)
-        (root / 'reject-v6.pf').write_text(rules.replace('block drop out quick all',
-            'block return out quick inet6 all\nblock drop out quick all'))
         with (root / 'native.log').open('w') as log:
             observer = subprocess.Popen([base / 'native-transport-check', 'serve-transport', root, root / 'provider.stopped', '--trace'], stdout=log, stderr=log)
         (root / 'native.pid').write_text(str(observer.pid))
@@ -82,23 +92,21 @@ def run():
         (root / 'pf.token').write_text(token[1])
         command('/sbin/pfctl', '-k', '0.0.0.0/0')
         command('/sbin/pfctl', '-k', '::/0')
+        with (root / 'relay-capture.log').open('w') as log:
+            capture = subprocess.Popen(['/usr/sbin/tcpdump', '-n', '-U', '-i', 'pktap,en0',
+                '-w', str(root / 'relay.pcap'), 'tcp port 443 or udp port 41641'], stdout=log, stderr=log)
         ping('warm-connection')
-        assert cli('debug', 'break-derp-conns').returncode == 0
-        ping('reconnect-drop')
-        policy(root / 'reject-v6.pf')
-        assert cli('debug', 'break-derp-conns').returncode == 0
-        ping('reconnect-reject-v6')
-        if '--diagnose-ipv4-only' in sys.argv:
-            info = command('/usr/sbin/networksetup', '-getinfo', 'Ethernet').stdout
-            assert 'IPv6: Automatic' in info
-            (root / 'original-ethernet.txt').write_text(info)
-            (root / 'restore-ethernet-ipv6-automatic').touch()
-            command('/usr/sbin/networksetup', '-setv6off', 'Ethernet')
-            policy(root / 'closed.pf')
-            time.sleep(5)
+        for cycle in range(1, 4):
             assert cli('debug', 'break-derp-conns').returncode == 0
-            ping('diagnostic-ipv4-only')
+            ping('reconnect-' + str(cycle))
+        assert cli('down').returncode == 0
+        assert cli('up').returncode == 0
+        ping('native-down-up-without-TUN')
+        assert all(result.get(label) for label in ('warm-connection', 'reconnect-1', 'reconnect-2', 'reconnect-3', 'native-down-up-without-TUN'))
     finally:
+        if capture is not None:
+            capture.send_signal(signal.SIGINT)
+            capture.wait(timeout=5)
         if observer is not None:
             observer.terminate()
             observer.wait(timeout=5)

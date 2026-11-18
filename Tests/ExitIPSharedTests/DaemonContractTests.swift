@@ -28,6 +28,23 @@ final class DaemonContractTests: XCTestCase {
         XCTAssertThrowsError(try FilePreferenceStorage(url: url))
     }
 
+    func testAtomicStorageReplacesPermissiveFileAndLeavesNoTemporaryState() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let url = directory.appendingPathComponent("state.plist")
+        let original = try PropertyListSerialization.data(fromPropertyList: ["revision": 1], format: .binary, options: 0)
+        try original.write(to: url)
+        try FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: url.path)
+        let store = try FilePreferenceStorage(url: url)
+        for revision in 2...4 {
+            try store.update(["revision": revision])
+            XCTAssertEqual(try FilePreferenceStorage(url: url).integer(forKey: "revision"), revision)
+            XCTAssertEqual(try FileManager.default.attributesOfItem(atPath: url.path)[.posixPermissions] as? Int, 0o600)
+            XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: directory.path), ["state.plist"])
+        }
+    }
+
     func testFailedTransactionDoesNotPublishPartialSettings() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }

@@ -128,6 +128,13 @@ final class MimoSystemRuntime {
     }
 
     func requireQualifiedRuntime() throws {
+#if MIMO_VM_ACCEPTANCE
+        // Dedicated integration-test binary, never used by the app packager.
+        // It exercises the real installed core/supervisor without creating a
+        // release qualification record. Every invocation refuses physical Macs.
+        try Self.requireAcceptanceVM()
+        return
+#else
         // A normal build cannot silently assert that packet-level release acceptance has passed.
         // The release tool installs this manifest only from reviewed qualification evidence.
         let manifest = directory.appendingPathComponent("qualification.json")
@@ -139,7 +146,17 @@ final class MimoSystemRuntime {
               value["tailnetTransportPassed"] as? Bool == true else {
             throw MimoRuntimeError.unavailable("Protected routing is not qualified on this build. Direct remains available.")
         }
+#endif
     }
+
+#if MIMO_VM_ACCEPTANCE
+    static func requireAcceptanceVM() throws {
+        let hardware = BoundedProcess.run("/usr/sbin/sysctl", ["-n", "hw.model"])
+        guard geteuid() == 0, hardware.status == 0, hardware.text.hasPrefix("VirtualMac") else {
+            throw MimoRuntimeError.unavailable("VM-only acceptance runtime requires the isolated macOS guest.")
+        }
+    }
+#endif
 
     func writePrivate(_ data: Data, name: String) throws -> URL {
         try secureDirectory(directory)
@@ -153,13 +170,22 @@ final class MimoSystemRuntime {
 
     func closeGate(endpoints: [String] = [], proxyPort: Int? = nil) throws {
         closed = false
+        try closeGate(rules: MimoFirewallPolicy.render(group: group, endpoints: endpoints, proxyPort: proxyPort), applyIPv4Preferences: true)
+    }
+
+    func closeStartupGate() throws {
+        try closeGate(rules: MimoFirewallPolicy.startupBlocking, applyIPv4Preferences: false)
+    }
+
+    private func closeGate(rules: String, applyIPv4Preferences: Bool) throws {
+        closed = false
         try withFirewallLock {
             _ = try writePrivate(Data("pending".utf8), name: "gate.state")
-            try installPF(try MimoFirewallPolicy.render(group: group, endpoints: endpoints, proxyPort: proxyPort))
+            try installPF(rules, requiresRuntimeGroup: applyIPv4Preferences)
             // States created before the guard existed must not override the newly closed policy.
             try command("/sbin/pfctl", ["-k", "0.0.0.0/0"])
             try command("/sbin/pfctl", ["-k", "::/0"])
-            try MimoIPv4Configuration.apply()
+            if applyIPv4Preferences { try MimoIPv4Configuration.apply() }
             _ = try writePrivate(Data("blocked".utf8), name: "gate.state")
             closed = true
         }
@@ -235,8 +261,8 @@ final class MimoSystemRuntime {
         return true
     }
 
-    private func installPF(_ rules: String) throws {
-        guard group != UInt32.max else { throw MimoRuntimeError.unavailable("The dedicated runtime group is missing.") }
+    private func installPF(_ rules: String, requiresRuntimeGroup: Bool = true) throws {
+        guard !requiresRuntimeGroup || group != UInt32.max else { throw MimoRuntimeError.unavailable("The dedicated runtime group is missing.") }
         let main = BoundedProcess.run("/sbin/pfctl", ["-sr"])
         guard main.status == 0, main.text.contains("anchor \"com.apple/*\""),
               !main.text.contains("pass out quick"), !main.text.contains("pass quick") else {

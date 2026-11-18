@@ -20,7 +20,8 @@ final class MimoNetworkObserver {
         Task { @MainActor in self?.configurationChanged(keys) }
     })
     private lazy var routes = RouteChangeObserver(onChanges: { [weak self] changes in
-        Task { @MainActor in self?.routesChanged(changes) }
+        let receivedAt = ContinuousClock.now
+        Task { @MainActor in self?.routesChanged(changes, receivedAt: receivedAt) }
     })
     private lazy var power = SystemPowerObserver { [weak self] in self?.changed("wake") }
 
@@ -95,7 +96,10 @@ final class MimoNetworkObserver {
         let tunnelMatches = tunnelSignature != nil && tunnelSignature == currentTunnelSignature()
         let external = keys.isEmpty || keys.contains { key in
             if key == MimoRuntime.dnsStateKey {
-                return ContinuousClock.now > profileChangeDeadline || currentDNS() != expectedDNS
+                // configd can deliver this notification after controller work has
+                // occupied the actor. Compare the actual value with the owned
+                // value; queue latency is not an external configuration change.
+                return currentDNS() != expectedDNS
             }
             if key.hasPrefix("State:/Network/Global/"), let currentGlobals, let globalConfiguration {
                 // configd republishes unchanged global keys after supplemental DNS
@@ -103,7 +107,7 @@ final class MimoNetworkObserver {
                 return currentGlobals[key] != globalConfiguration[key]
             }
             if key.hasPrefix("State:/Network/Interface/\(MihomoProfile.tunnelDevice)/") {
-                return !tunnelMatches || ContinuousClock.now > profileChangeDeadline
+                return !tunnelMatches
             }
             if key == "State:/Network/Interface" { return current == nil || current != otherInterfaces }
             return true
@@ -112,7 +116,7 @@ final class MimoNetworkObserver {
         if external { changed("configuration") }
     }
 
-    private func routesChanged(_ changes: [RouteChangeObserver.Change]) {
+    private func routesChanged(_ changes: [RouteChangeObserver.Change], receivedAt: ContinuousClock.Instant) {
         diagnostic?("routes: " + changes.map { "type=\($0.type) interface=\($0.interfaceName ?? "unknown") index=\($0.interfaceIndex) pid=\($0.processID.map(String.init) ?? "none") addresses=\($0.addresses.joined(separator: ","))" }.joined(separator: "; "))
         let signatureMatches = tunnelSignature != nil && tunnelSignature == currentTunnelSignature()
         let external = changes.contains { change in
@@ -122,7 +126,7 @@ final class MimoNetworkObserver {
                 recordedTunnelMatches: signatureMatches, eventProcess: change.processID, engineProcess: engineProcess,
                 unresolvedInterface: change.interfaceIndex == 0 && change.interfaceName == nil,
                 ownedAddress: !tunnelAddresses.isDisjoint(with: change.addresses),
-                insideProfileChangeWindow: ContinuousClock.now <= profileChangeDeadline)
+                insideProfileChangeWindow: receivedAt <= profileChangeDeadline)
         }
         if external { changed("route") }
     }

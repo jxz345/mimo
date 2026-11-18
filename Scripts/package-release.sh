@@ -51,6 +51,10 @@ xcodebuild \
     build
 
 printf '\n== Ad-hoc signing ==\n'
+if /usr/bin/strings "$APP_BUNDLE/Contents/MacOS/mimo-core" | /usr/bin/grep -F 'VM-only acceptance runtime' >/dev/null; then
+    printf 'ERROR A VM-only acceptance helper cannot be packaged for release.\n' >&2
+    exit 1
+fi
 adhoc_sign_app "$APP_BUNDLE" "$PROJECT_DIR/Configuration/ExitIPMonitorWidgets.entitlements"
 
 for binary in \
