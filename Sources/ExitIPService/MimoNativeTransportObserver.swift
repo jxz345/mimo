@@ -35,7 +35,7 @@ enum MimoNativeTransportProbe {
         return SecStaticCodeCheckValidity(code, [], requirement) == errSecSuccess
     }
 
-    static func infrastructure() -> Set<String> {
+    static func infrastructure(includeBootstrap: Bool = true, publish: (@Sendable (Set<String>) -> Void)? = nil) -> Set<String> {
         guard trustedCLI() else { return [] }
         var addresses = Set<String>()
         if let user = TailscaleProbe.candidateUsers(previousUser: nil).first {
@@ -52,30 +52,42 @@ enum MimoNativeTransportProbe {
                 }
             }
         }
-        // The native control/log endpoints are bootstrapped through the same fixed
-        // TLS resolver allowed to Mimo's private runtime group. No system DNS grant.
-        for host in ["controlplane.tailscale.com", "log.tailscale.com"] {
-            for type in ["A"] {
+        // Publish the live map before DNS work. Bootstrap DNS endpoints are a
+        // separate map embedded by Tailscale and may be absent from this map.
+        publish?(addresses)
+        let collected = MimoInfrastructureCollection(addresses)
+        let queue = OperationQueue()
+        queue.maxConcurrentOperationCount = 4
+        let hosts = includeBootstrap ? MimoNativeInfrastructure.dnsHosts : Array(MimoNativeInfrastructure.dnsHosts.prefix(2))
+        for host in hosts {
+            queue.addOperation {
                 let response = BoundedProcess.run("/usr/bin/curl", ["--silent", "--fail", "--max-time", "5",
                     "--noproxy", "*", "-H", "Accept: application/dns-json",
-                    "https://1.1.1.1/dns-query?name=\(host)&type=\(type)"], timeout: 6)
-                guard response.status == 0, let data = response.text.data(using: .utf8),
-                      let answer = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                      answer["Status"] as? Int == 0 else {
-                    // A failed query contributes nothing, but must not discard
-                    // independently authenticated DERP or other DNS answers.
-                    continue
-                }
-                for record in answer["Answer"] as? [[String: Any]] ?? [] {
-                    if let kind = record["type"] as? Int, [1, 28].contains(kind),
-                       let raw = record["data"] as? String, let address = IPAddressValidator.normalize(raw) { addresses.insert(address) }
-                }
+                    "https://1.1.1.1/dns-query?name=\(host)&type=A"], timeout: 6)
+                guard response.status == 0, let data = response.text.data(using: .utf8) else { return }
+                let answers = MimoNativeInfrastructure.ipv4Answers(data)
+                collected.insert(answers)
+                if !answers.isEmpty { publish?(answers) }
             }
         }
-        return addresses.count <= 256 ? addresses : []
+        queue.waitUntilAllOperationsAreFinished()
+        return collected.addresses
     }
 
     static func check(tailnetEnabled: Bool, infrastructure: Set<String>) -> MimoNativeTransport {
+        check(interface: tailnetEnabled ? TailscaleProbe.check(previousUser: nil) : nil, infrastructure: infrastructure)
+    }
+
+    static func check(interface observation: TailscaleProbe.Result?, infrastructure: Set<String>) -> MimoNativeTransport {
+        // The slow native CLI runs separately. Recheck the leased interface's
+        // current route/address before taking the fresh socket snapshot.
+        var interface: String?
+        if let (name, address) = eligibleInterface(observation, at: .now) {
+            let route = BoundedProcess.run("/sbin/route", ["-n", "get", "100.100.100.100"], timeout: 0.5)
+            let config = BoundedProcess.run("/sbin/ifconfig", [name], timeout: 0.5)
+            if route.status == 0, config.status == 0, NativeProviderProtocol.routeInterface(route.text) == name,
+               NativeProviderProtocol.ownsAddress(config.text, interface: name, address: address) { interface = name }
+        }
         let bytes = proc_listallpids(nil, 0) * Int32(MemoryLayout<pid_t>.size) * 2
         guard bytes > 0 else { return .init() }
         var pids = [pid_t](repeating: 0, count: Int(bytes) / MemoryLayout<pid_t>.size)
@@ -86,58 +98,140 @@ enum MimoNativeTransportProbe {
         guard sockets.status == 0, trustedProcess(pid) else { return .init() }
         var result = MimoNativeTransport.parse(sockets.text, process: pid)
         result.infrastructure = infrastructure
-        if tailnetEnabled {
-            let probe = TailscaleProbe.check(previousUser: nil)
-            if case .direct(let interface) = probe.status.served { result.interface = interface }
-        }
+        result.interface = interface
         guard trustedProcess(pid) else { return .init() }
         return result
+    }
+
+    static func eligibleInterface(_ observation: TailscaleProbe.Result?, at now: Date) -> (String, String)? {
+        guard let observation, let checked = observation.status.checkedAt,
+              (0..<5).contains(now.timeIntervalSince(checked)), let address = observation.address,
+              NativeProviderProtocol.tailscaleAddress(address) == address,
+              case .direct(let name) = observation.status.served else { return nil }
+        return (name, address)
+    }
+}
+
+private final class MimoInfrastructureCollection: @unchecked Sendable {
+    private let lock = NSLock()
+    private var values: Set<String>
+    init(_ values: Set<String>) { self.values = values }
+    func insert(_ values: Set<String>) { lock.withLock { self.values.formUnion(values) } }
+    var addresses: Set<String> { lock.withLock { values.count <= 256 ? values : [] } }
+}
+
+/// Endpoint observations retain their original expiry across provider toggles.
+final class MimoNativeInfrastructureObservations: @unchecked Sendable {
+    private let lock = NSLock()
+    private var cache = MimoInfrastructureCache()
+    func update(_ values: Set<String>) { lock.withLock { cache.update(values, at: .now) } }
+    func addresses() -> Set<String> { lock.withLock { cache.addresses(at: .now) } }
+}
+
+/// Stop waits for in-flight application and fences late detached results.
+final class MimoNativeObservationSession: @unchecked Sendable {
+    private let lock = NSLock()
+    private var active = true
+    private let store: MimoNativeInfrastructureObservations
+    private var interface: TailscaleProbe.Result?
+
+    init(infrastructure: MimoNativeInfrastructureObservations = .init()) { self.store = infrastructure }
+    func infrastructure(_ values: Set<String>) { lock.withLock { if active { store.update(values) } } }
+    func observed(_ value: TailscaleProbe.Result) { lock.withLock { if active { interface = value } } }
+    func snapshot() -> (TailscaleProbe.Result?, Set<String>) { lock.withLock { (interface, store.addresses()) } }
+    @discardableResult
+    func apply(_ value: MimoNativeTransport, using operation: (MimoNativeTransport) -> Void) -> Bool {
+        lock.withLock {
+            guard active else { return false }
+            operation(value)
+            return true
+        }
+    }
+    func stop(using operation: (MimoNativeTransport) -> Void) {
+        lock.withLock { active = false; operation(.init()) }
     }
 }
 
 @MainActor
 final class MimoNativeTransportObserver {
-    private var task: Task<Void, Never>?
-    private var infrastructureTask: Task<Void, Never>?
-    private var cache = MimoInfrastructureCache()
-    private var enabled = false
-    private var generation = 0
-    private let changed: (MimoNativeTransport) -> Void
+    typealias Probe = @Sendable (TailscaleProbe.Result?, Set<String>) -> MimoNativeTransport
+    private var tasks: [Task<Void, Never>] = []
+    private var session: MimoNativeObservationSession?
+    private let infrastructure = MimoNativeInfrastructureObservations()
+    private let changed: @Sendable (MimoNativeTransport) -> Void
+    private let probe: Probe
 
-    init(changed: @escaping (MimoNativeTransport) -> Void) { self.changed = changed }
+    init(changed: @escaping @Sendable (MimoNativeTransport) -> Void,
+         probe: @escaping Probe = { MimoNativeTransportProbe.check(interface: $0, infrastructure: $1) }) {
+        self.changed = changed
+        self.probe = probe
+    }
 
-    func start(tailnetEnabled: Bool) {
+    func start(tailnetEnabled: Bool, discoverInfrastructure: Bool = true) {
         stop()
-        enabled = tailnetEnabled
-        let epoch = generation
-        infrastructureTask = Task { [weak self] in
-            while !Task.isCancelled {
-                let refreshed = await Task.detached(priority: .utility) { MimoNativeTransportProbe.infrastructure() }.value
-                guard let self, !Task.isCancelled, epoch == self.generation else { return }
-                self.cache.update(refreshed, at: .now)
-                try? await Task.sleep(for: .seconds(10))
-            }
+        // Retain unexpired authenticated endpoints across provider toggles.
+        // Rotating DNS must not revoke a still-held control connection merely
+        // because the inner tailnet route was stopped and started.
+        let session = MimoNativeObservationSession(infrastructure: infrastructure)
+        self.session = session
+        let changed = changed, probe = probe
+        if discoverInfrastructure {
+            tasks.append(Task.detached(priority: .utility) {
+                var nextBootstrap = ContinuousClock.now
+                while !Task.isCancelled {
+                    let includeBootstrap = ContinuousClock.now >= nextBootstrap
+                    if includeBootstrap { nextBootstrap = .now.advanced(by: .seconds(60)) }
+                    let refreshed = MimoNativeTransportProbe.infrastructure(includeBootstrap: includeBootstrap) {
+                        session.infrastructure($0)
+                    }
+                    guard !Task.isCancelled else { return }
+                    session.infrastructure(refreshed)
+                    try? await Task.sleep(for: .seconds(10))
+                }
+            })
         }
-        task = Task { [weak self] in
-            while !Task.isCancelled {
-                guard let self else { return }
-                let enabled = self.enabled
-                // Slow DNS must not delay observing/revoking native socket rules.
-                let addresses = self.cache.addresses(at: .now)
-                let result = await Task.detached(priority: .utility) {
-                    MimoNativeTransportProbe.check(tailnetEnabled: enabled, infrastructure: addresses)
-                }.value
-                guard !Task.isCancelled, epoch == self.generation else { return }
-                self.changed(result)
-                try? await Task.sleep(for: .milliseconds(500))
-            }
+        if tailnetEnabled {
+            tasks.append(Task.detached(priority: .utility) {
+                var previousUser: uid_t?
+                while !Task.isCancelled {
+                    let value = TailscaleProbe.check(previousUser: previousUser)
+                    guard !Task.isCancelled else { return }
+                    previousUser = value.user
+                    session.observed(value)
+                    try? await Task.sleep(for: .seconds(2))
+                }
+            })
         }
+        tasks.append(Task.detached(priority: .userInitiated) {
+            while !Task.isCancelled {
+                let (interface, addresses) = session.snapshot()
+#if MIMO_VM_ACCEPTANCE
+                let began = Date()
+#endif
+                let result = probe(interface, addresses)
+#if MIMO_VM_ACCEPTANCE
+                let probed = Date()
+#endif
+                guard !Task.isCancelled, session.apply(result, using: changed) else { return }
+#if MIMO_VM_ACCEPTANCE
+                RuntimeLog.shared.info("mimo_vm_native_observed", fields: [
+                    "elapsedMs": String(Int(Date().timeIntervalSince(began) * 1000)),
+                    "probeMs": String(Int(probed.timeIntervalSince(began) * 1000)),
+                    "applyMs": String(Int(Date().timeIntervalSince(probed) * 1000)),
+                    "interfaceVerified": result.interface == nil ? "false" : "true",
+                    "infrastructureCount": String(result.infrastructure.count),
+                    "tcpPorts": result.sockets.filter { $0.destination != nil }.map { String($0.port) }.sorted().joined(separator: ",")
+                ])
+#endif
+                try? await Task.sleep(for: .milliseconds(250))
+            }
+        })
     }
 
     func stop() {
-        generation += 1
-        task?.cancel(); task = nil
-        infrastructureTask?.cancel(); infrastructureTask = nil
-        changed(.init())
+        tasks.forEach { $0.cancel() }; tasks.removeAll()
+        if let session { session.stop(using: changed) }
+        else { changed(.init()) }
+        session = nil
     }
 }

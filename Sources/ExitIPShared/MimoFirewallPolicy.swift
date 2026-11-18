@@ -26,7 +26,8 @@ public enum MimoFirewallPolicy {
               tunnel == nil || tunnel == MihomoProfile.tunnelDevice,
               mode != .direct else { throw DaemonFailure.invalidRequest }
         var rules = [
-            "# Mimo: independently enforced application gate"
+            "# Mimo: independently enforced application gate",
+            "anchor \"power-guard\" out quick"
         ]
         if mode == nil {
             // An established localhost CONNECT session must not keep forwarding via the

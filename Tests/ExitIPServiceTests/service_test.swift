@@ -6,6 +6,8 @@ struct ServiceTests {
     @MainActor
     static func main() async throws {
         MimoCommandFenceTests.run()
+        try MimoPowerTests.run()
+        MimoNativeObserverTests.run()
         try await MimoRecoveryTests.run()
         let boot = UUID().uuidString
         let reference = MimoPFReference(token: "12345", boot: boot)
@@ -141,6 +143,21 @@ struct ServiceTests {
         try await Task.sleep(for: .milliseconds(350))
         require(await freshClient.count == 2, "manual Direct refresh must perform the lookup")
         fresh.stop()
+        let eofMarker = directory.appendingPathComponent("stdin-reader-ready")
+        let concurrentInput = Task.detached {
+            BoundedProcess.run("/bin/sh", ["-c", ": > \"$1\"; /bin/sleep 0.4; /usr/bin/wc -c", "stdin-eof", eofMarker.path],
+                               timeout: 2, input: Data(repeating: 120, count: 300_000))
+        }
+        let eofDeadline = ContinuousClock.now.advanced(by: .seconds(5))
+        while !FileManager.default.fileExists(atPath: eofMarker.path) {
+            require(ContinuousClock.now < eofDeadline, "stdin fixture must start")
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        let unrelatedChild = Task.detached { BoundedProcess.run("/bin/sleep", ["3"], timeout: 4) }
+        let concurrentResult = await concurrentInput.value
+        _ = await unrelatedChild.value
+        require(concurrentResult.status == 0 && concurrentResult.text.trimmingCharacters(in: .whitespacesAndNewlines) == "300000",
+                "an unrelated child must not inherit stdin descriptors or delay EOF for a concurrent command")
         let input = Data(repeating: 120, count: 300_000)
         let streamed = await Task.detached { BoundedProcess.run("/usr/bin/wc", ["-c"], timeout: 3, input: input) }.value
         require(streamed.status == 0 && streamed.text.trimmingCharacters(in: .whitespacesAndNewlines) == "300000",

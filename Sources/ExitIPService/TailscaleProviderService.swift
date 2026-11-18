@@ -43,7 +43,11 @@ enum BoundedProcess {
         posix_spawn_file_actions_addclose(&actions, descriptors[1])
         posix_spawn_file_actions_addclose(&actions, null)
         // Each probe has its own group so timeout also terminates sudo and its child CLI.
-        posix_spawnattr_setflags(&attributes, Int16(POSIX_SPAWN_SETPGROUP))
+        // Concurrent probes must not inherit another probe's pipe/socket ends:
+        // an inherited stdin writer prevents EOF and can stall pfctl or mihomo
+        // until an unrelated network request exits. Only explicit stdio actions
+        // below may survive into the child.
+        posix_spawnattr_setflags(&attributes, Int16(POSIX_SPAWN_SETPGROUP | POSIX_SPAWN_CLOEXEC_DEFAULT))
         posix_spawnattr_setpgroup(&attributes, 0)
         let argv = ([executable] + arguments).map { strdup($0) } + [nil]
         let environment = ["PATH=/usr/bin:/bin:/usr/sbin:/sbin", "LC_ALL=C"]
@@ -106,7 +110,7 @@ enum BoundedProcess {
 
 struct TailscaleProbe {
     static let cli = "/Applications/Tailscale.app/Contents/MacOS/Tailscale"
-    struct Result: Sendable { var status: TailscaleVergeStatus; var user: uid_t? }
+    struct Result: Sendable { var status: TailscaleVergeStatus; var user: uid_t?; var address: String? = nil }
 
     static func runAsUser(_ uid: uid_t, arguments: [String]) -> (text: String, status: Int32) {
         guard uid != 0, let entry = getpwuid(uid) else { return ("", -1) }
@@ -147,7 +151,7 @@ struct TailscaleProbe {
             }
             let recheck = run("/sbin/route", ["-n", "get", "100.100.100.100"])
             guard recheck.status == 0, NativeProviderProtocol.routeInterface(recheck.text) == interface else { return reject("route-changed-during-check") }
-            return Result(status: .init(served: .direct(interface: interface), checkedAt: .now), user: uid)
+            return Result(status: .init(served: .direct(interface: interface), checkedAt: .now), user: uid, address: address)
         }
         return reject(reason)
     }

@@ -31,7 +31,7 @@ final class MimoSystemRuntime {
     private var enableToken: String?
     private var loadedProfile: (digest: SHA256.Digest, process: Int32)?
     private var deliveredContents: String?
-    private var nativeTransportRules: String?
+    private nonisolated let nativeTransportWriter = MimoNativeTransportWriter()
     private let dns = MimoDNSConfiguration()
     var profileWillChange: (() -> Void)?
     var profileDidChange: (() -> Void)?
@@ -66,16 +66,8 @@ final class MimoSystemRuntime {
         return try JSONDecoder().decode(MachineSettings.self, from: data).validated().tailscaleProviderEnabled
     }
 
-    func updateNativeTransport(_ value: MimoNativeTransport) throws {
-        let rules = try value.render()
-        guard rules != nativeTransportRules else { return }
-        try withFirewallLock {
-            let path = try writePrivate(Data(rules.utf8), name: "native-transport.pf")
-            let anchor = MimoFirewallPolicy.anchor + "/native-transport"
-            try command("/sbin/pfctl", ["-n", "-a", anchor, "-f", path.path])
-            try command("/sbin/pfctl", ["-a", anchor, "-f", path.path])
-            nativeTransportRules = rules
-        }
+    nonisolated func updateNativeTransport(_ value: MimoNativeTransport) throws {
+        try nativeTransportWriter.update(value)
     }
 
     func savedRouting() throws -> (configuration: MimoConfiguration, revision: Int) {
@@ -235,8 +227,8 @@ final class MimoSystemRuntime {
             do { try dns.remove() }
             catch { profileDidChange?(); throw error }
             profileDidChange?()
-            try command("/sbin/pfctl", ["-a", MimoFirewallPolicy.anchor + "/native-transport", "-F", "rules"])
-            nativeTransportRules = nil
+            try nativeTransportWriter.update(.init())
+            try MimoPowerGuard.clear()
             if !uninstalling {
                 try MimoIPv4Configuration.apply()
                 try installPF(MimoFirewallPolicy.directIPv4)

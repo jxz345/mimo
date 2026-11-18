@@ -21,6 +21,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import traceback
 
 from upgrade_test import CORE, SUPERVISOR, ENGINE, RUNTIME, STORAGE, FLAGS, HELPER, read_settings, atomic_write
 from installed_acceptance_test import command, stop_jobs, start_jobs, replace_helper
@@ -33,7 +34,11 @@ for line in sys.stdin:
  v=json.loads(line); key=v.get('key','default');s=None
  try:
   op=v['op']
-  if op=='udp':
+  if op=='peer':
+   s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM if v['udp'] else socket.SOCK_STREAM);s.settimeout(4)
+   payload=('mimo-peer-'+v['token']+'-saved-proxy-check').encode()
+   s.connect((v['host'],v['port']));s.sendall(payload);assert s.recv(512)==payload
+  elif op=='udp':
    s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM);s.settimeout(4)
    packet=struct.pack('!6H',0x4142,0x0100,1,0,0,0)+b'\x07example\x03com\x00'+struct.pack('!2H',1,1)
    s.sendto(packet,(v.get('host','8.8.8.8'),53));reply=s.recv(2048)
@@ -124,6 +129,12 @@ def restore(root):
                 digest=command(Path(__file__).parent/'acceptance-client','credential-digest').stdout.strip()
                 assert digest==(root/'private-backup/credential.digest').read_text()
                 assert not (RUNTIME/'qualification.json').exists()
+                # Native reconnection can itself need public access. Recover
+                # the production helper and Direct before attempting it, so a
+                # failed native CLI cannot strand the VM behind the test gate.
+                if (root/'restore-native-up').exists():
+                    command('/usr/bin/sudo','-n','-u','jay','/Applications/Tailscale.app/Contents/MacOS/Tailscale','up')
+                    (root/'restore-native-up').unlink()
                 (root/'cleanup-complete').touch()
                 return
             time.sleep(.25)
@@ -144,12 +155,16 @@ def watchdog(root,parent):
     if not (root/'cleanup-complete').exists():restore(root)
 
 
-def run(direct_only=False,features=False):
+def run(direct_only=False,features=False,power=False,relay=None):
     assert os.geteuid()==0 and command('/usr/sbin/sysctl','-n','hw.model').stdout.startswith('VirtualMac')
     base=Path(__file__).resolve().parent
     original=read_settings();routing=json.loads(original['service.routing']);settings=json.loads(original['service.settings'])
     assert routing['mode']=='direct' and routing.get('proxy') and settings['allowlist']['addresses']
     approved=settings['allowlist']['addresses'];proxy=routing['proxy']
+    if relay:
+        peer=json.loads(relay.read_text())['peer']
+        assert len(peer['addresses'])==1 and ipaddress.IPv4Address(peer['addresses'][0]) in ipaddress.IPv4Network('100.64.0.0/10')
+        assert peer['port']==18889 and re.fullmatch('[0-9a-f]{64}',peer['token'])
     ipaddress.IPv4Address(proxy['server'])
     assert not (RUNTIME/'qualification.json').exists()
     assert all(json.loads(FLAGS.read_bytes()).get(k) for k in ('core','engine','profile'))
@@ -182,6 +197,26 @@ def run(direct_only=False,features=False):
     def request(op,**kwargs):
         worker.stdin.write(json.dumps(dict(op=op,**kwargs))+'\n');worker.stdin.flush()
         return json.loads(worker.stdout.readline())['ok']
+    def stable_public(mode,name):
+        # Native down/up finishes before configd delivers all interface/DNS
+        # notifications. Establish a quiet, working baseline before attributing
+        # a subsequent failure to the independent provider Stop/Start action.
+        deadline=time.monotonic()+90;since=None;offsets=event_offsets()
+        while time.monotonic()<deadline:
+            state=supervisor();now=time.monotonic()
+            (root/'last-supervisor.json').write_text(json.dumps(state))
+            changes=any(r['event']=='mimo_network_changed' for r in events(offsets))
+            offsets=event_offsets()
+            if not changes and active(mode)(state) and request('https'):
+                if since is None:since=now
+                if now-since>=5:record(name);return
+            else:since=None
+            time.sleep(.5)
+        raise RuntimeError(name+' timed out; no stable verified public connection')
+    def require_public(mode,label):
+        state=supervisor();(root/(label+'-supervisor.json')).write_text(json.dumps(state))
+        assert active(mode)(state),label+' changed public routing phase: '+str(state.get('phase'))+'; '+str(state.get('reason'))
+        assert request('https'),label+' interrupted ordinary HTTPS'
     def pid(label):
         v=command('/bin/launchctl','print','system/'+label,check=False).stdout
         return next((int(x.strip()[6:]) for x in v.splitlines() if x.strip().startswith('pid = ')),None)
@@ -247,6 +282,27 @@ def run(direct_only=False,features=False):
             time.sleep(.2)
         raise RuntimeError(name+' timed out')
     def closed_event(records):return any(r['event']=='mimo_gate_closed' and r['fields'].get('confirmed')=='true' for r in records)
+    def native(*args):
+        return command('/usr/bin/sudo','-n','-u','jay','/Applications/Tailscale.app/Contents/MacOS/Tailscale',*args,check=False)
+    def relay_peer(label,require_relay=True):
+        deadline=time.monotonic()+35;attempts=[]
+        while time.monotonic()<deadline:
+            reply=native('ping','--c=1','--until-direct=false','--timeout=3s',peer['addresses'][0])
+            with (root/(label+'-ping.txt')).open('a') as stream:stream.write(reply.stdout+reply.stderr)
+            ping=reply.returncode==0 and (not require_relay or 'via DERP(' in reply.stdout)
+            tcp=request('peer',host=peer['addresses'][0],port=peer['port'],token=peer['token'],udp=False)
+            udp=request('peer',host=peer['addresses'][0],port=peer['port'],token=peer['token'],udp=True)
+            attempts.append({'time':time.time(),'ping':ping,'TCP':tcp,'UDP':udp})
+            (root/(label+'.json')).write_text(json.dumps(attempts))
+            if ping and tcp and udp:record(label+'-ping-TCP-UDP');return
+        for kind in ['metrics','daemon-goroutines']:
+            r=native('debug',kind);(root/(label+'-'+kind+'.txt')).write_text(r.stdout+r.stderr)
+        for kind,args in [('guard',('/sbin/pfctl','-a','com.apple/000.mimo','-vvsr')),
+                          ('native',('/sbin/pfctl','-a','com.apple/000.mimo/native-transport','-vvsr')),
+                          ('sockets',('/usr/sbin/lsof','-nP','-iTCP','-sTCP:^CLOSED')),
+                          ('route',('/sbin/route','-n','get',peer['addresses'][0]))]:
+            r=command(*args,check=False);(root/(label+'-'+kind+'.txt')).write_text(r.stdout+r.stderr)
+        raise RuntimeError(label+' relay did not recover; private diagnostics retained')
     def interrupted(signum,frame):raise KeyboardInterrupt()
     signal.signal(signal.SIGTERM,interrupted);signal.signal(signal.SIGINT,interrupted)
     account=pwd.getpwnam('jay')
@@ -298,6 +354,40 @@ def run(direct_only=False,features=False):
             client('refresh');wait_for(direct_without_warning,'Direct-fresh-IP-monitoring-remains-enabled',whole=True)
             assert request('https') and not request('ipv6')
             record('Direct-IPv4-works-with-no-allowlist-approval')
+        elif relay:
+            status=json.loads(native('status','--json').stdout)
+            assert status['BackendState']=='Running'
+            relay_peer('Direct-peer-baseline',require_relay=False)
+            client('tailnet','start')
+            for mode in ['rule','global']:
+                client('mode',mode);wait_for(active(mode),mode+'-relay-public-access-approved')
+                traffic(mode);relay_peer(mode+'-warm-relay')
+                for cycle in range(1,6):
+                    assert native('debug','break-derp-conns').returncode==0
+                    relay_peer(mode+'-relay-reconnect-'+str(cycle))
+                (root/'restore-native-up').touch()
+                try:
+                    assert native('down').returncode==0
+                    assert native('up').returncode==0
+                finally:
+                    assert native('up').returncode==0
+                    (root/'restore-native-up').unlink()
+                client('refresh');wait_for(active(mode),mode+'-native-restart-reverified')
+                relay_peer(mode+'-native-down-up')
+                stable_public(mode,mode+'-native-network-settled-before-provider-controls')
+                client('tailnet','stop')
+                require_public(mode,mode+'-provider-Stop')
+                assert not request('peer',host=peer['addresses'][0],port=peer['port'],token=peer['token'],udp=False),mode+' provider Stop retained peer TCP access'
+                assert not request('peer',host=peer['addresses'][0],port=peer['port'],token=peer['token'],udp=True),mode+' provider Stop retained peer UDP access'
+                record(mode+'-provider-Stop-blocks-peer-without-closing-approved-public-access')
+                for operation in ['start','restart']:
+                    # Match the dashboard's Restart: commit Stop, then Start
+                    # with the resulting revision. There is no restart setting.
+                    if operation=='restart':client('tailnet','stop')
+                    client('tailnet','start')
+                    require_public(mode,mode+'-provider-'+operation)
+                    relay_peer(mode+'-provider-'+operation)
+            client('mode','direct');wait_for(active('direct'),'relay-test-restores-Direct')
         else:
             client('allow');client('mode','rule')
             value=wait_for(lambda s:blocked(s) and bool(s.get('blockingIP')),'Rule-empty-allowlist-observes-exit-but-blocks')
@@ -313,6 +403,29 @@ def run(direct_only=False,features=False):
             client('mode','global');wait_for(active('global'),'Global-opens-after-fresh-check');traffic('global')
             client('allow');wait_for(lambda s:blocked(s) and bool(s.get('blockingIP')),'Global-empty-allowlist-blocks');deny('Global-empty-allowlist')
             client('allow',*approved);wait_for(active('global'),'Global-recovers-with-original-allowlist')
+            if power:
+                for mode in ['rule','global']:
+                    client('mode',mode);wait_for(active(mode),mode+'-power-baseline')
+                    assert request('https',key='power',keep=True)
+                    offsets=event_offsets();supervisor_pid=pid(SUPERVISOR);core_pid=pid(CORE)
+                    assert supervisor_pid and core_pid
+                    (root/'stopped-core.pid').write_text(str(core_pid));os.kill(core_pid,signal.SIGSTOP)
+                    try:
+                        os.kill(supervisor_pid,signal.SIGUSR1)
+                        rows=wait_event(offsets,lambda r:any(v['event']=='mimo_vm_power_acknowledged' for v in r),mode+'-injected-sleep-acknowledged-after-guard')
+                        names=[r['event'] for r in rows]
+                        assert names.index('mimo_sleep_guard_closed')<names.index('mimo_vm_power_acknowledged')
+                        assert not request('existing',key='power')
+                        deny(mode+'-injected-sleep-with-core-suspended')
+                        os.kill(supervisor_pid,signal.SIGUSR2)
+                        wait_event(offsets,lambda r:any(v['event']=='mimo_network_changed' and v['fields'].get('source')=='wake' for v in r),mode+'-injected-wake-observed-with-core-suspended')
+                        deny(mode+'-injected-wake-awaits-fresh-core-verification')
+                    finally:
+                        os.kill(core_pid,signal.SIGCONT);(root/'stopped-core.pid').unlink()
+                        os.kill(supervisor_pid,signal.SIGUSR2)
+                    client('refresh');wait_for(active(mode),mode+'-fresh-check-releases-sleep-barrier')
+                    assert request('https') and not request('ipv6')
+                client('mode','global');wait_for(active('global'),'power-tests-restore-Global')
             for name,changed in [('bad-username',dict(proxy,username='mimo-invalid-test-user')),('unavailable-proxy',dict(proxy,server='127.0.0.1',port=9))]:
                 path=root/(name+'.json');path.write_text(json.dumps(changed));client('proxy-metadata',path)
                 wait_for(blocked,name+'-blocks');deny(name)
@@ -364,17 +477,19 @@ def run(direct_only=False,features=False):
             client('mode','direct');wait_for(active('direct'),'explicit-Direct-recovers')
             with packets('Direct-restored-traffic','dst host 1.1.1.1 and tcp dst port 443',empty=False):assert request('https')
             assert not request('ipv6');record('Direct-restores-IPv4-and-retains-IPv6-denial')
-            capture.send_signal(signal.SIGINT);capture.wait(timeout=5);capture=None
-            (root/'capture-phases.json').write_text(json.dumps(phases))
-            for phase in phases:
-                output=command('/usr/sbin/tcpdump','-tt','-nn','-k','NP','-r',root/'traffic.pcap',phase['expression']).stdout
-                selected=[line for line in output.splitlines() if line and phase['started']<=float(line.split()[0])<=phase['ended'] and any(re.search(r':'+str(pid)+r'[,)]',line) for pid in phase['subjects'])]
-                (root/(phase['name']+'.packets.txt')).write_text('\n'.join(selected))
-                assert (not selected) if phase['empty'] else bool(selected),phase['name']+' failed packet expectation'
-            record('continuous-capture-confirms-denied-and-proxied-traffic-boundaries')
+        capture.send_signal(signal.SIGINT);capture.wait(timeout=5);capture=None
+        (root/'capture-phases.json').write_text(json.dumps(phases))
+        for phase in phases:
+            output=command('/usr/sbin/tcpdump','-tt','-nn','-k','NP','-r',root/'traffic.pcap',phase['expression']).stdout
+            selected=[line for line in output.splitlines() if line and phase['started']<=float(line.split()[0])<=phase['ended'] and any(re.search(r':'+str(pid)+r'[,)]',line) for pid in phase['subjects'])]
+            (root/(phase['name']+'.packets.txt')).write_text('\n'.join(selected))
+            assert (not selected) if phase['empty'] else bool(selected),phase['name']+' failed packet expectation'
+        record('continuous-capture-confirms-denied-and-proxied-traffic-boundaries')
         success=not failures
     except Exception as error:
-        failures.append(str(error));print('FAIL:',str(error),flush=True)
+        (root/'failure-traceback.txt').write_text(traceback.format_exc())
+        detail=str(error) or type(error).__name__
+        failures.append(detail);print('FAIL:',detail,flush=True)
     finally:
         (root/'capture-phases.json').write_text(json.dumps(phases))
         try:
@@ -383,7 +498,7 @@ def run(direct_only=False,features=False):
         finally:
             restore(root);record('production-helper-user-configuration-and-password-restored-in-Direct')
         if watcher:watcher.wait(timeout=5)
-        report={'success':success,'passed':completed,'failures':failures,'helperSHA256':build['helperSHA256'],'scope':'Saved user proxy in isolated VM; not release qualification','privateEvidence':True,'focus':'Direct allowlist regression' if direct_only else 'feature audit' if features else 'full'}
+        report={'success':success,'passed':completed,'failures':failures,'helperSHA256':build['helperSHA256'],'scope':'Saved user proxy in isolated VM; not release qualification','privateEvidence':True,'focus':'saved-proxy native relay' if relay else 'injected power events (not physical sleep)' if power else 'Direct allowlist regression' if direct_only else 'feature audit' if features else 'full'}
         (root/'report.json').write_text(json.dumps(report,indent=2)+'\n')
         print('RESULT:', 'PASS' if success else 'FAIL',flush=True)
     return 0 if success else 1
@@ -394,4 +509,6 @@ if __name__=='__main__':
     elif len(sys.argv)==1:sys.exit(run())
     elif sys.argv[1:]==['--direct-allowlist']:sys.exit(run(direct_only=True))
     elif sys.argv[1:]==['--features']:sys.exit(run(features=True))
-    else:sys.exit('Usage: saved_proxy_test.py [--direct-allowlist | --features]')
+    elif sys.argv[1:]==['--power']:sys.exit(run(power=True))
+    elif len(sys.argv)==3 and sys.argv[1]=='--relay':sys.exit(run(relay=Path(sys.argv[2])))
+    else:sys.exit('Usage: saved_proxy_test.py [--direct-allowlist | --features | --power | --relay FIXTURE]')

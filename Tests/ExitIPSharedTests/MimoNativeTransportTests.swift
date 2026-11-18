@@ -2,6 +2,29 @@ import XCTest
 @testable import ExitIPShared
 
 final class MimoNativeTransportTests: XCTestCase {
+    func testBootstrapDiscoveryAcceptsOnlySuccessfulIPv4AddressAnswers() throws {
+        let answers: [[String: Any]] = [
+            ["type": 1, "data": "192.0.2.8"], ["type": 1, "data": "192.0.2.8"],
+            ["type": 28, "data": "2001:db8::8"], ["type": 5, "data": "192.0.2.9"],
+            ["type": 1, "data": "2001:db8::9"], ["type": 1, "data": "invalid\npass all"]
+        ]
+        let valid = try JSONSerialization.data(withJSONObject: ["Status": 0, "Answer": answers])
+        XCTAssertEqual(MimoNativeInfrastructure.ipv4Answers(valid), ["192.0.2.8"])
+        let failed = try JSONSerialization.data(withJSONObject: ["Status": 3, "Answer": answers])
+        XCTAssertTrue(MimoNativeInfrastructure.ipv4Answers(failed).isEmpty)
+        XCTAssertTrue(MimoNativeInfrastructure.ipv4Answers(Data("not JSON".utf8)).isEmpty)
+    }
+
+    func testBootstrapHTTPSStillRequiresAnAuthenticatedHeldRootSocket() throws {
+        XCTAssertTrue(MimoNativeInfrastructure.dnsHosts.contains("derp5.tailscale.com"), "built-in bootstrap names can be absent from the current DERP map")
+        var value = MimoNativeTransport.parse("p123\0u0\0\nf2\0tIPv4\0PTCP\0n192.168.64.2:49152->192.0.2.8:443\0TST=SYN_SENT\0\n", process: 123)
+        XCTAssertEqual(try value.render(), "\n")
+        value.infrastructure = ["192.0.2.8"]
+        XCTAssertTrue(try value.render().contains("port 49152 to 192.0.2.8 port 443 user 0 no state"))
+        value.sockets.removeAll()
+        XCTAssertEqual(try value.render(), "\n", "infrastructure discovery cannot grant an address-wide exception")
+    }
+
     func testRotatingInfrastructureAnswersAreRetainedBrieflyButNeverForever() {
         let now = Date(timeIntervalSince1970: 1_000)
         var cache = MimoInfrastructureCache()

@@ -23,18 +23,17 @@ final class MimoNetworkObserver {
         let receivedAt = ContinuousClock.now
         Task { @MainActor in self?.routesChanged(changes, receivedAt: receivedAt) }
     })
-    private lazy var power = SystemPowerObserver { [weak self] in self?.changed("wake") }
 
     init(changed: @escaping (String) -> Void) { self.changed = changed }
-    var isRunning: Bool { configuration.isRunning && routes.isRunning && power.isRunning }
+    var isRunning: Bool { configuration.isRunning && routes.isRunning }
 
     func start() {
         otherInterfaces = interfaces()
         globalConfiguration = globals()
-        configuration.start(); routes.start(); power.start()
+        configuration.start(); routes.start()
     }
 
-    func stop() { configuration.stop(); routes.stop(); power.stop() }
+    func stop() { configuration.stop(); routes.stop() }
 
     func willChangeProfile(engineProcess: Int32?) {
         self.engineProcess = engineProcess

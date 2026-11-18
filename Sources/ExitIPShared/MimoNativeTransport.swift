@@ -1,5 +1,32 @@
 import Foundation
 
+/// Tailscale's built-in DNS bootstrap map is separate from its live DERP map.
+/// Names come from tailscale/tailscale v1.104.7 net/dnsfallback/dns-fallback-servers.json.
+/// Resolve them through authenticated DoH; never permanently trust the embedded IPs.
+public enum MimoNativeInfrastructure {
+    public static let dnsHosts = [
+        "controlplane.tailscale.com", "log.tailscale.com",
+        "derp1c.tailscale.com", "derp1d.tailscale.com", "derp1e.tailscale.com",
+        "derp2d.tailscale.com", "derp2e.tailscale.com", "derp2f.tailscale.com",
+        "derp3.tailscale.com", "derp4c.tailscale.com", "derp4d.tailscale.com", "derp4e.tailscale.com",
+        "derp5.tailscale.com", "derp6.tailscale.com", "derp7.tailscale.com",
+        "derp8b.tailscale.com", "derp8c.tailscale.com", "derp8d.tailscale.com",
+        "derp9.tailscale.com", "derp9b.tailscale.com", "derp9c.tailscale.com",
+        "derp10.tailscale.com", "derp11.tailscale.com", "derp12.tailscale.com",
+        "derp12b.tailscale.com", "derp12c.tailscale.com"
+    ]
+
+    public static func ipv4Answers(_ data: Data) -> Set<String> {
+        guard let response = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              response["Status"] as? Int == 0 else { return [] }
+        return Set((response["Answer"] as? [[String: Any]] ?? []).compactMap { record in
+            guard record["type"] as? Int == 1, let raw = record["data"] as? String,
+                  let address = IPAddressValidator.normalize(raw), !address.contains(":") else { return nil }
+            return address
+        })
+    }
+}
+
 /// Socket-scoped exceptions for the independently verified native Tailscale process.
 /// PF cannot match a PID. Restrict exceptions to root-owned, currently held socket
 /// source ports instead; never grant every root process or every utun public egress.

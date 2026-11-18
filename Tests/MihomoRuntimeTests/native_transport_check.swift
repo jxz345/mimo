@@ -2,6 +2,39 @@ import Foundation
 import Darwin
 import SystemConfiguration
 
+private final class NativeTransportOutput: @unchecked Sendable {
+    let root: URL
+    private let lock = NSLock()
+    private var previous: String?
+    init(root: URL) { self.root = root }
+    func update(_ transport: MimoNativeTransport) {
+        lock.lock()
+        defer { lock.unlock() }
+        let output = root.appendingPathComponent("native.pf")
+        do {
+            let rules = try transport.render()
+            if CommandLine.arguments.contains("--trace") {
+                let entry: [String: Any] = ["time": Date().timeIntervalSince1970,
+                    "infrastructureCount": transport.infrastructure.count,
+                    "sockets": transport.sockets.filter { $0.destination != nil }.map {
+                        ["source": $0.source ?? "*", "port": String($0.port), "destination": $0.destination ?? ""]
+                    }, "tcpRules": rules.split(separator: "\n").filter { $0.contains("proto tcp") }.map(String.init)]
+                var data = try JSONSerialization.data(withJSONObject: entry)
+                data.append(10)
+                let trace = root.appendingPathComponent("native-observations.jsonl")
+                if !FileManager.default.fileExists(atPath: trace.path) { FileManager.default.createFile(atPath: trace.path, contents: nil) }
+                let handle = try FileHandle(forWritingTo: trace)
+                try handle.seekToEnd(); try handle.write(contentsOf: data); try handle.close()
+            }
+            guard rules != previous else { return }
+            try rules.write(to: output, atomically: true, encoding: .utf8)
+            let result = BoundedProcess.run("/sbin/pfctl", ["-a", "com.apple/001.mimo-packet/native-transport", "-f", output.path])
+            guard result.status == 0 else { fatalError("Test transport policy could not be applied") }
+            previous = rules
+        } catch { fatalError("Test transport policy could not be rendered") }
+    }
+}
+
 @main
 enum NativeTransportCheck {
     @MainActor static func main() async throws {
@@ -11,31 +44,8 @@ enum NativeTransportCheck {
                 fatalError("Isolated VM root and private runtime group are required")
             }
             let root = URL(fileURLWithPath: CommandLine.arguments[2])
-            let output = root.appendingPathComponent("native.pf")
-            var previous: String?
-            let observer = MimoNativeTransportObserver { transport in
-                do {
-                    let rules = try transport.render()
-                    if CommandLine.arguments.contains("--trace") {
-                        let entry: [String: Any] = ["time": Date().timeIntervalSince1970,
-                            "infrastructureCount": transport.infrastructure.count,
-                            "sockets": transport.sockets.filter { $0.destination != nil }.map {
-                                ["source": $0.source ?? "*", "port": String($0.port), "destination": $0.destination ?? ""]
-                            }, "tcpRules": rules.split(separator: "\n").filter { $0.contains("proto tcp") }.map(String.init)]
-                        var data = try JSONSerialization.data(withJSONObject: entry)
-                        data.append(10)
-                        let trace = root.appendingPathComponent("native-observations.jsonl")
-                        if !FileManager.default.fileExists(atPath: trace.path) { FileManager.default.createFile(atPath: trace.path, contents: nil) }
-                        let handle = try FileHandle(forWritingTo: trace)
-                        try handle.seekToEnd(); try handle.write(contentsOf: data); try handle.close()
-                    }
-                    guard rules != previous else { return }
-                    try rules.write(to: output, atomically: true, encoding: .utf8)
-                    let result = BoundedProcess.run("/sbin/pfctl", ["-a", "com.apple/001.mimo-packet/native-transport", "-f", output.path])
-                    guard result.status == 0 else { fatalError("Test transport policy could not be applied") }
-                    previous = rules
-                } catch { fatalError("Test transport policy could not be rendered") }
-            }
+            let output = NativeTransportOutput(root: root)
+            let observer = MimoNativeTransportObserver(changed: { output.update($0) })
             var enabled: Bool?
             while true {
                 let next = !FileManager.default.fileExists(atPath: CommandLine.arguments[3])

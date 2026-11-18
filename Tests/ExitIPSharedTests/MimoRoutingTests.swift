@@ -75,6 +75,17 @@ final class MimoRoutingTests: XCTestCase {
         XCTAssertFalse(MimoFirewallPolicy.directIPv4.contains("block return out quick all"))
     }
 
+    func testPowerBarrierPrecedesEveryProtectedTrafficException() throws {
+        for mode: ProxyMode? in [nil, .rule, .global] {
+            let rules = try MimoFirewallPolicy.render(group: 10000, mode: mode, tunnel: mode == nil ? nil : "utun239")
+            let power = try XCTUnwrap(rules.range(of: "anchor \"power-guard\" out quick"))
+            for exception in ["pass out quick on lo0", "anchor \"native-transport\"", "pass out quick on utun239"] {
+                if let range = rules.range(of: exception) { XCTAssertLessThan(power.lowerBound, range.lowerBound) }
+            }
+        }
+        XCTAssertFalse(MimoFirewallPolicy.directIPv4.contains("power-guard"), "Direct does not depend on protected wake verification")
+    }
+
     func testBlockingAddressSurvivesRetryAndClearsOnlyAfterApprovalOrDirect() {
         var policy = MimoAccessPolicy()
         let check = policy.begin(configuration: configuration, revision: 1, networkGeneration: 1)

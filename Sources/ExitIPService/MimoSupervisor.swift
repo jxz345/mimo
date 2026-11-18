@@ -22,14 +22,25 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
     private var directRestorationAllowed = false
     private var commandFence = MimoCommandFence()
     private lazy var networkObserver = MimoNetworkObserver { [weak self] reason in self?.networkChanged(reason) }
+    private lazy var powerGuard = MimoPowerGuard { [weak self] reason in self?.networkChanged(reason) }
+    private var verificationPowerEpoch: UInt64?
     private var tailnetEnabled = false
-    private lazy var nativeTransportObserver = MimoNativeTransportObserver { [weak self] transport in
-        guard let self else { return }
-        do { try self.runtime.updateNativeTransport(transport) }
-        catch { self.close("Native Tailscale transport could not be constrained: \(error.localizedDescription)") }
+    private lazy var nativeTransportObserver = MimoNativeTransportObserver { [weak self, runtime = self.runtime] transport in
+        do { try runtime.updateNativeTransport(transport) }
+        catch {
+            let reason = "Native Tailscale transport could not be constrained: \(error.localizedDescription)"
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                RuntimeLog.shared.error("mimo_native_transport_failed", fields: ["reason": reason])
+                // Direct does not use this sub-anchor. A delayed worker error
+                // from the preceding protected mode must not close Direct.
+                if self.policy.state.configuration.mode.requiresVerification { self.close(reason) }
+            }
+        }
     }
 
     func start() {
+        powerGuard.start()
 #if MIMO_VM_ACCEPTANCE
         networkObserver.diagnostic = { RuntimeLog.shared.info("mimo_vm_network_diagnostic", fields: ["detail": $0]) }
 #endif
@@ -46,6 +57,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
             let flags = try runtime.servicePreferences()
             profileEnabled = flags.profile; engineEnabled = flags.engine; coreEnabled = flags.core
             policy = MimoAccessPolicy(configuration: try runtime.savedConfiguration())
+            if policy.state.configuration.mode.requiresVerification { _ = try powerGuard.fence.arm() }
             configurationKnown = true
             directRestorationAllowed = policy.state.configuration.mode == .direct
             policy.block("Startup protection is active. Waiting for mimo-core.")
@@ -91,7 +103,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 }
                 if self.policy.state.phase == .active, self.policy.state.configuration.mode.requiresVerification {
                     do {
-                        guard self.networkObserver.isRunning, let profile = self.activeProfile,
+                        guard self.networkObserver.isRunning, self.powerGuard.isRunning, let profile = self.activeProfile,
                               try self.runtime.matches(profile, active: true, proxy: self.proxy) else {
                             throw MimoRuntimeError.unavailable("The active runtime or network observer changed. Verification is required.")
                         }
@@ -102,7 +114,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
     }
 
     func stop() {
-        watchdog?.cancel(); networkObserver.stop(); nativeTransportObserver.stop()
+        watchdog?.cancel(); networkObserver.stop(); nativeTransportObserver.stop(); powerGuard.stop()
         if policy.state.configuration.mode.requiresVerification { close("The supervisor is restarting.") }
     }
 
@@ -180,7 +192,9 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 close("Network or configuration changed. Verification is required.")
             case .direct:
                 generation &+= 1
-                try runtime.restoreDirect()
+                try powerGuard.fence.direct {
+                    try runtime.restoreDirect()
+                }
                 policy.directRestored(configuration: message.configuration ?? policy.state.configuration)
                 configurationKnown = true
                 directRestorationAllowed = true
@@ -188,10 +202,16 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 RuntimeLog.shared.info("mimo_direct_restored")
             case .prepare:
                 directRestorationAllowed = false
+                verificationPowerEpoch = try powerGuard.fence.arm()
                 guard let configuration = message.configuration, configuration.mode.requiresVerification,
                       let revision = message.revision, let network = message.networkGeneration, let allowed = message.allowlist else { throw DaemonFailure.invalidRequest }
                 close("Validating the protected profile.")
                 guard runtime.closed else { throw MimoRuntimeError.unavailable("The firewall could not confirm blocking.") }
+                // The main gate now denies ordinary traffic. Release the sleep
+                // sub-anchor only for this new verification, so the private
+                // proxy probe can run without reopening application traffic.
+                guard let powerEpoch = verificationPowerEpoch else { throw CancellationError() }
+                try powerGuard.fence.activate(epoch: powerEpoch) { try MimoPowerGuard.clear() }
                 var validated = try configuration.validated()
                 validated.profileHostingEnabled = profileEnabled; validated.mihomoEnabled = engineEnabled
                 guard coreEnabled, engineEnabled, profileEnabled else { throw MimoRuntimeError.unavailable("A required background service is stopped.") }
@@ -200,7 +220,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 allowlist = allowed
                 // Qualification is checked before staging any permissive runtime configuration.
                 try runtime.checkInstallation()
-                guard networkObserver.isRunning else { throw MimoRuntimeError.unavailable("Network change observation is unavailable. Repair installation.") }
+                guard networkObserver.isRunning, powerGuard.isRunning else { throw MimoRuntimeError.unavailable("Network or power change observation is unavailable. Repair installation.") }
                 try runtime.requireQualifiedRuntime()
                 let secret = try credentials.read(account: MimoRuntime.proxyPasswordAccount) ?? ""
                 var proxy = try metadata.settings(password: secret)
@@ -235,7 +255,11 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 guard policy.approve(address: address, at: .now, allowlist: allowlist, verification: check, runtimeMatches: matches) else {
                     close("The active profile did not match the verified candidate."); return response()
                 }
-                try runtime.openGate(mode: policy.state.configuration.mode, endpoints: [endpoint], proxyPort: proxy.port)
+                guard let powerEpoch = verificationPowerEpoch else { throw CancellationError() }
+                try powerGuard.fence.activate(epoch: powerEpoch) {
+                    try runtime.openGate(mode: policy.state.configuration.mode, endpoints: [endpoint], proxyPort: proxy.port)
+                    try MimoPowerGuard.clear()
+                }
                 RuntimeLog.shared.info("mimo_traffic_opened", fields: ["mode": policy.state.configuration.mode.rawValue, "ip": address])
             case .service:
                 guard !operationPending, let service = message.service, let operation = message.operation else { throw DaemonFailure.conflict }
