@@ -6,6 +6,7 @@ The real supervisor is restored in Direct on completion, interruption or timeout
 Private upstream credentials are read from a staged file and removed at cleanup.
 """
 import grp
+import hashlib
 import ipaddress
 import json
 import os
@@ -53,7 +54,10 @@ for line in sys.stdin:
             if value.get('peer_token'):
                 sockets[key + '-token'] = value['peer_token']
         elif operation == 'close':
-            sockets.pop(key).close()
+            sock = sockets.pop(key, None)
+            if sock is not None:
+                sock.close()
+            sockets.pop(key + '-token', None)
         if operation in ('open', 'echo'):
             prefix = 'mimo-peer-' + sockets[key + '-token'] + '-' if key + '-token' in sockets else 'mimo-packet-'
             payload = prefix.encode() + key.encode()
@@ -70,6 +74,15 @@ def command(*args, timeout=20, check=True):
 
 
 def restore(root):
+    relay_region = root / 'restore-default-relay-region'
+    if relay_region.exists():
+        try:
+            result = command('/usr/bin/sudo', '-n', '-u', 'jay', '/Applications/Tailscale.app/Contents/MacOS/Tailscale',
+                             'debug', 'force-prefer-derp', '0', check=False)
+            if result.returncode == 0:
+                relay_region.unlink()
+        except subprocess.TimeoutExpired:
+            pass  # Restore networking even if the diagnostic CLI is unresponsive.
     for pid in (root / "engine.pid", root / "provider.pid", root / "dns.pid", root / "native.pid", root / "capture.pid"):
         if pid.exists():
             try:
@@ -93,6 +106,7 @@ def restore(root):
         ipv6_marker.unlink()
     # Saved settings were never changed; startup restores original Direct.
     command("/bin/launchctl", "bootstrap", "system", "/Library/LaunchDaemons/" + SUPERVISOR + ".plist", check=False)
+    assert not relay_region.exists(), 'Direct restoration attempted, but the diagnostic relay preference still needs cleanup'
 
 
 def watchdog(root, parent):
@@ -118,6 +132,10 @@ def watchdog(root, parent):
 def run(configuration):
     assert os.geteuid() == 0
     assert command("/usr/sbin/sysctl", "-n", "hw.model").stdout.startswith("VirtualMac")
+    supplied = json.loads(configuration.read_text())
+    probe_password = supplied.get('probePassword')
+    assert isinstance(probe_password, str) and re.fullmatch(r'[0-9a-fA-F]{64}', probe_password), \
+        'Fixture probePassword must be 64 hexadecimal characters'
     original = read_settings()
     routing = json.loads(original.get("service.routing", b"{}"))
     assert "service.settings" not in original and not routing.get("proxy") and routing.get("mode", "direct") == "direct"
@@ -288,6 +306,79 @@ def run(configuration):
         ):
             result = command(*args, check=False)
             (root / (label + '-' + suffix + '.txt')).write_text(result.stdout + result.stderr)
+        for diagnostic in ('daemon-goroutines', 'metrics'):
+            try:
+                result = command('/usr/bin/sudo', '-n', '-u', 'jay', '/Applications/Tailscale.app/Contents/MacOS/Tailscale',
+                                 'debug', diagnostic, timeout=10, check=False)
+                output = result.stdout + result.stderr
+            except subprocess.TimeoutExpired:
+                output = 'Diagnostic timed out; the original relay failure remains unresolved.\n'
+            (root / (label + '-' + diagnostic + '.txt')).write_text(output)
+
+    def diagnose_relay_region(label):
+        if '--diagnose-relay-region' not in sys.argv:
+            return
+        # Diagnostic only: changing the guest's preferred DERP region cannot
+        # turn the failed default-region acceptance into a passing result.
+        # The independent watchdog clears this temporary override too.
+        (root / 'restore-default-relay-region').touch()
+        try:
+            cli('debug', 'force-prefer-derp', '3')
+            reply = command('/usr/bin/sudo', '-n', '-u', 'jay', '/Applications/Tailscale.app/Contents/MacOS/Tailscale',
+                            'ping', '--c=4', '--until-direct=false', '--timeout=5s', peer['addresses'][0],
+                            timeout=25, check=False)
+            (root / (label + '-alternate-region.txt')).write_text(reply.stdout + reply.stderr)
+            relay_diagnostics(label + '-alternate-region')
+        finally:
+            cli('debug', 'force-prefer-derp', '0')
+            (root / 'restore-default-relay-region').unlink()
+
+    def diagnose_relay_layers(label, mode):
+        if '--diagnose-relay-layers' not in sys.argv:
+            return
+        results = {'scope': 'VM-only failure diagnosis; intentionally relaxed firewall interval is not acceptance'}
+        def ping(name):
+            reply = command('/usr/bin/sudo', '-n', '-u', 'jay', '/Applications/Tailscale.app/Contents/MacOS/Tailscale',
+                            'ping', '--c=2', '--until-direct=false', '--timeout=3s', peer['addresses'][0],
+                            timeout=10, check=False)
+            (root / (label + '-' + name + '.txt')).write_text(reply.stdout + reply.stderr)
+            results[name] = {'ping': reply.returncode == 0, 'DERP': 'via DERP(' in reply.stdout}
+            for udp in (False, True):
+                key = label + '-' + name + ('-udp' if udp else '-tcp')
+                results[name]['UDP' if udp else 'TCP'] = request('open', key, host=peer['addresses'][0],
+                    port=peer['port'], udp=udp, peer_token=peer['token'])
+                request('close', key)
+        # The fixture runs only inside the disposable VM. The normal assertion
+        # still fails after diagnosis, even if a diagnostic step restores traffic.
+        relaxed = root / 'diagnostic-ipv4.pf'
+        relaxed.write_text('pass out quick on lo0 all no state\nblock return out quick inet6 all\n')
+        try:
+            ping('protected-firewall-before-changes')
+            results['relaxedFirewallAt'] = time.time()
+            command('/sbin/pfctl', '-a', ANCHOR, '-f', relaxed)
+            ping('relaxed-firewall-with-TUN')
+            policy(mode)
+            results['protectedFirewallRestoredAt'] = time.time()
+            ping('protected-firewall-with-TUN')
+            policy('closed')
+            load('global-verification')
+            results['TUNRemovedAt'] = time.time()
+            ping('closed-firewall-without-TUN')
+            # Complete the comparison with neither Mimo TUN nor protected DNS
+            # nor the ordinary IPv4 gate. Only this disposable VM is affected.
+            if dns is not None:
+                dns.terminate()
+                dns.wait(timeout=4)
+            command('/sbin/pfctl', '-a', ANCHOR, '-f', relaxed)
+            results['directIPv4At'] = time.time()
+            (root / (label + '-direct-system-dns.txt')).write_text(command('/usr/sbin/scutil', '--dns').stdout)
+            ping('direct-IPv4')
+            cli('debug', 'break-derp-conns')
+            results['guestRelayResetAt'] = time.time()
+            ping('direct-IPv4-after-guest-relay-reset')
+        finally:
+            policy('closed')
+            (root / (label + '-layer-diagnosis.json')).write_text(json.dumps(results, indent=2))
 
     def dns_answer(server, port, name, kind):
         answer = subprocess.run(["/usr/bin/dig", "+time=3", "+tries=1", "+noall", "+comments", "+answer",
@@ -487,6 +578,8 @@ def run(configuration):
                         break
                     if time.monotonic() >= deadline:
                         relay_diagnostics(mode + '-relay')
+                        diagnose_relay_region(mode + '-relay')
+                        diagnose_relay_layers(mode + '-relay', mode)
                         (root / (mode + '-relay-firewall.txt')).write_text((root / 'native.pf').read_text())
                         if '--diagnose-relay' in sys.argv:
                             cli('debug', 'break-derp-conns')
@@ -563,10 +656,15 @@ def run(configuration):
             while True:
                 ping = command('/usr/bin/sudo', '-n', '-u', 'jay', '/Applications/Tailscale.app/Contents/MacOS/Tailscale',
                                'ping', '--c=1', '--until-direct=false', '--timeout=5s', peer['addresses'][0], check=False)
-                (root / 'global-native-reconnect-peer.txt').write_text(ping.stdout + ping.stderr)
+                with (root / 'global-native-reconnect-peer.txt').open('a') as stream:
+                    stream.write(ping.stdout + ping.stderr)
                 if ping.returncode == 0 and 'via DERP' in ping.stdout:
                     break
-                assert time.monotonic() < deadline, 'Native peer relay did not recover after down/up with Global active'
+                if time.monotonic() >= deadline:
+                    relay_diagnostics('global-native-reconnect')
+                    diagnose_relay_region('global-native-reconnect')
+                    diagnose_relay_layers('global-native-reconnect', 'global')
+                    raise AssertionError('Native peer relay did not recover after down/up with Global active')
             for udp in (False, True):
                 assert request('open', 'native-reconnected-' + str(udp), host=peer['addresses'][0],
                                port=peer['port'], udp=udp, peer_token=peer['token'])
@@ -638,6 +736,10 @@ def run(configuration):
             raise AssertionError("Original Direct did not recover")
         (root / "report.json").write_text(json.dumps({"passed": passed, "success": success,
             "ipProtocol": "IPv4 only; IPv6 denial is required",
+            "driverSHA256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+            "helperSHA256": {name: hashlib.sha256((base / name).read_bytes()).hexdigest()
+                             for name in ('mihomo', 'render-profiles', 'native-transport-check')},
+            "diagnosticOptions": [flag for flag in sys.argv[2:] if flag.startswith('--')],
             "scope": "Controlled production-profile packet fixture with optional native peer checks; not installed protected-mode qualification"}, indent=2) + "\n")
         (root / "cleanup-complete").touch()
         if watcher is not None:
