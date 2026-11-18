@@ -10,8 +10,10 @@ public struct MimoStatusPresentation: Equatable, Sendable {
     public let address: String?
     public let country: String?
     public let countryChanged: Bool
+    public let isDirect: Bool
 
     public init(routing: MimoRoutingState, snapshot: ExitIPSnapshot?, preferences: MonitoringPreferences, date: Date, monitoringStatus: MonitoringStatus = .ready) {
+        isDirect = routing.phase == .active && routing.allowsTraffic && routing.effectiveMode == .direct
         switch routing.phase {
         case .unavailable:
             kind = .unavailable
@@ -34,7 +36,7 @@ public struct MimoStatusPresentation: Equatable, Sendable {
         }
         address = kind == .unavailable ? nil : routing.displayedIP?.address
         let locationIsCurrent = snapshot?.ipAddress == routing.observedIP?.address
-        country = kind == .blocked || ((kind == .direct || kind == .verified || kind == .tailnetWarning) && locationIsCurrent)
+        country = kind == .blocked || ((isDirect || kind == .verified || kind == .tailnetWarning) && locationIsCurrent)
             ? snapshot?.menuBarLabel(style: preferences.menuBarDisplayStyle) : nil
         countryChanged = (kind == .direct || kind == .verified || kind == .tailnetWarning) && country != nil
             && preferences.highlightCountryChanges && (snapshot?.isCountryChangeHighlighted(at: date) ?? false)
@@ -62,17 +64,18 @@ public struct MimoStatusPresentation: Equatable, Sendable {
         } else if kind == .tailnetWarning {
             detail = "Public access is approved. The tailnet provider is not running; protected tailnet routes reject."
         } else if let rejected = routing.blockingIP, kind != .unavailable {
-            detail = "IP that triggered blocking: \(rejected.address). \(routing.reason)"
+            detail = routing.reason.contains(rejected.address) ? routing.reason
+                : "IP that triggered blocking: \(rejected.address). \(routing.reason)"
         } else { detail = routing.reason }
     }
 
-    public var visualKey: String { "\(kind.rawValue)|\(country ?? "")|\(countryChanged)" }
+    public var visualKey: String { "\(kind.rawValue)|\(country ?? "")|\(countryChanged)|\(isDirect)" }
     public var symbol: String {
         switch kind {
         case .direct: "arrow.up.right"
         case .directWarning: "exclamationmark.triangle"
         case .checking: "clock"
-        case .blocked: "hand.raised.fill"
+        case .blocked: ExitIPIndicatorSymbol.outsideAllowlist
         case .verified: "checkmark.shield"
         case .tailnetWarning: "exclamationmark.triangle"
         case .unavailable: "info.circle"

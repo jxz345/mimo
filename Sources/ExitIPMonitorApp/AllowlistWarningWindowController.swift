@@ -1,9 +1,8 @@
 import AppKit
 import SwiftUI
 
-/// Non-blocking warning shown when a verified exit IP is outside a non-empty allowlist. The app only
-/// warns; it never changes networking. `PublicIPMonitor` opens it once per address and dismisses it when
-/// the address becomes allowed or the list is emptied.
+/// Warning for a fresh Rule/Global observation that the supervisor has actually rejected.
+/// Direct never opens this panel; selecting Direct or losing confirmed blocked state dismisses it.
 @MainActor
 final class AllowlistWarningWindowController: NSObject, NSWindowDelegate {
     static let shared = AllowlistWarningWindowController()

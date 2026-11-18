@@ -1,0 +1,33 @@
+{
+  "success": true,
+  "passed": [
+    "production-build-keeps-Rule-blocked",
+    "production-build-explains-qualification-boundary",
+    "production-Direct-recovers",
+    "test-helper-starts-with-Direct",
+    "Direct-ordinary-HTTPS-positive-control",
+    "Direct-refresh-skips-allowlist-and-warning",
+    "Direct-mismatching-list-remains-allowed-without-warning",
+    "Rule-mismatch-still-publishes-rejected-IP-and-warning",
+    "Rule-mismatch-regression-denies-HTTPS-mixed-UDP-and-IPv6",
+    "Direct-selection-clears-Rule-warning-immediately",
+    "Direct-fresh-IP-monitoring-remains-enabled",
+    "Direct-IPv4-works-with-no-allowlist-approval",
+    "production-helper-user-configuration-and-password-restored-in-Direct"
+  ],
+  "failures": [],
+  "helperSHA256": "3e310e1d7f6f426e6be77b6eb9a2f2a646108263567dd1456879cae59cdd8974",
+  "scope": "Saved user proxy in isolated VM; not release qualification",
+  "privateEvidence": true,
+  "focus": "Direct allowlist regression",
+  "date": "2026-11-19",
+  "environment": "Isolated Apple silicon macOS VM",
+  "credentialExported": false,
+  "configurationRestored": true,
+  "releaseQualified": false,
+  "notes": [
+    "Direct keeps fresh IPv4 monitoring without allowlist comparison or warning.",
+    "Rule evaluates a fresh proxy observation and still blocks a rejected IP.",
+    "Original production helper, user settings and credential were restored in Direct."
+  ]
+}

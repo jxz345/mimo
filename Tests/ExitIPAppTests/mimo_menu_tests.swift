@@ -41,14 +41,14 @@ enum MimoMenuTests {
                 "stopped tailnet must warn without calling approved public access blocked")
         var blocked = policy.state
         blocked.phase = .blocked; blocked.effectiveMode = nil
-        blocked.blockingIP = MimoIPObservation(address: "2001:db8::42", checkedAt: now)
+        blocked.blockingIP = MimoIPObservation(address: "198.51.100.77", checkedAt: now)
         blocked.reason = "The exit IP is not on the allowed list."
         let rejected = presentation(blocked)
         require(rejected.kind == .blocked && rejected.country == snapshot.countryFlag, "blocked state retains the last known country beside its stop icon")
-        require(rejected.address == "2001:db8::42" && rejected.accessibilityText.contains("2001:db8::42"),
-                "the exact triggering IPv6 address must be accessible")
+        require(rejected.address == "198.51.100.77" && rejected.accessibilityText.contains("198.51.100.77"),
+                "the exact triggering IPv4 address must be accessible")
         blocked.phase = .checking
-        require(presentation(blocked).kind == .checking && presentation(blocked).address == "2001:db8::42",
+        require(presentation(blocked).kind == .checking && presentation(blocked).address == "198.51.100.77",
                 "retry must retain the blocking IP while displaying the checking clock")
         blocked.phase = .unavailable
         blocked.reason = "The background service is unavailable."
@@ -84,6 +84,14 @@ enum MimoMenuTests {
         setupMonitor.receive(setupState); setupMenu.update()
         require(setupMonitor.canChangeSharedSettings && setupMonitor.canRefresh && setupMenu.refreshItem.isEnabled,
                 "initialization must enable the same refresh state in Settings, dashboard and menu")
+        setupState.presentation.imported = true
+        setupState.snapshot = snapshot
+        setupState.authorizationState = .notAllowed(snapshot.ipAddress)
+        setupState.allowlistEventID = UUID()
+        setupMonitor.receive(setupState)
+        require(!AllowlistWarningWindowController.shared.isPresented && setupMonitor.statusPresentation.isDirect,
+                "a stale legacy allowlist event must never open a warning or change Direct status")
+        setupState.authorizationState = .allowed; setupState.allowlistEventID = nil
         setupState.routing?.phase = .checking
         setupMonitor.receive(setupState); setupMenu.update()
         require(!setupMonitor.canRefresh && !setupMenu.refreshItem.isEnabled,
@@ -116,7 +124,9 @@ enum MimoMenuTests {
                     "menu and dashboard must consume the same completed status snapshot")
         }
 
-        let scenarios = [presentation(locatedDirect), startup, verified, rejected, warning, unavailable]
+        let directChecking = MimoMenuPresentation(routing: locatedDirect, snapshot: snapshot, preferences: preferences, date: now, monitoringStatus: .refreshing)
+        let directFailed = MimoMenuPresentation(routing: locatedDirect, snapshot: snapshot, preferences: preferences, date: now, monitoringStatus: .failed("Offline"))
+        let scenarios = [presentation(locatedDirect), directChecking, directFailed, startup, verified, rejected, warning, unavailable]
         let dock = DockIconController()
         for dark in [false, true] {
             for scenario in scenarios {
@@ -140,7 +150,7 @@ enum MimoMenuTests {
                     }
                 }
             }
-            try CredentialAppTests.render(gallery, size: NSSize(width: 700, height: 530), dark: dark,
+            try CredentialAppTests.render(gallery, size: NSSize(width: 700, height: 650), dark: dark,
                                           to: output.appendingPathComponent("mimo-menu-states-\(dark ? "dark" : "light").png"))
         }
         print("PASS: native routing icons, exact blocked IP, country/proof matching, stable menu actions and Dock rendering")

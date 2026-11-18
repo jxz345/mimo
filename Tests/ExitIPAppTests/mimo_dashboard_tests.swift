@@ -34,8 +34,8 @@ enum MimoDashboardTests {
                 if ["blocked", "checking", "empty", "long-text"].contains(scenario) {
                     value.phase = scenario == "checking" ? .checking : .blocked
                     value.effectiveMode = nil
-                    value.reason = scenario == "empty" ? "The allowed exit IP list is empty." : "Exit IP 2001:db8:abcd:1234:5678:9abc:def0:1234 is not on the allowed list."
-                    if scenario != "empty" { value.blockingIP = .init(address: "2001:db8:abcd:1234:5678:9abc:def0:1234", checkedAt: now) }
+                    value.reason = scenario == "empty" ? "The allowed exit IP list is empty." : "Exit IP 198.51.100.77 is not on the allowed list."
+                    if scenario != "empty" { value.blockingIP = .init(address: "198.51.100.77", checkedAt: now) }
                 }
                 if scenario == "tailnet-stopped" { value.services[3].health = .stopped; value.services[3].bindingConfirmed = false }
                 if scenario == "long-text" {
@@ -47,7 +47,7 @@ enum MimoDashboardTests {
                 state.settings.allowlist = scenario == "empty" ? AllowedIPList() : settings.allowlist
                 let monitor = PublicIPMonitor(); monitor.receive(state)
                 try CredentialAppTests.render(DashboardView(monitor: monitor), size: NSSize(width: 1040, height: 570), dark: dark,
-                    to: output.appendingPathComponent("dashboard-\(scenario)-\(dark ? "dark" : "light").png"))
+                    to: output.appendingPathComponent("dashboard-\(scenario)-\(dark ? "dark" : "light").png"), padding: 0)
             }
             state.routing = routing
             let monitor = PublicIPMonitor(); monitor.receive(state)

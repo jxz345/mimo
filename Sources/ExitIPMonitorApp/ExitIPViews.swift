@@ -532,6 +532,7 @@ private func openInTextEdit(_ url: URL) {
 struct LaunchAtLoginControl: View {
     /// The dashboard's one-row form: toggle and Login Items button side by side, explanation as help.
     var compact = false
+    var dashboardStyle = false
     @State private var serviceStatus = SMAppService.mainApp.status
     @State private var errorMessage: String?
 
@@ -539,7 +540,16 @@ struct LaunchAtLoginControl: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            if compact {
+            if dashboardStyle {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Open Mimo at login")
+                        Text(statusMessage ?? "Menu-bar app · This account").font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                    }
+                    Spacer()
+                    toggle.labelsHidden().toggleStyle(.switch).controlSize(.small)
+                }.help(statusMessage ?? Self.explanation)
+            } else if compact {
                 HStack {
                     toggle
                     Spacer()
@@ -554,7 +564,7 @@ struct LaunchAtLoginControl: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
-            if let statusMessage {
+            if let statusMessage, !dashboardStyle {
                 Text(statusMessage)
                     .font(.footnote)
                     .foregroundStyle(.orange)

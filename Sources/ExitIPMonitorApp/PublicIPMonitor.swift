@@ -320,6 +320,8 @@ final class PublicIPMonitor: ObservableObject {
         guard connected, !indicators.suppressLocation,
               let state = daemonState, state.initialized, let event = state.allowlistEventID,
               case .notAllowed(let address) = authorizationState,
+              state.routing?.configuration.mode.requiresVerification == true,
+              state.routing?.phase == .blocked, state.routing?.blockingIP?.address == address,
               state.snapshot?.isStale(threshold: Double(state.settings.refreshInterval.rawValue * 2)) == false else {
             if warningPresented != nil { RuntimeLog.shared.info("allowlist_warning_cleared") }
             AllowlistWarningWindowController.shared.dismiss(); warningPresented = nil; return

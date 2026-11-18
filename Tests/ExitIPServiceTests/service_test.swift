@@ -100,7 +100,8 @@ struct ServiceTests {
         update.expectedRevision = 1
         require(await service.handle(update, uid: 501).failure == nil, "current revision must commit")
         require(service.state(for: 502).settings.allowlist.contains("192.0.2.20"), "configuration must be visible to all users")
-        require(service.state(for: 502).authorizationState.isNotAllowed, "shared allowlist must reevaluate the latest verified IP")
+        require(!service.state(for: 502).authorizationState.isNotAllowed && service.state(for: 502).allowlistEventID == nil,
+                "Direct must monitor its IP without comparing it to the shared allowlist or publishing a warning")
 
         let count = await client.count
         async let first = service.handle(DaemonRequest(.refresh), uid: 501)
@@ -190,6 +191,16 @@ struct ServiceTests {
         require(!encoded.contains("daemon-test-secret") && !encoded.contains("proxy-test-secret"),
                 "public state must omit both machine secrets")
 
+        var protected = request(.configureRouting)
+        var protectedConfiguration = MimoConfiguration(); protectedConfiguration.mode = .rule
+        protected.routing = protectedConfiguration
+        require(await service.handle(protected, uid: 501).failure == nil, "Rule selection must enable proxy-exit approval")
+        require(!service.state(for: 501).authorizationState.isNotAllowed,
+                "entering Rule must not compare the cached Direct address with the proxy allowlist")
+        try await Task.sleep(for: .milliseconds(350))
+        require(service.state(for: 501).authorizationState.isNotAllowed && service.state(for: 501).allowlistEventID != nil,
+                "a fresh protected lookup outside the allowlist must still publish its rejection")
+
         credentials.blockedReadAccount = MimoRuntime.proxyPasswordAccount
         var direct = request(.configureRouting)
         direct.routing = MimoConfiguration()
@@ -197,6 +208,8 @@ struct ServiceTests {
                 "Direct recovery must not require reading a proxy credential")
         require(service.state(for: 501).routing?.hasProxyPassword == true,
                 "mode selection must preserve known credential availability")
+        require(!service.state(for: 501).authorizationState.isNotAllowed && service.state(for: 501).allowlistEventID == nil,
+                "selecting Direct must clear the protected rejection immediately")
         credentials.blockedReadAccount = nil
 
         var token = request(.setToken)

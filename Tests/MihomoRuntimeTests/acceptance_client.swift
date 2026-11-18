@@ -1,4 +1,5 @@
 import Darwin
+import CryptoKit
 import Foundation
 import Security
 
@@ -52,6 +53,13 @@ enum AcceptanceClient {
         let args = Array(CommandLine.arguments.dropFirst())
         guard let operation = args.first else { throw DaemonFailure.invalidRequest }
         let credentials = SystemCredentials()
+        if operation == "credential-digest" {
+            // The saved-configuration driver captures this only in root-owned
+            // memory/evidence. It never exports a password or changes Keychain.
+            let value = try credentials.read(account: MimoRuntime.proxyPasswordAccount) ?? ""
+            print(SHA256.hash(data: Data(value.utf8)).map { String(format: "%02x", $0) }.joined())
+            return
+        }
         if operation == "require-empty-credential" {
             guard try credentials.read(account: MimoRuntime.proxyPasswordAccount) == nil else { throw DaemonFailure.conflict }
             print("Proxy credential is absent.")
@@ -71,8 +79,41 @@ enum AcceptanceClient {
         let current = try await DaemonRPC.call(DaemonRequest(.state), timeout: 10)
         guard let state = current.state, current.failure == nil else { throw current.failure ?? DaemonFailure.unavailable }
         if operation == "state" { try printState(state); return }
+        if operation == "check-private-profile" {
+            var request = DaemonRequest(.supervisor)
+            request.supervisor = MimoSupervisorRequest(.profile)
+            let (reference, external) = try authorization()
+            defer { AuthorizationFree(reference, [.destroyRights]) }
+            request.authorization = external
+            let response = try await DaemonRPC.call(request, timeout: 15, serviceLabel: MimoRuntime.supervisorLabel)
+            guard response.failure == nil, let profile = response.profileContents,
+                  let proxy = state.routing?.configuration.proxy else { throw DaemonFailure.unavailable }
+            let secret = try credentials.read(account: MimoRuntime.proxyPasswordAccount) ?? ""
+            guard profile.contains(ClashVergeProfile.quoted(proxy.username)),
+                  secret.isEmpty || profile.contains(ClashVergeProfile.quoted(secret)),
+                  profile.contains("ipv6: false") else { throw DaemonFailure.conflict }
+            for directory in [MimoRuntime.directory, MimoRuntime.profileDirectory] {
+                for file in try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.isRegularFileKey]) {
+                    guard try file.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile == true else { continue }
+                    if secret.utf8.count >= 8 {
+                        guard try Data(contentsOf: file).range(of: Data(secret.utf8)) == nil else { throw DaemonFailure.credential }
+                    }
+                }
+            }
+            guard try Data(contentsOf: MimoRuntime.blockingProfile) == Data(MihomoProfile.blocking().utf8) else {
+                throw DaemonFailure.conflict
+            }
+            print("{\"privateProfileMatchesSavedCredential\":true,\"startupRemainsCredentialFree\":true}")
+            return
+        }
         var request = DaemonRequest(.state)
         switch operation {
+        case "proxy-metadata":
+            guard args.count == 2 else { throw DaemonFailure.invalidRequest }
+            request.command = .saveProxy
+            request.proxy = try JSONDecoder().decode(MimoProxy.self, from: Data(contentsOf: URL(fileURLWithPath: args[1])))
+            // Deliberately omit proxyPassword. Faults use a bad username or
+            // endpoint, so the user's saved secret is never overwritten.
         case "initialize":
             request.command = .initialize
             let preferences = MonitoringPreferences(provider: .ipWhois, providerPool: [.ipWhois], refreshInterval: .fifteenMinutes)

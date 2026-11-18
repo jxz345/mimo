@@ -141,6 +141,10 @@ final class MimoSystemRuntime {
         // A normal build cannot silently assert that packet-level release acceptance has passed.
         // The release tool installs this manifest only from reviewed qualification evidence.
         let manifest = directory.appendingPathComponent("qualification.json")
+        var qualificationInfo = stat()
+        if lstat(manifest.path, &qualificationInfo) != 0, errno == ENOENT {
+            throw MimoRuntimeError.unavailable("Protected routing is not qualified on this build. Direct remains available.")
+        }
         try secureFile(manifest)
         guard let data = try? Data(contentsOf: manifest),
               let value = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -334,8 +338,10 @@ final class MimoSystemRuntime {
         // payload is written to disk, included in argv, or reported in errors.
         try command(MimoRuntime.engine.path, ["-t", "-d", MimoRuntime.profileDirectory.path, "-f", "-"], timeout: 5, input: bytes)
         let body = try JSONSerialization.data(withJSONObject: ["payload": profile])
-        try command("/usr/bin/curl", ["--silent", "--fail", "--max-time", "3", "--unix-socket", MimoRuntime.controller.path,
-            "-X", "PUT", "http://localhost/configs?force=true", "--header", "Content-Type: application/json", "--data-binary", "@-"], timeout: 4, input: body)
+        // A cold provider initialization can take almost three seconds even in
+        // the isolated VM. Keep the gate closed while allowing a bounded reload.
+        try command("/usr/bin/curl", ["--silent", "--fail", "--max-time", "10", "--unix-socket", MimoRuntime.controller.path,
+            "-X", "PUT", "http://localhost/configs?force=true", "--header", "Content-Type: application/json", "--data-binary", "@-"], timeout: 11, input: body)
         try secureController()
         guard runningProcessID(MimoRuntime.engineLabel) == process else {
             throw MimoRuntimeError.unavailable("The profile or engine changed during activation.")
@@ -431,7 +437,11 @@ final class MimoSystemRuntime {
     }
 
     private func command(_ executable: String, _ arguments: [String], timeout: TimeInterval = 3, input: Data? = nil) throws {
-        guard BoundedProcess.run(executable, arguments, timeout: timeout, input: input).status == 0 else {
+        let result = BoundedProcess.run(executable, arguments, timeout: timeout, input: input)
+        guard result.status == 0 else {
+#if MIMO_VM_ACCEPTANCE
+            RuntimeLog.shared.error("mimo_vm_command_failed", fields: ["program": (executable as NSString).lastPathComponent, "status": String(result.status)])
+#endif
             throw MimoRuntimeError.unavailable("A required \((executable as NSString).lastPathComponent) operation failed. Traffic was not approved.")
         }
     }

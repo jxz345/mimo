@@ -83,6 +83,21 @@ final class MonitoringEngine: ObservableObject {
     @Published private(set) var indicators: MonitorIndicatorState
     @Published private(set) var allowedIPList: AllowedIPList
     @Published private(set) var authorizationState: ExitIPAuthorizationState = .unavailable
+    /// Mimo's Direct mode monitors location without evaluating the allowlist.
+    /// Legacy standalone monitoring keeps its warn-only policy by default.
+    var allowlistChecksEnabled = true {
+        didSet {
+            guard oldValue != allowlistChecksEnabled else { return }
+            if allowlistChecksEnabled {
+                // A cached Direct observation cannot authorize or reject a proxy exit.
+                hasVerifiedAddressThisSession = false
+                verifiedAddress = nil
+                authorizationState = .unavailable
+            } else {
+                authorizationState = verifiedAddress == nil ? .unavailable : .allowed
+            }
+        }
+    }
     @Published private(set) var providerHealth: [ProviderID: ProviderHealthRecord]
     @Published private(set) var lookupBudget: LookupBudget
     @Published private(set) var diagnosticPreferences: DiagnosticPreferences
@@ -831,6 +846,10 @@ final class MonitoringEngine: ObservableObject {
     /// and shows a notice in the dashboard. It never blocks traffic, never sets the error
     /// indicator, and never hides the location. Only fresh, successful lookups reach this.
     private func evaluateAuthorization(for address: String?) {
+        guard allowlistChecksEnabled else {
+            authorizationState = address == nil ? .unavailable : .allowed
+            return
+        }
         guard let address, !allowedIPList.isEmpty, !allowedIPList.contains(address) else {
             authorizationState = (address == nil || allowedIPList.isEmpty) ? .unavailable : .allowed
             return

@@ -55,6 +55,7 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
                                                                account: SecureTokenStore.ipinfoLiteAccount))
         provider = TailscaleProviderService()
         super.init()
+        engine.allowlistChecksEnabled = routingConfiguration.mode.requiresVerification
         RuntimeLog.shared.configure(settings.diagnostics)
         observation = engine.objectWillChange.sink { [weak self] in
             Task { @MainActor [weak self] in self?.schedulePublication() }
@@ -265,6 +266,7 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
                     throw error
                 }
                 routingConfiguration = next; revision += 1
+                engine.allowlistChecksEnabled = next.mode.requiresVerification
                 if changesSecret { hasProxyPassword = nextSecret?.isEmpty == false }
                 await routing?.update(configuration: next, allowlist: settings.allowlist, revision: revision)
                 Task { [engine] in await engine.refresh(force: true, bypassMinimumInterval: true, trigger: .settingsChanged) }

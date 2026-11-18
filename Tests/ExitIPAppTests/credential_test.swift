@@ -271,10 +271,10 @@ enum CredentialAppTests {
     static func settle() async throws { try await Task.sleep(for: .milliseconds(250)) }
 
     @MainActor
-    static func render<V: View>(_ view: V, size: NSSize, dark: Bool, to path: URL) throws {
+    static func render<V: View>(_ view: V, size: NSSize, dark: Bool, to path: URL, padding: CGFloat = 16) throws {
         NSApp.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
         let host = NSHostingView(rootView: view
-            .padding(16)
+            .padding(padding)
             .frame(width: size.width, height: size.height, alignment: .topLeading)
             .background(Color(nsColor: .windowBackgroundColor))
             .environment(\.colorScheme, dark ? .dark : .light))
