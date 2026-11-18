@@ -288,6 +288,8 @@ targets:
         buildPhase: resources
       - path: Configuration/mimo-icon.icns
         buildPhase: resources
+      - path: Configuration/Mimo.xcassets
+        buildPhase: resources
       - path: Sources/ExitIPDiagnostics
         buildPhase: resources
     settings:
@@ -295,6 +297,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: $BUNDLE_ID
         PRODUCT_NAME: Mimo
         EXECUTABLE_NAME: mimo-gui
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: MimoAccent
         GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_FILE: Configuration/ExitIPMonitor-Info.plist
         CODE_SIGN_ENTITLEMENTS: Configuration/ExitIPMonitor.entitlements

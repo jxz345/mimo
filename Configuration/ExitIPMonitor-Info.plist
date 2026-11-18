@@ -12,6 +12,8 @@
     <string>Mimo</string>
     <key>CFBundleIconFile</key>
     <string>mimo-icon</string>
+    <key>NSAccentColorName</key>
+    <string>MimoAccent</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>

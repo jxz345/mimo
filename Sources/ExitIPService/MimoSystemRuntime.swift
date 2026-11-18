@@ -419,6 +419,12 @@ final class MimoSystemRuntime {
             try command("/bin/launchctl", ["enable", job])
             try command("/bin/launchctl", ["bootstrap", "system", plist.path], timeout: 8)
         }
+        if service == .mihomo, operation != .stop {
+            // A launchd PID is not a ready controller. Keep the protected gate
+            // closed until the engine accepts and confirms its blocking profile,
+            // before acknowledging Start/Restart to the next verification request.
+            try waitForBlockingEngine()
+        }
     }
 
     func isRunning(_ label: String) -> Bool {

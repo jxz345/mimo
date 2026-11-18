@@ -79,7 +79,7 @@ enum AcceptanceClient {
         let current = try await DaemonRPC.call(DaemonRequest(.state), timeout: 10)
         guard let state = current.state, current.failure == nil else { throw current.failure ?? DaemonFailure.unavailable }
         if operation == "state" { try printState(state); return }
-        if operation == "check-private-profile" {
+        if operation == "check-private-profile" || operation == "check-blocking-profile" {
             var request = DaemonRequest(.supervisor)
             request.supervisor = MimoSupervisorRequest(.profile)
             let (reference, external) = try authorization()
@@ -88,6 +88,11 @@ enum AcceptanceClient {
             let response = try await DaemonRPC.call(request, timeout: 15, serviceLabel: MimoRuntime.supervisorLabel)
             guard response.failure == nil, let profile = response.profileContents,
                   let proxy = state.routing?.configuration.proxy else { throw DaemonFailure.unavailable }
+            if operation == "check-blocking-profile" {
+                guard profile == MihomoProfile.blocking() else { throw DaemonFailure.conflict }
+                print("{\"openedProfileMatchesBlockingRuntime\":true}")
+                return
+            }
             let secret = try credentials.read(account: MimoRuntime.proxyPasswordAccount) ?? ""
             guard profile.contains(ClashVergeProfile.quoted(proxy.username)),
                   secret.isEmpty || profile.contains(ClashVergeProfile.quoted(secret)),

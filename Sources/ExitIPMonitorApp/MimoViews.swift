@@ -50,7 +50,7 @@ struct DashboardView: View {
                             }.pickerStyle(.segmented).labelsHidden().frame(width: 280).disabled(!monitor.canChangeSharedSettings)
                         }.frame(height: 40)
                         let wide = geometry.size.width >= 840
-                        let cardHeight = max(355, geometry.size.height - 116)
+                        let cardHeight = max(363, geometry.size.height - 116)
                         let layout = wide ? AnyLayout(HStackLayout(alignment: .top, spacing: 14)) : AnyLayout(VStackLayout(spacing: 14))
                         layout {
                             connection.frame(width: wide ? max(300, (geometry.size.width - 50) * 0.34) : nil, height: cardHeight)
@@ -140,7 +140,7 @@ struct DashboardView: View {
                         Text(presentation.detail).font(.caption).foregroundStyle(.secondary).lineLimit(2, reservesSpace: true).help(presentation.detail)
                         accessActions.frame(height: 22).frame(maxWidth: .infinity, alignment: .leading)
                     }
-                }.padding(.horizontal, 14).padding(.top, 10).frame(height: 92, alignment: .top)
+                }.padding(.horizontal, 14).padding(.top, 10).frame(height: 100, alignment: .top)
                 Divider()
                 VStack(spacing: 0) { ForEach(MimoServiceID.allCases) { service in serviceRow(service) } }
                     .padding(.horizontal, 14).frame(maxHeight: .infinity)
@@ -189,8 +189,8 @@ struct DashboardView: View {
                         .buttonStyle(.borderless).help("Copy startup profile file path")
                 }
             }.padding(.leading, 26)
-            if id != MimoServiceID.allCases.last { Divider().padding(.top, 2) }
-        }.padding(.top, 4).frame(maxHeight: .infinity)
+            if id != MimoServiceID.allCases.last { Divider().padding(.top, 1) }
+        }.padding(.top, 3).frame(maxHeight: .infinity)
     }
 
     private func serviceButtons(_ id: MimoServiceID, health: MimoServiceHealth) -> some View {

@@ -2,6 +2,24 @@ import XCTest
 @testable import ExitIPShared
 
 final class MimoStatusPresentationTests: XCTestCase {
+    func testBlockedVerificationShowsFailureInsteadOfGenericCloseReason() {
+        var routing = MimoRoutingState()
+        routing.configuration.mode = .rule
+        routing.phase = .blocked
+        routing.reason = "Network or configuration changed. Verification is required."
+        let failure = "Protected routing is not qualified on this build. Direct remains available."
+        func present(_ status: MonitoringStatus) -> MimoStatusPresentation {
+            MimoStatusPresentation(routing: routing, snapshot: nil, preferences: MonitoringPreferences(),
+                                   date: .now, monitoringStatus: status)
+        }
+        XCTAssertEqual(present(.failed(failure)).detail, failure)
+        XCTAssertEqual(present(.refreshing).detail, routing.reason)
+        routing.blockingIP = .init(address: "198.51.100.77", checkedAt: .now)
+        XCTAssertTrue(present(.failed("Proxy unavailable")).detail.contains("198.51.100.77"))
+        routing.phase = .unavailable
+        XCTAssertEqual(present(.failed(failure)).detail, routing.reason)
+    }
+
     func testRuleMismatchDisplaysRejectedIPInsteadOfOlderApprovedSnapshot() {
         var configuration = MimoConfiguration()
         configuration.mode = .rule

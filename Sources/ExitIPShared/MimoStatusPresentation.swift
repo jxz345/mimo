@@ -63,6 +63,12 @@ public struct MimoStatusPresentation: Equatable, Sendable {
             detail = "The routing state could not be confirmed. Open Dashboard to reconnect."
         } else if kind == .tailnetWarning {
             detail = "Public access is approved. The tailnet provider is not running; protected tailnet routes reject."
+        } else if kind == .blocked, case .failed(let message) = monitoringStatus {
+            // A later gate-close notification may have a generic reason. Keep
+            // the failed verification's actionable cause visible in every UI.
+            if let rejected = routing.blockingIP, !message.contains(rejected.address) {
+                detail = "IP that triggered blocking: \(rejected.address). \(message)"
+            } else { detail = message }
         } else if let rejected = routing.blockingIP, kind != .unavailable {
             detail = routing.reason.contains(rejected.address) ? routing.reason
                 : "IP that triggered blocking: \(rejected.address). \(routing.reason)"

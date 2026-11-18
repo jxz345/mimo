@@ -54,7 +54,6 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 return
             }
             try runtime.service(.mihomo, operation: engineEnabled ? .start : .stop)
-            if engineEnabled { try runtime.waitForBlockingEngine() }
             if policy.state.configuration.mode == .direct {
                 try runtime.restoreDirect()
                 policy.directRestored(configuration: policy.state.configuration)

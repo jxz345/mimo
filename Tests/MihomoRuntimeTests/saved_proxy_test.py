@@ -107,7 +107,18 @@ def restore(root):
         start_jobs()
         deadline=time.monotonic()+60
         while time.monotonic()<deadline:
-            if (RUNTIME/'gate.state').exists() and (RUNTIME/'gate.state').read_text()=='direct':
+            # The previous gate file survives replacement. Wait for both live
+            # services, after startup has loaded the blocking engine and then
+            # restored Direct, before disarming the independent watchdog.
+            ready=False
+            try:
+                client=Path(__file__).parent/'installation-check'
+                core=json.loads(command(client,'core-state',timeout=15).stdout)
+                supervisor=json.loads(command(client,timeout=25).stdout)
+                states=[core.get('routing',{}),supervisor]
+                ready=all(s.get('phase')=='active' and s.get('effectiveMode')=='direct' for s in states)
+            except (subprocess.CalledProcessError,subprocess.TimeoutExpired,ValueError):pass
+            if ready and (RUNTIME/'gate.state').exists() and (RUNTIME/'gate.state').read_text()=='direct':
                 assert selected_settings(read_settings())==selected_settings(original)
                 assert hashlib.sha256(HELPER.read_bytes()).digest()==hashlib.sha256((root/'private-backup/mimo-core').read_bytes()).digest()
                 digest=command(Path(__file__).parent/'acceptance-client','credential-digest').stdout.strip()
@@ -133,7 +144,7 @@ def watchdog(root,parent):
     if not (root/'cleanup-complete').exists():restore(root)
 
 
-def run(direct_only=False):
+def run(direct_only=False,features=False):
     assert os.geteuid()==0 and command('/usr/sbin/sysctl','-n','hw.model').stdout.startswith('VirtualMac')
     base=Path(__file__).resolve().parent
     original=read_settings();routing=json.loads(original['service.routing']);settings=json.loads(original['service.settings'])
@@ -208,6 +219,16 @@ def run(direct_only=False):
         record(mode+'-existing-HTTPS-positive-control')
     def refresh_active(name):
         client('refresh');return wait_for(active('global'),name)
+    def provider_cycle(mode):
+        for operation in ['start','stop','start']:
+            client('tailnet',operation)
+            expected='running' if operation=='start' else 'stopped'
+            wait_for(lambda s:active(mode)(s) and any(v['id']=='tailnetProvider' and v['health']==expected for v in s['services']),
+                mode+'-tailnet-'+operation+'-preserves-public-access')
+            response=command('/usr/bin/curl','--silent','--fail','--noproxy','*','--max-time','3','http://127.0.0.1:18766/provider.yaml',check=False)
+            assert (response.returncode==0 and 'proxies:' in response.stdout) if operation=='start' else response.returncode!=0
+        record(mode+'-tailnet-loopback-endpoint-follows-Start-Stop-Restart')
+        client('tailnet','start' if settings.get('tailscaleProviderEnabled') else 'stop')
     def event_offsets():return {p:p.stat().st_size for p in Path('/Library/Logs/ExitIPMonitor').glob('runtime-*.jsonl')}
     def events(offsets):
         records=[]
@@ -232,11 +253,24 @@ def run(direct_only=False):
     def identity():os.setgroups([]);os.setgid(account.pw_gid);os.setuid(account.pw_uid)
     with (root/'watchdog.log').open('w') as log:watcher=subprocess.Popen([sys.executable,__file__,'--watchdog',str(root),str(os.getpid())],stdout=log,stderr=log,start_new_session=True)
     try:
+        # Wait for core XPC readiness after deployment, not a stale gate.state file.
+        wait_for(active('direct'),'production-core-ready-before-mode-change')
         # Verify the actual production qualification boundary before swapping helpers.
         client('mode','rule');wait_for(lambda v:blocked(v.get('routing',{})) and 'not qualified' in json.dumps(v.get('status',{})),
             'production-build-keeps-Rule-blocked',whole=True)
         record('production-build-explains-qualification-boundary')
         client('mode','direct');wait_for(active('direct'),'production-Direct-recovers')
+        if features:
+            client('mode','global');wait_for(lambda v:blocked(v.get('routing',{})) and 'not qualified' in json.dumps(v.get('status',{})),
+                'production-build-keeps-Global-blocked',whole=True)
+            client('mode','direct');wait_for(active('direct'),'production-Global-to-Direct-recovers')
+            command(base/'acceptance-client','check-blocking-profile');record('production-Open-profile-matches-blocking-runtime')
+            for service in ['profileHosting','mihomo','core']:
+                supervisor(service,'stop');assert active('direct')(supervisor())
+                record('production-Direct-'+service+'-Stop-keeps-traffic-open')
+                supervisor(service,'start');wait_for(active('direct'),'production-Direct-'+service+'-Start-recovers')
+                supervisor(service,'restart');wait_for(active('direct'),'production-Direct-'+service+'-Restart-recovers')
+            provider_cycle('direct')
         stop_jobs();replace_helper(base/'mimo-core-vm-acceptance')
         with (root/'capture.log').open('w') as log:
             capture=subprocess.Popen(['/usr/sbin/tcpdump','-n','-U','-i','pktap,en0','-w',str(root/'traffic.pcap'),f'(tcp dst port 443 or udp dst port 53 or ip6) and not (host {proxy["server"]} and port {proxy["port"]})'],stdout=log,stderr=log)
@@ -288,7 +322,9 @@ def run(direct_only=False):
             records=events(offsets);assert closed_event(records) and any(r['event']=='mimo_private_probe_ready' for r in records)
             record('reload-regenerates-before-protected-traffic')
             command(base/'acceptance-client','check-private-profile')
-            for service in ['profileHosting','mihomo','core']:
+            # Repeat the engine cycle: launchctl can acknowledge a new process
+            # before its Unix controller is ready for the immediate refresh.
+            for service in ['profileHosting','mihomo','mihomo','core']:
                 supervisor(service,'stop');s=supervisor();assert blocked(s)
                 record(service+'-Stop-preserves-Global-and-closes-gate');deny(service+'-Stop')
                 supervisor(service,'start')
@@ -315,6 +351,14 @@ def run(direct_only=False):
             try:wait_event(offsets,lambda rows:closed_event(rows) and any(r['event']=='refresh_requested' and r['fields'].get('trigger')=='network_configuration' for r in rows),'network-change-immediately-closes-and-checks')
             finally:command('/sbin/route','-n','delete','-host','198.51.100.254');(root/'test-route').unlink()
             refresh_active('network-change-reverifies-Global')
+            if features:
+                provider_cycle('global')
+                assert request('https') and not request('ipv6')
+                record('Global-provider-cycle-retains-IPv4-and-IPv6-denial')
+                for service in ['mihomo','mihomo','core']:
+                    supervisor(service,'restart')
+                    if service!='core':client('refresh')
+                    wait_for(active('global'),service+'-Restart-reverifies-Global')
             for _ in range(2):
                 supervisor('profileHosting','restart');refresh_active('repeated-Reload-remains-verifiable')
             client('mode','direct');wait_for(active('direct'),'explicit-Direct-recovers')
@@ -339,7 +383,7 @@ def run(direct_only=False):
         finally:
             restore(root);record('production-helper-user-configuration-and-password-restored-in-Direct')
         if watcher:watcher.wait(timeout=5)
-        report={'success':success,'passed':completed,'failures':failures,'helperSHA256':build['helperSHA256'],'scope':'Saved user proxy in isolated VM; not release qualification','privateEvidence':True,'focus':'Direct allowlist regression' if direct_only else 'full'}
+        report={'success':success,'passed':completed,'failures':failures,'helperSHA256':build['helperSHA256'],'scope':'Saved user proxy in isolated VM; not release qualification','privateEvidence':True,'focus':'Direct allowlist regression' if direct_only else 'feature audit' if features else 'full'}
         (root/'report.json').write_text(json.dumps(report,indent=2)+'\n')
         print('RESULT:', 'PASS' if success else 'FAIL',flush=True)
     return 0 if success else 1
@@ -349,4 +393,5 @@ if __name__=='__main__':
     if len(sys.argv)==4 and sys.argv[1]=='--watchdog':watchdog(Path(sys.argv[2]),int(sys.argv[3]))
     elif len(sys.argv)==1:sys.exit(run())
     elif sys.argv[1:]==['--direct-allowlist']:sys.exit(run(direct_only=True))
-    else:sys.exit('Usage: saved_proxy_test.py [--direct-allowlist]')
+    elif sys.argv[1:]==['--features']:sys.exit(run(features=True))
+    else:sys.exit('Usage: saved_proxy_test.py [--direct-allowlist | --features]')

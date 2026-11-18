@@ -26,7 +26,7 @@ enum MimoDashboardTests {
             .init(id: .tailnetProvider, health: .running, transport: "HTTP", address: "127.0.0.1", port: 18766, bindingConfirmed: true)
         ]
         for dark in [false, true] {
-            for scenario in ["direct", "rule", "global", "blocked", "checking", "empty", "tailnet-stopped", "long-text", "direct-checking", "direct-failed"] {
+            for scenario in ["direct", "rule", "global", "blocked", "checking", "empty", "tailnet-stopped", "long-text", "direct-checking", "direct-failed", "unqualified"] {
                 var value = routing
                 value.configuration.mode = scenario.hasPrefix("direct") ? .direct : scenario == "global" ? .global : .rule
                 value.phase = .active; value.effectiveMode = value.configuration.mode
@@ -43,6 +43,11 @@ enum MimoDashboardTests {
                     value.reason += " Open Settings to review the proxy configuration and add the expected exit address before retrying."
                 }
                 state.status = scenario == "direct-checking" ? .refreshing : scenario == "direct-failed" ? .failed("The network connection was lost. Check Wi-Fi and try again.") : .ready
+                if scenario == "unqualified" {
+                    value.phase = .blocked; value.effectiveMode = nil; value.observedIP = nil
+                    value.reason = "Network or configuration changed. Verification is required."
+                    state.status = .failed("Protected routing is not qualified on this build. Direct remains available.")
+                }
                 state.routing = value
                 state.settings.allowlist = scenario == "empty" ? AllowedIPList() : settings.allowlist
                 let monitor = PublicIPMonitor(); monitor.receive(state)
