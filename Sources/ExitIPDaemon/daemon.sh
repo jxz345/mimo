@@ -14,6 +14,7 @@ LEGACY_EXECUTABLE="/Library/PrivilegedHelperTools/$LABEL"
 MANAGER="/Library/PrivilegedHelperTools/com.example.exitipmonitor.manage"
 JOBS="$DIR/LaunchDaemons"
 RUNTIME="$DIR/Mihomo"
+PROFILES='/Library/Application Support/Mimo/Mihomo'
 PLIST="$JOBS/$LABEL.plist"
 ENGINE_PLIST="$JOBS/$ENGINE.plist"
 SUPERVISOR_PLIST="/Library/LaunchDaemons/$SUPERVISOR.plist"
@@ -248,15 +249,16 @@ install_service() (
     local binary="$SCRIPT_DIR/../MacOS/mimo-core" app stage="" owner=${SUDO_USER:-} path state
     local mutation_started=0 old_loaded=0 supervisor_loaded=0 legacy_loaded=0 legacy_http_loaded=0 old_mode=direct old_ipv4_policy=0 index=0
     local dependency expected_hash actual_hash
-    local installed_files=("$EXECUTABLE" "$PLIST" "$ENGINE_PLIST" "$SUPERVISOR_PLIST" "$LEGACY_CORE_PLIST" "$MANAGER" "$DIR/command-support.sh" "$DIR/cleanup-installation.sh" "$DIR/installed-app" "$GRANT" "$RUNTIME/mihomo" "$RUNTIME/engine.sha256" "$RUNTIME/blocking.yaml" "$LEGACY_EXECUTABLE")
-    [ -x "$binary" ] || { echo 'Install from a built ExitIPMonitor.app bundle.' >&2; return 1; }
+    local installed_files=("$EXECUTABLE" "$PLIST" "$ENGINE_PLIST" "$SUPERVISOR_PLIST" "$LEGACY_CORE_PLIST" "$MANAGER" "$DIR/command-support.sh" "$DIR/cleanup-installation.sh" "$DIR/installed-app" "$GRANT" "$RUNTIME/mihomo" "$RUNTIME/engine.sha256" "$RUNTIME/blocking.yaml" "$LEGACY_EXECUTABLE" "$PROFILES/blocking.yaml")
+    [ -x "$binary" ] || { echo 'Install from a built Mimo.app bundle.' >&2; return 1; }
     app=$(cd "$SCRIPT_DIR/../.." && pwd -P) || return 1
     run /usr/bin/codesign --verify --deep --strict "$app" || return 1
     run /usr/bin/codesign --verify --strict "$binary" || return 1
     dependency_source && check_engine_conflicts || return 1
     secure_directory /Library/PrivilegedHelperTools && secure_directory /Library/LaunchDaemons &&
         secure_directory /etc/sudoers.d && secure_directory "$DIR" && secure_directory "$JOBS" &&
-        secure_directory "$RUNTIME" 0700 && secure_directory /Library/Logs/ExitIPMonitor || return 1
+        secure_directory "$RUNTIME" 0700 && secure_directory /Library/Logs/ExitIPMonitor &&
+        secure_directory "/Library/Application Support/Mimo" 0700 && secure_directory "$PROFILES" 0700 || return 1
     service_lock || return 1
     trap 'finish_installation $?' EXIT
     trap 'exit 130' INT
@@ -322,6 +324,9 @@ install_service() (
     run /bin/launchctl bootstrap system "$SUPERVISOR_PLIST" || return 1
     bounded_command 30 check-services "$EXECUTABLE" --check-installation || return 1
     /bin/rm -f "$LEGACY_EXECUTABLE" || return 1
+    # Generated profiles from older builds may contain secrets. Regenerate via
+    # stdin/socket delivery; remove obsolete copies only after the new jobs pass.
+    /bin/rm -f "$RUNTIME/candidate.yaml" "$RUNTIME/config.yaml" "$RUNTIME/reload.json" "$RUNTIME/blocking.yaml" "$RUNTIME/controller.sock" || return 1
     mutation_started=0
     /bin/rm -f "/Library/LaunchDaemons/$LEGACY.plist" "/Library/LaunchDaemons/$LEGACY-http.plist" "/etc/sudoers.d/exitipmonitor-tailscale-verge" "$DIR/tailscale-verge.sh" || return 1
     echo 'Mimo supervisor, core and pinned mihomo installed. Saved mode and service stop preferences are retained. Protected routing remains gated on release qualification.'
@@ -334,7 +339,7 @@ uninstall_service() (
     trap '/bin/rm -f "$DIR/Service/install.lock"' EXIT
     if [ -f "$DIR/installed-app" ]; then
         IFS= read -r app < "$DIR/installed-app"
-        case "$app" in /*/ExitIPMonitor.app) ;; *) return 1 ;; esac
+        case "$app" in /*/Mimo.app|/*/ExitIPMonitor.app) ;; *) return 1 ;; esac
         source "$DIR/cleanup-installation.sh"
         cleanup_app=$app cleanup_uid=0 cleanup_translocations="" cleanup_matches=()
         cleanup_stop_app || return 1
@@ -350,7 +355,7 @@ uninstall_service() (
     /bin/rm -f "$PLIST" "$ENGINE_PLIST" "$SUPERVISOR_PLIST" "$LEGACY_CORE_PLIST" "$EXECUTABLE" "$LEGACY_EXECUTABLE" "$RUNTIME/maintenance" "$RUNTIME/mihomo" "$RUNTIME/engine.sha256" "/Library/LaunchDaemons/$LEGACY.plist" "/Library/LaunchDaemons/$LEGACY-http.plist" || return 1
     # Runtime profiles can contain proxy/probe credentials. Retain their source
     # settings in machine storage/Keychain, never stale generated copies.
-    /bin/rm -f "$RUNTIME/candidate.yaml" "$RUNTIME/blocking.yaml" "$RUNTIME/reload.json" "$RUNTIME/controller.sock" "$RUNTIME/guard.pf" "$RUNTIME/native-transport.pf" || return 1
+    /bin/rm -f "$RUNTIME/candidate.yaml" "$RUNTIME/blocking.yaml" "$RUNTIME/reload.json" "$RUNTIME/controller.sock" "$RUNTIME/guard.pf" "$RUNTIME/native-transport.pf" "$PROFILES/blocking.yaml" "$PROFILES/controller.sock" || return 1
     /bin/rm -f "$DIR/TailscaleVerge/provider.yaml" "$DIR/TailscaleVerge/state" "$DIR/tailscale-verge.sh" || return 1
     /bin/rm -f "$GRANT" "/etc/sudoers.d/exitipmonitor-tailscale-verge" "$MANAGER" || return 1
     echo 'Mimo services and firewall guard removed; Direct networking restored. Shared settings, credentials, Homebrew and logs were retained.'

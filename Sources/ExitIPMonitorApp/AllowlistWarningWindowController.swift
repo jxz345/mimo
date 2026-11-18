@@ -66,7 +66,7 @@ private struct AllowlistWarningView: View {
             Text(address)
                 .font(.title2.monospaced())
                 .textSelection(.enabled)
-            Text("Exit IP Monitor only warns; it does not block the connection. This warning clears when the exit IP changes to an allowed address or you add this address to the allowlist.")
+            Text("Rule and Global block an exit IP that is not allowed. Direct bypasses this check. Review the address in Mimo before changing the allowed list.")
                 .fixedSize(horizontal: false, vertical: true)
                 .foregroundStyle(.secondary)
             Spacer()

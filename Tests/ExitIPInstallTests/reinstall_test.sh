@@ -5,8 +5,8 @@ set -euo pipefail
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
 fixture=$(mktemp -d)
 trap 'rm -rf "$fixture"' EXIT
-app="$fixture/root/ExitIPMonitor.app"
-mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources" "$fixture/Applications/ExitIPMonitor.app"
+app="$fixture/root/Mimo.app"
+mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources" "$fixture/Applications/Mimo.app"
 cp /usr/bin/true "$app/Contents/MacOS/ExitIPMonitor"
 cat > "$app/Contents/Info.plist" <<'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -38,11 +38,11 @@ awk -v support="$REPO/Sources/ExitIPDiagnostics/command-support.sh" '
 ' "$REPO/Scripts/install-release.sh" | sed -e 's|@RELEASE_REPO@|test/repo|' -e 's|@VERSION@|1.0|' \
     -e "s|@PKG_SHA256@|$sha|" > "$fixture/install.sh"
 export EXIT_IP_LOG_DIRECTORY="$fixture/logs" EXIT_IP_INSTALL_DIR="$fixture/Applications" TEST_ORDER="$fixture/order"
-touch "$fixture/Applications/ExitIPMonitor.app/preserve"
+touch "$fixture/Applications/Mimo.app/preserve"
 if TEST_CLEANUP_FAIL=1 /bin/bash "$fixture/install.sh" "$fixture/ExitIPMonitor-1.0.pkg" > "$fixture/fail" 2>&1; then
     echo 'FAIL: installer ignored cleanup failure'; exit 1
 fi
-[ -f "$fixture/Applications/ExitIPMonitor.app/preserve" ]
+[ -f "$fixture/Applications/Mimo.app/preserve" ]
 [ "$(cat "$TEST_ORDER")" = cleanup ]
 echo 'PASS: cleanup failure preserves the installed app and prevents launch'
 : > "$TEST_ORDER"
@@ -60,5 +60,5 @@ EOF
 status=0
 /bin/bash "$fixture/scripts/preinstall" unused "$fixture/Applications" / || status=$?
 [ "$status" = 17 ]
-[ "$(cat "$TEST_ORDER")" = "$(printf '%s\n%s' --app "$fixture/Applications/ExitIPMonitor.app")" ]
+[ "$(cat "$TEST_ORDER")" = "$(printf '%s\n%s' --app "$fixture/Applications/Mimo.app")" ]
 echo 'PASS: package preinstall uses its packaged helper and propagates cleanup failure'

@@ -71,7 +71,7 @@ enum ServiceAuthorization {
         let rule: [String: Any] = ["class": "user", "group": "admin", "authenticate-user": true,
                                    "shared": false, "timeout": 300, "allow-root": true]
         guard AuthorizationRightSet(authorization, ExitIPService.settingsRight, rule as CFDictionary,
-                                    "Change shared Exit IP monitoring settings" as CFString, nil, nil) == errAuthorizationSuccess else {
+                                    "Change shared Mimo settings" as CFString, nil, nil) == errAuthorizationSuccess else {
             throw DaemonFailure.unauthorized
         }
     }

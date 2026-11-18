@@ -26,9 +26,9 @@ enum MimoDashboardTests {
             .init(id: .tailnetProvider, health: .running, transport: "HTTP", address: "127.0.0.1", port: 18766, bindingConfirmed: true)
         ]
         for dark in [false, true] {
-            for scenario in ["direct", "rule", "global", "blocked", "checking", "empty", "tailnet-stopped", "long-text"] {
+            for scenario in ["direct", "rule", "global", "blocked", "checking", "empty", "tailnet-stopped", "long-text", "direct-checking", "direct-failed"] {
                 var value = routing
-                value.configuration.mode = scenario == "direct" ? .direct : scenario == "global" ? .global : .rule
+                value.configuration.mode = scenario.hasPrefix("direct") ? .direct : scenario == "global" ? .global : .rule
                 value.phase = .active; value.effectiveMode = value.configuration.mode
                 value.reason = scenario == "direct" ? "Normal networking is restored." : "Exit IP approved."
                 if ["blocked", "checking", "empty", "long-text"].contains(scenario) {
@@ -42,6 +42,7 @@ enum MimoDashboardTests {
                     value.configuration.proxy?.name = "A deliberately long profile name for the primary travel connection"
                     value.reason += " Open Settings to review the proxy configuration and add the expected exit address before retrying."
                 }
+                state.status = scenario == "direct-checking" ? .refreshing : scenario == "direct-failed" ? .failed("The network connection was lost. Check Wi-Fi and try again.") : .ready
                 state.routing = value
                 state.settings.allowlist = scenario == "empty" ? AllowedIPList() : settings.allowlist
                 let monitor = PublicIPMonitor(); monitor.receive(state)

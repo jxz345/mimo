@@ -2,12 +2,12 @@
 # Inspect a built app's signing, architectures, App Group entitlement, and embedded widget extension.
 # This is read-only: it never changes signing settings or profiles.
 #
-#   bash Scripts/check-signed-build.sh [path/to/ExitIPMonitor.app]
+#   bash Scripts/check-signed-build.sh [path/to/Mimo.app]
 set -u -o pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-APP_PATH="${1:-$PROJECT_ROOT/XcodeProject/DerivedData/Build/Products/Debug/ExitIPMonitor.app}"
+APP_PATH="${1:-$PROJECT_ROOT/XcodeProject/DerivedData/Build/Products/Debug/Mimo.app}"
 
 pass() { printf 'PASS  %s\n' "$1"; }
 warn() { printf 'WARN  %s\n' "$1"; }

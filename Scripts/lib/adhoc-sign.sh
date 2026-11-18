@@ -1,4 +1,4 @@
-# Sourced helper: ad-hoc sign an unsigned ExitIPMonitor.app bundle.
+# Sourced helper: ad-hoc sign an unsigned Mimo.app bundle.
 #
 # A build with CODE_SIGNING_ALLOWED=NO keeps only the linker's partial ad-hoc
 # signature, which seals neither Info.plist nor resources. Once a download or

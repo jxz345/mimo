@@ -194,6 +194,8 @@ public struct DaemonResponse: Codable, Sendable {
     public var failure: DaemonFailure?
     public var events: [String]?
     public var routing: MimoRoutingState? = nil
+    /// Returned only for an explicitly authorized profile-view request, never in state broadcasts.
+    public var profileContents: String? = nil
     public init(state: DaemonState? = nil, failure: DaemonFailure? = nil, events: [String]? = nil) {
         self.state = state
         self.failure = failure

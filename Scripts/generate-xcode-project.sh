@@ -161,7 +161,7 @@ if (( SIGNED_BUILD == 1 )) && [[ "$APP_GROUP" == "group.com.example.exitipmonito
     exit 2
 fi
 
-printf '== Exit IP Monitor project generator ==\n'
+printf '== Mimo project generator ==\n'
 printf 'Source kit: %s\n' "$KIT_ROOT"
 printf 'Output project: %s\n' "$PROJECT_DIR"
 printf 'Log file: %s\n' "$LOG_PATH"
@@ -279,7 +279,7 @@ targets:
       - path: Sources/ExitIPMonitorApp
       - path: Sources/ExitIPCore/RuntimeLog.swift
       # Installer for the required shared service ships as a bundle resource:
-      # sudo /bin/bash ExitIPMonitor.app/Contents/Resources/daemon.sh install
+      # sudo /bin/bash Mimo.app/Contents/Resources/daemon.sh install
       - path: Sources/ExitIPDaemon/daemon.sh
         buildPhase: resources
       - path: Sources/ExitIPDaemon/setup.command
@@ -293,7 +293,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $BUNDLE_ID
-        PRODUCT_NAME: ExitIPMonitor
+        PRODUCT_NAME: Mimo
         EXECUTABLE_NAME: mimo-gui
         GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_FILE: Configuration/ExitIPMonitor-Info.plist
@@ -420,7 +420,7 @@ XCODE_PROJECT="$PROJECT_DIR/ExitIPMonitor.xcodeproj"
 [[ -d "$XCODE_PROJECT" ]] || { printf 'ERROR XcodeGen did not produce: %s\n' "$XCODE_PROJECT" >&2; exit 1; }
 printf 'PASS  Generated project: %s\n' "$XCODE_PROJECT"
 
-APP_BUNDLE="$PROJECT_DIR/DerivedData/Build/Products/Debug/ExitIPMonitor.app"
+APP_BUNDLE="$PROJECT_DIR/DerivedData/Build/Products/Debug/Mimo.app"
 APP_EXECUTABLE="$APP_BUNDLE/Contents/MacOS/mimo-gui"
 
 if (( GENERATE_ONLY == 0 )); then

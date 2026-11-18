@@ -28,11 +28,17 @@ STORAGE = SUPPORT / "Service/state.plist"
 FLAGS = RUNTIME / "services.json"
 HELPER = Path("/Library/PrivilegedHelperTools/mimo-core")
 MANAGER = Path("/Library/PrivilegedHelperTools/com.example.exitipmonitor.manage")
-APP = Path("/Users/jay/Applications/ExitIPMonitor.app")
+APP = Path("/Users/jay/Applications/Mimo.app")
 
 
 def read_settings():
     return plistlib.loads(STORAGE.read_bytes()) if STORAGE.exists() else {}
+
+
+def user_settings(value):
+    # Anonymous Direct monitoring may advance its snapshot/budget during an
+    # upgrade. Compare all saved configuration, service revision and test markers.
+    return {key: item for key, item in value.items() if key.startswith(("service.", "mimo."))}
 
 
 def atomic_write(path, data):
@@ -160,7 +166,7 @@ def run():
         (evidence / (name + ".log")).write_text(result.stdout + result.stderr)
         assert result.returncode != 0 and "previous files and loaded services were restored" in result.stderr
         assert hashlib.sha256(HELPER.read_bytes()).digest() == before_helper
-        assert read_settings() == before_settings
+        assert user_settings(read_settings()) == user_settings(before_settings)
         assert json.loads(FLAGS.read_bytes()) == json.loads(before_flags)
         assert (SUPPORT / "installed-app").read_bytes() == before_app
         assert not (RUNTIME / "maintenance").exists()

@@ -11,7 +11,7 @@ The desktop layout targets a 1280 × 700 or larger browser viewport at normal te
 - **Refresh now** has a permanent toolbar position and a Command-R shortcut.
 - A live menu-bar preview shows the icon for every scenario and opens a functional status/menu mockup. It remains available after the simulated GUI closes.
 - **Background services** owns **Internet access** and its verification/recovery controls. There is no duplicate standalone Internet access section.
-- mimo-core, mihomo, **Profile hosting**, and **Tailnet provider** each show status and aligned **Start / Stop / Restart** controls. These controls appear only on the dashboard; General has no duplicate services section.
+- mimo-core, mihomo and **Tailnet provider** show status and aligned **Start / Stop / Restart** controls. **Profile hosting** uses **Open profile / Reload** in the same row, shows in-memory delivery, and names the credential-free startup file in `/Library/Application Support/Mimo/Mihomo/`. These controls appear only on the dashboard; General has no duplicate services section.
 - A compact route summary preserves the LAN / Tailscale exception. Event Log and Quit GUI stay in the footer.
 
 ## Settings
@@ -36,7 +36,7 @@ Settings → Background services shows configured ports without duplicating life
 | --- | --- | --- |
 | mimo-core | No TCP port | Typed XPC / Mach service |
 | mihomo | 7890; protected DNS 1053 | Loopback HTTP/SOCKS and DNS listeners; controller access is a Unix socket |
-| Profile hosting | No separate TCP port | Planned private-file delivery to mihomo, not a public full-profile HTTP endpoint |
+| Profile hosting | No separate TCP port | In-memory private Unix-socket delivery; credential-free startup YAML only |
 | Tailnet provider | 18766 | Existing HTTP listener bound to `127.0.0.1` |
 
 The reference values come from `Sources/ExitIPShared/ClashVergeProfile.swift`, `Sources/ExitIPShared/TailscaleVergeProvider.swift`, `Sources/ExitIPShared/DaemonRPC.swift`, and the original private-delivery workflow. These are configuration details, not proof that a socket is listening. They remain visible when a service is stopped. The native app reports configured ports and confirmation state separately; its authenticated verification listener is private at 127.0.0.1:18767. The dashboard's **Ports** shortcut opens these details.
@@ -71,7 +71,7 @@ Start/Stop/Restart require administrator authorization in the native app. A stop
 
 ## Profile hosting and tailnet provider
 
-These are distinct service rows in the prototype. Profile hosting represents private full-profile delivery to mihomo; it does not publish credentials at an unauthenticated HTTP endpoint. Stopping it blocks Rule/Global until delivery and verification recover.
+These are distinct service rows in the prototype. Profile hosting represents private full-profile delivery to mihomo; it does not publish credentials at an unauthenticated HTTP endpoint. Reloading it blocks Rule/Global until delivery and fresh verification recover. Open profile displays a read-only generated snapshot after administrator authorization.
 
 The tailnet provider publishes the local-routing policy. Stopping it makes protected tailnet routing reject while an already-verified public connection stays active. It does not stop the actual Tailscale application. Direct bypasses profile-based routing. The native implementation must preserve the existing provider's fail-closed semantics; these buttons only simulate them.
 
@@ -81,7 +81,7 @@ The tailnet provider publishes the local-routing policy. Stopping it makes prote
 
 ## Liquid Glass handoff
 
-The webpage uses a neutral graphite/gray palette with a macOS blue accent and a matching graphite-blue app icon. It approximates the material with CSS, translucent navigation, rounded controls, subtle highlights, and background blur. Important status text and forms use stable contrast. The preview includes a solid fallback, reduced-transparency preference, and increased-contrast handling. It does not claim to render actual macOS components.
+The webpage uses a neutral graphite/gray palette with greyscale controls and a matching graphite app icon. It approximates the material with CSS, translucent navigation, rounded controls, subtle highlights, and background blur. Important status text and forms use stable contrast. The preview includes a solid fallback, reduced-transparency preference, and increased-contrast handling. It does not claim to render actual macOS components.
 
 Use native system components when implementing the SwiftUI app:
 
@@ -99,7 +99,7 @@ Apple recommends system navigation and controls for adoption; custom glass effec
 
 ## App icon
 
-[AppIcon/](AppIcon/) contains the editable SVG, a transparent 1024px PNG, a static macOS `.icns`, monochrome symbol, and separate full-square background/glyph SVG layers for a future Icon Composer project. The mark is a frosted lowercase “m” with two arches on graphite-blue. It is integrated into the preview header, title bar, Settings, favicon, and the downloadable App icon page.
+[AppIcon/](AppIcon/) contains the editable SVG, a transparent 1024px PNG, a static macOS `.icns`, monochrome symbol, and separate full-square background/glyph SVG layers for a future Icon Composer project. The mark is a frosted lowercase “m” with two arches on graphite. It is integrated into the preview header, title bar, Settings, favicon, and the downloadable App icon page.
 
 These are design assets, not a compiled dynamic `.icon` document. The shipping app's existing country/status Dock behavior has not been replaced.
 

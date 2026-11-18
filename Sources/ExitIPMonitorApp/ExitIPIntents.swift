@@ -3,7 +3,7 @@ import AppIntents
 enum ExitIPDestination: String, AppEnum {
     case dashboard
 
-    static let typeDisplayRepresentation = TypeDisplayRepresentation(name: "Exit IP screen")
+    static let typeDisplayRepresentation = TypeDisplayRepresentation(name: "Mimo screen")
     static let caseDisplayRepresentations: [ExitIPDestination: DisplayRepresentation] = [
         .dashboard: DisplayRepresentation(title: "Dashboard")
     ]
@@ -12,7 +12,7 @@ enum ExitIPDestination: String, AppEnum {
 /// Add this file to both the app target and the widget-extension target.
 /// `OpenIntent` brings the app to the foreground when the Control Center button is used.
 struct OpenExitIPDashboardIntent: OpenIntent {
-    static let title: LocalizedStringResource = "Open Exit IP"
+    static let title: LocalizedStringResource = "Open Mimo"
 
     @Parameter(title: "Destination", default: .dashboard)
     var target: ExitIPDestination

@@ -10,6 +10,7 @@ final class ExitIPAppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         LaunchDiagnostics.record("application_did_finish_launching")
+        MimoApplicationAppearance.apply(UserDefaults.standard.string(forKey: "mimo.appearance") ?? "system")
         installApplicationMenus()
         statusItem = StatusItemController(monitor: Self.monitor)
         Self.monitor.start()
@@ -91,19 +92,19 @@ final class ExitIPAppDelegate: NSObject, NSApplicationDelegate {
             item.submenu = menu
             return menu
         }
-        let app = submenu("Exit IP Monitor")
-        app.addItem(withTitle: "About Exit IP Monitor", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        let app = submenu("Mimo")
+        app.addItem(withTitle: "About Mimo", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
         app.addItem(.separator())
         app.addItem(withTitle: "Settings…", action: #selector(openSettings(_:)), keyEquivalent: ",").target = self
         app.addItem(.separator())
-        app.addItem(withTitle: "Hide Exit IP Monitor", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
+        app.addItem(withTitle: "Hide Mimo", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
         let hideOthers = app.addItem(withTitle: "Hide Others", action: #selector(NSApplication.hideOtherApplications(_:)), keyEquivalent: "h")
         hideOthers.keyEquivalentModifierMask = [.command, .option]
         app.addItem(withTitle: "Show All", action: #selector(NSApplication.unhideAllApplications(_:)), keyEquivalent: "")
         app.addItem(.separator())
-        app.addItem(withTitle: "Quit Exit IP Monitor", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
+        app.addItem(withTitle: "Quit Mimo", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
         // ⌘Q closes the windows instead of quitting (the 1.0 dashboard quit the app on ⌘Q).
-        let closeWindows = app.addItem(withTitle: "Close Exit IP Windows",
+        let closeWindows = app.addItem(withTitle: "Close Mimo Windows",
                                        action: #selector(closeWindowsFromShortcut(_:)), keyEquivalent: "q")
         closeWindows.target = self
         closeWindows.isHidden = true
@@ -258,7 +259,7 @@ func maintainClashVergeProfile(_ settings: ClashProxySettings) throws -> ClashVe
     return outcome
 }
 
-/// Copies the profile file to "Exit IP Monitor <date> (n).yaml", a name no Clash Verge profile has, and
+/// Copies the profile file to "Mimo <date> (n).yaml", a name no Clash Verge profile has, and
 /// shows the copy selected in Finder, ready to drag onto Clash Verge Rev's Profiles page (which adds it as
 /// a Local profile with that name). Only Clash Verge's profile names are read; a missing or unreadable
 /// `profiles.yaml` counts as none. Nothing is written into Clash Verge.

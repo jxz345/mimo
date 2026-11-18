@@ -1,0 +1,57 @@
+{
+  "success": true,
+  "date": "2026-11-19",
+  "scope": "Development Mimo GUI and dashboard preview. This does not qualify protected routing or replace the published 1.0 archive.",
+  "platform": "Apple silicon macOS 27.2.1 (Tart VM), 1440 x 900 logical display",
+  "passed": [
+    "Finder-and-application-menus-show-Mimo",
+    "native-dashboard-fits-without-scrolling",
+    "four-service-status-controls-and-configured-endpoints-visible",
+    "private-profile-full-path-and-filename-visible",
+    "empty-upstream-proxy-state-distinct-from-generated-blocking-profile",
+    "shared-initialization-and-Refresh-now-enablement",
+    "Direct-IP-arrival-preserves-dashboard-layout",
+    "unconfigured-Rule-and-Global-remain-blocked",
+    "Global-transition-updates-menu-and-dashboard-while-menu-remains-open",
+    "explicit-Direct-recovers",
+    "invalid-IPv4-input-rejected",
+    "proxy-drafts-retained-across-status-updates",
+    "login-item-synchronized-across-dashboard-settings-menu",
+    "Dark-to-System-restores-native-control-appearance",
+    "Safari-dashboard-and-four-section-settings-preview-render-without-clipping",
+    "production-helper-original-Direct-and-service-intent-restored",
+    "empty-test-credential-IPv6-off-and-no-qualification-manifest",
+    "temporary-jobs-processes-captures-fixtures-and-routes-absent",
+    "greyscale-dashboard-settings-and-app-icon",
+    "Direct-IP-and-country-indicators-before-settings-initialization",
+    "authorized-read-only-profile-viewer",
+    "manual-Reload-preserves-Direct-and-refreshes-IP",
+    "profile-Open-and-Reload-replace-lifecycle-buttons-in-the-existing-row",
+    "runtime-profile-delivered-in-memory-with-owner-only-startup-file-and-controller"
+  ],
+  "automatedValidation": {
+    "sharedTests": 158,
+    "previewDOMChecks": 73,
+    "nativeAppSuite": "pass",
+    "installationSuite": "pass",
+    "daemonSuite": "pass",
+    "serviceSuite": "pass",
+    "arm64ReleaseBuildAndSignature": "pass",
+    "VMUpgradeChecks": 19,
+    "VMInMemoryProfileChecks": 6
+  },
+  "developmentGUIArchiveSHA256": "bd00172829f612a2331c73a6681474f62cde5e8bcb07f171024572dbe3fa5951",
+  "privateProfile": {
+    "runtime": "In-memory payload over the private Unix controller socket",
+    "startup": "/Library/Application Support/Mimo/Mihomo/blocking.yaml",
+    "controller": "/Library/Application Support/Mimo/Mihomo/controller.sock",
+    "permissions": "0700 directories; 0600 startup file and controller socket",
+    "contentsPublished": false
+  },
+  "limitations": [
+    "Tart modifier keys and automated clipboard paste remain unreliable; keyboard acceptance is incomplete.",
+    "Copied-app Homebrew prompts and cancellation remain unverified live.",
+    "Protected boot exposure, relay repeatability and real sleep remain separate release blockers."
+  ],
+  "evidencePrivacy": "Live screenshots are retained locally. Published preview images use fixture addresses only."
+}

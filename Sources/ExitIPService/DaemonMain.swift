@@ -35,7 +35,7 @@ enum DaemonMain {
                 _ = try runtime.savedConfiguration()
                 let flags = try runtime.servicePreferences()
                 _ = try runtime.writePrivate(JSONEncoder().encode(flags), name: "services.json")
-                _ = try runtime.writePrivate(Data(MihomoProfile.blocking().utf8), name: "blocking.yaml")
+                try runtime.writeBlockingProfile()
                 return
             case ["--installation-mode"]:
                 print(try runtime.savedConfiguration().mode.rawValue)
@@ -63,8 +63,8 @@ enum DaemonMain {
                     throw MimoRuntimeError.unavailable("Mihomo must run in its dedicated runtime group.")
                 }
                 try runtime.closeGate()
-                _ = try runtime.writePrivate(Data(MihomoProfile.blocking().utf8), name: "blocking.yaml")
-                let arguments = [MimoRuntime.engine.path, "-d", MimoRuntime.directory.path, "-f", MimoRuntime.blockingProfile.path]
+                try runtime.writeBlockingProfile()
+                let arguments = [MimoRuntime.engine.path, "-d", MimoRuntime.profileDirectory.path, "-f", MimoRuntime.blockingProfile.path]
                 var argv = arguments.map { strdup($0) } + [nil]
                 defer { argv.forEach { free($0) } }
                 execv(MimoRuntime.engine.path, &argv)

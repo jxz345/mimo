@@ -317,7 +317,7 @@ enum MimoCoordinatorTests {
                 approvals.append(message.verification!)
                 _ = policy.approve(address: message.address!, at: .now, allowlist: Self.allowed,
                                    verification: message.verification!, runtimeMatches: true)
-            case .service: throw DaemonFailure.invalidRequest
+            case .service, .profile: throw DaemonFailure.invalidRequest
             }
             return policy.state
         }

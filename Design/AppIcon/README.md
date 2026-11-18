@@ -1,6 +1,6 @@
 # Mimo app icon
 
-Two rounded arches make an “m”: a frosted mark over a graphite-blue tile. All artwork is original, editable vector geometry.
+Two rounded arches make an “m”: a frosted mark over a graphite tile. All artwork is original, editable vector geometry.
 
 - `mimo-icon.svg`: composed preview/master artwork, 1024 × 1024.
 - `mimo-icon.png`: 1024px PNG with transparent outer padding.

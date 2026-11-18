@@ -59,7 +59,7 @@ raise "Cask must require Apple silicon" unless $capture.dependencies.include?({ 
 raise "Mimo must conflict with the legacy cask" unless $capture.conflicts == { cask: "exit-ip-monitor" }
 # Only Sleepless's app-scoped recovery, on the staged copy and without sudo: a failed signature
 # check aborts the install, and quarantine is never removed from anything else.
-staged = "{{staged_path}}/ExitIPMonitor.app"
+staged = "{{staged_path}}/Mimo.app"
 release = [
   ["/usr/bin/codesign", ["--verify", "--deep", "--strict", staged], {}, []],
   ["/usr/bin/xattr", ["-dr", "com.apple.quarantine", staged], {}, []],
@@ -68,7 +68,7 @@ raise "Preflight must only verify, then release this app's quarantine" unless $c
 # Installation always offers the required service; old optional-provider opt-out is unrelated.
 service = [[
   "/bin/bash",
-  ["{{appdir}}/ExitIPMonitor.app/Contents/Resources/daemon.sh", "install"],
+  ["{{appdir}}/Mimo.app/Contents/Resources/daemon.sh", "install"],
   { sudo: true, must_succeed: false, print_stdout: true },
   [],
 ]]
@@ -79,6 +79,6 @@ raise "Whole cleanup must not run as root" if script[:sudo]
 raise "Wrong interpreter" unless script.fetch(:executable) == "/bin/bash"
 arguments = script.fetch(:args)
 raise "Missing independent cleanup" unless arguments[1].include?('cleanup_main --app "$1"')
-raise "Wrong target" unless arguments.last == "/Applications/ExitIPMonitor.app"
+raise "Wrong target" unless arguments.last == "/Applications/Mimo.app"
 raise "No graceful quit" unless $capture.uninstall_options[:quit] == "com.example.exitipmonitor"
 puts "PASS: cask releases only the verified staged app's quarantine, sets up the required shared service without failing the app install, and requires external cleanup after graceful quit"

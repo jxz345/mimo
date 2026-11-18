@@ -14,6 +14,7 @@ final class StatusItemController: NSObject {
     private var loginObservation: AnyCancellable?
 
     var isVisible: Bool { item.isVisible }
+    private(set) var displayedPresentation: MimoStatusPresentation?
 
     init(monitor: PublicIPMonitor) {
         self.monitor = monitor
@@ -24,9 +25,10 @@ final class StatusItemController: NSObject {
         item.menu = statusMenu.menu
         item.button?.setAccessibilityIdentifier("exit-ip-menu-bar")
         update()
-        // objectWillChange is sent before the properties change; render on the next main turn.
-        observation = monitor.objectWillChange.receive(on: RunLoop.main).sink { [weak self] _ in
-            MainActor.assumeIsolated { self?.update() }
+        // Publish after all properties are assigned. DispatchQueue also runs while an NSMenu
+        // tracks events; RunLoop.main's default mode can leave the icon stale until it closes.
+        observation = monitor.objectWillChange.sink { [weak self] _ in
+            DispatchQueue.main.async { self?.update() }
         }
         loginObservation = NotificationCenter.default.publisher(for: LoginItemSync.changed).receive(on: RunLoop.main).sink { [weak self] _ in
             MainActor.assumeIsolated { self?.statusMenu.update() }
@@ -43,6 +45,7 @@ final class StatusItemController: NSObject {
         guard let button = item.button else { return }
         statusMenu.update()
         let label = MimoMenuBarLabel(presentation: statusMenu.presentation)
+        displayedPresentation = label.presentation
         let host = hostingView ?? StatusLabelHostingView(rootView: label)
         host.rootView = label
         if hostingView == nil {

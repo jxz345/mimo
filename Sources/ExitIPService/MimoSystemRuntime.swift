@@ -30,6 +30,7 @@ final class MimoSystemRuntime {
     private(set) var closed = false
     private var enableToken: String?
     private var loadedProfile: (digest: SHA256.Digest, process: Int32)?
+    private var deliveredContents: String?
     private var nativeTransportRules: String?
     private let dns = MimoDNSConfiguration()
     var profileWillChange: (() -> Void)?
@@ -115,6 +116,8 @@ final class MimoSystemRuntime {
         }
         try secureDirectory(ExitIPService.support)
         try secureDirectory(directory)
+        try secureDirectory(MimoRuntime.profileDirectory.deletingLastPathComponent())
+        try secureDirectory(MimoRuntime.profileDirectory)
         try secureFile(MimoRuntime.engine, executable: true)
         let manifest = directory.appendingPathComponent("engine.sha256")
         try secureFile(manifest)
@@ -159,6 +162,15 @@ final class MimoSystemRuntime {
 #endif
 
     func writePrivate(_ data: Data, name: String) throws -> URL {
+        try writePrivate(data, name: name, directory: directory)
+    }
+
+    func writeBlockingProfile() throws {
+        try secureDirectory(MimoRuntime.profileDirectory.deletingLastPathComponent())
+        _ = try writePrivate(Data(MihomoProfile.blocking().utf8), name: "blocking.yaml", directory: MimoRuntime.profileDirectory)
+    }
+
+    private func writePrivate(_ data: Data, name: String, directory: URL) throws -> URL {
         try secureDirectory(directory)
         let url = directory.appendingPathComponent(name)
         guard !name.contains("/"), !name.contains("..") else { throw DaemonFailure.invalidRequest }
@@ -311,21 +323,34 @@ final class MimoSystemRuntime {
         profileWillChange?()
         defer { profileDidChange?() }
         loadedProfile = nil
+        deliveredContents = nil
         guard let process = runningProcessID(MimoRuntime.engineLabel) else {
             throw MimoRuntimeError.unavailable("The proxy engine is unavailable.")
         }
-        let candidate = try writePrivate(Data(profile.utf8), name: "candidate.yaml")
-        try command(MimoRuntime.engine.path, ["-t", "-d", directory.path, "-f", candidate.path], timeout: 5)
-        let body = try JSONSerialization.data(withJSONObject: ["path": candidate.path])
-        let request = try writePrivate(body, name: "reload.json")
+        let bytes = Data(profile.utf8)
+        guard !bytes.isEmpty, bytes.count <= 524288 else { throw DaemonFailure.invalidRequest }
+        try secureController()
+        // Validate and send the same immutable bytes. Neither stdin nor the JSON
+        // payload is written to disk, included in argv, or reported in errors.
+        try command(MimoRuntime.engine.path, ["-t", "-d", MimoRuntime.profileDirectory.path, "-f", "-"], timeout: 5, input: bytes)
+        let body = try JSONSerialization.data(withJSONObject: ["payload": profile])
         try command("/usr/bin/curl", ["--silent", "--fail", "--max-time", "3", "--unix-socket", MimoRuntime.controller.path,
-            "-X", "PUT", "http://localhost/configs?force=true", "--data-binary", "@\(request.path)"], timeout: 4)
-        try secureFile(candidate)
-        guard try Data(contentsOf: candidate) == Data(profile.utf8),
-              runningProcessID(MimoRuntime.engineLabel) == process else {
+            "-X", "PUT", "http://localhost/configs?force=true", "--header", "Content-Type: application/json", "--data-binary", "@-"], timeout: 4, input: body)
+        try secureController()
+        guard runningProcessID(MimoRuntime.engineLabel) == process else {
             throw MimoRuntimeError.unavailable("The profile or engine changed during activation.")
         }
-        loadedProfile = (SHA256.hash(data: Data(profile.utf8)), process)
+        loadedProfile = (SHA256.hash(data: bytes), process)
+        deliveredContents = profile
+    }
+
+    func profileContents() throws -> String {
+        guard let process = runningProcessID(MimoRuntime.engineLabel) else { throw DaemonFailure.unavailable }
+        if loadedProfile?.process == process, let deliveredContents { return deliveredContents }
+        // A supervisor restart cannot reconstruct an earlier in-memory profile.
+        // Expose the bootstrap only after confirming that it is what is running.
+        guard try matches(MihomoProfile.blocking(), active: false) else { throw DaemonFailure.unavailable }
+        return MihomoProfile.blocking()
     }
 
     func disconnectFlows() throws {
@@ -351,13 +376,14 @@ final class MimoSystemRuntime {
         guard let process = runningProcessID(MimoRuntime.engineLabel) else { return false }
         let blocking = profile == MihomoProfile.blocking()
         if blocking, loadedProfile?.process != process { loadedProfile = nil }
-        let source = blocking && loadedProfile == nil ? MimoRuntime.blockingProfile : directory.appendingPathComponent("candidate.yaml")
-        try secureFile(source)
-        guard try Data(contentsOf: source) == Data(profile.utf8) else { return false }
-        if !blocking || loadedProfile != nil {
+        if blocking && loadedProfile == nil {
+            try secureFile(MimoRuntime.blockingProfile)
+            guard try Data(contentsOf: MimoRuntime.blockingProfile) == Data(profile.utf8) else { return false }
+        } else {
             guard let loadedProfile, loadedProfile.process == process,
                   loadedProfile.digest == SHA256.hash(data: Data(profile.utf8)) else { return false }
         }
+        try secureController()
         func get(_ path: String) throws -> [String: Any] {
             let result = BoundedProcess.run("/usr/bin/curl", ["--silent", "--fail", "--max-time", "2", "--unix-socket", MimoRuntime.controller.path, "http://localhost/\(path)"], timeout: 3)
             guard result.status == 0, let data = result.text.data(using: .utf8),
@@ -404,10 +430,29 @@ final class MimoSystemRuntime {
         return nil
     }
 
-    private func command(_ executable: String, _ arguments: [String], timeout: TimeInterval = 3) throws {
-        guard BoundedProcess.run(executable, arguments, timeout: timeout).status == 0 else {
+    private func command(_ executable: String, _ arguments: [String], timeout: TimeInterval = 3, input: Data? = nil) throws {
+        guard BoundedProcess.run(executable, arguments, timeout: timeout, input: input).status == 0 else {
             throw MimoRuntimeError.unavailable("A required \((executable as NSString).lastPathComponent) operation failed. Traffic was not approved.")
         }
+    }
+
+    private func secureController() throws {
+        for directory in [MimoRuntime.profileDirectory.deletingLastPathComponent(), MimoRuntime.profileDirectory] {
+            var info = stat()
+            guard lstat(directory.path, &info) == 0, info.st_uid == 0,
+                  info.st_mode & S_IFMT == S_IFDIR, info.st_mode & 0o077 == 0 else {
+                throw MimoRuntimeError.unavailable("Mihomo's controller directory is not private. Repair installation.")
+            }
+        }
+        var info = stat()
+        guard lstat(MimoRuntime.controller.path, &info) == 0, info.st_uid == 0,
+              info.st_mode & S_IFMT == S_IFSOCK else {
+            throw MimoRuntimeError.unavailable("Mihomo's private controller is missing or unsafe. Repair installation.")
+        }
+        // Mihomo explicitly creates its Unix socket as 0666 despite the inherited
+        // umask. Both root-only directories prevent access during creation;
+        // narrow the socket itself before the first controller request as well.
+        guard chmod(MimoRuntime.controller.path, 0o600) == 0 else { throw DaemonFailure.unavailable }
     }
 
     private func secureFile(_ url: URL, executable: Bool = false) throws {

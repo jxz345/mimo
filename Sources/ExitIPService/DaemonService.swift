@@ -69,11 +69,12 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
 
     func start() async {
         await routing?.start()
-        guard initialized else { return }
-        if routingConfiguration.proxy != nil {
+        guard initialized || routingConfiguration.mode == .direct else { return }
+        if initialized, routingConfiguration.proxy != nil {
             hasProxyPassword = (try? credentials.read(account: MimoRuntime.proxyPasswordAccount))?.isEmpty == false
         }
-        _ = await engine.ipinfoCredentials.load()
+        if initialized { _ = await engine.ipinfoCredentials.load() }
+        else { engine.apply(settings.monitoring, requestRefresh: false) }
         engine.start()
         provider.setEnabled(settings.tailscaleProviderEnabled)
         schedulePublication()
@@ -115,7 +116,7 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
             case .state: return DaemonResponse(state: state(for: uid))
             case .networkChanged:
                 guard uid == 0 else { throw DaemonFailure.unauthorized }
-                if initialized { engine.supervisorNetworkChanged() }
+                if initialized || routingConfiguration.mode == .direct { engine.supervisorNetworkChanged() }
             case .subscribe:
                 guard let session else { throw DaemonFailure.invalidRequest }
                 guard sessions.count < 128 || sessions[session.id] != nil else { throw DaemonFailure.unavailable }
@@ -124,7 +125,7 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
                 if request.command == .testProvider {
                     guard let selected = request.provider, settings.providerPool.contains(selected) else { throw DaemonFailure.invalidRequest }
                 }
-                guard initialized else { throw DaemonFailure.invalidRequest }
+                guard initialized || (request.command == .refresh && routingConfiguration.mode == .direct) else { throw DaemonFailure.invalidRequest }
                 // Concurrent users share the same in-flight lookup and cannot create a request storm.
                 if Date().timeIntervalSince(lastManualRequest) >= 1 {
                     lastManualRequest = Date()
@@ -186,7 +187,7 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
                             Task { [engine] in await engine.refresh(force: true, bypassMinimumInterval: true, trigger: .settingsChanged) }
                         }
                     }
-                    else { engine.reloadBeforeStart(); await start() }
+                    else { engine.stop(); engine.reloadBeforeStart(); await start() }
                     RuntimeLog.shared.info(wasInitialized ? "shared_settings_changed" : "shared_settings_initialized",
                                            fields: ["uid": String(uid), "revision": String(revision)])
                 } else {

@@ -3,10 +3,10 @@ import ServiceManagement
 import SwiftUI
 
 enum MimoSettingsSection: String, CaseIterable, Identifiable {
-    case proxy = "Proxy", allowedIPs = "Allowed IPs", monitoring = "Monitoring", services = "Background services", general = "General"
+    case proxy = "Proxy", allowedIPs = "Allowed IPs", monitoring = "Monitoring", general = "General"
     var id: String { rawValue }
     var symbol: String {
-        switch self { case .proxy: "point.3.connected.trianglepath.dotted"; case .allowedIPs: "checkmark.shield"; case .monitoring: "clock"; case .services: "cpu"; case .general: "gear" }
+        switch self { case .proxy: "point.3.connected.trianglepath.dotted"; case .allowedIPs: "checkmark.shield"; case .monitoring: "clock"; case .general: "gear" }
     }
 }
 
@@ -20,7 +20,9 @@ final class MimoSettingsNavigation: ObservableObject {
 struct DashboardView: View {
     @ObservedObject var monitor: PublicIPMonitor
     @StateObject private var installer = DaemonInstallationModel()
+    @State private var openedProfile: String?
     private var routing: MimoRoutingState { monitor.routingState }
+    private var presentation: MimoStatusPresentation { monitor.statusPresentation }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -29,10 +31,10 @@ struct DashboardView: View {
                 Spacer()
                 Button { ExitIPAppDelegate.showSettings() } label: { Label("Settings", systemImage: "gear") }
                 Button { Task { await monitor.refresh() } } label: {
-                    Label("Refresh now", systemImage: "arrow.clockwise").foregroundStyle(.primary)
+                    Label("Refresh now", systemImage: "arrow.clockwise")
                 }
                     .keyboardShortcut("r", modifiers: .command)
-                    .disabled(!monitor.connected || monitor.daemonState?.initialized != true || routing.phase == .checking || routing.phase == .validating)
+                    .disabled(!monitor.canRefresh)
                     .mimoGlassButton()
             }.padding(.horizontal, 20).padding(.vertical, 12).modifier(MimoBarBackground())
             Divider()
@@ -42,13 +44,13 @@ struct DashboardView: View {
                         HStack {
                             VStack(alignment: .leading, spacing: 3) {
                                 Text("Routing mode").font(.headline)
-                                Text(routing.configuration.mode == .direct ? "Normal networking, without a proxy." : "Verify the exit before opening traffic.").font(.caption).foregroundStyle(.secondary)
+                                Text(routing.configuration.mode == .direct ? "Normal networking, without a proxy." : "Verify the exit before opening traffic.").font(.caption).foregroundStyle(.secondary).lineLimit(1)
                             }
                             Spacer()
                             Picker("Routing mode", selection: Binding(get: { routing.configuration.mode }, set: monitor.setMode)) {
                                 ForEach(ProxyMode.allCases) { Text($0.title).tag($0) }
                             }.pickerStyle(.segmented).labelsHidden().frame(width: 280)
-                                .disabled(!monitor.connected || monitor.daemonState?.initialized != true || monitor.isChangingSettings)
+                                .disabled(!monitor.canChangeSharedSettings)
                         }
                         let layout = geometry.size.width >= 840 ? AnyLayout(HStackLayout(alignment: .top, spacing: 16)) : AnyLayout(VStackLayout(spacing: 16))
                         layout {
@@ -66,18 +68,34 @@ struct DashboardView: View {
                 Spacer()
                 Button("Quit GUI") { NSApp.terminate(nil) }
             }.buttonStyle(.borderless).padding(.horizontal, 20).padding(.vertical, 10).modifier(MimoBarBackground())
-        }.tint(.blue).modifier(MimoAppearance())
+        }.tint(.gray).modifier(MimoAppearance())
+        .sheet(isPresented: Binding(get: { openedProfile != nil }, set: { if !$0 { openedProfile = nil } })) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("Runtime profile").font(.headline)
+                    Spacer()
+                    Button("Close") { openedProfile = nil }.keyboardShortcut(.cancelAction)
+                }
+                Text("Read-only snapshot · Delivered in memory · May contain proxy credentials")
+                    .font(.caption).foregroundStyle(.secondary)
+                ScrollView([.vertical, .horizontal]) {
+                    Text(openedProfile ?? "").font(.system(.body, design: .monospaced))
+                        .textSelection(.enabled).privacySensitive().frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }.padding(20).frame(width: 720, height: 500).tint(.gray)
+        }
     }
 
     private var connection: some View {
         MimoCard("Current connection") {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 7) {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(routing.blockingIP != nil && routing.phase != .unavailable ? "IP that triggered blocking" : routing.displayedIP != nil ? "Checked IP address" : routing.phase == .checking ? "Checking IP…" : "IP unavailable")
                             .font(.caption).foregroundStyle(.secondary)
                         Text(routing.displayedIP?.address ?? "—")
                             .font(.system(size: routing.displayedIP?.address.contains(":") == true ? 17 : 23, weight: .medium, design: .monospaced))
+                            .lineLimit(1).minimumScaleFactor(0.7).frame(height: 28, alignment: .leading)
                             .textSelection(.enabled)
                     }
                     Spacer()
@@ -87,30 +105,31 @@ struct DashboardView: View {
                     }
                 }
                 LabeledContent("IP check") { if let date = routing.displayedIP?.checkedAt { Text(date, style: .relative) } else { Text("No result") } }
-                if let snapshot = monitor.snapshot, snapshot.ipAddress == routing.displayedIP?.address {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(snapshot.locationSummary).font(.callout)
-                        if let organization = snapshot.organization, !organization.isEmpty {
-                            Text(organization).font(.caption)
-                        }
-                    }.foregroundStyle(.secondary)
-                }
+                Text(monitor.lookupStatusMessage ?? " ").font(.caption).foregroundStyle(.secondary)
+                    .lineLimit(2, reservesSpace: true).frame(maxWidth: .infinity, alignment: .leading)
+                    .help(monitor.lookupStatusMessage ?? "")
+                let location = monitor.snapshot.flatMap { $0.ipAddress == routing.displayedIP?.address ? $0 : nil }
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(location?.locationSummary ?? "Location unavailable").font(.callout).lineLimit(1)
+                    Text(location?.organization ?? " ").font(.caption).lineLimit(1)
+                }.foregroundStyle(.secondary).frame(height: 34, alignment: .topLeading)
                 LabeledContent("Allowed IPs") {
                     Button("\(monitor.allowedIPList.addresses.count) \(monitor.allowedIPList.addresses.count == 1 ? "address" : "addresses")") {
                         MimoSettingsNavigation.open(.allowedIPs)
-                    }.buttonStyle(.link)
+                    }.buttonStyle(.plain).foregroundStyle(.primary)
                 }
                 Divider()
                 HStack {
-                    Text("Selected profile").foregroundStyle(.secondary)
+                    Text("Proxy configuration").foregroundStyle(.secondary)
                     Spacer()
-                    Button("Edit") { MimoSettingsNavigation.open(.proxy) }.buttonStyle(.link)
+                    Button("Edit") { MimoSettingsNavigation.open(.proxy) }.buttonStyle(.plain).foregroundStyle(.primary)
                 }
-                Text(routing.configuration.proxy?.name ?? "No saved profile").font(.headline)
-                Text(routing.configuration.proxy.map { "\($0.type.displayName) · 38 Rule-mode rules" } ?? "Add a proxy in Settings").font(.caption).foregroundStyle(.secondary)
+                Text(routing.configuration.proxy?.name ?? "No proxy configured").font(.headline).lineLimit(1)
+                    .help(routing.configuration.proxy?.name ?? "No proxy configured")
+                Text(routing.configuration.proxy.map { "\($0.type.displayName) · Shared proxy" } ?? "Add a proxy to use Rule / Global").font(.caption).foregroundStyle(.secondary)
                 HStack {
                     Text(monitor.preferences.refreshInterval.displayName).foregroundStyle(.secondary)
-                    Spacer(); Button("Configure") { MimoSettingsNavigation.open(.monitoring) }.buttonStyle(.link)
+                    Spacer(); Button("Configure") { MimoSettingsNavigation.open(.monitoring) }.buttonStyle(.plain).foregroundStyle(.primary)
                 }
                 Divider()
                 LaunchAtLoginControl(compact: true)
@@ -120,75 +139,120 @@ struct DashboardView: View {
 
     private var services: some View {
         MimoCard("Background services") {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 5) {
                 HStack(alignment: .top, spacing: 10) {
-                    Image(systemName: accessSymbol).font(.title2).foregroundStyle(accessColor)
+                    Image(systemName: presentation.symbol).font(.title2).foregroundStyle(accessColor)
+                        .frame(width: 25, height: 25).accessibilityLabel(presentation.title)
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Internet access · \(accessTitle)").font(.headline)
-                        Text(routing.reason).font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-                        if routing.configuration.mode.requiresVerification && !routing.allowsTraffic {
-                            HStack {
-                                Button("Retry verification") { Task { await monitor.refresh() } }
-                                    .disabled(!monitor.connected || monitor.daemonState?.initialized != true || routing.phase == .checking || routing.phase == .validating)
-                                Button("Use Direct") { monitor.setMode(.direct) }
-                                    .disabled(!monitor.connected || monitor.daemonState?.initialized != true || monitor.isChangingSettings)
-                            }.controlSize(.small)
-                        }
+                        Text("Internet access · \(accessTitle)").font(.headline).lineLimit(1)
+                        Text(presentation.detail).font(.callout).foregroundStyle(.secondary)
+                            .lineLimit(2, reservesSpace: true).help(presentation.detail)
+                        ZStack(alignment: .leading) {
+                            if !monitor.connected && routing.services.first(where: { $0.id == .core })?.health != .stopped {
+                                Button(installer.serviceInstalled ? "Repair installation" : "Set up services") { installer.install() }
+                                    .disabled(installer.isInstalling)
+                            } else if monitor.connected && monitor.daemonState?.initialized != true {
+                                Button("Initialize shared settings") { Task { await monitor.initializeSharedSettings() } }
+                                    .disabled(monitor.isChangingSettings)
+                            } else if routing.configuration.mode.requiresVerification && !routing.allowsTraffic {
+                                HStack {
+                                    Button("Retry verification") { Task { await monitor.refresh() } }
+                                        .disabled(!monitor.canRefresh)
+                                    Button("Use Direct") { monitor.setMode(.direct) }
+                                        .disabled(!monitor.canChangeSharedSettings)
+                                }.controlSize(.small)
+                            }
+                        }.frame(height: 22).frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
-                if !monitor.connected {
-                    Button(installer.serviceInstalled ? "Repair installation" : "Set up services") { installer.install() }.disabled(installer.isInstalling)
-                } else if monitor.daemonState?.initialized != true {
-                    Button("Initialize shared settings") { Task { await monitor.initializeSharedSettings() } }.disabled(monitor.isChangingSettings)
-                }
                 ForEach(MimoServiceID.allCases) { service in serviceRow(service) }
-                HStack {
-                    Text("Shared across this Mac").font(.caption).foregroundStyle(.secondary)
-                    Spacer(); Button("Ports") { MimoSettingsNavigation.open(.services) }.buttonStyle(.link)
-                }
-                if let error = monitor.operationError ?? installer.message { Text(error).font(.caption).foregroundStyle(.secondary) }
+                Text(monitor.operationError ?? installer.message ?? "Shared across this Mac · Configured endpoints shown.")
+                    .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                    .help(monitor.operationError ?? installer.message ?? "")
             }
         }
     }
 
     private func serviceRow(_ id: MimoServiceID) -> some View {
-        let health = routing.services.first { $0.id == id }?.health ?? .unavailable
-        return VStack(spacing: 9) {
+        let status = routing.services.first { $0.id == id }
+        let health = status?.health ?? .unavailable
+        return VStack(alignment: .leading, spacing: 5) {
             Divider()
             HStack(spacing: 9) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(id.title).font(.callout.weight(.medium))
-                    Text(monitor.serviceOperation == id ? "Working…" : health.rawValue.capitalized).font(.caption).foregroundStyle(.secondary)
-                }
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 6) {
+                        Text(id.title).font(.callout.weight(.medium))
+                        Text(monitor.serviceOperation == id ? "Working…" : health.rawValue.capitalized)
+                            .font(.caption).foregroundStyle(.secondary)
+                    }.lineLimit(1)
+                }.frame(maxWidth: .infinity, alignment: .leading)
                 Spacer(minLength: 6)
                 HStack(spacing: 4) {
-                    ForEach([MimoServiceOperation.start, .stop, .restart], id: \.rawValue) { operation in
-                        Button(operation.rawValue.capitalized) { monitor.changeService(id, operation: operation) }
-                            .disabled(monitor.serviceOperation != nil || (operation == .start && health == .running) || (operation != .start && health == .stopped))
-                            .accessibilityLabel("\(operation.rawValue.capitalized) \(id.title)")
+                    if id == .profileHosting {
+                        Button("Open profile") { Task { openedProfile = await monitor.openProfile() } }
+                            .disabled(monitor.serviceOperation != nil || health == .unavailable)
+                        Button("Reload") { monitor.changeService(.profileHosting, operation: .restart) }
+                            .disabled(monitor.serviceOperation != nil || health == .unavailable)
+                            .help("Regenerate the profile from saved settings and verify again before protected traffic resumes.")
+                    } else {
+                        ForEach([MimoServiceOperation.start, .stop, .restart], id: \.rawValue) { operation in
+                            Button(operation.rawValue.capitalized) { monitor.changeService(id, operation: operation) }
+                                .disabled(monitor.serviceOperation != nil || (id == .tailnetProvider && !monitor.canChangeSharedSettings)
+                                    || (operation == .start && health == .running) || (operation != .start && health == .stopped))
+                                .accessibilityLabel("\(operation.rawValue.capitalized) \(id.title)")
+                        }
                     }
                 }.controlSize(.small)
             }
+            HStack(spacing: 4) {
+                VStack(alignment: .leading, spacing: 2) {
+                if id == .profileHosting { Text("In memory · Unix socket · No TCP port").font(.caption) }
+                Text(serviceEndpoint(id, status: status)).font(.system(size: id == .profileHosting ? 10 : 11, design: .monospaced))
+                    .foregroundStyle(.secondary).lineLimit(1).textSelection(.enabled)
+                    .help(id == .profileHosting
+                        ? "Credential-free startup profile: \(MimoRuntime.blockingProfile.path)\nRuntime profile is delivered in memory through \(MimoRuntime.controller.path)."
+                        : serviceEndpoint(id, status: status))
+                }
+                if id == .profileHosting {
+                    Button {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(serviceEndpoint(id, status: status), forType: .string)
+                    } label: { Image(systemName: "doc.on.doc") }
+                    .buttonStyle(.borderless).help("Copy startup profile file path")
+                    .accessibilityLabel("Copy startup profile file path")
+                }
+            }
+        }.frame(height: id == .profileHosting ? 60 : 46)
+    }
+    private func serviceEndpoint(_ id: MimoServiceID, status: MimoServiceStatus?) -> String {
+        switch id {
+        case .core: return "XPC / Mach · No TCP port"
+        case .profileHosting: return MimoRuntime.blockingProfile.path
+        case .mihomo:
+            return "127.0.0.1 · Proxy \(String(status?.port ?? 7890)) · DNS \(String(MimoRuntime.dnsPort))"
+        case .tailnetProvider:
+            return "\(status?.address ?? "127.0.0.1"):\(String(status?.port ?? 18766)) · HTTP"
         }
     }
     private var accessTitle: String {
-        switch routing.phase {
-        case .unavailable: "Unavailable"
-        case .validating: "Validating"
+        switch presentation.kind {
+        case .directWarning: "Check failed"
+        case .tailnetWarning: "Allowed · Tailnet unavailable"
         case .checking: "Checking exit IP"
-        case .active: routing.allowsTraffic ? "Allowed" : "Unavailable"
+        case .unavailable: "Unavailable"
         case .blocked: "Blocked"
+        case .direct, .verified: "Allowed"
         }
     }
-    private var accessSymbol: String {
-        switch routing.phase {
-        case .unavailable: "info.circle"
-        case .checking, .validating: "clock"
-        case .active: routing.allowsTraffic ? (routing.configuration.mode == .direct ? "arrow.up.right" : "checkmark.shield") : "info.circle"
-        case .blocked: "hand.raised"
+    private var accessColor: Color {
+        switch presentation.kind {
+        case .blocked: .primary
+        case .directWarning, .tailnetWarning: .primary
+        case .unavailable: .secondary
+        default: .primary
         }
     }
-    private var accessColor: Color { routing.phase == .unavailable ? .secondary : routing.phase == .blocked ? .red : .blue }
+
 }
 
 struct SettingsView: View {
@@ -205,16 +269,24 @@ struct SettingsView: View {
         NavigationSplitView {
             List(MimoSettingsSection.allCases, selection: $navigation.section) { section in
                 Label(section.rawValue, systemImage: section.symbol).tag(section)
-            }.navigationSplitViewColumnWidth(190)
+            }.navigationSplitViewColumnWidth(min: 220, ideal: 230, max: 260)
         } detail: {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     Text(navigation.section.rawValue).font(.largeTitle.weight(.semibold))
+                    if navigation.section != .general && monitor.connected && monitor.daemonState?.initialized != true {
+                        MimoCard("Set up shared monitoring") {
+                            Text("Initialize this Mac’s monitoring settings before editing the proxy, allowed IPs, or lookup providers.")
+                                .font(.callout).foregroundStyle(.secondary)
+                            Button("Initialize shared settings") { Task { await monitor.initializeSharedSettings() } }
+                                .disabled(monitor.isChangingSettings)
+                        }
+                    }
                     content
-                    if let error = monitor.operationError { Text(error).foregroundStyle(.red).font(.callout) }
+                    if let error = monitor.operationError { Text(error).foregroundStyle(.primary).font(.callout) }
                 }.padding(24).frame(maxWidth: 760, alignment: .leading).frame(maxWidth: .infinity, alignment: .topLeading)
             }
-        }.tint(.blue).modifier(MimoAppearance())
+        }.tint(.gray).modifier(MimoAppearance())
     }
 
     @ViewBuilder private var content: some View {
@@ -222,7 +294,6 @@ struct SettingsView: View {
         case .proxy: MimoProxyForm(monitor: monitor, draft: $proxyDraft)
         case .allowedIPs: allowlist
         case .monitoring: monitoring
-        case .services: serviceDetails
         case .general:
             Form {
                 Section("Login item & appearance") {
@@ -254,10 +325,10 @@ struct SettingsView: View {
                         guard !monitor.allowedIPList.contains(normalized) else { validationError = "That address is already allowed."; return }
                         if monitor.addAllowedIP(normalized) { address = ""; validationError = nil }
                     }
-                }.disabled(!monitor.connected || monitor.isChangingSettings)
-                if let validationError { Text(validationError).font(.caption).foregroundStyle(.red) }
+                }
+                if let validationError { Text(validationError).font(.caption).foregroundStyle(.primary) }
                 Text("Approval is explicit. Retries never add an IP automatically. Direct bypasses this check.").font(.caption).foregroundStyle(.secondary)
-            }
+            }.disabled(!monitor.canChangeSharedSettings)
         }
     }
 
@@ -267,13 +338,13 @@ struct SettingsView: View {
                 VStack(spacing: 14) {
                     Picker("Routine interval", selection: Binding(get: { monitor.preferences.refreshInterval }, set: { value in var preferences = monitor.preferences; preferences.refreshInterval = value; monitor.apply(preferences) })) {
                         ForEach(RefreshInterval.allCases) { Text($0.displayName).tag($0) }
-                    }
+                    }.disabled(!monitor.canChangeSharedSettings)
                     LabeledContent("When network settings change", value: "Immediately")
                     LabeledContent("IP protocol", value: "IPv4 only")
                     Text("IPv6 stays disabled while Mimo is installed, including in Direct. Uninstall restores the previous network-service settings.").font(.caption).foregroundStyle(.secondary)
                     Text("Every change to Wi-Fi, DNS, routes, interfaces, proxies, or VPN configuration requests a fresh check. Wake also triggers a check. Protected traffic closes first.").font(.caption).foregroundStyle(.secondary)
                     HStack { Text("On a failed required check"); Spacer(); Text("Block Rule / Global") }
-                    Button("Check now") { Task { await monitor.refresh() } }.disabled(!monitor.connected)
+                    Button("Check now") { Task { await monitor.refresh() } }.disabled(!monitor.canRefresh)
                 }
             }
             MimoCard("Lookup providers") {
@@ -295,36 +366,12 @@ struct SettingsView: View {
                         Button("Remove token") { Task { _ = await monitor.removeIPinfoToken() } }
                     }.controlSize(.small).disabled(monitor.isCredentialBusy)
                     Text(monitor.ipinfoCredentialStatus).font(.caption).foregroundStyle(.secondary)
-                }
+                }.disabled(!monitor.canChangeSharedSettings)
             }
         }
     }
 
-    private var serviceDetails: some View {
-        MimoCard("Service ports and transports") {
-            VStack(alignment: .leading, spacing: 16) {
-                ForEach(MimoServiceID.allCases) { id in
-                    let status = monitor.routingState.services.first { $0.id == id }
-                    HStack(alignment: .top) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(id.title).font(.headline)
-                            Text(status?.transport ?? (id == .core ? "XPC / Mach" : id == .profileHosting ? "Private file delivery" : "Runtime unavailable")).font(.caption).foregroundStyle(.secondary)
-                            if let address = status?.address { Text(address).font(.caption.monospaced()).foregroundStyle(.secondary) }
-                        }
-                        Spacer()
-                        VStack(alignment: .trailing, spacing: 4) {
-                            Text(status?.port.map(String.init) ?? (id == .core || id == .profileHosting ? "No TCP port" : "Unavailable")).monospaced()
-                            if id == .mihomo { Text("DNS · 127.0.0.1:\(MimoRuntime.dnsPort)").font(.caption.monospaced()) }
-                            Text(status?.bindingConfirmed == true ? "Listening confirmed" : "Configured / unconfirmed").font(.caption).foregroundStyle(.secondary)
-                        }
-                    }
-                    Divider()
-                }
-                Text("Configured ports remain visible when stopped. Control service lifecycle from the dashboard.").font(.caption).foregroundStyle(.secondary)
-                Button("Open dashboard") { ExitIPAppDelegate.showDashboard() }
-            }
-        }
-    }
+
 }
 
 private struct MimoProxyForm: View {
@@ -352,7 +399,7 @@ private struct MimoProxyForm: View {
                     Button("Reload and discard draft") { load(); error = nil }
                         .disabled(unavailable || monitor.isChangingSettings)
                 }
-                if let error { Text(error).font(.caption).foregroundStyle(.red) }
+                if let error { Text(error).font(.caption).foregroundStyle(.primary) }
                 HStack {
                     Button("Save and apply") { save() }.mimoGlassButton()
                     Button("Remove", role: .destructive) { confirmRemoval = true }
@@ -410,6 +457,20 @@ private extension EnvironmentValues {
     }
 }
 
+@MainActor
+enum MimoApplicationAppearance {
+    static func apply(_ value: String) {
+        // AppKit owns the whole window, including SwiftUI's native Form controls.
+        // Clearing a per-view preferredColorScheme can leave those controls in the
+        // previous scheme while the title bar has already returned to System.
+        switch value {
+        case "dark": NSApp.appearance = NSAppearance(named: .darkAqua)
+        case "light": NSApp.appearance = NSAppearance(named: .aqua)
+        default: NSApp.appearance = nil
+        }
+    }
+}
+
 private struct MimoAppearance: ViewModifier {
     @AppStorage("mimo.appearance") private var appearance = "system"
     @AppStorage("mimo.reduceTransparency") private var reduceTransparency = false
@@ -417,7 +478,7 @@ private struct MimoAppearance: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .preferredColorScheme(appearance == "dark" ? .dark : appearance == "light" ? .light : nil)
+            .onChange(of: appearance) { _, value in MimoApplicationAppearance.apply(value) }
             .environment(\.mimoReduceTransparency, reduceTransparency || systemReduceTransparency)
     }
 }

@@ -66,6 +66,25 @@ final class PublicIPMonitor: ObservableObject {
     }
     var nextProvider: ProviderID { daemonState?.nextProvider ?? preferences.provider }
     var isIPinfoTokenUnavailable: Bool { daemonState?.hasIPinfoToken != true }
+    var canChangeSharedSettings: Bool { connected && daemonState?.initialized == true && !isChangingSettings }
+    var canRefresh: Bool { connected && !isChangingSettings && (daemonState?.initialized == true || routingState.configuration.mode == .direct)
+        && status != .refreshing && ![.checking, .validating].contains(routingState.phase) }
+    var lookupStatusMessage: String? {
+        guard connected else { return nil }
+        switch status {
+        case .idle, .ready: return nil
+        case .refreshing: return "Checking the exit IP…"
+        case .awaitingConfirmation(let message), .failed(let message): return message
+        case .coolingDown(let until):
+            return "Lookup providers are paused or out of budget until \(until.formatted(date: .omitted, time: .shortened))."
+        case .providerPaused(let provider, let until):
+            return "\(provider.displayName) is paused until \(until.formatted(date: .omitted, time: .shortened))."
+        case .waitingForMinimumInterval:
+            return "A refresh is queued to respect the minimum lookup interval."
+        case .waitingForIPinfoToken:
+            return "Save or import the shared IPinfo token in Settings → Monitoring."
+        }
+    }
     var ipinfoToken: String? { nil } // Saved machine credentials never leave the daemon.
     var ipinfoCredentialStatus: String {
         if isCredentialBusy { return "Updating System Keychain…" }
@@ -73,9 +92,19 @@ final class PublicIPMonitor: ObservableObject {
         return isIPinfoTokenUnavailable ? "No shared IPinfo token" : "Shared token available to background monitoring"
     }
 
+    var statusPresentation: MimoStatusPresentation {
+        MimoStatusPresentation(routing: routingState, snapshot: snapshot ?? daemonState?.snapshot,
+            preferences: preferences, date: displayDate, monitoringStatus: status)
+    }
+
     var routingState: MimoRoutingState {
         var state = (connected ? daemonState?.routing : supervisorState) ?? MimoRoutingState()
-        if !connected { state.phase = .unavailable; state.effectiveMode = nil; state.reason = serviceMessage ?? "The background service is unavailable." }
+        if !connected {
+            state.phase = .unavailable; state.effectiveMode = nil
+            state.reason = state.services.first(where: { $0.id == .core })?.health == .stopped
+                ? "mimo-core is stopped. Start it below to restore monitoring."
+                : serviceMessage ?? "The background service is unavailable."
+        }
         return state
     }
 
@@ -136,6 +165,22 @@ final class PublicIPMonitor: ObservableObject {
                 else { applicationDidBecomeActive(); if operation != .stop { await refresh() } }
             } catch { operationError = error.localizedDescription }
         }
+    }
+
+    func openProfile() async -> String? {
+        guard serviceOperation == nil else { return nil }
+        serviceOperation = .profileHosting
+        defer { serviceOperation = nil }
+        do {
+            var request = DaemonRequest(.supervisor)
+            request.supervisor = MimoSupervisorRequest(.profile)
+            request.authorization = try await authorizationData()
+            let response = try await DaemonRPC.call(request, timeout: 15, serviceLabel: MimoRuntime.supervisorLabel)
+            if let failure = response.failure { throw failure }
+            guard let contents = response.profileContents else { throw DaemonFailure.unavailable }
+            operationError = nil
+            return contents
+        } catch { operationError = error.localizedDescription; return nil }
     }
 
     func start() {
@@ -226,6 +271,7 @@ final class PublicIPMonitor: ObservableObject {
             disconnected(); serviceMessage = DaemonFailure.incompatible.localizedDescription; return
         }
         let oldSnapshot = snapshot, oldIndicators = indicators
+        let oldStatusPresentation = statusPresentation
         daemonState = state
         connected = true
         reconnectTask?.cancel(); reconnectTask = nil
@@ -240,7 +286,8 @@ final class PublicIPMonitor: ObservableObject {
         lookupBudget = state.budget
         diagnosticPreferences = state.settings.diagnostics
         RuntimeLog.shared.configure(state.settings.diagnostics)
-        if snapshot?.hasWidgetContentChange(comparedTo: oldSnapshot) == true || oldIndicators != indicators {
+        if snapshot?.hasWidgetContentChange(comparedTo: oldSnapshot) == true || oldIndicators != indicators
+            || oldStatusPresentation != statusPresentation {
             reloadSurfaces()
         }
         // Import appearance once per UID in the service. A widget or another account cannot seed it.
@@ -380,6 +427,10 @@ final class PublicIPMonitor: ObservableObject {
             operationError = DaemonFailure.unavailable.localizedDescription
             return false
         }
+        guard request.command == .initialize || state.initialized else {
+            operationError = "Initialize shared settings before changing monitoring or proxy configuration."
+            return false
+        }
         guard !isChangingSettings else { return false }
         isChangingSettings = true
         defer { isChangingSettings = false }
@@ -437,9 +488,13 @@ final class PublicIPMonitor: ObservableObject {
         return await privileged(DaemonRequest(.removeToken))
     }
     func refresh(force: Bool = false, bypassMinimumInterval: Bool = false, trigger: RefreshTrigger = .manual) async {
+        guard canRefresh else { return }
         _ = await send(DaemonRequest(.refresh))
     }
-    func testProvider(_ provider: ProviderID) async { var request = DaemonRequest(.testProvider); request.provider = provider; _ = await send(request) }
+    func testProvider(_ provider: ProviderID) async {
+        guard canRefresh else { return }
+        var request = DaemonRequest(.testProvider); request.provider = provider; _ = await send(request)
+    }
     func pausedUntil(_ provider: ProviderID) -> Date? { daemonState?.cooldowns[provider] }
     func setCountryChangeHighlightsEnabled(_ enabled: Bool) { var updated = preferences; updated.highlightCountryChanges = enabled; apply(updated) }
     func dismissCountryChangeHighlight() {

@@ -310,7 +310,7 @@ private enum JSONHTTPClient {
         var request = URLRequest(url: url)
         request.timeoutInterval = 12
         request.cachePolicy = .reloadIgnoringLocalCacheData
-        request.setValue("ExitIPMonitor/1.0", forHTTPHeaderField: "User-Agent")
+        request.setValue("Mimo/1.0", forHTTPHeaderField: "User-Agent")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
 
         do {

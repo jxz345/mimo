@@ -1,6 +1,6 @@
 #!/bin/bash
 # Prepare a clean uninstall/reinstall without running application code.
-# Usage: /bin/bash cleanup-installation.sh --app /Applications/ExitIPMonitor.app
+# Usage: /bin/bash cleanup-installation.sh --app /Applications/Mimo.app
 # Stops only this bundle's processes and removes the optional provider. Does not delete the
 # app, user settings, credentials or logs, install anything, or change macOS security settings.
 # The cask embeds this file plus command-support.sh so cleanup also works with older bundles.
@@ -18,7 +18,7 @@ cleanup_exists() { [ -e "$1" ] || [ -L "$1" ]; }
 cleanup_translocation_matches() {
     local running=$1 expected actual
     case "$running" in
-        /private/var/folders/*/T/AppTranslocation/*/d/ExitIPMonitor.app|/var/folders/*/T/AppTranslocation/*/d/ExitIPMonitor.app) ;;
+        /private/var/folders/*/T/AppTranslocation/*/d/Mimo.app|/var/folders/*/T/AppTranslocation/*/d/Mimo.app|/private/var/folders/*/T/AppTranslocation/*/d/ExitIPMonitor.app|/var/folders/*/T/AppTranslocation/*/d/ExitIPMonitor.app) ;;
         *) return 1 ;;
     esac
     # Cache validated bundle paths within this invocation, never across uninstall attempts.
@@ -45,7 +45,7 @@ cleanup_find_processes() {
         running=${path%/Contents/MacOS/*}
         if [ "$running" != "$cleanup_app" ] && ! [ "$running" -ef "$cleanup_app" ]; then
             case "$running" in
-                */T/AppTranslocation/*/d/ExitIPMonitor.app)
+                */T/AppTranslocation/*/d/Mimo.app|*/T/AppTranslocation/*/d/ExitIPMonitor.app)
                     cleanup_translocation_matches "$running" || {
                         step_log ERROR "Cannot associate translocated process $pid with the target app; leaving it untouched."
                         return 1
@@ -226,7 +226,7 @@ cleanup_main() (
             *) echo "Unknown argument: $1" >&2; return 2 ;;
         esac
     done
-    case "$cleanup_app" in /*/ExitIPMonitor.app) ;; *) echo 'Use --app with an absolute ExitIPMonitor.app path.' >&2; return 2 ;; esac
+    case "$cleanup_app" in /*/Mimo.app|/*/ExitIPMonitor.app) ;; *) echo 'Use --app with an absolute Mimo.app path.' >&2; return 2 ;; esac
     # Retain the lexical absolute path if an old uninstaller already removed the bundle.
     if [ -d "$cleanup_app" ]; then cleanup_app=$(cd "$cleanup_app" && pwd -P) || return 1; fi
     cleanup_uid=$(/usr/bin/id -u)

@@ -281,7 +281,7 @@ struct LegacyDashboardView: View {
                 Button(role: .destructive) {
                     NSApp.terminate(nil)
                 } label: {
-                    Label("Quit Exit IP", systemImage: "power")
+                    Label("Quit Mimo", systemImage: "power")
                 }
             }
             Text(statusText)

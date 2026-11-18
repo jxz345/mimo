@@ -20,9 +20,9 @@ The page is a browser approximation for review, not a rendering of actual AppKit
 - A compact title bar identifies Overview or Settings. **Refresh now** has a permanent labeled toolbar position, also available through Command-R.
 - A single segmented selector controls Direct / Rule / Global. Its selected value is separate from the actual internet-access decision.
 - The left group presents the IP, verification age, allowlist count, selected profile, schedule, and an explicit **Open Mimo at login** switch.
-- The right group is **Background services**. Internet access belongs to this group. Four rows align service identity, status, and Start / Stop / Restart: mimo-core, mihomo, Profile hosting, and Tailnet provider.
+- The right group is **Background services**. Internet access belongs to this group. Four rows align service identity and status. mimo-core, mihomo and Tailnet provider use Start / Stop / Restart; Profile hosting uses Open profile / Reload.
 - The service list uses separators and common control sizes. Broad tinted panels and decorative badges are reduced. Semantic color is reserved for access status and selection.
-- The icon and theme use graphite/neutral gray with a blue accent.
+- The icon and theme use graphite/neutral gray without colored accents.
 - The IP that triggered an allowlist block is explicitly labeled and stays visible during retries. Missing results without a recorded block say IP unavailable.
 - Every network settings change requests an immediate IP check, independently of the routine interval.
 - Settings retains grouped forms. General omits the dashboard’s service controls. A dedicated Background services section shows read-only port details (mihomo 7890, Tailnet provider 18766, no TCP port for XPC/private-file delivery). General is the default and starts with **Login item & appearance**. The login-item preference is shared between the dashboard, General settings, and the menu preview.

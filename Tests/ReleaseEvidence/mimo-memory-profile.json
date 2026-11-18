@@ -1,0 +1,17 @@
+{
+  "success": true,
+  "date": "2026-11-19",
+  "platform": "Apple silicon macOS 27.2.1 Tart VM",
+  "scope": "Installed production loader and blocking profiles only; no protected routing qualification",
+  "passed": [
+    "installed-engine-accepts-stdin-validation-and-socket-payload",
+    "exact-profile-view-and-digest-binding",
+    "payload-absent-from-disk-and-argv-and-controller-private",
+    "invalid-profile-rejected-and-blocking-profile-restored",
+    "authorized-viewer-and-public-state-redaction",
+    "manual-profile-reload-preserves-Direct"
+  ],
+  "upgradeEvidence": "/var/tmp/mimo-upgrade-test-8yiqs7h3",
+  "helperSHA256": "4df00250f93962830307ee4b6ff830e5ce064bd32e1dc75f7937d85c1544a611",
+  "profileContentsPublished": false
+}

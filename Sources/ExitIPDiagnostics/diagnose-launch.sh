@@ -22,7 +22,7 @@ native_cdhash() {
 verified_translocation() {
     local running=$1 requested=$2 expected actual
     case "$running" in
-        /private/var/folders/*/T/AppTranslocation/*/d/ExitIPMonitor.app|/var/folders/*/T/AppTranslocation/*/d/ExitIPMonitor.app) ;;
+        /private/var/folders/*/T/AppTranslocation/*/d/Mimo.app|/var/folders/*/T/AppTranslocation/*/d/Mimo.app|/private/var/folders/*/T/AppTranslocation/*/d/ExitIPMonitor.app|/var/folders/*/T/AppTranslocation/*/d/ExitIPMonitor.app) ;;
         *) return 1 ;;
     esac
     expected=$(native_cdhash "$requested")
@@ -93,7 +93,7 @@ collect_diagnostics() {
 
 diagnose_main() (
     # Subshell confines traps and diagnostic state when sourced by tests or another script.
-    app=/Applications/ExitIPMonitor.app; launch=0; timeout=30; output=""; trace=0
+    app=/Applications/Mimo.app; launch=0; timeout=30; output=""; trace=0
     build=unknown; version=unknown; since=0; found=0; signature_valid=0
     trace_pid=""; trace_started=""; diagnostic_output=""; early_sampled=0
     while [ "$#" -gt 0 ]; do

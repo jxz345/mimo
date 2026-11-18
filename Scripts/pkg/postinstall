@@ -2,8 +2,8 @@
 # Installer package postinstall: launch the installed app for the logged-in user. Its dashboard
 # opens on first launch. Installer passes the install destination (e.g. /Applications) as $2.
 # Service setup must succeed before the package reports a completed installation.
-app="$2/ExitIPMonitor.app"
-[ -d "$app" ] || app="${3%/}/Applications/ExitIPMonitor.app"
+app="$2/Mimo.app"
+[ -d "$app" ] || app="${3%/}/Applications/Mimo.app"
 [ -d "$app" ] || exit 0
 source "$app/Contents/Resources/command-support.sh"
 bounded_command 120 install-service /bin/bash "$app/Contents/Resources/daemon.sh" install || exit 1

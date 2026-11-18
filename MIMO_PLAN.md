@@ -49,8 +49,8 @@ This change applies to machines running Mimo. Delta's host networking is not cha
 
 1. The privileged supervisor installs the independent firewall guard before starting the supervised mihomo job with a credential-free blocking profile.
 2. Mimo-core reads shared settings and the saved mode.
-3. For Direct, restore unproxied IPv4 networking without checking the exit IP; IPv6 stays disabled.
-4. For Rule/Global, validate a staged candidate with the pinned mihomo binary.
+3. For Direct, restore unproxied IPv4 networking immediately; IPv6 stays disabled. Start an anonymous IP check even before settings initialization so the dashboard and country indicators show the current connection. IP approval never gates Direct.
+4. For Rule/Global, validate the generated candidate through the pinned mihomo binary’s standard input, then send the same bytes as an API payload through its private Unix controller socket. Keep contents and the hash/engine-PID receipt in memory; do not write a credential-bearing candidate YAML or reload JSON.
 5. Expose only a dedicated, authenticated loopback probe listener. Ordinary proxy listeners remain disabled or rejecting traffic.
 6. Probe the configured HTTPS IP-check provider through the candidate proxy, while ordinary application traffic stays blocked.
 7. Require a fresh, canonical IP matching the allowlist. Cached snapshots never authorize access.
@@ -102,12 +102,12 @@ The managed check has a bounded 60-second overall allowance for preparation, the
 
 ### Service controls
 
-The dashboard offers Start / Stop / Restart for mimo-core, mihomo, Profile hosting, and Tailnet provider. Native actions require administrator authorization through the privileged supervisor; stopping core must not remove the ability to start it again.
+The dashboard offers Start / Stop / Restart for mimo-core, mihomo and Tailnet provider. Replace Profile hosting’s lifecycle buttons in the same row with **Open profile** and **Reload**. Open displays the exact delivered profile in a read-only, administrator-authorized sheet; Reload regenerates from saved settings and requests fresh verification. The only on-disk profile is the credential-free startup file. Native actions require administrator authorization through the privileged supervisor; stopping core must not remove the ability to start it again.
 
 | Action | Required behavior |
 | --- | --- |
-| Start or restart core, mihomo, or profile hosting | Keep protected traffic closed until delivery, profile validation, and a fresh allowlisted exit succeed. Close the gate before stopping a service for restart. |
-| Stop mihomo or profile hosting | Keep Rule/Global blocked and retain the selected mode. Never switch to Direct implicitly. |
+| Start or restart core/mihomo, or Reload profile | Keep protected traffic closed until delivery, profile validation, and a fresh allowlisted exit succeed. Close the gate before stopping a service for restart. |
+| Stop mihomo, or profile delivery unavailable | Keep Rule/Global blocked and retain the selected mode. Never switch to Direct implicitly. |
 | Stop mimo-core | The independent supervisor closes the protected gate. Show unavailable/unknown until the GUI can confirm current state. |
 | Stop/restart Tailnet provider | Publish fail-closed REJECT policy for protected tailnet routes; an already verified public connection may remain active. This does not stop Tailscale itself. |
 | Stop a service in Direct | Preserve Direct networking. Losing core still prevents confirmed status and mode changes through core. |
@@ -127,7 +127,7 @@ Stage and verify dependencies before interrupting a working installation. Keep b
 
 ## 6. Shared configuration and migration
 
-Use `mimo-core` and `mimo-gui` as executable names. Preserve existing bundle identifiers and storage locations for compatibility. Update packaging, process identity checks, signing verification, and diagnostics for the renamed executables.
+Name the product **Mimo.app** and use Mimo in Finder, menus, About, login items and alerts. Use `mimo-core` and `mimo-gui` as executable names. Preserve existing bundle identifiers and storage locations for compatibility. Update packaging, process identity checks, signing verification, and diagnostics for the renamed executables.
 
 Move the active proxy settings to machine-wide storage and credentials to a distinct System Keychain account. Generalize credential handling so the proxy account cannot overwrite the IPinfo account. Offer explicit administrator-authorized import from a user's legacy Keychain entry. Preserve legacy files until successful migration.
 
@@ -156,9 +156,10 @@ Use a compact macOS utility-app window. The complete overview targets a MacBook 
 
 - Keep Direct / Rule / Global in one prominent segmented control. Blocked, Validating, Checking exit IP, and Unavailable are statuses, not modes. Show requested versus effective mode during transitions.
 - Keep **Refresh now** permanently in the toolbar, with Command-R, and keep Direct available as explicit recovery when core can accept the change. If core is unreachable, report the failed/pending request without claiming connectivity was restored.
-- The left column contains the observed IP and check time, network details when available, allowlist count, selected profile, monitoring interval, and **Open Mimo at login**.
+- Reserve fixed space for the IP, lookup message, location, profile title, access explanation, recovery/setup action and service rows. Dynamic text cannot move unrelated controls. Truncate long text with full tooltips; narrow windows may scroll.
+- The left column contains the observed IP and check time, network details when available, allowlist count, proxy configuration, monitoring interval, and **Open Mimo at login**.
 - The right column is **Background services**. Its **Internet access** area owns the decision, explanation, and verification/recovery actions; there is no separate duplicate access section.
-- Show aligned status and Start / Stop / Restart controls for all four services. A **Ports** shortcut opens Settings → Background services.
+- Show aligned status and Start / Stop / Restart controls for all four services. Configured endpoints appear directly below each service, including proxy 7890, DNS 1053 and tailnet 18766; no Ports shortcut or separate service Settings page.
 - Keep a compact LAN/Tailscale route summary, Event Log, and Quit GUI. Explain that background services and routing continue after GUI closure.
 
 ### Observed IP and blocking reason
@@ -169,14 +170,13 @@ A successful isolated probe may show its checked IP even when an empty allowlist
 
 ### Settings
 
-Provide a full Settings page with five sidebar sections. General is the default.
+Provide a full Settings page with four sidebar sections. General is the default.
 
 | Section | Contents |
 | --- | --- |
 | Proxy | Shared profile name, type, server, port, optional credentials, Save and apply, and Remove; never reveal a stored password. |
 | Allowed IPs | IPv4-only add/remove with validation and duplicate detection. Approval is always explicit; retries never add an address. An empty list always denies Rule/Global. |
 | Monitoring | Routine interval, Check now, provider health/budgets, and the mandatory **When network settings change → Immediately** policy. |
-| Background services | Read-only service ports/transports, with a shortcut to dashboard lifecycle controls. |
 | General | **Open Mimo at login**, appearance, and reduced transparency. No duplicated background-service controls. |
 
 The login item is a personal preference synchronized between Dashboard, General, and the menu. It opens the GUI for the current account and does not control boot daemons. Shared configuration changes require administrator authorization. Background status updates must preserve in-progress Settings edits, focus, selection, and scroll position; explicit saves apply the form. Never persist draft secrets in web storage or return saved secrets from the native service.
@@ -187,25 +187,25 @@ Service details use these current source references; they are configured values,
 | --- | --- | --- |
 | mimo-core | No TCP port; typed XPC / Mach | Report its local transport and service health. |
 | mihomo | 7890 HTTP/SOCKS mixed listener in the current generated template; controller uses a Unix socket | Report actual Mimo runtime bindings. Replace the Verge socket path; finalize the private probe/controller bindings during implementation. Do not invent a controller TCP port. |
-| Profile hosting | No separate TCP port; private-file/controller delivery | Do not expose a credential-bearing HTTP profile endpoint. |
+| Profile hosting | No TCP port; in-memory payload over a private Unix socket | Open profile / Reload; never expose a credential-bearing HTTP endpoint. |
 | Tailnet provider | 127.0.0.1:18766 HTTP | Show its loopback binding, separately from Tailscale itself. |
 
-Keep configured endpoint details visible when stopped, and distinguish configured, confirmed listening, and unknown state. Reference sources are `Sources/ExitIPShared/ClashVergeProfile.swift`, `TailscaleVergeProvider.swift`, `DaemonRPC.swift`, and `Sources/ExitIPService/TailscaleProviderService.swift`.
+Show **In memory · Unix socket · No TCP port**, plus the credential-free startup path `/Library/Application Support/Mimo/Mihomo/blocking.yaml` and Copy path in the service row. The socket is `/Library/Application Support/Mimo/Mihomo/controller.sock`. Its enclosing directories are root-only (0700); the supervisor narrows the root-owned socket to 0600 before use because mihomo explicitly creates it as 0666. Open profile reads the in-memory delivered contents and never places them in public state or logs. Successful upgrades remove old generated candidate/config/reload files only after readiness passes; failed upgrades retain rollback data. The left card says **Proxy configuration**, with **No proxy configured** when no upstream proxy is saved; this does not imply the blocking YAML is absent. Keep configured endpoint details visible when stopped, and distinguish configured, confirmed listening, and unknown state. Reference sources are `Sources/ExitIPShared/ClashVergeProfile.swift`, `TailscaleVergeProvider.swift`, `DaemonRPC.swift`, and `Sources/ExitIPService/TailscaleProviderService.swift`.
 
 ### Menu bar and appearance
 
-The menu bar, dashboard, and Settings observe the same state. The menu offers modes, Refresh now, Open Dashboard, Settings, and the login-item preference. The preview status item stays available when its app window closes; its status continues updating, and its menu can reopen the window. Provide accessible status text, keyboard navigation, and Escape dismissal with focus restoration.
+The menu bar, dashboard, and Settings observe the same state. Direct uses a checking clock during an IP lookup and a neutral warning on lookup failure; Direct remains selected and this warning does not claim firewall blocking. Gate status takes precedence in Rule/Global. Render updates on the main queue even while a native menu tracks input, and reload widgets on routing-only changes. Losing network reachability triggers the same immediate check/invalidation path as recovery. The menu offers modes, Refresh now, Open Dashboard, Settings, and the login-item preference. The preview status item stays available when its app window closes; its status continues updating, and its menu can reopen the window. Provide accessible status text, keyboard navigation, and Escape dismissal with focus restoration.
 
 | Scenario | Menu-bar appearance and meaning |
 | --- | --- |
 | Verified Rule/Global | Exit-country flag; approved exit. |
-| Direct | Direct arrow; no proxy/IP gate. |
+| Direct | Current IP’s country flag when known, otherwise a Direct arrow; no proxy/IP gate. Checking and failure use neutral status symbols. |
 | Startup, validation, IP check | Clock; ordinary internet blocked. |
 | Unapproved IP, proxy/lookup failure, empty allowlist, missing profile, stopped mihomo/profile hosting | Stop symbol with last known country flag when available; specific blocking reason, including the triggering IP for a mismatch. |
 | Core unavailable or setup incomplete | Neutral information symbol; status unavailable, never a claim of confirmed blocking. |
 | Tailnet provider stopped while public access remains verified | Country flag plus warning; protected tailnet routes reject. |
 
-Use the approved graphite/neutral-gray palette with macOS blue accents and the graphite-blue frosted “m” icon. Avoid green branding. Follow Apple's macOS HIG, official UI resources, and Activity Monitor's compact aligned rows. Use native title bars, toolbars, segmented pickers, `NavigationSplitView`, forms, and controls. Adopt Liquid Glass sparingly for navigation and controls on macOS 26, including appropriate glass button styles/custom groups; use availability checks and native fallbacks on macOS 14+. Honor dark appearance, reduced transparency, contrast, and keyboard accessibility.
+Use a greyscale graphite/neutral-gray palette and frosted “m” icon. Remove blue and green branding, tints and status shades. Country flags retain their semantic colors. Follow Apple's macOS HIG, official UI resources, and Activity Monitor's compact aligned rows. Use native title bars, toolbars, segmented pickers, `NavigationSplitView`, forms, and controls. Adopt Liquid Glass sparingly for navigation and controls on macOS 26, including appropriate glass button styles/custom groups; use availability checks and native fallbacks on macOS 14+. Honor dark appearance, reduced transparency, contrast, and keyboard accessibility.
 
 The browser's CSS material is an approximation. SVG/PNG/ICNS and editable icon layers are design assets, not a compiled dynamic Icon Composer document. Existing native country/status Dock behavior remains until integration is implemented and reviewed.
 
@@ -233,7 +233,7 @@ Generate the Full plan HTML and Markdown download from this canonical file so th
 
 ### UI and prototype acceptance
 
-- Verify all dashboard and menu states, exact triggering-IP retention/clearing, unavailable data, permanent refresh, synchronized login preference, all five Settings sections, and configured ports when stopped.
+- Verify all dashboard and menu states, exact triggering-IP retention/clearing, unavailable data, permanent refresh, synchronized login preference, all four Settings sections, and configured ports when stopped.
 - Verify background checks preserve Settings drafts and keyboard focus, errors remain actionable, and closed-window status tracks the same live state.
 - Check the full dashboard without scrolling at 1280 × 700, 1440 × 800, and 1512 × 982 CSS pixels; inspect all failure/recovery actions and the footer. Check narrow layout, 200% zoom, long IP/profile text, dark appearance, reduced transparency, and keyboard use. Long Settings sections may scroll.
 - Keep the hosted Markdown byte-identical to this file, check rendered contents/navigation and static assets, and record browser verification limits separately from DOM-simulation checks.
@@ -262,7 +262,7 @@ The workflow is saved and the UI prototype is approved and published. Keep the p
 
 ### Implemented in source
 
-- Native `mimo-gui` and `mimo-core`, approved icon, compact dashboard, five Settings sections, permanent refresh/login controls, service lifecycle controls, configured ports, exact blocking IP, and shared menu/Dock/widget/Control Center presentation.
+- Native `mimo-gui` and `mimo-core`, approved icon, compact dashboard, four Settings sections, permanent refresh/login controls, service lifecycle controls, configured ports, exact blocking IP, and shared menu/Dock/widget/Control Center presentation.
 - Revision-aware proxy drafts remain in memory across status updates and Settings navigation. Conflicts preserve edits until explicit reload. Shared credentials remain in separate System Keychain accounts; status never returns secrets.
 - The IPv4-only profile derived from the 38-rule legacy baseline, Global IPv4 local/tailnet exceptions, credential-free startup, private authenticated verification, exact profile-byte/engine binding, controller inspection, independent PF guard, flow termination, command ordering and persistent Direct recovery.
 - Machine state is committed through a 0600 exclusive temporary file and atomic rename, without login-session file protection. This fixes a reproducible inability to reopen settings while the desktop is locked; credentials remain in System Keychain.
@@ -275,11 +275,13 @@ The workflow is saved and the UI prototype is approved and published. Keep the p
 
 | Acceptance | Result and evidence |
 | --- | --- |
-| Shared models/policies | 156 tests pass; `.build/mimo-shared-startup.log`. The preceding 155-test run also passed with Delta locked. Includes secure atomic storage replacement and budget/cooldown reopening. |
+| In-memory profile and current controls | 2026-11-19: six installed-engine checks pass for stdin validation/socket reload, exact in-memory snapshot and hash binding, no payload in files/argv, malformed YAML rejection, authorized viewing/public-state redaction and Direct reload. All 19 VM upgrade/rollback/uninstall/reinstall checkpoints pass (`/var/tmp/mimo-upgrade-test-8yiqs7h3`). Live Open profile and Reload pass; Direct obtains an IP before initialization and shows its country in the menu/Dock. Greyscale controls and the Mimo startup path are visible. Evidence: `Tests/ReleaseEvidence/mimo-memory-profile.json` and `mimo-live-ui.json`. These checks do not qualify protected routing. |
+| Shared models/policies | 158 tests pass in the current UI revision. The preceding 155-test run also passed with Delta locked. Includes secure atomic storage replacement and budget/cooldown reopening. |
 | Service/XPC/authorization/revisions | Pass; `.build/mimo-service-early-startup.log`. Includes heartbeat receipt/expiration, independent pulses, cancellation fencing, secure persistence and non-routing changes preserving approved public access. |
-| Native UI/model tests | Pass; `.build/mimo-native-app-tests.log`. Dashboard and populated Settings scenarios render in light/dark, but offscreen native material rendering is not complete live visual acceptance. |
-| Full Apple silicon build and ad-hoc signature | Latest source passes; `.build/mimo-current-release-early-startup.log` and `.build/mimo-current-signature-final.log`. App bundle: `.build/mimo-current-release/Build/Products/Release/ExitIPMonitor.app`. Published 1.0 artifacts are unchanged. |
-| Latest installation and GUI launch | Mimo **1.0 (build 1)** downloaded from its public release, signature verified and installed in the VM. Core/engine/profile hosting run in Direct with IPv6 off. Fresh main-thread heartbeat after acceptance cleanup: `launch-check-Ue87g0jz`. Public archive `ExitIPMonitor-1.0.zip`, SHA-256 `1bc8b1437c4c27b2d035020348a1712f842478a2638b491401ea173001547706`. All 11 published Homebrew lifecycle checks pass; original state is retained. |
+| Native UI/model tests | Pass; `.build/mimo-ui-review-tests.log`. Direct/checking/failure/recovery updates exercise the retained native status item without manual refresh. Dashboard states and four populated Settings sections render in light/dark at 1040 × 570. Shared suite: 158 tests; installation/cleanup suite passes for renamed packaging. Live Tart checks supplement these renders. |
+| Full Apple silicon build and ad-hoc signature | Latest source passes; `.build/mimo-ui-review-release.log` and `.build/mimo-ui-review-sign.log`. App bundle: `.build/mimo-current-release/Build/Products/Release/Mimo.app`. The development GUI is installed at `~/Applications/Mimo.app` in the VM. Published 1.0 artifacts are unchanged. |
+| Published installation baseline | Mimo **1.0 (build 1)** downloaded from its public release, signature verified and installed in the VM. Core/engine/profile hosting run in Direct with IPv6 off. Fresh main-thread heartbeat after acceptance cleanup: `launch-check-Ue87g0jz`. Public archive `ExitIPMonitor-1.0.zip`, SHA-256 `1bc8b1437c4c27b2d035020348a1712f842478a2638b491401ea173001547706`. All 11 published Homebrew lifecycle checks pass; original state is retained. |
+| Live native and browser UI | Pass for the reviewed scope; `Tests/ReleaseEvidence/mimo-live-ui.json`. Tart checks cover service endpoints, private profile filename/path, separate empty proxy state, stable layout, initialization, Direct recovery, blocked Rule/Global, menu updates while open, service controls, login synchronization, draft retention and Dark-to-System appearance. Safari renders the current dashboard and four-section Settings preview. Original Direct settings and production helper are restored; this is not protected-routing qualification. |
 | Pinned engine/controller fixture | 17 checks pass; `.build/mihomo-runtime-tests/evidence/run-ac38327c`. |
 | Initial closed-gate IPv4 smoke | 4 checks pass; `firewall-z17qjx4j` under the evidence directory. |
 | Fresh install and service lifecycle | 10 checks pass; `installation-ebjdruxr`. |
@@ -307,7 +309,7 @@ The VM now sees Delta as its online Tailscale peer; no additional node is curren
 - Resolve the intermittent relay failure across repeated IPv4-only runs. The latest failure persists in Direct without the Mimo TUN, protected DNS or IPv4 gate, and after a guest relay reset. Compare an independently reachable peer or separately authorized host/client environment next; wider firewall exceptions and repeated unchanged runs have not resolved it. Preserve passing and failing evidence; do not treat isolated passes or this diagnostic as qualification. Delta’s network configuration remains outside VM test scope.
 - Complete the remaining installed protected-mode restart and packet acceptance. The 49-check installed run already covers actual allowlist/proxy configuration, both modes, wrong credentials, core hangs/crashes, mihomo crashes, changed profile bytes, network events and service Stop/Start; peer repeatability remains unresolved. A separate `MIMO_VM_ACCEPTANCE` build can exercise the real installed core, supervisor, authorization, Keychain, profile and firewall flow before release qualification; it requires root inside an Apple VirtualMac and release packaging rejects its identifying marker. The fixture restores the production helper, original settings/service intent and empty proxy credential with an independent watchdog. Keep the production qualification guard closed; never manufacture `qualification.json` to bypass missing evidence.
 - Run real sleep/wake acceptance in a supported test environment. This VM refuses actual sleep.
-- Complete live GUI/browser interaction and copied-app Homebrew prompts/cancellation. The latest Screen Sharing attempt reports `cgWindowNotFound`, and Delta is locked; the browser access host remains unavailable. Offscreen captures cannot validate native vibrancy compositing.
+- Finish copied-app Homebrew prompts/cancellation and remaining keyboard acceptance. Safari dashboard/Settings visual checks now pass. Tart GUI access is working in jay’s VM session. Live checks covered initialization, Direct recovery, blocked Rule/Global, all four service Start/Stop/Restart controls, invalid IPv4 input, preserved proxy drafts, synchronized login item and appearance. Automated modifier keys/clipboard through Tart were unreliable, so keyboard acceptance is still open. Production helper and original uninitialized Direct state were restored after the test. Offscreen captures are supplemental evidence.
 
 This tailnet returns IPv4 MagicDNS records and successful empty AAAA answers for the tested names. Tests preserve those actual responses; IPv6 tailnet address assignment does not imply an AAAA record exists.
 

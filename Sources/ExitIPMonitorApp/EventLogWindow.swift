@@ -122,7 +122,7 @@ final class EventLogWindowController: NSObject, NSWindowDelegate {
             defer: false
         )
         window.identifier = NSUserInterfaceItemIdentifier("exit-ip-event-log")
-        window.title = "Exit IP Event Log"
+        window.title = "Mimo Event Log"
         window.contentViewController = fixedSizeHostingController(
             EventLogView(model: model).frame(minWidth: 520, minHeight: 240)
         )

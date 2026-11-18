@@ -7,8 +7,9 @@ struct ExitIPWidgetEntry: TimelineEntry, Sendable {
     let indicators: MonitorIndicatorState
     var refreshInterval: RefreshInterval = .fifteenMinutes
     var routing = MimoRoutingState()
+    var monitoringStatus: MonitoringStatus = .ready
     var presentation: MimoStatusPresentation {
-        MimoStatusPresentation(routing: routing, snapshot: snapshot, preferences: MonitoringPreferences(), date: date)
+        MimoStatusPresentation(routing: routing, snapshot: snapshot, preferences: MonitoringPreferences(), date: date, monitoringStatus: monitoringStatus)
     }
 }
 
@@ -65,12 +66,12 @@ private struct ExitIPWidgetView: View {
         let status = entry.presentation
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Image(systemName: status.symbol).foregroundStyle(status.kind == .blocked ? Color.red : .blue)
+                Image(systemName: status.symbol).foregroundStyle(Color.primary)
                 if let country = status.country { Text(country) }
                 Spacer(minLength: 0)
                 Text(status.kind == .unavailable ? "Mimo" : entry.routing.configuration.mode.title).font(.caption.weight(.semibold))
             }
-            Text(status.kind == .unavailable ? "Status unavailable" : entry.routing.allowsTraffic ? "Internet allowed" : "Internet blocked")
+            Text(status.kind == .unavailable ? "Status unavailable" : status.kind == .directWarning ? "IP check unavailable" : status.kind == .checking ? "Checking exit IP" : entry.routing.allowsTraffic ? "Internet allowed" : "Internet blocked")
                 .font(.headline)
             if let address = status.address {
                 Text(entry.routing.blockingIP == nil ? "Checked IP" : "IP that triggered blocking").font(.caption2).foregroundStyle(.secondary)
@@ -93,9 +94,10 @@ enum WidgetServiceState {
             guard let state = try await DaemonRPC.call(DaemonRequest(.state), timeout: 2).state else { throw DaemonFailure.unavailable }
             if let data = try? JSONEncoder().encode(state) { UserDefaults.standard.set(data, forKey: "daemon.widget-cache") }
             return ExitIPWidgetEntry(date: .now, snapshot: state.presentedSnapshot,
-                                     indicators: state.initialized ? state.presentedIndicators : .init(errorMessage: "Set up shared monitoring in Exit IP", suppressLocation: true),
+                                     indicators: state.initialized ? state.presentedIndicators : .init(errorMessage: "Set up shared monitoring in Mimo", suppressLocation: true),
                                      refreshInterval: state.settings.refreshInterval,
-                                     routing: state.initialized ? state.routing ?? MimoRoutingState() : MimoRoutingState())
+                                     routing: state.initialized ? state.routing ?? MimoRoutingState() : MimoRoutingState(),
+                                     monitoringStatus: state.status)
         } catch {
             let cached = UserDefaults.standard.data(forKey: "daemon.widget-cache").flatMap { try? JSONDecoder().decode(DaemonState.self, from: $0) }
             return ExitIPWidgetEntry(date: .now, snapshot: cached?.presentedSnapshot,

@@ -297,8 +297,13 @@ def run(configuration):
         assert old_process is not None
         with packets(kind, 'dst host 198.51.100.70') as subjects:
             if kind == 'profile-mutation':
-                with (RUNTIME / 'candidate.yaml').open('ab') as stream:
-                    stream.write(b'\n# VM acceptance: change the verified profile bytes\n')
+                # Runtime profiles are held in memory. Disable the ordinary
+                # proxy listener through the root-only controller to exercise
+                # effective-configuration mismatch without widening access.
+                command('/usr/bin/curl', '--silent', '--fail', '--max-time', '3',
+                        '--unix-socket', '/Library/Application Support/Mimo/Mihomo/controller.sock',
+                        '-X', 'PATCH', 'http://localhost/configs',
+                        '--header', 'Content-Type: application/json', '--data-binary', '{"mixed-port":0}')
             else:
                 os.kill(old_process, signal.SIGKILL)
             deadline = time.monotonic() + 25

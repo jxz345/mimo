@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Installs Exit IP Monitor from the verified release package and checks app readiness.
+# Installs Mimo from the verified release package and checks app readiness.
 #
 #   bash install.sh                      # uses a downloaded ExitIPMonitor-<version>.pkg, or downloads it
 #   bash install.sh ~/Downloads/ExitIPMonitor-<version>.pkg
@@ -29,11 +29,11 @@ VERSION="@VERSION@"
 PKG_SHA256="${EXIT_IP_PKG_SHA256:-@PKG_SHA256@}"
 PKG_NAME="ExitIPMonitor-$VERSION.pkg"
 PKG_URL="${EXIT_IP_PKG_URL:-https://github.com/$RELEASE_REPO/releases/download/v$VERSION/$PKG_NAME}"
-APP_NAME="ExitIPMonitor.app"
+APP_NAME="Mimo.app"
 
 fail() { printf '\nERROR %s\n' "$1" >&2; exit 1; }
 
-[[ "$(uname -s)" == "Darwin" ]] || fail "Exit IP Monitor runs on macOS only."
+[[ "$(uname -s)" == "Darwin" ]] || fail "Mimo runs on macOS only."
 [[ "$RELEASE_REPO" != @* && "$PKG_SHA256" != @* ]] || fail "Use the install.sh attached to a release (made by Scripts/package-release.sh)."
 
 if [[ -n "${EXIT_IP_INSTALL_DIR:-}" ]]; then
@@ -51,7 +51,7 @@ install_log=$(new_step_log "$log_dir" install)
 exec > >(tee -a "$install_log") 2>&1
 step_log INFO "Installer log: $install_log"
 
-printf '== Exit IP Monitor %s installer ==\n' "$VERSION"
+printf '== Mimo %s installer ==\n' "$VERSION"
 printf 'macOS %s (%s)\n' "$(sw_vers -productVersion)" "$(uname -m)"
 
 work="$(mktemp -d -t exit-ip-install)"
@@ -135,7 +135,7 @@ printf 'PASS  Installed: %s\n' "$app_path"
 printf 'Open the dashboard and choose Install Service to enable shared background monitoring.\n'
 
 if /bin/bash "$app_path/Contents/Resources/diagnose-launch.sh" --app "$app_path" --launch --timeout 60; then
-    step_log PASS "Exit IP Monitor completed startup and its main thread is responding."
+    step_log PASS "Mimo completed startup and its main thread is responding."
     exit 0
 fi
 fail "The app was installed but did not become ready. See the diagnostic directory printed above."

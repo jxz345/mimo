@@ -130,7 +130,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
         guard request.protocolVersion == ExitIPService.protocolVersion else { return DaemonResponse(failure: .incompatible) }
         guard request.command == .supervisor, let message = request.supervisor else { return DaemonResponse(failure: .invalidRequest) }
         do {
-            if message.command == .service {
+            if message.command == .service || message.command == .profile {
                 guard uid == 0 || ServiceAuthorization.validate(request.authorization) else { throw DaemonFailure.unauthorized }
             } else if message.command != .state {
                 guard uid == 0 else { throw DaemonFailure.unauthorized }
@@ -169,6 +169,10 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 throw DaemonFailure.invalidRequest
             }
             switch message.command {
+            case .profile:
+                var result = DaemonResponse()
+                result.profileContents = try runtime.profileContents()
+                return result
             case .state: break
             case .heartbeat:
                 refreshTailnetPolicy()
@@ -254,6 +258,9 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                     try runtime.service(service, operation: operation)
                 case .profileHosting:
                     try updateFlag(.profileHosting, enabled: operation != .stop)
+                    if operation != .stop, policy.state.configuration.mode == .direct {
+                        try runtime.loadProfile(MihomoProfile.blocking())
+                    }
                 case .tailnetProvider:
                     // Provider changes require core's authorized settings transaction.
                     throw DaemonFailure.invalidRequest
@@ -264,6 +271,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
         } catch let failure as DaemonFailure {
             return DaemonResponse(failure: failure)
         } catch {
+            if message.command == .profile { return DaemonResponse(failure: .unavailable) }
             if !(error is CancellationError) { close(error.localizedDescription) }
             return response()
         }
@@ -296,7 +304,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
         state.services = [
             .init(id: .core, health: runtime.isRunning(ExitIPService.label) ? .running : .stopped, transport: "XPC / Mach"),
             .init(id: .mihomo, health: runtime.isRunning(MimoRuntime.engineLabel) ? .running : .stopped, transport: "HTTP / SOCKS · Unix controller", address: "127.0.0.1", port: MimoRuntime.mixedPort, bindingConfirmed: state.allowsTraffic && state.configuration.mode.requiresVerification),
-            .init(id: .profileHosting, health: profileEnabled ? .running : .stopped, transport: "Private file delivery")
+            .init(id: .profileHosting, health: profileEnabled ? .running : .stopped, transport: "In-memory · Unix socket", address: MimoRuntime.controller.path)
         ]
         state.mihomoVersion = MimoRuntime.version
         var response = DaemonResponse(); response.routing = state; return response

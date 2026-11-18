@@ -975,7 +975,7 @@ final class MonitoringEngine: ObservableObject {
                 let previous = self.lastPathSignature
                 self.lastPathSignature = signature
                 defer { self.receivedInitialPath = true }
-                guard self.receivedInitialPath, path.status == .satisfied else { return }
+                guard self.receivedInitialPath else { return }
                 // NWPathMonitor also reports updates in which nothing observable changed. A network change
                 // always spends a lookup, so only a different path counts; proxy, DNS, and route changes
                 // that keep the same path are reported by the SystemConfiguration and routing observers.

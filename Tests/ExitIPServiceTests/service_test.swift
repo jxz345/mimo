@@ -124,6 +124,35 @@ struct ServiceTests {
         require(restored.state(for: 501).presentation.displayStyle == .name, "personal preferences must survive restart")
         require(restored.state(for: 502).presentation.displayStyle == .flag, "restart must retain user isolation")
         require(restored.state(for: 501).budget.callsToday(for: .ipinfoLite) >= 2, "provider budget must survive restart")
+        // Fresh Direct monitoring needs no shared-settings migration or Keychain read.
+        let freshStorage = try FilePreferenceStorage(url: directory.appendingPathComponent("fresh.plist"))
+        let freshCredentials = MemorySystemCredentials(), freshClient = RecordingLookup()
+        let fresh = try DaemonService(storage: freshStorage, observeSystem: false,
+                                      credentials: freshCredentials, client: freshClient)
+        await fresh.start()
+        try await Task.sleep(for: .milliseconds(350))
+        require(await freshClient.count == 1 && fresh.state(for: 501).snapshot != nil,
+                "fresh Direct must obtain an anonymous public IP immediately")
+        require(!fresh.state(for: 501).initialized && freshStorage.data(forKey: "service.settings") == nil && freshCredentials.reads == 0,
+                "anonymous Direct lookup must not migrate settings or read credentials")
+        require(await fresh.handle(DaemonRequest(.refresh), uid: 501).failure == nil,
+                "Direct refresh must be available before shared initialization")
+        try await Task.sleep(for: .milliseconds(350))
+        require(await freshClient.count == 2, "manual Direct refresh must perform the lookup")
+        fresh.stop()
+        let input = Data(repeating: 120, count: 300_000)
+        let streamed = await Task.detached { BoundedProcess.run("/usr/bin/wc", ["-c"], timeout: 3, input: input) }.value
+        require(streamed.status == 0 && streamed.text.trimmingCharacters(in: .whitespacesAndNewlines) == "300000",
+                "bounded stdin must stream a payload larger than the socket buffer and close with EOF")
+        let earlyExit = await Task.detached { BoundedProcess.run("/usr/bin/true", [], input: Data(repeating: 120, count: 1_048_576)) }.value
+        require(earlyExit.status == 126, "an incomplete stdin transfer must fail without SIGPIPE")
+        let stalledInput = await Task.detached { BoundedProcess.run("/bin/sleep", ["30"], timeout: 0.2, input: input) }.value
+        require(stalledInput.status == 124, "a subprocess that does not read stdin must still time out")
+        let supervisor = MimoSupervisor()
+        var profileRequest = DaemonRequest(.supervisor); profileRequest.supervisor = MimoSupervisorRequest(.profile)
+        let deniedProfile = await supervisor.handle(profileRequest, uid: 501, pid: getpid())
+        require(deniedProfile.failure == .unauthorized && deniedProfile.profileContents == nil,
+                "runtime profile contents require explicit administrator authorization")
         let normal = await Task.detached { BoundedProcess.run("/usr/bin/printf", ["hello"]) }.value
         require(normal.status == 0 && normal.text == "hello", "probe must capture output")
         let childFile = directory.appendingPathComponent("child.pid")

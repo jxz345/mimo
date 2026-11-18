@@ -39,7 +39,7 @@ enum SingleInstanceController {
         } catch {
             RuntimeLog.shared.error("single_instance_lock_failed", fields: ["error": error.localizedDescription])
             let alert = NSAlert()
-            alert.messageText = "Exit IP Monitor couldn't start safely"
+            alert.messageText = "Mimo couldn't start safely"
             alert.informativeText = "The app couldn't check whether another copy is running. \(error.localizedDescription)"
             alert.alertStyle = .critical
             alert.runModal()

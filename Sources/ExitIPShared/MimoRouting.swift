@@ -194,7 +194,7 @@ public struct MimoCommandStamp: Codable, Equatable, Sendable {
 }
 
 public struct MimoSupervisorRequest: Codable, Sendable {
-    public enum Command: String, Codable, Sendable { case state, heartbeat, prepare, approve, close, direct, service }
+    public enum Command: String, Codable, Sendable { case state, heartbeat, prepare, approve, close, direct, service, profile }
     public var command: Command
     /// A heartbeat receipt only; no state read, policy change, or ordering advance.
     public var livenessOnly: Bool?
@@ -222,9 +222,11 @@ public enum MimoRuntime {
     public static let jobDirectory = ExitIPService.support.appendingPathComponent("LaunchDaemons", isDirectory: true)
     public static let directory = ExitIPService.support.appendingPathComponent("Mihomo", isDirectory: true)
     public static let engine = directory.appendingPathComponent("mihomo")
-    public static let controller = directory.appendingPathComponent("controller.sock")
-    public static let profile = directory.appendingPathComponent("config.yaml")
-    public static let blockingProfile = directory.appendingPathComponent("blocking.yaml")
+    // Recovery journals stay in their established location across upgrades. Only
+    // credential-free bootstrap data and the private controller live here.
+    public static let profileDirectory = URL(fileURLWithPath: "/Library/Application Support/Mimo/Mihomo", isDirectory: true)
+    public static let controller = profileDirectory.appendingPathComponent("controller.sock")
+    public static let blockingProfile = profileDirectory.appendingPathComponent("blocking.yaml")
     public static let probePort = 17891
     public static let mixedPort = 7890
     public static let dnsPort = 1053

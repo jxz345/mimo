@@ -79,7 +79,7 @@ enum CredentialAppTests {
 
         try profileButtonRowChecks()
         try dockIconChecks(output: output)
-        try MimoMenuTests.run(output: output)
+        try await MimoMenuTests.run(output: output)
         try MimoDraftTests.run()
         try MimoDashboardTests.run(output: output)
 

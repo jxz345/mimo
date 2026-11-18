@@ -24,7 +24,7 @@ KIT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 PROJECT_DIR="$KIT_ROOT/XcodeProject"
 DERIVED_DATA="$PROJECT_DIR/DerivedData-Release"
 DIST_DIR="$KIT_ROOT/dist"
-APP_BUNDLE="$DERIVED_DATA/Build/Products/Release/ExitIPMonitor.app"
+APP_BUNDLE="$DERIVED_DATA/Build/Products/Release/Mimo.app"
 
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
     sed -n '2,19p' "$0"
@@ -89,7 +89,7 @@ mkdir -p "$pkg_work/root" "$pkg_work/packages" "$pkg_work/scripts"
 cp "$SCRIPT_DIR/pkg/preinstall" "$SCRIPT_DIR/pkg/postinstall" "$pkg_work/scripts/"
 cp "$KIT_ROOT/Sources/ExitIPDiagnostics/command-support.sh" \
     "$KIT_ROOT/Sources/ExitIPDiagnostics/cleanup-installation.sh" "$pkg_work/scripts/"
-ditto "$APP_BUNDLE" "$pkg_work/root/ExitIPMonitor.app"
+ditto "$APP_BUNDLE" "$pkg_work/root/Mimo.app"
 pkgbuild --analyze --root "$pkg_work/root" "$pkg_work/components.plist"
 # Always install to /Applications: a relocatable bundle would update whichever copy with the same
 # bundle ID Installer finds first (a build folder, a scratch copy). Allow same-version reinstalls.
@@ -109,7 +109,7 @@ productbuild --synthesize --package "$pkg_work/packages/ExitIPMonitor.pkg" "$pkg
 /usr/bin/sed -i '' \
     -e 's/hostArchitectures="[^"]*"/hostArchitectures="arm64"/' \
     -e "s|<installer-gui-script minSpecVersion=\"\([0-9]*\)\">|<installer-gui-script minSpecVersion=\"\\1\">\\
-    <title>Exit IP Monitor $version</title>\\
+    <title>Mimo $version</title>\\
     <allowed-os-versions><os-version min=\"14.0\"/></allowed-os-versions>|" \
     "$pkg_work/distribution.xml"
 grep -q '<title>' "$pkg_work/distribution.xml" || { printf 'ERROR Could not set the installer title.\n' >&2; exit 1; }
@@ -119,8 +119,8 @@ productbuild --distribution "$pkg_work/distribution.xml" --package-path "$pkg_wo
 
 # The packaged app must be the signed, sealed bundle.
 pkgutil --expand-full "$pkg_path" "$pkg_work/check"
-packaged_app="$(find "$pkg_work/check" -maxdepth 4 -name ExitIPMonitor.app -type d | head -1)"
-[[ -n "$packaged_app" ]] || { printf 'ERROR The package does not contain ExitIPMonitor.app.\n' >&2; exit 1; }
+packaged_app="$(find "$pkg_work/check" -maxdepth 4 -name Mimo.app -type d | head -1)"
+[[ -n "$packaged_app" ]] || { printf 'ERROR The package does not contain Mimo.app.\n' >&2; exit 1; }
 codesign --verify --deep --strict "$packaged_app" || { printf 'ERROR The packaged app signature does not verify.\n' >&2; exit 1; }
 printf 'PASS  Package contains the signed app: %s\n' "$pkg_path"
 

@@ -3,7 +3,7 @@ import SwiftUI
 
 @MainActor
 enum MimoMenuTests {
-    static func run(output: URL) throws {
+    static func run(output: URL) async throws {
         let now = Date()
         let snapshot = ExitIPSnapshot(ipAddress: "192.0.2.10", countryCode: "SG", countryName: "Singapore",
                                       provider: .ipWhois, checkedAt: now)
@@ -14,7 +14,10 @@ enum MimoMenuTests {
         var policy = MimoAccessPolicy()
         policy.directRestored(configuration: MimoConfiguration())
         let direct = presentation(policy.state)
-        require(direct.kind == .direct && direct.country == nil, "Direct must have its own arrow, not an approval flag")
+        require(direct.kind == .direct && direct.country == nil, "Direct without a current lookup must use the fallback arrow")
+        var locatedDirect = policy.state
+        locatedDirect.observedIP = MimoIPObservation(address: snapshot.ipAddress, checkedAt: now)
+        require(presentation(locatedDirect).country == snapshot.countryFlag, "Direct must display its current public IP country")
         var protected = MimoConfiguration(); protected.mode = .rule
         protected.proxy = MimoProxy(ClashProxySettings(name: "Fixture", type: .http, server: "192.0.2.20", port: 443))
         let proof = policy.begin(configuration: protected, revision: 1, networkGeneration: 1)
@@ -67,7 +70,53 @@ enum MimoMenuTests {
                 native.loginItem.title == "Open Mimo at login" && native.refreshItem.title == "Refresh now",
                 "dashboard, settings, refresh and login actions must stay present")
 
-        let scenarios = [direct, startup, verified, rejected, warning, unavailable]
+        let setupMonitor = PublicIPMonitor()
+        var setupState = DaemonState(instanceID: UUID(), build: "UI setup fixture", initialized: false, revision: 0,
+            settings: MachineSettings(), presentation: UserPresentationPreferences(), snapshot: nil,
+            status: .idle, indicators: MonitorIndicatorState(), authorizationState: .unavailable,
+            providerHealth: [:], budget: LookupBudget(), nextProvider: .ipWhois, cooldowns: [:], hasIPinfoToken: false)
+        setupState.routing = locatedDirect
+        setupMonitor.receive(setupState)
+        let setupMenu = MimoStatusMenu(monitor: setupMonitor)
+        require(!setupMonitor.canChangeSharedSettings && setupMonitor.canRefresh && setupMenu.refreshItem.isEnabled,
+                "an uninitialized Direct service permits refresh while shared edits remain disabled")
+        setupState.initialized = true
+        setupMonitor.receive(setupState); setupMenu.update()
+        require(setupMonitor.canChangeSharedSettings && setupMonitor.canRefresh && setupMenu.refreshItem.isEnabled,
+                "initialization must enable the same refresh state in Settings, dashboard and menu")
+        setupState.routing?.phase = .checking
+        setupMonitor.receive(setupState); setupMenu.update()
+        require(!setupMonitor.canRefresh && !setupMenu.refreshItem.isEnabled,
+                "an in-flight required check must disable duplicate refresh actions")
+        setupState.routing = policy.state
+        setupState.status = .refreshing
+        setupMonitor.receive(setupState); setupMenu.update()
+        require(!setupMonitor.canRefresh && !setupMenu.refreshItem.isEnabled,
+                "a Direct lookup or preparation must also disable duplicate refresh actions")
+        setupState.status = .failed("Save a proxy in Settings.")
+        setupMonitor.receive(setupState)
+        require(setupMonitor.lookupStatusMessage == "Save a proxy in Settings.",
+                "the dashboard must expose the actionable lookup failure beside the last check")
+        setupState.status = .ready
+        setupMonitor.receive(setupState)
+        require(setupMonitor.lookupStatusMessage == nil, "a successful check must clear the previous failure")
+
+        // Exercise the retained native status item, rather than manually refreshing the menu.
+        let controller = StatusItemController(monitor: setupMonitor)
+        var directRouting = MimoRoutingState()
+        directRouting.phase = .active; directRouting.effectiveMode = .direct
+        for (lookup, expected) in [(MonitoringStatus.ready, MimoStatusPresentation.Kind.direct),
+                                   (.refreshing, .checking), (.failed("Offline"), .directWarning), (.ready, .direct)] {
+            setupState.routing = directRouting; setupState.status = lookup
+            setupMonitor.receive(setupState)
+            try await Task.sleep(for: .milliseconds(30))
+            require(controller.displayedPresentation?.kind == expected,
+                    "published state must redraw the retained menu icon without a click or reopening")
+            require(controller.displayedPresentation == setupMonitor.statusPresentation,
+                    "menu and dashboard must consume the same completed status snapshot")
+        }
+
+        let scenarios = [presentation(locatedDirect), startup, verified, rejected, warning, unavailable]
         let dock = DockIconController()
         for dark in [false, true] {
             for scenario in scenarios {

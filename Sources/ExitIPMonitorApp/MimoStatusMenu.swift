@@ -42,8 +42,7 @@ final class MimoStatusMenu: NSObject, NSMenuDelegate {
     }
 
     var presentation: MimoMenuPresentation {
-        MimoMenuPresentation(routing: monitor.routingState, snapshot: monitor.snapshot ?? monitor.daemonState?.snapshot,
-                             preferences: monitor.preferences, date: monitor.displayDate)
+        monitor.statusPresentation
     }
 
     func update() {
@@ -52,12 +51,12 @@ final class MimoStatusMenu: NSObject, NSMenuDelegate {
         detailItem.title = presentation.detail.count > 100 ? String(presentation.detail.prefix(97)) + "…" : presentation.detail
         detailItem.toolTip = presentation.detail
         addressItem.title = presentation.address.map { "IP address · \($0)" } ?? "IP unavailable"
-        let ready = monitor.connected && monitor.daemonState?.initialized == true && !monitor.isChangingSettings
+        let ready = monitor.canChangeSharedSettings
         for (mode, row) in modeItems {
             row.state = monitor.routingState.configuration.mode == mode ? .on : .off
             row.isEnabled = ready
         }
-        refreshItem.isEnabled = ready && ![.checking, .validating].contains(monitor.routingState.phase)
+        refreshItem.isEnabled = monitor.canRefresh
         loginItem.state = LoginItemSync.status == .enabled ? .on : .off
         let message = loginError ?? (LoginItemSync.status == .requiresApproval ? "Approve Mimo in Login Items Settings." : nil)
         loginStatusItem.title = message ?? ""
