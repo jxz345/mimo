@@ -1,0 +1,18 @@
+[
+  {
+    "interface": "en0",
+    "route": "interface: utun239",
+    "exit": 0,
+    "dnsStatus": 3,
+    "seconds": 0.948,
+    "error": ""
+  },
+  {
+    "interface": "default",
+    "route": "interface: utun239",
+    "exit": 28,
+    "dnsStatus": null,
+    "seconds": 3.02,
+    "error": "curl: (28) Connection timed out after 3011 milliseconds"
+  }
+]

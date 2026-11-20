@@ -439,9 +439,13 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 }
                 let hostname = IPAddressValidator.normalize(proxy.server) == nil
                 if hostname {
-                    // Bootstrap traffic needs the old connections gone first.
+                    // Bootstrap must not follow the previous TUN/profile. An
+                    // empty endpoint policy cannot reach that profile's proxy.
+                    // Retire it while PF is closed, before permitting DNS.
                     // Literal IPv4 endpoints skip this dependency entirely.
                     try await joinCleanup()
+                    try runtime.prepareHostnameBootstrap()
+                    timing.record("hostname_bootstrap_profile")
                     // The preinstalled policy permits only bootstrap DNS.
                     try powerGuard.fence.activate(epoch: powerEpoch) { try runtime.permitPrivateProbe() }
                     RuntimeLog.shared.info("mimo_bootstrap_permitted")

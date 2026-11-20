@@ -637,6 +637,17 @@ final class MimoSystemRuntime {
         try controllerLock.withLock { try loadProfileUnderControllerLock(profile) }
     }
 
+    func prepareHostnameBootstrap() throws {
+        guard closed else { throw DaemonFailure.unavailable }
+        revokeBaseline()
+        let blocking = MihomoProfile.blocking()
+        try loadProfile(blocking)
+        guard try matches(blocking, active: false), if_nametoindex(MihomoProfile.tunnelDevice) == 0 else {
+            throw MimoRuntimeError.unavailable("The previous proxy tunnel could not be removed before bootstrap DNS.")
+        }
+        RuntimeLog.shared.info("mimo_hostname_bootstrap_ready")
+    }
+
     private func loadProfileUnderControllerLock(_ profile: String) throws {
         profileWillChange?()
         defer { profileDidChange?() }
