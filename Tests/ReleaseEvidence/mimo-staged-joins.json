@@ -1,0 +1,31 @@
+{
+  "success": true,
+  "trials": 6,
+  "firstJoinPrerequisitesBeforeIP": true,
+  "secondJoinPrerequisitesBeforeOpen": true,
+  "measuredRuleValidationBlockingOverlap": true,
+  "installationAfterBlockMS": [
+    0,
+    1,
+    1,
+    1,
+    0,
+    0
+  ],
+  "permissionToIPMS": [
+    2,
+    2,
+    4,
+    2,
+    2,
+    3
+  ],
+  "openingJoinMS": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ]
+}

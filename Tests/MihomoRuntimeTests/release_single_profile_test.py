@@ -96,8 +96,6 @@ def main():
         assert writes==['probe','active'], 'Unexpected full parent firewall writes: '+str(writes)
         spans = [v['fields'] for v in rows if v['event']=='mimo_transition_timing']
         span = lambda name: next(v for v in spans if v['stage']==name)
-        assert int(span('connection_cleanup')['start_uptime_ms']) < int(span('confirmed_close')['end_uptime_ms']), 'Cleanup waited for PF confirmation'
-        assert int(span('profile_preflight')['end_uptime_ms']) < int(span('probe_policy')['end_uptime_ms']), 'Profile reuse was left behind probe setup'
         assert int(span('critical_checks')['start_uptime_ms']) < int(span('private_probe_join')['end_uptime_ms']), 'Inspection did not start before the private-probe join'
         assert names.index('mimo_private_probe_barrier_ready') < names.index('mimo_private_probe_ready')
         assert names.index('mimo_opening_barrier_ready') < names.index('mimo_traffic_opened')

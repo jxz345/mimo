@@ -79,10 +79,14 @@
     {
       "evidence": "mimo-parallel-initial-attempt.json",
       "result": "The DNS fault stayed blocked, but the driver timed out waiting for a transient dashboard reason after background inspection moved earlier. The revised assertion requires a recorded critical DNS failure, blocked state and traffic denial. The completed route timings are retained; the final complete rerun qualifies packet/fault behavior."
+    },
+    {
+      "evidence": "mimo-staged-initial-races.json",
+      "result": "A native Tailscale PF apply failure left the initial candidate blocked after its packet suite passed. Native update health now gates opening and automatic fresh verification. The final candidate is requalified; the initial package\u2019s packet and timing data remain separate. A 48-write Direct-mode diagnostic did not reproduce the PF apply error, so its precise cause is not established."
     }
   ],
   "architecture": "arm64",
-  "currentCheckpoint": "Parallel connection cleanup, profile preparation and early runtime inspection with two joins pass 184 shared tests, service regressions, 20 installed packet/fault assertions, four in-flight-change assertions, two PF fallback/restoration assertions and three stalled-controller/automatic-recovery assertions. 10 route changes took 5.124\u20139.572 seconds as observed; Rule averaged 6.43 seconds. Original Rule/settings/credential/service intent restored.",
+  "currentCheckpoint": "Staged firewall preparation is installed and tested in mimo-vm. 6 actual route changes took 5.73\u20138.70 seconds as observed; Rule averaged 8.25 seconds, versus 6.43 seconds in the previous sample. PF opening completed after 5.26\u20138.28 seconds. All 184 shared tests, service regressions, 20 packet/fault checks, four in-flight-change checks, two PF fallback/restoration checks, three stalled-controller/recovery checks and three native-rule failure/recovery checks pass. Original Rule, proxy/password, allowlist and service intent are restored. Independent read-only review identifies additional Direct/native fault-handling and coverage gaps; candidate remains draft.",
   "latestCompletedEvidence": [
     "mimo-service-progress.json",
     "mimo-service-progress-user-confirmation.json",
@@ -118,7 +122,17 @@
     "mimo-parallel-timing.json",
     "mimo-parallel-joins.json",
     "mimo-parallel-checkpoint.json",
-    "mimo-parallel-timeline.json"
+    "mimo-parallel-timeline.json",
+    "mimo-staged-runtime.json",
+    "mimo-staged-races.json",
+    "mimo-staged-pf-fallback.json",
+    "mimo-staged-stalled-controller.json",
+    "mimo-staged-timing.json",
+    "mimo-staged-native-recovery.json",
+    "mimo-staged-joins.json",
+    "mimo-staged-checkpoint.json",
+    "mimo-staged-timeline.json",
+    "MIMO_WORKFLOW_SECOND_OPINION.md"
   ],
   "historicalCheckpoint": {
     "packageSHA256": "16b78e9d9dc487f275b017f1c4cd09da31a188145e43605f187ccdb604e9448a",
@@ -194,9 +208,9 @@
     ],
     "note": "Historical cumulative checkpoint, superseded by currentCheckpoint and latestCompletedEvidence. Per-session authorization and 165-test counts refer to earlier builds."
   },
-  "packageSHA256": "d5062e8a7c1a29329da70b59e6bd2e5c00a3bca1afad6901dc2ebdfb24552783",
-  "helperSHA256": "7f6056df68706725bdd9fe502dd08f95c5c59918d2ebb22b48a51f96a9726533",
-  "guiSHA256": "98fe0f8fbb90fb32ab7c311f5ee9fc3a82c016eb72fce6da0c0973b117591b76",
+  "packageSHA256": "e8885bd45d9a6d6e71bb1ae6841af534afa6fb3caeade15a9f300a2cdc61914b",
+  "helperSHA256": "1bbd976063f53aea4a012eb890f1f67d1af115e110e3cf0e20f2a7099d0a61a5",
+  "guiSHA256": "ebb4ad81195f5cc9b48e1cf7b09cdaa26b94cbce32e475a26aa000d93a4fbf04",
   "activeRun": "No test running. Final installed signature/hashes, original configuration/credential/service intent and active Rule verified.",
   "limitations": [
     "Current candidate is installed through a VM-local acceptance tap; public v1.0 preview is unchanged.",
@@ -206,13 +220,13 @@
     "Network notifications are asynchronous; event tests do not prove zero pre-detection delay."
   ],
   "sourceCheckpoint": {
-    "baselineCommit": "0920725",
+    "baselineCommit": "601c368",
     "branch": "release/current-candidate",
     "published": true,
     "pullRequest": "https://github.com/jxz345/mimo/pull/1",
     "draft": true,
     "publicBinaryUpdated": false,
-    "note": "Exact runtime qualification uses package/helper hashes; the branch contains the subsequent parallel-preparation source."
+    "note": "Exact runtime qualification uses package/helper hashes; branch includes staged firewall preparation source."
   },
   "manualSleepEvidence": "mimo-protected-dns-manual-sleep.json: unsupported/incomplete, kernel sleep count unchanged; original Rule retained",
   "sessionEvidence": "mimo-session-events-checkpoint.json",
@@ -267,5 +281,33 @@
     "mimo-parallel-joins.json",
     "mimo-parallel-checkpoint.json",
     "mimo-parallel-timeline.json"
-  ]
+  ],
+  "stagedCandidate": {
+    "packageSHA256": "e8885bd45d9a6d6e71bb1ae6841af534afa6fb3caeade15a9f300a2cdc61914b",
+    "helperSHA256": "1bbd976063f53aea4a012eb890f1f67d1af115e110e3cf0e20f2a7099d0a61a5",
+    "guiSHA256": "ebb4ad81195f5cc9b48e1cf7b09cdaa26b94cbce32e475a26aa000d93a4fbf04",
+    "configuration": "Release",
+    "architecture": "arm64",
+    "inputs": {
+      "Tests/MihomoRuntimeTests/saved_proxy_test.py": "d10754b14b87901cb020d6feebe958b55115817400c8cbbc89ce125a1ba4fabc"
+    }
+  },
+  "stagedEvidence": [
+    "mimo-staged-runtime.json",
+    "mimo-staged-races.json",
+    "mimo-staged-pf-fallback.json",
+    "mimo-staged-stalled-controller.json",
+    "mimo-staged-timing.json",
+    "mimo-staged-native-recovery.json",
+    "mimo-staged-joins.json",
+    "mimo-staged-checkpoint.json",
+    "mimo-staged-timeline.json"
+  ],
+  "workflowReview": "MIMO_WORKFLOW_SECOND_OPINION.md",
+  "reviewFollowUp": [
+    "Reproduce and fix Direct re-blocking on native child cleanup failure (code-inspected; not runtime reproduced).",
+    "Qualify native recovery edge cases and repeated failure handling. D2 requires scheduling plus a stalled observer; no normal-polling reproduction.",
+    "Instrument final PF-opening substeps and qualify hostname bootstrap."
+  ],
+  "workflowReviewCompleted": true
 }

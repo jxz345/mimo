@@ -6,8 +6,24 @@ import Foundation
 final class MimoNativeTransportWriter: @unchecked Sendable {
     private let lock = NSLock()
     private var installed: String?
+    private let healthLock = NSLock()
+    private var updateFailed = false
+
+    var isHealthy: Bool { healthLock.withLock { !updateFailed } }
 
     func update(_ transport: MimoNativeTransport) throws {
+        try lock.withLock {
+            do {
+                try apply(transport)
+                healthLock.withLock { updateFailed = false }
+            } catch {
+                healthLock.withLock { updateFailed = true }
+                throw error
+            }
+        }
+    }
+
+    private func apply(_ transport: MimoNativeTransport) throws {
         let rules = try transport.render()
         let directory = MimoRuntime.directory
         var info = stat()
@@ -22,24 +38,22 @@ final class MimoNativeTransportWriter: @unchecked Sendable {
         // through it. Direct cleanup uses this writer too, under this lock.
         let firewall = try MimoFirewallLock.acquire(at: directory.appendingPathComponent("native-transport.lock"))
         try withExtendedLifetime(firewall) {
-            try lock.withLock {
-                guard rules != installed else { return }
-                let anchor = MimoFirewallPolicy.anchor + "/native-transport"
-                let data = Data(rules.utf8)
-                for arguments in [["-n", "-a", anchor, "-f", "-"], ["-a", anchor, "-f", "-"]] {
-                    let result = BoundedProcess.run("/sbin/pfctl", arguments, timeout: 3, captureError: true, input: data)
-                    guard result.status == 0 else {
-                        RuntimeLog.shared.error("mimo_native_transport_write_failed", fields: [
-                            "stage": arguments.contains("-n") ? "validate" : "apply", "status": String(result.status)
-                        ])
+            guard rules != installed else { return }
+            let anchor = MimoFirewallPolicy.anchor + "/native-transport"
+            let data = Data(rules.utf8)
+            for arguments in [["-n", "-a", anchor, "-f", "-"], ["-a", anchor, "-f", "-"]] {
+                let result = BoundedProcess.run("/sbin/pfctl", arguments, timeout: 3, captureError: true, input: data)
+                guard result.status == 0 else {
+                    RuntimeLog.shared.error("mimo_native_transport_write_failed", fields: [
+                        "stage": arguments.contains("-n") ? "validate" : "apply", "status": String(result.status)
+                    ])
 #if MIMO_VM_ACCEPTANCE
-                        RuntimeLog.shared.error("mimo_vm_native_write_diagnostic", fields: ["detail": result.text])
+                    RuntimeLog.shared.error("mimo_vm_native_write_diagnostic", fields: ["detail": result.text])
 #endif
-                        throw MimoRuntimeError.unavailable("Native transport firewall rules could not be updated.")
-                    }
+                    throw MimoRuntimeError.unavailable("Native transport firewall rules could not be updated.")
                 }
-                installed = rules
             }
+            installed = rules
         }
     }
 }

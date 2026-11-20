@@ -2,6 +2,10 @@
 
 ## Unreleased — current VM candidate
 
+- Recover automatically from native Tailscale firewall-update failures only after a successful native update and fresh protected verification; keep the final opening blocked while native-rule health is failed.
+
+- Generate and syntax-check immutable restricted PF rules on a background worker, then install them immediately after blocking is confirmed. Keep the private-probe barrier closed through profile preparation and connection cleanup; release it as the last privileged preparation action before the IP request. Record generation, validation, installation and permission spans separately.
+
 - Run connection cleanup, profile reuse checks and runtime inspection alongside PF closure and probe-policy preparation. Use two explicit joins before IP probing and final opening; fence cancelled controller work, retain the atomic final check, and skip unchanged DNS mutation bookkeeping.
 
 - Retry protected verification after controller startup/cleanup failure once the infrastructure check is healthy; keep traffic blocked and require a fresh IP approval.

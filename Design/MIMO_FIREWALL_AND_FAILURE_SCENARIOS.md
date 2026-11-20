@@ -52,7 +52,7 @@ These identifiers preserve the earlier review's numbering; **T02 is narrowed bec
 
 ### Approved verification change: one final profile, concurrent checks
 
-Implemented and tested against the normal Release in mimo-vm (2026-11-20); see the [packet/fault evidence](../Tests/ReleaseEvidence/mimo-concurrent-runtime.json) and [in-flight change evidence](../Tests/ReleaseEvidence/mimo-concurrent-races.json). This change does not alter the TUN-enabled startup analysis assumption or remove T01–T13. The subsequent concurrent-preparation update requests a small effective PF barrier while preparing credentials/profile and inspecting installation. After confirmation, clear old engine flows and install one restricted probe policy. Reuse the exact unchanged final profile in the same engine process, or load it once if changed, restarted, or explicitly reloaded. Ordinary TUN, proxy and DNS access stays blocked while the authenticated private probe runs. Installation and profile/TUN/DNS checks run concurrently; **all critical results must pass before opening** and remain bound to the same engine/profile/configuration/network/session attempt. No second profile load follows exit-IP approval.
+Implemented and tested against the normal Release in mimo-vm (2026-11-20); see the [packet/fault evidence](../Tests/ReleaseEvidence/mimo-concurrent-runtime.json) and [in-flight change evidence](../Tests/ReleaseEvidence/mimo-concurrent-races.json). This change does not alter the TUN-enabled startup analysis assumption or remove T01–T13. The subsequent concurrent-preparation update requests a small effective PF barrier while preparing credentials/profile and inspecting installation. Clear old engine flows concurrently with blocking; after confirmed blocking and rule validation, install one restricted probe policy behind the strict child barrier. Reuse the exact unchanged final profile in the same engine process, or load it once if changed, restarted, or explicitly reloaded. Ordinary TUN, proxy and DNS access stays blocked while the authenticated private probe runs. Installation and profile/TUN/DNS checks run concurrently; **all critical results must pass before opening** and remain bound to the same engine/profile/configuration/network/session attempt. No second profile load follows exit-IP approval.
 
 The final profile permits forwarding, so PF is the ordinary-traffic barrier during verification. T11 therefore still applies: losing PF while that profile is loaded can expose traffic before detection. Old flows must be cleared before releasing the probe endpoint exception (T03); the recorded installed run checks existing/new TUN, loopback proxy, DNS/UDP and IPv6 denial with the final profile loaded. Opening while a critical check is pending would create a new avoidable exposure window; the approved design waits for those results. Independent read-only checks can overlap, but firewall/profile mutations and the final approval remain serialized. Any new event or critical failure invalidates pending approval; stale completion cannot reopen access or undo Direct.
 
@@ -426,7 +426,7 @@ DNS listener recovery: a real foreign owner of `127.0.0.1:1053` must keep protec
 
 ## Approved concurrent preparation update — 20 November 2026
 
-Request PF blocking immediately and run its bounded worker concurrently with credential reading, exact profile rendering and installation checks. Preparation does not wait for PF confirmation to begin. Show **Blocking** until closure is confirmed; then show **Blocked / Checking**. Changes to forwarding permissions, controller flow cleanup and the private probe path still require confirmed closure. Failed confirmation cannot open traffic.
+Request PF blocking immediately and run its bounded worker concurrently with credential reading, exact profile rendering and installation checks. Preparation does not wait for PF confirmation to begin. Show **Blocking** until closure is confirmed; then show **Blocked / Checking**. Controller flow cleanup may run concurrently with closure. Changes to forwarding permissions and the private probe path still require confirmed closure. Failed confirmation cannot open traffic.
 
 A network event and the following preparation share the same close operation. Cancelled close work checks its cancellation under the common firewall lock: Direct either follows an already-running close or prevents a queued close from running. The worker cannot close Direct later. Confirmation is tied to the original request identity, so a delayed waiter cannot create a new closure after cancellation. Configuration/network/session generations still invalidate stale checks. PF mutations serialize under the common lock; a queued closure can still wait for another firewall operation. The detection and pre-confirmation leakage windows are not eliminated.
 
@@ -452,3 +452,31 @@ Queued controller cleanup has its own mutation lock and cancellation token, so l
 
 
 The [current exact-build qualification](../Tests/ReleaseEvidence/mimo-parallel-checkpoint.json) covers unchanged-profile isolation, empty/mismatched allowlists, foreign DNS ownership, controller stall/automatic recovery, engine crash, PF readback fallback and in-flight Direct/network changes in mimo-vm. All pass with original Rule/settings/credential/service intent restored. [Measured overlap](../Tests/ReleaseEvidence/mimo-parallel-timeline.json) does not establish zero detection delay, first-boot-packet protection or actual sleep qualification.
+
+
+## Approved firewall preparation chart — 20 November 2026
+
+This chart supersedes the earlier preparation ordering. Generate the restricted rules and then validate their syntax on a background worker while PF blocking, connection cleanup, profile preparation and installation checks progress. Generation must precede validation because the validator needs the generated bytes. Neither step changes live PF permissions.
+
+After PF blocking is confirmed, install the validated policy immediately. This installation waits only for blocking and rule validation, not profile preparation or service-status queries. It applies exactly the immutable bytes that passed validation, checks the live parent anchor and readback, flushes old states and enforces IPv4-only settings under the shared firewall lock. The strict child barrier stays closed throughout this work.
+
+See the [saved dependency chart](../MIMO_PLAN.md#approved-firewall-preparation-chart--20-november-2026).
+
+The first join requires the installed restricted policy, cleared engine connections and the ready final profile. Build the status reply while still blocked, then permit the private probe as the last privileged preparation action and return to the core for its exit-IP request. IPC and local lookup-session setup still take time; “immediately before” means no intervening service-status queries or profile work, not zero elapsed time.
+
+The second join requires a fresh allowlisted IPv4 result and all current critical installation/runtime results. Exact profile bytes, engine process, resolver/TUN state, configuration revision and network/session attempt are checked before the final PF-opening transaction. Any failure or stale attempt stays blocked. Direct cancels protected work and restores normal IPv4 without an allowlist check.
+
+**Hostname exception:** before the proxy has an IPv4 address, install a bootstrap-only policy. Wait for old connections to be cleared, permit only the fixed encrypted bootstrap lookup, resolve the hostname, then re-block while preparing and validating the endpoint policy. Install that policy before the final private-probe permission. Literal IPv4 endpoints skip this extra sequence; their measurements must not be presented as hostname measurements.
+
+The stage log now separates `rule_generation`, `rule_validation`, `rule_validation_join`, `install_probe_policy` and `permit_private_probe`. The immutable receipt cannot come from an XPC caller; generation checks reject stale results after Direct or a newer event. These changes do not remove event-detection delay, failed-PF-close exposure or the first-packet boot gap.
+
+
+A native Tailscale rule-update failure closes protected traffic and marks recovery pending. The infrastructure monitor requests a fresh verification only after a subsequent native update succeeds; final PF opening also checks that health. Direct remains independent. This fixes a blocked state that previously could persist after the failed update recovered. It does not assume every PF write succeeds or reuse an older IP approval.
+
+
+The [staged-policy exact-build qualification](../Tests/ReleaseEvidence/mimo-staged-checkpoint.json) passes packet/fault, in-flight Direct/network, PF fallback, controller recovery and native-rule failure/recovery tests in mimo-vm. The [timestamp audit](../Tests/ReleaseEvidence/mimo-staged-joins.json) checks block plus validation before installation, cleanup plus profile readiness before permission, and fresh IP plus critical checks before final opening. Saved literal-IPv4 proxy settings are restored. Hostname bootstrap, actual sleep/unlock and first-boot-packet protection are not newly qualified.
+
+
+### Independent review follow-up
+
+The [Claude workflow review](../Tests/ReleaseEvidence/MIMO_WORKFLOW_SECOND_OPINION.md) found a Direct availability defect by code inspection: failure to clear an unreferenced native child can propagate into the generic close path and re-block IPv4. This is an outage, not a newly demonstrated leak. The review also identifies a potential parent/native PF-write overlap and native failure/recovery edge cases. Those remain distinct from the tested lock-timeout recovery. No captured ordinary-traffic leak or proven cause of the earlier native PF apply error is claimed by this review.

@@ -27,6 +27,13 @@ struct MimoPFReference: Codable {
     }
 }
 
+/// Immutable rules that passed PF syntax validation on the preparation worker.
+/// Only this file can construct a receipt; no XPC caller supplies rules or proof.
+struct MimoPreparedProbePolicy: Sendable {
+    fileprivate let rules: String
+    fileprivate let group: UInt32
+}
+
 /// Fixed-path privileged operations. No caller supplies a command, YAML, or executable path.
 @MainActor
 final class MimoSystemRuntime {
@@ -44,6 +51,7 @@ final class MimoSystemRuntime {
     private nonisolated let controllerLock = NSLock()
     private let cleanupQueue = MimoBlockingWorkQueue("com.mimo.clear-connections", qos: .userInitiated)
     private var cleanupRequest: (token: MimoGateRequest, task: Task<Void, Error>)?
+    private nonisolated let firewallPreparationQueue = MimoBlockingWorkQueue("com.mimo.prepare-firewall")
     private let gateQueue = MimoBlockingWorkQueue("com.mimo.close-gate", qos: .userInitiated)
     private var gateRequest: (token: MimoGateRequest, task: Task<Bool, Error>)?
     private let infrastructureQueue = MimoBlockingWorkQueue("com.mimo.infrastructure-check")
@@ -137,6 +145,8 @@ final class MimoSystemRuntime {
         try nativeTransportWriter.update(value)
     }
 
+    nonisolated var nativeTransportIsHealthy: Bool { nativeTransportWriter.isHealthy }
+
     func savedRouting() throws -> (configuration: MimoConfiguration, revision: Int) {
         guard FileManager.default.fileExists(atPath: ExitIPService.storageURL.path) else { return (MimoConfiguration(), 0) }
         try secureFile(ExitIPService.storageURL)
@@ -218,6 +228,33 @@ final class MimoSystemRuntime {
         return url
     }
 
+    nonisolated func prepareProbePolicy(endpoints: [String], proxyPort: Int?) async throws -> MimoPreparedProbePolicy {
+        guard let result = await firewallPreparationQueue.run({ Result {
+            var timing = MimoTransitionTiming("firewall_preparation")
+            let runtimeGroup = self.group
+            guard runtimeGroup != UInt32.max, endpoints.allSatisfy({ !$0.contains(":") }) else {
+                throw MimoRuntimeError.unavailable("A dedicated runtime group and IPv4 endpoint are required.")
+            }
+            let rules = try MimoFirewallPolicy.render(group: runtimeGroup, endpoints: endpoints, proxyPort: proxyPort)
+            timing.record("rule_generation")
+            // -n checks syntax only. Immutable stdin bytes avoid shared-file
+            // races with a concurrent close, Direct action or another attempt.
+            try self.command("/sbin/pfctl", ["-n", "-a", MimoFirewallPolicy.anchor, "-f", "-"], input: Data(rules.utf8))
+            timing.record("rule_validation")
+            return MimoPreparedProbePolicy(rules: rules, group: runtimeGroup)
+        } }) else { throw CancellationError() }
+        return try result.get()
+    }
+
+    func installProbePolicy(_ policy: MimoPreparedProbePolicy) throws {
+        guard closed, !maintenanceActive, policy.group == group else {
+            throw MimoRuntimeError.unavailable("Blocking or the prepared firewall policy changed before installation.")
+        }
+        var timing = MimoTransitionTiming("firewall")
+        try closeGate(rules: policy.rules, applyIPv4Preferences: true, validated: policy)
+        timing.record("install_probe_policy")
+    }
+
     func closeGate(endpoints: [String] = [], proxyPort: Int? = nil) throws {
         closed = false
         try closeGate(rules: MimoFirewallPolicy.render(group: group, endpoints: endpoints, proxyPort: proxyPort), applyIPv4Preferences: true)
@@ -286,12 +323,12 @@ final class MimoSystemRuntime {
         try closeGate(rules: MimoFirewallPolicy.startupBlocking, applyIPv4Preferences: false)
     }
 
-    private func closeGate(rules: String, applyIPv4Preferences: Bool, cancelPending: Bool = true) throws {
+    private func closeGate(rules: String, applyIPv4Preferences: Bool, cancelPending: Bool = true, validated: MimoPreparedProbePolicy? = nil) throws {
         if cancelPending { cancelApplicationGate() }
         closed = false
         try withFirewallLock {
             _ = try writePrivate(Data("pending".utf8), name: "gate.state")
-            try installPF(rules, requiresRuntimeGroup: applyIPv4Preferences)
+            try installPF(rules, requiresRuntimeGroup: applyIPv4Preferences, validated: validated)
             // States created before the guard existed must not override the newly closed policy.
             try command("/sbin/pfctl", ["-k", "0.0.0.0/0"])
             try command("/sbin/pfctl", ["-k", "::/0"])
@@ -305,6 +342,7 @@ final class MimoSystemRuntime {
         try withFirewallLock {
             guard !maintenanceActive else { throw MimoRuntimeError.unavailable("Service installation is in progress.") }
             guard closed else { throw MimoRuntimeError.unavailable("The application gate was not confirmed closed.") }
+            guard nativeTransportIsHealthy else { throw MimoRuntimeError.unavailable("Native transport firewall recovery is still pending.") }
             guard dns.matches, receiptIsCurrent(receipt), if_nametoindex(MihomoProfile.tunnelDevice) != 0 else {
                 throw MimoRuntimeError.unavailable("The verified profile, tunnel or protected DNS changed before opening.")
             }
@@ -378,16 +416,25 @@ final class MimoSystemRuntime {
         return true
     }
 
-    private func installPF(_ rules: String, requiresRuntimeGroup: Bool = true) throws {
+    private func installPF(_ rules: String, requiresRuntimeGroup: Bool = true, validated: MimoPreparedProbePolicy? = nil) throws {
+        if let validated {
+            guard requiresRuntimeGroup, validated.rules == rules, validated.group == group else {
+                throw MimoRuntimeError.unavailable("The validated firewall rules changed before installation.")
+            }
+        }
         guard !requiresRuntimeGroup || group != UInt32.max else { throw MimoRuntimeError.unavailable("The dedicated runtime group is missing.") }
         let main = BoundedProcess.run("/sbin/pfctl", ["-sr"])
         guard main.status == 0, main.text.contains("anchor \"com.apple/*\""),
               !main.text.contains("pass out quick"), !main.text.contains("pass quick") else {
             throw MimoRuntimeError.unavailable("PF has no supported application anchor. Keep Direct selected and repair setup.")
         }
-        let path = try writePrivate(Data(rules.utf8), name: "guard.pf")
-        try command("/sbin/pfctl", ["-n", "-a", MimoFirewallPolicy.anchor, "-f", path.path])
-        try command("/sbin/pfctl", ["-a", MimoFirewallPolicy.anchor, "-f", path.path])
+        let bytes = Data(rules.utf8)
+        _ = try writePrivate(bytes, name: "guard.pf")
+        if validated == nil {
+            try command("/sbin/pfctl", ["-n", "-a", MimoFirewallPolicy.anchor, "-f", "-"], input: bytes)
+        }
+        // Apply exactly the bytes that were checked, not a mutable file path.
+        try command("/sbin/pfctl", ["-a", MimoFirewallPolicy.anchor, "-f", "-"], input: bytes)
         let installed = BoundedProcess.run("/sbin/pfctl", ["-a", MimoFirewallPolicy.anchor, "-sr"])
         guard installed.status == 0, !installed.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw MimoRuntimeError.unavailable("The installed firewall rules could not be read back.")

@@ -19,6 +19,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
         var profile: String?
         var reused: Bool
     }
+    private var firewallPreparation: Task<MimoPreparedProbePolicy, Error>?
     private var profilePreparation: Task<PreparedCandidate, Error>?
     private var profileInspection: Task<MimoReadinessReceipt, Error>?
     private var completedReadiness: MimoReadinessReceipt?
@@ -49,7 +50,10 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 RuntimeLog.shared.error("mimo_native_transport_failed", fields: ["reason": reason])
                 // Direct does not use this sub-anchor. A delayed worker error
                 // from the preceding protected mode must not close Direct.
-                if self.policy.state.configuration.mode.requiresVerification { self.close(reason) }
+                if self.policy.state.configuration.mode.requiresVerification {
+                    self.infrastructureRecoveryPending = true
+                    self.close(reason)
+                }
             }
         }
     }
@@ -100,7 +104,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 if !self.runtime.maintenanceActive {
                     do {
                         try await self.runtime.repairInfrastructure()
-                        if self.infrastructureRecoveryPending {
+                        if self.infrastructureRecoveryPending, self.runtime.nativeTransportIsHealthy {
                             self.infrastructureRecoveryPending = false
                             self.networkChanged("infrastructure_recovered")
                         }
@@ -303,6 +307,12 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 guard coreEnabled, engineEnabled, profileEnabled else { throw MimoRuntimeError.unavailable("A required background service is stopped.") }
                 guard let metadata = validated.proxy else { throw MimoRuntimeError.unavailable("Save a proxy in Settings.") }
                 let runtime = self.runtime
+                let literalAddress = IPAddressValidator.normalize(metadata.server)
+                let initialPolicy = Task.detached {
+                    try await runtime.prepareProbePolicy(endpoints: literalAddress.map { [$0] } ?? [],
+                                                         proxyPort: literalAddress == nil ? nil : metadata.port)
+                }
+                firewallPreparation = initialPolicy
                 let installation = Task.detached {
                     try await runtime.readinessChecks.validateInstallation { try runtime.checkInstallation() }
                 }
@@ -340,10 +350,22 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                     throw error
                 }
                 guard epoch == generation, runtime.closed else { throw CancellationError() }
+                timing.record("confirmed_close")
+                let preparedPolicy: MimoPreparedProbePolicy
+                do { preparedPolicy = try await initialPolicy.value }
+                catch {
+                    guard epoch == generation else { throw CancellationError() }
+                    throw error
+                }
+                guard epoch == generation, !runtime.maintenanceActive else { throw CancellationError() }
+                timing.record("rule_validation_join")
+                // No profile wait or service-status work between confirmed
+                // blocking and installation of the already-validated rules.
+                try runtime.installProbePolicy(preparedPolicy)
+                timing.record("probe_policy")
                 policy.block("Validating the protected profile.")
                 RuntimeLog.shared.info("mimo_gate_closed", fields: ["confirmed": "true", "reason": "prepare"])
                 progress?(response())
-                timing.record("confirmed_close")
                 let check = policy.begin(configuration: validated, revision: revision, networkGeneration: network)
                 allowlist = allowed
                 guard networkObserver.isRunning, powerGuard.isRunning, sessionObserver.isRunning else { throw MimoRuntimeError.unavailable("Network, session or power change observation is unavailable. Repair installation.") }
@@ -375,8 +397,9 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                     // Bootstrap traffic needs the old connections gone first.
                     // Literal IPv4 endpoints skip this dependency entirely.
                     try await joinCleanup()
-                    try runtime.closeGate()
+                    // The preinstalled policy permits only bootstrap DNS.
                     try powerGuard.fence.activate(epoch: powerEpoch) { try MimoPowerGuard.clear() }
+                    RuntimeLog.shared.info("mimo_bootstrap_permitted")
                 }
                 let address: String
                 do { address = try await resolve(proxy.server) }
@@ -395,10 +418,26 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                     }
                 }
                 guard let finalProfile else { throw DaemonFailure.invalidRequest }
-                // Prepare the parent PF policy while cleanup/inspection workers
-                // run. The strict child barrier stays closed until the first join.
-                try runtime.closeGate(endpoints: [address], proxyPort: proxy.port)
-                timing.record("probe_policy")
+                if hostname {
+                    // A hostname cannot have endpoint-specific rules until its
+                    // A record is known. Re-block while validating those rules,
+                    // then install them before permitting any private IP probe.
+                    let proxyPort = proxy.port
+                    let endpointPolicy = Task.detached {
+                        try await runtime.prepareProbePolicy(endpoints: [address], proxyPort: proxyPort)
+                    }
+                    firewallPreparation = endpointPolicy
+                    try runtime.holdApplicationGate()
+                    let preparedEndpoint: MimoPreparedProbePolicy
+                    do { preparedEndpoint = try await endpointPolicy.value }
+                    catch {
+                        guard epoch == generation else { throw CancellationError() }
+                        throw error
+                    }
+                    guard epoch == generation, check == policy.state.verification else { throw CancellationError() }
+                    try runtime.installProbePolicy(preparedEndpoint)
+                    timing.record("endpoint_probe_policy")
+                }
                 if !hostname { try await joinCleanup() }
                 if !reused { try runtime.loadProfile(finalProfile) }
                 forceProfileReload = false
@@ -408,9 +447,6 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 guard let inspection = profileInspection else { throw CancellationError() }
                 self.proxy = proxy; endpoint = address; activeProfile = finalProfile
                 RuntimeLog.shared.info(reused ? "mimo_final_profile_reused" : "mimo_final_profile_loaded", fields: ["attempt": check.id.uuidString])
-                try powerGuard.fence.activate(epoch: powerEpoch) { try MimoPowerGuard.clear() }
-                timing.record("private_probe_join")
-                RuntimeLog.shared.info("mimo_private_probe_barrier_ready", fields: ["attempt": check.id.uuidString])
                 let readinessGeneration = generation
                 readinessCheck = Task { [weak self] in
                     guard let self else { throw CancellationError() }
@@ -435,7 +471,18 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                     }
                 }
                 policy.checking(check)
+                // Build status before opening even the private path. Permission
+                // is the last privileged action before the core receives its
+                // ready reply and starts the IP request.
+                var ready = response()
+                var permissionTiming = MimoTransitionTiming("permission")
+                try powerGuard.fence.activate(epoch: powerEpoch) { try MimoPowerGuard.clear() }
+                permissionTiming.record("permit_private_probe")
+                timing.record("private_probe_join")
+                RuntimeLog.shared.info("mimo_private_probe_barrier_ready", fields: ["attempt": check.id.uuidString])
                 RuntimeLog.shared.info("mimo_private_probe_ready", fields: ["revision": String(revision), "generation": String(network), "attempt": check.id.uuidString])
+                ready.routing?.supervisorCheckedAt = .now
+                return ready
             case .approve:
                 var timing = MimoTransitionTiming("approve")
                 guard let check = message.verification, check == policy.state.verification,
@@ -478,7 +525,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                     try MimoPowerGuard.clear()
                 }
                 self.readinessCheck = nil; installationCheck = nil
-                profilePreparation = nil; profileInspection = nil; completedReadiness = nil
+                firewallPreparation = nil; profilePreparation = nil; profileInspection = nil; completedReadiness = nil
                 timing.record("open_gate")
                 RuntimeLog.shared.info("mimo_traffic_opened", fields: ["mode": policy.state.configuration.mode.rawValue, "ip": address])
             case .service:
@@ -549,6 +596,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
 
     private func cancelReadiness() {
         runtime.cancelConnectionCleanup()
+        firewallPreparation?.cancel(); firewallPreparation = nil
         profilePreparation?.cancel(); profilePreparation = nil
         profileInspection?.cancel(); profileInspection = nil
         completedReadiness = nil

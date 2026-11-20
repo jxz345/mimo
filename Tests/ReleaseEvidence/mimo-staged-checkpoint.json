@@ -1,0 +1,42 @@
+{
+  "date": "2026-11-20",
+  "environment": "mimo-vm only",
+  "packageSHA256": "e8885bd45d9a6d6e71bb1ae6841af534afa6fb3caeade15a9f300a2cdc61914b",
+  "helperSHA256": "1bbd976063f53aea4a012eb890f1f67d1af115e110e3cf0e20f2a7099d0a61a5",
+  "guiSHA256": "ebb4ad81195f5cc9b48e1cf7b09cdaa26b94cbce32e475a26aa000d93a4fbf04",
+  "configuration": "Release",
+  "architecture": "arm64",
+  "inputs": {
+    "Tests/MihomoRuntimeTests/saved_proxy_test.py": "d10754b14b87901cb020d6feebe958b55115817400c8cbbc89ce125a1ba4fabc"
+  },
+  "sharedTests": {
+    "passed": 184,
+    "failed": 0
+  },
+  "serviceRegressionsPassed": true,
+  "installedChecks": {
+    "mimo-staged-runtime.json": 20,
+    "mimo-staged-races.json": 4,
+    "mimo-staged-pf-fallback.json": 2,
+    "mimo-staged-stalled-controller.json": 3,
+    "mimo-staged-timing.json": 2,
+    "mimo-staged-native-recovery.json": 3
+  },
+  "reports": [
+    "mimo-staged-runtime.json",
+    "mimo-staged-races.json",
+    "mimo-staged-pf-fallback.json",
+    "mimo-staged-stalled-controller.json",
+    "mimo-staged-timing.json",
+    "mimo-staged-native-recovery.json",
+    "mimo-staged-joins.json"
+  ],
+  "restoration": {
+    "passed": true,
+    "mode": "rule",
+    "originalConfigurationCredentialAndServiceIntent": true,
+    "installedSignatureAndHashesMatch": true,
+    "testProcessesRemaining": false
+  },
+  "scope": "Normal installed arm64 Release, saved real proxy, PF, launchd, ordinary traffic and physical-interface captures. No new actual sleep/unlock, hostname, native visual, simultaneous-login, peer UDP or early-boot qualification."
+}
