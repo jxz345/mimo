@@ -9,7 +9,7 @@
 - Use proxied encrypted public DNS in both Rule and Global, while retaining private MagicDNS and explicit encrypted bootstrap.
 - Follow native Tailscale connectivity automatically, repair relay recovery, and report a stopped provider as a failure only when the tailnet is expected.
 - Use Dashboard/Settings tabs, stable layout, consistent service typography, compact Monitoring controls, menu shortcuts and the Finder app icon in the Dock. Retain the colored live menu indicators and triggering blocked IP.
-- Record exact-build installed tests in [VM acceptance evidence](Tests/ReleaseEvidence/MIMO_NORMAL_RELEASE_ACCEPTANCE.md). Early traffic before the independent PF loader, actual macOS sleep/wake, peer UDP and remaining manual checks are not qualified. The public 1.0 preview below is unchanged.
+- Record exact-build installed tests in [VM acceptance evidence](Tests/ReleaseEvidence/MIMO_NORMAL_RELEASE_ACCEPTANCE.md). Early traffic before the independent PF loader, actual macOS sleep/wake, peer UDP and simultaneous logged-in GUI sessions are not qualified. The user confirms physical mode/Quit shortcuts and sequential account sign-in checks. The public 1.0 preview below is unchanged.
 
 ## 1.0 — 2026-11-18 (preview)
 

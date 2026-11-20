@@ -512,3 +512,6 @@ Both Rule and Global now send public DNS through `https://1.1.1.1/dns-query#Prox
 
 
 Current-candidate completion checkpoint (2026-11-20): the same protected-DNS package passes 88 installed feature checks, seven real Homebrew lifecycle assertions, ten checks after each saved Rule/Global reboot, and seven final restoration assertions. The exact GUI can access its permitted services/profile as jay without a password. Original Direct/native-off state and credentials are retained. Remaining manual shortcuts, native user switching and actual sleep are not marked passed; peer UDP requires an existing service. First-packet protection before the independent PF loader remains a design limitation. Public Homebrew v1.0 is unchanged; source and sanitized evidence are preserved in [draft PR #1](https://github.com/jxz345/mimo/pull/1), branch `release/current-candidate`.
+
+
+Manual acceptance update (2026-11-20): the user confirms the mode/Quit shortcuts and sequential account/shared-state check. Two users logged in simultaneously remain untested because of the reported VM limitation; do not relabel this as concurrent-session or fast-user-switching coverage. The final sleep observer preserves the user's current Rule selection and changes no mode or service state. Its result is still pending.

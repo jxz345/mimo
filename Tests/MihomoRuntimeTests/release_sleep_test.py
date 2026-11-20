@@ -18,7 +18,7 @@ import tempfile
 import time
 
 from installed_acceptance_test import command
-from saved_proxy_test import restore
+from saved_proxy_test import restore, selected_settings
 from upgrade_test import HELPER,STORAGE,FLAGS,RUNTIME,read_settings
 
 BASE=Path(__file__).resolve().parent
@@ -27,16 +27,21 @@ OWNER='com.mimo.release-sleep-test'
 
 def run():
     assert os.geteuid()==0 and command('/usr/sbin/sysctl','-n','hw.model').stdout.startswith('VirtualMac')
-    original=read_settings();assert json.loads(original['service.routing'])['mode']=='direct'
+    observe = '--manual-current' in sys.argv
+    original=read_settings();original_mode=json.loads(original['service.routing'])['mode']
+    assert original_mode in ('direct','rule','global')
+    assert observe or original_mode=='direct'
     build=json.loads((BASE/'release-build.json').read_text())
     assert hashlib.sha256(HELPER.read_bytes()).hexdigest()==build['helperSHA256']
     root=Path(tempfile.mkdtemp(prefix='mimo-release-sleep-',dir='/var/tmp'));root.chmod(0o700)
     (root/'installed-release').touch();backup=root/'private-backup';backup.mkdir(mode=0o700)
     for src,name in ((HELPER,'mimo-core'),(STORAGE,'state.plist'),(FLAGS,'services.json')):shutil.copyfile(src,backup/name)
     (backup/'credential.digest').write_text(command(BASE/'acceptance-client','credential-digest').stdout.strip())
-    with (root/'watchdog.log').open('w') as log:
-        guard=subprocess.Popen([sys.executable,BASE/'saved_proxy_test.py','--watchdog',root,str(os.getpid())],stdout=log,stderr=log,start_new_session=True)
-    manual = '--manual' in sys.argv
+    guard=None
+    if not observe:
+        with (root/'watchdog.log').open('w') as log:
+            guard=subprocess.Popen([sys.executable,BASE/'saved_proxy_test.py','--watchdog',root,str(os.getpid())],stdout=log,stderr=log,start_new_session=True)
+    manual = observe or '--manual' in sys.argv
     completed=[];errors=[];unsupported=False;alarm=None
     def counts(text):
         return {key: int(value) for key, value in re.findall(r'^([^:\n]+):\s*(\d+)$', text, re.M)}
@@ -51,8 +56,9 @@ def run():
     def record(name):completed.append(name);print('PASS:',name,flush=True)
     print('Evidence:',root,flush=True)
     try:
-        for mode in ('direct','rule','global'):
-            client('mode',mode);ready(mode)
+        for mode in ((original_mode,) if observe else ('direct','rule','global')):
+            if not observe:client('mode',mode)
+            ready(mode)
             before_routing=client('state')['routing']
             before=command('/usr/bin/pmset','-g','stats').stdout
             offsets={p:p.stat().st_size for p in Path('/Library/Logs/ExitIPMonitor').glob('runtime-*.jsonl')}
@@ -106,9 +112,20 @@ def run():
     except Exception as exc:errors.append(str(exc))
     finally:
         if alarm:command('/usr/bin/pmset','schedule','cancel','wake',alarm,OWNER,check=False)
-        restore(root);guard.wait(timeout=8);record('original-Direct-configuration-and-credentials-restored')
+        if observe:
+            # This path only reads the running application and waits for a human
+            # sleep attempt. Do not restart services or replace a user's mode.
+            try:
+                assert selected_settings(read_settings())==selected_settings(original)
+                assert json.loads(FLAGS.read_bytes())==json.loads((backup/'services.json').read_bytes())
+                assert command(BASE/'acceptance-client','credential-digest').stdout.strip()==(backup/'credential.digest').read_text()
+                record('original-saved-mode-configuration-credentials-and-service-intent-retained')
+            except Exception as exc:errors.append('Final read-only configuration check: '+str(exc))
+        else:
+            restore(root);guard.wait(timeout=8);record('original-Direct-configuration-and-credentials-restored')
         (root/'report.json').write_text(json.dumps(dict(success=not errors,unsupported=unsupported,passed=completed,errors=errors,
             packageSHA256=build['packageSHA256'],helperSHA256=build['helperSHA256'],syntheticPowerEvents=False,
+            mode=original_mode if observe else 'direct-rule-global',readOnlyObserver=observe,
             scope=('Human macOS Sleep attempt' if manual else 'Actual pmset sleep request')+' in Apple VirtualMac; executed after other tests; not a continuous packet-boundary proof'),indent=2)+'\n')
     return 0 if not errors else 2 if unsupported else 1
 

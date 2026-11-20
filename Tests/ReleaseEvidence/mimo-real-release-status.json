@@ -3,7 +3,7 @@
   "environment": "mimo-vm only",
   "configuration": "Release",
   "pending": [
-    "Remaining physical mode/Quit shortcuts and native GUI fast-user switching",
+    "Two users logged in simultaneously / concurrent GUI sessions (not tested; user reports VM limitation)",
     "Existing peer UDP service coverage if available; no peer/Delta configuration changes",
     "Actual macOS sleep LAST; kernel sleep/wake counters must advance",
     "Early-boot traffic before independent PF initialization remains outside the guarantee",
@@ -68,7 +68,8 @@
     "mimo-protected-dns-boot-rule.json",
     "mimo-protected-dns-boot-global.json",
     "mimo-protected-dns-restoration.json",
-    "mimo-protected-dns-app-access.json"
+    "mimo-protected-dns-app-access.json",
+    "mimo-protected-dns-manual-ui.json"
   ],
   "historicalCheckpoint": {
     "packageSHA256": "16b78e9d9dc487f275b017f1c4cd09da31a188145e43605f187ccdb604e9448a",
@@ -147,12 +148,12 @@
   "packageSHA256": "0e2be8e633927db5fde7e1203e0d7a8f2c2c852e5e44382083c255d60c650065",
   "helperSHA256": "3c8cfed59222a780f0bbf4bf55f9b4437cb0034fff7dbf1c26ab0d7b0d487d1c",
   "guiSHA256": "9ae83fead6840b5cfeb1330415aadafa483242a4faf9127ab0401d2d375b33a7",
-  "activeRun": null,
+  "activeRun": "Read-only manual sleep observer in the user-selected Rule mode; no automated mode/service changes",
   "limitations": [
     "Current candidate is installed through a VM-local acceptance tap; public v1.0 preview is unchanged.",
     "Boot capture starts with its launchd worker and does not establish first-packet protection.",
     "Actual macOS sleep/wake is unqualified; prior VirtualMac pmset request was refused.",
-    "Peer UDP and remaining physical GUI interaction checks are unqualified.",
+    "Peer UDP and simultaneous logged-in GUI sessions are unqualified. Sequential account sign-in and mode/Quit shortcuts are user-confirmed.",
     "Network notifications are asynchronous; event tests do not prove zero pre-detection delay."
   ],
   "sourceCheckpoint": {
@@ -163,5 +164,6 @@
     "draft": true,
     "publicBinaryUpdated": false
   },
-  "awaitingUser": "Physical mode/Quit shortcuts and native GUI user switching; actual sleep remains last. No mode-changing test is running."
+  "awaitingUser": "Rule-mode sleep observer is ready. User must attempt macOS Sleep inside mimo-vm, wake it, and report completion.",
+  "manualSleepEvidence": "/var/tmp/mimo-release-sleep-_0tfxrwm"
 }
