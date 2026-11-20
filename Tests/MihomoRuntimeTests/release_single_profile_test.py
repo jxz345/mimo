@@ -83,29 +83,31 @@ def main():
     def ready_events(baseline, mode, label, started, requested_uptime):
         wait(lambda: any(v['event']=='mimo_traffic_opened' for v in events(LOGS,baseline)) and active(mode), label)
         elapsed=time.monotonic()-started
+        wait(lambda:any(v['event']=='mimo_background_audit_passed' for v in events(LOGS,baseline)), label+' background audit')
         rows=events(LOGS,baseline); (root/(label+'-private-events.json')).write_text(json.dumps(rows))
         opened=next(v for v in rows if v['event']=='mimo_traffic_opened')
         ordered=[v for v in rows if v['file']==opened['file']]
         names=[v['event'] for v in ordered]
         assert names.count('mimo_final_profile_loaded')==0 and names.count('mimo_final_profile_reused')==1, 'Expected unchanged-profile reuse without reload'
         assert names.index('mimo_final_profile_reused') < names.index('mimo_private_probe_ready') < names.index('mimo_traffic_opened')
-        assert names.index('mimo_readiness_passed') < names.index('mimo_traffic_opened')
+        assert opened['fields'].get('optimistic') == 'true'
+        assert names.index('mimo_traffic_opened') < names.index('mimo_background_audit_started') < names.index('mimo_background_audit_passed')
         assert names.index('mimo_exit_ip_approved') < names.index('mimo_traffic_opened')
         assert any(v['event']=='mimo_gate_closed' and v['fields'].get('confirmed')=='true' for v in ordered[:names.index('mimo_private_probe_ready')])
         writes=[v['fields']['policy'] for v in ordered[:names.index('mimo_traffic_opened')+1] if v['event']=='mimo_pf_policy_installed']
-        assert writes==['probe','active'], 'Unexpected full parent firewall writes: '+str(writes)
+        assert writes==[], 'Unexpected full parent firewall writes: '+str(writes)
         spans = [v['fields'] for v in rows if v['event']=='mimo_transition_timing']
         span = lambda name: next(v for v in spans if v['stage']==name)
-        assert int(span('critical_checks')['start_uptime_ms']) < int(span('private_probe_join')['end_uptime_ms']), 'Inspection did not start before the private-probe join'
+        assert int(span('critical_checks')['start_uptime_ms']) >= int(span('open_gate')['end_uptime_ms']), 'Full audit did not follow optimistic opening'
         assert names.index('mimo_private_probe_barrier_ready') < names.index('mimo_private_probe_ready')
         assert names.index('mimo_opening_barrier_ready') < names.index('mimo_traffic_opened')
         opening = next(v['fields'] for v in ordered if v['event']=='mimo_transition_timing' and v['fields'].get('stage')=='open_gate')
         opened_after = (int(opening['end_uptime_ms'])-requested_uptime)/1000
         assert 0 < opened_after <= elapsed + 0.1, 'Monotonic clocks must agree before reporting open time'
         trials.append(dict(name=label, seconds=round(elapsed,3), firewallOpenSeconds=round(opened_after,3), eventRequestedUptimeMS=requested_uptime, finalProfileLoads=0, finalProfileReuses=1, parentPolicyWrites=writes,
-            criticalChecksBeforeOpen=True, stages=[v['fields'] for v in rows if v['event']=='mimo_transition_timing']))
+            criticalChecksBeforeOpen=False, backgroundAuditPassed=True, verifiedSeconds=round((int(span('background_audit')['end_uptime_ms'])-requested_uptime)/1000,3), stages=[v['fields'] for v in rows if v['event']=='mimo_transition_timing']))
         verify_trial(trials[-1])
-        record(label+'-reuses-profile-with-fresh-concurrent-checks-before-open')
+        record(label+'-optimistically-opens-then-passes-full-audit')
         print('Timing:',label,round(elapsed,3),'seconds',flush=True)
     try:
         wait(lambda:active(original_mode),'original mode')

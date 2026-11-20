@@ -2,6 +2,20 @@ import XCTest
 @testable import ExitIPShared
 
 final class MimoRoutingTests: XCTestCase {
+    func testPermissionPoliciesUseAbsoluteReferencesAndDenyWithoutAGrant() throws {
+        // ../ anchor loading panicked the qualification VM kernel. Absolute
+        // references passed real PF load/readback there; keep them invariant.
+        for mode in [ProxyMode.rule, .global] {
+            let rules = try MimoFirewallPolicy.preparedPolicy(group: 400, endpoints: ["192.0.2.10"], proxyPort: 1080, mode: mode)
+            XCTAssertFalse(rules.contains("../"))
+            XCTAssertTrue(rules.contains("/com.apple/000.mimo/native-transport"))
+            XCTAssertTrue(rules.contains("block drop out quick all"))
+        }
+        XCTAssertTrue(MimoFirewallPolicy.permissionParent.hasSuffix(MimoFirewallPolicy.startupBlocking))
+        XCTAssertFalse(MimoFirewallPolicy.permission(open: true).contains("../"))
+        XCTAssertTrue(MimoFirewallPolicy.permission(open: true).contains("/com.apple/000.mimo/open-policy"))
+    }
+
     func testPendingBlockRevokesApprovalWithoutClaimingConfirmedBlocking() {
         var policy = MimoAccessPolicy()
         policy.directRestored(configuration: MimoConfiguration())

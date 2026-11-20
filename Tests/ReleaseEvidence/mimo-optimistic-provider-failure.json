@@ -1,0 +1,12 @@
+{
+  "success": false,
+  "mode": "rule",
+  "trials": [],
+  "errors": [
+    "AssertionError: Optimistic background audit did not pass"
+  ],
+  "packageSHA256": "d0cf788a7bb778ae8a69bd2f203b6cd501ff3d5e247ab510c564ac3a70a3dcf0",
+  "helperSHA256": "ff11caae8d53b6fb0fc3a3f08d15e830ba9f67174b016dea8b35efcbe1a9c27f",
+  "scope": "Actual kernel host-route add/remove, saved proxy and ordinary-user HTTPS in mimo-vm; not a physical sleep/unlock or continuous packet test",
+  "qualificationNote": "Initial timing attempt did not observe a successful optimistic audit. Runtime logs recorded a live-provider TLS failure and fallback/full verification; this is not a healthy warm-path performance result."
+}

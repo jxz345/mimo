@@ -1,0 +1,21 @@
+{
+  "success": false,
+  "passed": [
+    "pending-full-audit-times-out-and-blocks-ordinary-HTTPS",
+    "audit-timeout-requires-full-recovery-before-next-opening",
+    "original-mode-configuration-credential-and-service-intent-restored"
+  ],
+  "errors": [
+    "AssertionError: Shared state did not expose allowed/background-verification"
+  ],
+  "trials": [
+    {
+      "openSeconds": 4.071,
+      "timeoutRequestedAfterOpenSeconds": 3.081,
+      "blockCompletedAfterOpenSeconds": 3.488
+    }
+  ],
+  "packageSHA256": "8448da040044e86623605a5ba533677d89465d581dfa7d11dc0da1e6f12e38ea",
+  "helperSHA256": "882df284617255332dcd157c745fc8c5ca016a8815058292e2841646d470c8f9",
+  "scope": "Actual installed Release in mimo-vm, real host routes and native-writer lock contention, explicit Direct, missing PF grant/policy, ordinary-user HTTPS. No synthetic events or replacement helper."
+}

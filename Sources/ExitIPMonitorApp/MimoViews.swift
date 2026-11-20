@@ -327,7 +327,7 @@ struct DashboardView: View {
     private var accessHeading: String {
         switch presentation.kind {
         case .direct: "You’re connected directly."
-        case .verified: "You’re connected. Exit IP approved."
+        case .verified: presentation.isBackgroundVerification ? "Allowed · Background verification" : "You’re connected. Exit IP approved."
         case .blocked: "Internet is blocked."
         case .checking:
             presentation.isRestoringDirect ? "Switching to direct connection…" : presentation.isClosing ? "Closing internet access…" : presentation.trafficIsBlocked

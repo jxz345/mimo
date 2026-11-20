@@ -1,6 +1,6 @@
 import Foundation
 
-/// Cancellation is checked under the mutation's lock: firewall.lock for PF,
+/// Cancellation is checked under the mutation's lock: the short PF mutation lock for revocation,
 /// controllerLock for connection cleanup. Direct/service transitions either
 /// follow already-running work or cancel work which has not acquired its lock.
 /// A delayed waiter never creates another operation after cancellation.

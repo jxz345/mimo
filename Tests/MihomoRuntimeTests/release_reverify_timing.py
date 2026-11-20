@@ -47,7 +47,11 @@ def main():
         return value['phase'] == 'active' and value.get('effectiveMode') == mode
 
     try:
-        assert active(), 'Original saved mode is not active before the trial'
+        ready_deadline = time.monotonic() + 90
+        while time.monotonic() < ready_deadline:
+            if active(): break
+            time.sleep(.2)
+        else: raise AssertionError('Original saved mode is not active before the trial')
         for add in (True, False):
             baseline = offsets(LOGS)
             started = time.monotonic(); requested_uptime = uptime_ms()
@@ -65,6 +69,13 @@ def main():
                 time.sleep(.1)
             else: raise AssertionError('No route-change verification completed')
             elapsed = time.monotonic() - started
+            audit_deadline = time.monotonic() + 8
+            while time.monotonic() < audit_deadline:
+                rows = events(LOGS, baseline)
+                if any(v['event']=='mimo_background_audit_passed' for v in rows): break
+                time.sleep(.05)
+            else: raise AssertionError('Optimistic background audit did not pass')
+            ordered = [v for v in rows if v['file'] == notification['file']]
             label = 'route-added' if add else 'route-removed'
             (root / (label + '-private-events.json')).write_text(json.dumps(rows))
             names = [v['event'] for v in ordered]
@@ -77,11 +88,11 @@ def main():
             assert names.count('mimo_final_profile_reused') == 1 and names.count('mimo_final_profile_loaded') == 0
             spans = [v['fields'] for v in rows if v['event'] == 'mimo_transition_timing']
             barriers = [v for v in spans if v['stage'] == 'barrier_and_confirmation']
-            assert len(barriers) == 1, 'Event and preparation repeated the blocking operation'
+            assert len(barriers) == 1, 'Expected exactly one fresh blocking operation'
             opening = next(v for v in spans if v['stage'] == 'open_gate')
             opened_after = (int(opening['end_uptime_ms'])-requested_uptime)/1000
             assert 0 < opened_after <= elapsed + 0.1
-            trial = dict(event=label,seconds=round(elapsed,3),firewallOpenSeconds=round(opened_after,3),eventRequestedUptimeMS=requested_uptime,confirmedCloseBeforeProbeBeforeOpen=True,
+            trial = dict(event=label,seconds=round(elapsed,3),firewallOpenSeconds=round(opened_after,3),eventRequestedUptimeMS=requested_uptime,confirmedCloseBeforeProbeBeforeOpen=True, backgroundAuditPassed=True, verifiedSeconds=round((int(next(v for v in spans if v['stage']=='background_audit')['end_uptime_ms'])-requested_uptime)/1000,3),
                          blockingOperationCount=len(barriers),closeConfirmationCount=names[:opened + 1].count('mimo_gate_closed'),
                          privateProbeCount=names[:opened + 1].count('mimo_private_probe_ready'),
                          stages=[v['fields'] for v in rows if v['event'] == 'mimo_transition_timing'])

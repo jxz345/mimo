@@ -65,9 +65,10 @@ def main():
                 tail=ordered[start+1:];names=[v['event'] for v in tail]
                 assert names.index('mimo_private_probe_ready')<names.index('mimo_traffic_opened')
                 attempt=next(v['fields']['attempt'] for v in tail if v['event']=='mimo_private_probe_ready')
-                for kind in ('mimo_readiness_passed','mimo_exit_ip_approved'):
+                for kind in ('mimo_exit_ip_approved',):
                     assert any(v['event']==kind and v['fields']['attempt']==attempt for v in tail[:names.index('mimo_traffic_opened')])
-                https();record('route-change-during-private-probe-requires-new-IP-and-readiness-before-opening')
+                wait(lambda:json.loads(client('state').stdout)['routing'].get('backgroundVerification') is not True,'superseding audit verified')
+                https();record('route-change-during-private-probe-requires-new-IP-and-current-audit')
             (root/('direct-private-events.json' if direct else 'route-private-events.json')).write_text(json.dumps(rows))
     except Exception as error:errors.append(type(error).__name__+': '+str(error));print('FAIL:',errors[-1],flush=True)
     finally:

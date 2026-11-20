@@ -26,6 +26,9 @@ struct MimoMenuBarLabel: View {
                 case .verified, .tailnetWarning:
                     if let country = presentation.country { Text(country).lineLimit(1) }
                     else { Image(systemName: "checkmark.shield").foregroundStyle(Color.blue) }
+                    if presentation.isBackgroundVerification {
+                        Image(systemName: "clock").foregroundStyle(Color.orange)
+                    }
                     if presentation.kind == .tailnetWarning {
                         Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Color.orange)
                     }

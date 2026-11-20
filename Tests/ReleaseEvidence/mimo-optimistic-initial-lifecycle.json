@@ -1,0 +1,8 @@
+{
+  "success": false,
+  "packageSHA256": "225f81ded2d6eb4df9e354130b04b4a81bb2c122d72020fc73dbf00496ec463b",
+  "finding": "First warm-route test detected zero new PF blocking operations: a completed gate request survived opening after full policy reinstallation was removed. This could falsely acknowledge closure; candidate rejected and blocked under maintenance.",
+  "evidence": "/var/tmp/mimo-reverify-timing-me5zmgly",
+  "resolution": "Cancel and retire the shared close request before every opening. Repeated actual route tests must show exactly one fresh confirmed block before probing.",
+  "scope": "mimo-vm only. The failed trial is not a performance qualification."
+}

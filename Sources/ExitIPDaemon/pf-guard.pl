@@ -159,7 +159,30 @@ sub ensure_reference {
     return 1;
 }
 
+# PF reads which decide repair and actual mutations share Swift's short lock.
+# The broader lifecycle lock still protects jobs/files, without delaying an
+# event's immediate gate revocation while those slower checks run.
+our $pf_mutation_held = 0;
+sub with_pf_mutation {
+    my ($operation) = @_;
+    return $operation->() if $pf_mutation_held;
+    sysopen(my $mutation, "$runtime/pf-mutation.lock", O_RDWR | O_CREAT | O_NOFOLLOW, 0600)
+        or die "Cannot open PF mutation lock\n";
+    my $deadline = time() + 2;
+    until (flock($mutation, LOCK_EX | LOCK_NB)) {
+        die "PF mutation is busy\n" if time() >= $deadline;
+        sleep 0.01;
+    }
+    local $pf_mutation_held = 1;
+    return $operation->();
+}
+
 sub close_gate {
+    my ($id) = @_;
+    return with_pf_mutation(sub { close_gate_locked($id); });
+}
+
+sub close_gate_locked {
     my ($id) = @_;
     $pf_healthy = 0;
     atomic_write("$runtime/gate.state", 'pending');
@@ -316,18 +339,39 @@ sub run {
     }
     return if $operation eq '--boot' || -e "$runtime/maintenance";
     my $changed = restore_file("$guard/blocking.pf", $rules, 0644) + configure();
-    my $main = required('/sbin/pfctl', '-sr');
-    my $live = required('/sbin/pfctl', '-a', $anchor, '-sr');
-    my $info = required('/sbin/pfctl', '-s', 'info');
-    my $state = -e "$runtime/gate.state" ? read_file("$runtime/gate.state") : '';
-    if ($info !~ /Status: Enabled/ || !main_rules_supported($main) || $state !~ /^(?:blocked|active|direct)$/ ||
-        !-e "$runtime/guard.expected" || $live ne read_file("$runtime/guard.expected")) {
-        close_gate($id);
-        ++$changed;
-        print STDERR "mimo_pf_repaired action=blocked\n";
-    }
-    $changed += ensure_reference($id);
-    $pf_healthy = 1;
+    with_pf_mutation(sub {
+        my $main = required('/sbin/pfctl', '-sr');
+        my $live = required('/sbin/pfctl', '-a', $anchor, '-sr');
+        my $info = required('/sbin/pfctl', '-s', 'info');
+        my $state = -e "$runtime/gate.state" ? read_file("$runtime/gate.state") : '';
+        my $children_valid = 1;
+        if ($live =~ /^anchor "permission"/m) {
+            for my $child ('probe-policy', 'open-policy') {
+                my $actual = required('/sbin/pfctl', '-a', "$anchor/$child", '-sr');
+                $children_valid = 0 unless -e "$runtime/$child.expected" && $actual eq read_file("$runtime/$child.expected");
+            }
+            if ($state eq 'active') {
+                my $grant = required('/sbin/pfctl', '-a', "$anchor/permission", '-sr');
+                if ($grant =~ /^\s*$/) {
+                    # Revocation intentionally removes the permission reference.
+                    # The verified parent denies by default; do not destroy its
+                    # reusable policies while the supervisor confirms closure.
+                    atomic_write("$runtime/gate.state", 'blocked');
+                    $state = 'blocked';
+                } else {
+                    $children_valid = 0 unless $grant =~ /^anchor "(?:[^"\n]*\/)?open-policy" out quick all\s*$/;
+                }
+            }
+        }
+        if ($info !~ /Status: Enabled/ || !main_rules_supported($main) || $state !~ /^(?:blocked|active|direct)$/ ||
+            !$children_valid || !-e "$runtime/guard.expected" || $live ne read_file("$runtime/guard.expected")) {
+            close_gate($id);
+            ++$changed;
+            print STDERR "mimo_pf_repaired action=blocked\n";
+        }
+        $changed += ensure_reference($id);
+        $pf_healthy = 1;
+    });
     $changed += repair_jobs($id);
     atomic_write("$guard/health.json", encode_json({boot => $id, checkedAt => time(), repaired => $changed, status => 'healthy', pf => 'enabled', launchd => 'healthy'}));
     print "repaired\n" if $changed;

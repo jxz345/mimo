@@ -149,12 +149,24 @@ final class MimoPowerGuard: @unchecked Sendable {
         }
     }
 
-    static func clear() throws { try command(["-a", anchor, "-F", "rules"]) }
+    static func clear() throws {
+        try MimoFirewallLock.mutate { try command(["-a", anchor, "-F", "rules"]) }
+    }
 
-    static func closeBarrier() throws {
-        try command(["-a", anchor, "-f", "-"], input: Data(MimoFirewallPolicy.startupBlocking.utf8))
-        try command(["-k", "0.0.0.0/0"])
-        try command(["-k", "::/0"])
+    static func closeBarrier(request: MimoGateRequest? = nil) throws {
+        var timing = MimoTransitionTiming("deny")
+        try MimoFirewallLock.mutate {
+            timing.record("deny_mutation_wait")
+            guard request?.isCancelled != true else { throw CancellationError() }
+            // Flush the grant first. Keep the barrier for old/fallback parents.
+            try command(["-a", MimoFirewallPolicy.permissionAnchor, "-F", "rules"])
+            timing.record("deny_permission")
+            try command(["-a", anchor, "-f", "-"], input: Data(MimoFirewallPolicy.startupBlocking.utf8))
+            timing.record("deny_barrier")
+            try command(["-k", "0.0.0.0/0"])
+            try command(["-k", "::/0"])
+            timing.record("deny_states")
+        }
     }
 
     private static func command(_ arguments: [String], input: Data? = nil) throws {

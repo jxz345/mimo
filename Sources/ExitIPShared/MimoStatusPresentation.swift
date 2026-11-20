@@ -16,6 +16,7 @@ public struct MimoStatusPresentation: Equatable, Sendable {
     public let isCheckingReadiness: Bool
     public let isClosing: Bool
     public let isRestoringDirect: Bool
+    public let isBackgroundVerification: Bool
 
     public init(routing: MimoRoutingState, snapshot: ExitIPSnapshot?, preferences: MonitoringPreferences, date: Date, monitoringStatus: MonitoringStatus = .ready) {
         isDirect = routing.phase == .active && routing.allowsTraffic && routing.effectiveMode == .direct
@@ -25,6 +26,7 @@ public struct MimoStatusPresentation: Equatable, Sendable {
         isCheckingReadiness = routing.phase == .checking && routing.observedIP != nil
         isClosing = routing.phase == .closing
         isRestoringDirect = routing.phase == .restoringDirect
+        isBackgroundVerification = routing.allowsTraffic && routing.configuration.mode.requiresVerification && routing.backgroundVerification == true
         let tailnet = routing.services.first(where: { $0.id == .tailnetProvider })
         let tailnetFailed = tailnet.map {
             [.unavailable, .notInstalled].contains($0.health)
@@ -63,7 +65,7 @@ public struct MimoStatusPresentation: Equatable, Sendable {
                 ? "\(routing.configuration.mode.title) · Blocked · \(isValidating ? "Validating profile" : isCheckingReadiness ? "Checking readiness" : "Checking exit IP")"
                 : "\(routing.configuration.mode.title) · Checking exit IP"
         case .blocked: title = "\(routing.configuration.mode.title) · Internet blocked"
-        case .verified: title = "\(routing.configuration.mode.title) · Exit approved"
+        case .verified: title = isBackgroundVerification ? "\(routing.configuration.mode.title) · Allowed · Background verification" : "\(routing.configuration.mode.title) · Allowed · Verified"
         case .tailnetWarning: title = "\(routing.configuration.mode.title) · Tailnet unavailable"
         case .unavailable: title = "Mimo · Status unavailable"
         }
@@ -105,19 +107,19 @@ public struct MimoStatusPresentation: Equatable, Sendable {
             return isValidating ? "Traffic blocked → Validate profile → Check IP → Reopen if allowed"
                 : isCheckingReadiness ? "Traffic blocked → Exit IP approved → Checking readiness" : "Traffic blocked → Checking exit IP → Reopen if allowed"
         case .verified, .tailnetWarning:
-            return "Traffic blocked → Exit IP approved → Internet reopened"
+            return isBackgroundVerification ? "Exit IP approved → Internet reopened → Background verification" : "Traffic blocked → Exit IP approved → Internet reopened"
         default: return nil
         }
     }
 
-    public var visualKey: String { "\(kind.rawValue)|\(country ?? "")|\(countryChanged)|\(isDirect)|\(trafficIsBlocked)|\(isValidating)|\(isCheckingReadiness)|\(isClosing)|\(isRestoringDirect)" }
+    public var visualKey: String { "\(kind.rawValue)|\(country ?? "")|\(countryChanged)|\(isDirect)|\(trafficIsBlocked)|\(isValidating)|\(isCheckingReadiness)|\(isClosing)|\(isRestoringDirect)|\(isBackgroundVerification)" }
     public var symbol: String {
         switch kind {
         case .direct: "arrow.up.right"
         case .directWarning: "exclamationmark.triangle"
         case .checking: "clock"
         case .blocked: ExitIPIndicatorSymbol.outsideAllowlist
-        case .verified: "checkmark.shield"
+        case .verified: isBackgroundVerification ? "clock.badge.checkmark" : "checkmark.shield"
         case .tailnetWarning: "exclamationmark.triangle"
         case .unavailable: "info.circle"
         }

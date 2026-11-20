@@ -1,0 +1,50 @@
+{
+  "date": "2026-11-20",
+  "environment": "mimo-vm only",
+  "packageSHA256": "3e47e3bb07251bebcb52a95769ca5abf894f3877f961b7f15ab4466bc8dfd1f1",
+  "helperSHA256": "eccfdf1f6dc234d5fd4b54ed56683bfb1e90f957baaed28141a36be7a369b10f",
+  "guiSHA256": "4594123518d10cfaf6f977eb978b0a649d14f368d179b269f8ca37df647ce7ad",
+  "configuration": "Release",
+  "architecture": "arm64",
+  "inputs": {
+    "Tests/MihomoRuntimeTests/saved_proxy_test.py": "d10754b14b87901cb020d6feebe958b55115817400c8cbbc89ce125a1ba4fabc"
+  },
+  "sharedTests": {
+    "passed": 186,
+    "failed": 0
+  },
+  "pfSourceChecksPassed": 17,
+  "serviceRegressionsPassed": true,
+  "installedChecks": {
+    "mimo-optimistic-restart.json": 3,
+    "mimo-optimistic-audit.json": 8,
+    "mimo-optimistic-runtime.json": 20,
+    "mimo-optimistic-races.json": 4,
+    "mimo-optimistic-pf-fallback.json": 2,
+    "mimo-optimistic-stalled-controller.json": 3,
+    "mimo-optimistic-native-recovery.json": 3,
+    "mimo-optimistic-timing.json": 2
+  },
+  "reports": [
+    "mimo-optimistic-restart.json",
+    "mimo-optimistic-audit.json",
+    "mimo-optimistic-runtime.json",
+    "mimo-optimistic-races.json",
+    "mimo-optimistic-pf-fallback.json",
+    "mimo-optimistic-stalled-controller.json",
+    "mimo-optimistic-native-recovery.json",
+    "mimo-optimistic-timing.json",
+    "mimo-optimistic-timeline.json"
+  ],
+  "restoration": {
+    "passed": true,
+    "mode": "rule",
+    "originalConfigurationCredentialAndServiceIntent": true,
+    "installedSignatureAndHashesMatch": true,
+    "testProcessesRemaining": false,
+    "maintenanceMarkerAbsent": true,
+    "ownedLaunchdJobsEnabled": true
+  },
+  "scope": "Actual sleep, hostname endpoints, simultaneous GUI sessions, first-packet boot protection and current native visual rendering are not newly qualified. Live Tailscale peer coverage is also pending: the native client was stopped during this campaign. Writer contention/recovery is tested separately. Public Homebrew v1.0 is unchanged.",
+  "acceptedExposure": "Optimistic approval may miss a fault until the post-opening audit. Three seconds is a denial-request target, not an effective-block guarantee."
+}

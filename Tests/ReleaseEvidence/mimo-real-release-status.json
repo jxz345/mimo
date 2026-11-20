@@ -86,7 +86,7 @@
     }
   ],
   "architecture": "arm64",
-  "currentCheckpoint": "Staged firewall preparation is installed and tested in mimo-vm. 6 actual route changes took 5.73\u20138.70 seconds as observed; Rule averaged 8.25 seconds, versus 6.43 seconds in the previous sample. PF opening completed after 5.26\u20138.28 seconds. All 184 shared tests, service regressions, 20 packet/fault checks, four in-flight-change checks, two PF fallback/restoration checks, three stalled-controller/recovery checks and three native-rule failure/recovery checks pass. Original Rule, proxy/password, allowlist and service intent are restored. Independent read-only review identifies additional Direct/native fault-handling and coverage gaps; candidate remains draft.",
+  "currentCheckpoint": "Optimistic rechecks are implemented and tested in the normal arm64 Release in mimo-vm. 6 real route changes showed Allowed in 4.17\u20137.39 seconds. Rule averaged 6.81 seconds, versus 8.25 seconds in the staged candidate. PF opening completed in 3.75\u20136.83 seconds. The three-second opening target is not met. All 186 shared tests, 17 PF-source checks, service regressions, 20 packet/fault checks, eight background-audit checks, three engine-restart checks, four in-flight-change checks, two PF fallback/restoration checks, three stalled-controller checks and three native-writer recovery checks pass. Original Rule, proxy/password, allowlist and service intent are restored; installed hashes/signature and test cleanup are verified.",
   "latestCompletedEvidence": [
     "mimo-service-progress.json",
     "mimo-service-progress-user-confirmation.json",
@@ -132,7 +132,17 @@
     "mimo-staged-joins.json",
     "mimo-staged-checkpoint.json",
     "mimo-staged-timeline.json",
-    "MIMO_WORKFLOW_SECOND_OPINION.md"
+    "MIMO_WORKFLOW_SECOND_OPINION.md",
+    "mimo-optimistic-restart.json",
+    "mimo-optimistic-audit.json",
+    "mimo-optimistic-runtime.json",
+    "mimo-optimistic-races.json",
+    "mimo-optimistic-pf-fallback.json",
+    "mimo-optimistic-stalled-controller.json",
+    "mimo-optimistic-native-recovery.json",
+    "mimo-optimistic-timing.json",
+    "mimo-optimistic-timeline.json",
+    "mimo-optimistic-checkpoint.json"
   ],
   "historicalCheckpoint": {
     "packageSHA256": "16b78e9d9dc487f275b017f1c4cd09da31a188145e43605f187ccdb604e9448a",
@@ -208,25 +218,27 @@
     ],
     "note": "Historical cumulative checkpoint, superseded by currentCheckpoint and latestCompletedEvidence. Per-session authorization and 165-test counts refer to earlier builds."
   },
-  "packageSHA256": "e8885bd45d9a6d6e71bb1ae6841af534afa6fb3caeade15a9f300a2cdc61914b",
-  "helperSHA256": "1bbd976063f53aea4a012eb890f1f67d1af115e110e3cf0e20f2a7099d0a61a5",
-  "guiSHA256": "ebb4ad81195f5cc9b48e1cf7b09cdaa26b94cbce32e475a26aa000d93a4fbf04",
-  "activeRun": "No test running. Final installed signature/hashes, original configuration/credential/service intent and active Rule verified.",
+  "packageSHA256": "3e47e3bb07251bebcb52a95769ca5abf894f3877f961b7f15ab4466bc8dfd1f1",
+  "helperSHA256": "eccfdf1f6dc234d5fd4b54ed56683bfb1e90f957baaed28141a36be7a369b10f",
+  "guiSHA256": "4594123518d10cfaf6f977eb978b0a649d14f368d179b269f8ca37df647ce7ad",
+  "activeRun": "No test running. Final hashes/signature, original settings/credential/service intent, active Rule, enabled jobs and cleanup verified.",
   "limitations": [
     "Current candidate is installed through a VM-local acceptance tap; public v1.0 preview is unchanged.",
     "Boot capture starts with its launchd worker and does not establish first-packet protection.",
     "Actual macOS sleep/wake is unqualified; prior VirtualMac pmset request was refused.",
     "Peer UDP and simultaneous logged-in GUI sessions are unqualified. Sequential account sign-in and mode/Quit shortcuts are user-confirmed.",
-    "Network notifications are asynchronous; event tests do not prove zero pre-detection delay."
+    "Network notifications are asynchronous; event tests do not prove zero pre-detection delay.",
+    "Optimistic opening deliberately permits traffic before the thorough audit completes; three seconds is not a hard effective-block bound.",
+    "Native Tailscale was stopped: live peer transport and current native indicator rendering remain unqualified on this artifact."
   ],
   "sourceCheckpoint": {
-    "baselineCommit": "601c368",
+    "baselineCommit": "3c82cc1",
     "branch": "release/current-candidate",
     "published": true,
     "pullRequest": "https://github.com/jxz345/mimo/pull/1",
     "draft": true,
     "publicBinaryUpdated": false,
-    "note": "Exact runtime qualification uses package/helper hashes; branch includes staged firewall preparation source."
+    "note": "Exact runtime qualification uses package/helper hashes; branch includes optimistic opening, background audit and startup-parent cache repair."
   },
   "manualSleepEvidence": "mimo-protected-dns-manual-sleep.json: unsupported/incomplete, kernel sleep count unchanged; original Rule retained",
   "sessionEvidence": "mimo-session-events-checkpoint.json",
@@ -305,9 +317,31 @@
   ],
   "workflowReview": "MIMO_WORKFLOW_SECOND_OPINION.md",
   "reviewFollowUp": [
-    "Reproduce and fix Direct re-blocking on native child cleanup failure (code-inspected; not runtime reproduced).",
-    "Qualify native recovery edge cases and repeated failure handling. D2 requires scheduling plus a stalled observer; no normal-polling reproduction.",
-    "Instrument final PF-opening substeps and qualify hostname bootstrap."
+    "Direct optional native-cleanup failure is fixed and exercised in the installed audit test.",
+    "Mimo-owned PF reads/repairs/writes share a short mutation lock; this does not establish the cause of the original PF apply error.",
+    "Hostname bootstrap, active native transport reconnect and other limitations remain separately qualified."
   ],
-  "workflowReviewCompleted": true
+  "workflowReviewCompleted": true,
+  "optimisticCandidate": {
+    "packageSHA256": "3e47e3bb07251bebcb52a95769ca5abf894f3877f961b7f15ab4466bc8dfd1f1",
+    "helperSHA256": "eccfdf1f6dc234d5fd4b54ed56683bfb1e90f957baaed28141a36be7a369b10f",
+    "guiSHA256": "4594123518d10cfaf6f977eb978b0a649d14f368d179b269f8ca37df647ce7ad",
+    "configuration": "Release",
+    "architecture": "arm64",
+    "inputs": {
+      "Tests/MihomoRuntimeTests/saved_proxy_test.py": "d10754b14b87901cb020d6feebe958b55115817400c8cbbc89ce125a1ba4fabc"
+    }
+  },
+  "optimisticEvidence": [
+    "mimo-optimistic-restart.json",
+    "mimo-optimistic-audit.json",
+    "mimo-optimistic-runtime.json",
+    "mimo-optimistic-races.json",
+    "mimo-optimistic-pf-fallback.json",
+    "mimo-optimistic-stalled-controller.json",
+    "mimo-optimistic-native-recovery.json",
+    "mimo-optimistic-timing.json",
+    "mimo-optimistic-timeline.json",
+    "mimo-optimistic-checkpoint.json"
+  ]
 }

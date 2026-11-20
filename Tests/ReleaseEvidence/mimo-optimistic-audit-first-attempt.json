@@ -1,0 +1,21 @@
+{
+  "success": false,
+  "passed": [
+    "pending-full-audit-times-out-and-blocks-ordinary-HTTPS",
+    "original-mode-configuration-credential-and-service-intent-restored"
+  ],
+  "errors": [
+    "AssertionError: Ordinary HTTPS access disagrees"
+  ],
+  "trials": [
+    {
+      "openSeconds": 3.694,
+      "timeoutRequestedAfterOpenSeconds": 3.047,
+      "blockCompletedAfterOpenSeconds": 3.717
+    }
+  ],
+  "packageSHA256": "d0cf788a7bb778ae8a69bd2f203b6cd501ff3d5e247ab510c564ac3a70a3dcf0",
+  "helperSHA256": "ff11caae8d53b6fb0fc3a3f08d15e830ba9f67174b016dea8b35efcbe1a9c27f",
+  "scope": "Actual installed Release in mimo-vm, real host routes and native-writer lock contention, explicit Direct, missing PF grant/policy, ordinary-user HTTPS. No synthetic events or replacement helper.",
+  "qualificationNote": "Retained unsuccessful attempt. Audit timeout and full recovery occurred, but the next ordinary HTTPS assertion with a three-second limit failed. No curl status was captured in that version. A subsequent eight-second check succeeded; cause is unproven. The rerun records curl status and uses the existing eight-second success budget."
+}

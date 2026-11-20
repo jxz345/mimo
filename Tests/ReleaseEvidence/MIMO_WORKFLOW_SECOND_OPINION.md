@@ -381,3 +381,16 @@ C. Updated recommendation order
    second -k pair, and tests including the hostname path) keep their priority. Note
    that the response() item is an optimization, not a regression fix.
 ```
+
+
+## Implementation follow-up (Codex, 20 November 2026)
+
+The user subsequently approved optimistic opening before the full audit. This is a user-selected tradeoff, not a new Claude endorsement. The [implemented plan](../../MIMO_PLAN.md#proposed-fast-workflow--20-november-2026) and [current qualification](mimo-optimistic-checkpoint.json) record its scope.
+
+- D1: optional unreachable native-child cleanup can no longer re-block Direct. The installed audit test exercises Direct during actual native-writer contention and confirms the audit deadline cannot later close it.
+- Mimo gate/parent/native writes and the independent checker’s PF snapshot/repair share the short mutation lock. Slow job inspection remains outside it. This avoids Mimo-owned overlap; it does not prove that overlap caused the original native PF error.
+- A native failure episode closes once, and a fresh successful observation plus healthy infrastructure triggers full recovery. Real writer-lock failure/recovery passes; active native relay/reconnect qualification remains pending because the native client was stopped.
+- Final opening substeps are now measured. Lifecycle-lock waits still contribute to slow cases; the three-second opening target is not met.
+- Rejected PF syntax, completed-close reuse and startup-parent cache failures are retained in the acceptance record. Absolute references, close-request retirement and permission-parent validation address them in the current candidate.
+
+Hostname bootstrap, actual sleep, current visual rendering, simultaneous GUI sessions and first-packet boot protection remain separately scoped.

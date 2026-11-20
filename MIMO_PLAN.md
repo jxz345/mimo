@@ -50,6 +50,8 @@ This change applies to machines running Mimo. Delta's host networking is not cha
 
 ### Approved shorter verification flow (2026-11-20)
 
+**Ordering update:** the [approved optimistic revision](#proposed-fast-workflow--20-november-2026) below moves full warm-path auditing after opening. The all-checks-first sequence here remains the cold/changed-configuration path and records the earlier design.
+
 Implemented in the normal Release installed in mimo-vm. Targeted packet, failure and race evidence is linked below; actual sleep/unlock timing is separate. The approved sequence is **start blocking + cleanup + profile/critical checks → join private-probe prerequisites → exit-IP lookup → join remaining critical checks → firewall open**. Critical checks run concurrently and must succeed before opening; they are never assumed healthy. Previous timing results describe the older two-profile candidate.
 
 1. Keep the independent PF boot loader and credential-free startup profile. Saved service Stop intent remains respected.
@@ -756,3 +758,174 @@ See the [full review and corrections](Tests/ReleaseEvidence/MIMO_WORKFLOW_SECOND
 
 
 The review addendum localizes the observed slowdown: Rule's final-opening span averaged **3.123 s**, versus **1.166 s** in the previous sample. Mean pre-opening work was slightly shorter. Instrument the firewall-lock wait, final runtime checks and individual PF operations before assigning a cause or making another optimization claim. D2 was downgraded to a conditional stalled-observer scenario; D1 remains an outstanding Direct fault-path finding.
+
+
+## Proposed fast workflow — 20 November 2026
+
+**Approved revision 3: optimistic opening, followed by a thorough background audit. Implemented, with artifact-scoped VM qualification and timings below.** This supersedes revisions 1 and 2 of this proposed workflow. The user explicitly accepts some risk in checks that rarely fail and requests: do an optimistic check, open if it passes, then check thoroughly in the background. The previous installed candidate waited for all critical checks before opening; measurements below are explicitly versioned.
+
+### The implemented sequence
+
+For a protected-mode recheck with a previously qualified, unchanged configuration:
+
+1. Publish Blocking and invalidate the previous approval. Start PF denial/state revocation, old-connection cleanup and cheap live identity/configuration checks concurrently.
+2. Once denial, cleanup and final-profile readiness are confirmed, permit only the private probe. Reuse the installed profile and preinstalled policies; avoid a reload or full PF policy rewrite.
+3. Perform a fresh exit-IP lookup and the optimistic checks below. If they pass, grant ordinary traffic immediately. Do not wait for the thorough audit.
+4. Publish **Allowed · Background verification** and start the thorough audit immediately. Traffic is already open during this audit.
+5. If the audit passes, publish **Allowed · Verified**. If it fails or exceeds its deadline, invalidate approval, request priority blocking and run full recovery. Do not repeatedly reopen optimistically against the same unresolved failure.
+
+```mermaid
+flowchart TD
+    E[Protected event] --> B[Block PF and revoke states]
+    E --> C[Clear old connections]
+    E --> Q[Quick live checks and reuse trusted profile]
+    B --> J[Join probe prerequisites]
+    C --> J
+    Q --> J
+    J --> P[Permit private probe]
+    P --> I[Fresh exit IP and optimistic approval]
+    I -->|Pass| O[Open internet immediately]
+    I -->|Fail| X[Remain blocked]
+    O --> U[Allowed: background verification]
+    U --> A[Thorough background audit]
+    A -->|Pass| V[Allowed: verified]
+    A -->|Fail or timeout| D[Priority block]
+    D --> R[Repair and full verification before reopening]
+```
+
+Direct remains a separate path: ordinary IPv4 without allowlist verification or event-triggered blocking. IPv6 stays denied. Optional cleanup cannot re-block Direct.
+
+### What the optimistic check must establish
+
+| Before opening | How much work |
+|---|---|
+| PF denial and revocation succeeded before the private probe; old engine connections were cleared | One confirmed closure and cleanup, not repeated full transactions |
+| The intended final profile and policy are already installed, with a successful full baseline audit | Compare exact configuration/policy identity and engine PID/start time; an engine restart or changed configuration needs the full path |
+| Engine and core are alive, the supervisor has a current heartbeat, and the enforcement parent/policy identity is present | Cheap live observations and a small controller liveness check; no deep scan |
+| The fresh probe returned an allowed IPv4 address | Compare with the current, nonempty allowlist; never reuse an old exit-IP result |
+| The result belongs to the current attempt | Recheck allowlist/configuration revision, network/session/power generation and engine identity at the grant |
+| No known fault, pending block, maintenance operation or failed audit exists | A pending thorough check is acceptable; a known failure is not |
+
+This is deliberately weaker than requiring a fresh DNS/TUN/native audit before opening. An old audit is only the trusted baseline for trying the optimistic path; it is not evidence that the changed network is healthy. Changes detected by cheap checks or a newer event cancel the attempt.
+
+### What moves after opening
+
+Start these checks concurrently immediately after the optimistic grant:
+
+- Inspect actual controller/profile state, tunnel routes, interface bindings and resolver configuration; confirm the intended DNS listener/process ownership and IPv6 policy.
+- Inspect native Tailscale transport, current endpoint exceptions, provider health and the success/freshness of native PF updates.
+- Read back and compare the effective PF parent, permission gate and policy identities; check that no unexpected permission or stale state remains.
+- Audit installation ownership and engine identity on every recheck. The separate ten-second infrastructure monitor checks launchd jobs and repairs boot assets. No static-asset cache skips the per-recheck installation audit.
+
+These are concrete diagnostic checks, not proof that every application destination follows the intended route. A successful probe alone also cannot prove absence of a DNS leak or that all Rule routes are correct.
+
+The required audit has a **three-second deadline measured from opening**, including installation inspection. The separate infrastructure monitor retains its ten-second schedule; its detected faults also trigger blocking.
+
+Use a dedicated deadline worker independent of UI and the supervisor's main-actor work. Arm it before the grant, bind it to the attempt, and let only the same attempt's completed required audit cancel it. Stale audit completions cannot mark a newer attempt verified, and a switch to Direct cancels protected audit/block work. A timeout or failure goes directly to priority Deny, even if optional scans are still running.
+
+The deadline is a target for issuing denial, **not a guarantee that traffic stops within three seconds**: scheduling, PF command time, failed writes or a stalled privileged component can extend exposure. Keep independent PF/heartbeat monitoring and report a failed close honestly. A failed audit or timeout requires a successful full repair/verification before this configuration becomes eligible for optimistic opening again.
+
+### The risk being accepted
+
+Ordinary traffic can run between optimistic approval and the audit result. A stale tunnel route, bad DNS configuration or incorrect native exception missed by the quick check could leak traffic during that interval, even when the fresh probe IP is allowed. Blocking afterward cannot undo packets already sent. The separate infrastructure monitor has its own ten-second detection window for launchd/boot-asset drift.
+
+The fast path therefore trades some assurance for lower latency. Known errors, an unapproved IP, an empty allowlist and failed PF denial are never treated optimistically. First use, changed configuration, engine/supervisor restart, unexpected PF state or recovery from an audit failure requires full verification before opening. This limits the risk to reusing an established configuration after an event, without claiming that unchanged configuration means unchanged runtime health.
+
+Claude's earlier recommendation was to keep fresh network checks before opening because their measured healthy cost is normally hidden by the IP lookup. This revision intentionally adopts the user's different tradeoff. Moving those checks after opening avoids their occasional delay but probably saves little on the healthy median; the larger expected gain comes from the smaller PF transitions and removing repeated work.
+
+### Permanent deny fallback and small permission grants
+
+Keep a permanent deny fallback. Preinstall the final Rule/Global policy and the restricted private-probe policy in separate, initially unreachable policy anchors. A tiny permission gate selects which policy is reachable:
+
+| Gate | Effect |
+|---|---|
+| Empty / missing | Deny new public flows; normal closure also revokes existing PF states. Block runtime public egress, including runtime public egress; retain only explicitly required local-management/LAN exceptions |
+| Probe | Permit the authenticated private probe through the pinned endpoint and qualified native exceptions; deny ordinary TUN, mixed-port and DNS traffic; never inherit Rule's broad runtime direct-egress permission |
+| Open | Select the preinstalled final policy; unmatched traffic and unsupported IPv6 remain denied |
+
+Open must be an explicit grant. Removing the gate or referenced permit policy falls back to denial for new flows. Existing PF states require revocation too; Mimo’s normal close performs it, while external removal has a detection/revocation window. A failed grant from Deny/Probe must leave ordinary traffic denied. A failed Deny while already Open may leave the old grant effective: use the fallback/repair path and never falsely report Blocked.
+
+Actual macOS PF load, readback, permission removal and policy removal are exercised in mimo-vm. The parent always retains denial; opening selects an explicit preinstalled permit policy. Absolute cross-anchor references are required by the kernel finding below.
+
+On the warm path, avoid a profile reload, full parent-policy rewrite, repeated syntax validation, unchanged networksetup calls and a second state flush. Trust a successful small grant and inspect its detailed readback in the background; retain the cheap live identity check before granting. Cache UI/service details and push critical access changes immediately.
+
+### Short PF operations and recovery
+
+Use one short mutation queue/lock for Mimo-owned parent, gate and native-child updates. Prioritize Deny; reject stale Probe/Open/cleanup work. Keep DNS queries, launchd inspections, configuration rendering, networksetup and status reconstruction outside this lock. Recheck current state under the lock immediately before mutation. Preserve separate lifecycle fencing for incompatible operations.
+
+Bound and measure both queue wait and operation time, particularly for short-lived native sockets. Serialization is intended to avoid overlapping Mimo writes; it does not prove the cause of the earlier PF error or control other privileged writers.
+
+Close once per native-failure episode. Once fresh native updates recover, start full recovery immediately; never recycle old IP approval. Optional native-child cleanup in Direct is best effort and cannot enter a generic protected-close path. Essential DNS/routing restoration failures still require an honest error state.
+
+### Full path and hostname handling
+
+For cold start, changed proxy/profile/mode, manual Reload, engine/supervisor replacement, invalid trust or previous failure: generate and validate in parallel with denial, then load the final profile and install policy anchors once behind Deny. Run full required checks and the fresh IP probe before opening. Establish a new baseline only after success.
+
+A hostname endpoint needs a separate restricted bootstrap grant after cleanup: resolve through the approved encrypted resolver, return to Deny, install the pinned endpoint policies, then permit the IP probe. Never grant broad runtime egress to resolve it. A changed resolved endpoint invalidates the existing baseline. Literal-IP measurements do not qualify this branch.
+
+### Expected timing and qualification
+
+The previous staged candidate’s Rule sample averaged **8.25 seconds**; final opening averages **3.123 seconds**, versus **1.166 seconds** previously. Private-policy installation costs roughly one second and IP lookup roughly 1.1–1.6 seconds. The newer candidate records lifecycle-lock wait, identity checks, parent-policy readback and permission mutation separately to identify these delays.
+
+The proposed target is **about three seconds to optimistic opening** for a healthy warm recheck, with a provisional **2.8–3.8-second budget** based on existing spans and an estimated small grant. The thorough audit runs afterward; it does not count as blocked time. This is neither a new measurement nor a guaranteed latency. Removing the audit join alone does not substantiate the target.
+
+Before implementation is accepted, test on the real installed Release in mimo-vm with the saved proxy. Measure event-to-block, block-to-probe, IP lookup, optimistic opening, background audit duration, and failure-detection-to-effective-block separately. Fault tests must include deliberately delayed/failed audits after opening, watchdog deadlines, stale results, Direct during an audit, repeated events, engine changes, DNS/TUN/native faults, failed grants/denials, missing gate/policy, old connections and IPv6. Observe and report packets sent during the accepted exposure window instead of calling those cases leak-free. Physical sleep and first-packet boot protection remain separate qualifications.
+
+
+### PF qualification finding during implementation
+
+The first candidate was rejected: loading a relative `../native-transport` PF reference triggered a kernel bounds-safety panic in mimo-vm (OS build 26B131), although syntax validation passed. The minimal absolute-reference variant passed actual load and readback. All cross-anchor references therefore use absolute `/com.apple/000.mimo/...` paths. Keep this failure in the [qualification record](Tests/ReleaseEvidence/mimo-optimistic-initial-pf.json); source parsing alone cannot qualify PF changes. The independent boot policy and saved Rule configuration were retained.
+
+The next candidate's first warm-route trial found a stale completed close request being reused after opening. That build was rejected and blocked under maintenance. Retire the shared close request at every opening, and require exactly one fresh blocking operation in every real route trial. See the [retained lifecycle failure](Tests/ReleaseEvidence/mimo-optimistic-initial-lifecycle.json). No timing from that failed trial is qualified.
+
+
+### Implementation details for qualification
+
+The implementation uses absolute policy references and a permanent deny fallback. Every opening retires the completed close request, so the next event must execute a new closure. Event and prepare still share a single in-flight close. Revocation uses the short PF mutation lock with cancellation checked before changing PF and before publishing Blocked; it does not wait behind infrastructure scans holding the broader lifecycle lock. Parent installation and service lifecycle work retain that separate lock. The independent boot/checker process holds the same short mutation lock while inspecting or repairing PF, then releases it before launchd work. It recognizes an intentionally empty permission gate as blocked instead of replacing its valid parent and losing reusable policies. Its separate lifecycle lock still covers installation/jobs/files.
+
+The quick path binds the loaded profile to the live engine PID **and kernel process start time**, checks the current parent/final policy, core heartbeat, attempt/configuration revisions and the fresh allowed IPv4 result. The full audit checks actual controller/profile state, DNS listeners/TUN, effective PF root/enable/parent/grant/policies, installation ownership and engine hash, and a successful native transport observation newer than the audit start. No old IP approves traffic. Full installation checks run on every recheck (in the background for optimistic events); this implementation does not use the proposed static-asset cache to skip them. Launchd/boot asset repair remains the separate infrastructure monitor's ten-second job.
+
+The audit deadline is armed with the grant, runs on a dedicated queue and revokes permission before scheduling UI/recovery work. An audit/runtime failure disables optimistic reuse and schedules full verification after infrastructure/native health returns. A failed IP lookup remains blocked and requests a fresh lookup, while retaining an otherwise healthy profile baseline. Direct cancels the deadline; unreachable native-child cleanup is best effort. Service detail snapshots may lag up to two seconds, while access-state changes use current policy. The shared state includes a separate background-verification flag; the menu adds an amber clock and the dashboard says Allowed · Background verification until it clears.
+
+The engine-restart regression found a cached parent mismatch: the startup parent contained a power guard but could not reach the permission gate. Warm reuse now requires both anchors; a startup parent forces full installation instead of an unreachable private probe. The [failed recovery record](Tests/ReleaseEvidence/mimo-optimistic-parent-cache-attempt.json) retains the TLS symptoms and successful original-settings restoration.
+
+
+### Measured optimistic workflow — final parent-cache fix
+
+Optimistic rechecks are implemented and tested in the normal arm64 Release in mimo-vm. 6 real route changes showed Allowed in **4.17–7.39 seconds**. Rule averaged **6.81 seconds**, versus **8.25 seconds** in the staged candidate. PF opening completed in **3.75–6.83 seconds**. The three-second opening target is not met.
+
+All measurements below use this package: `3e47e3bb07251bebcb52a95769ca5abf894f3877f961b7f15ab4466bc8dfd1f1`. Earlier failed candidates retain their original hashes and timings. These are actual route changes with the saved literal-IPv4 proxy, not sleep/unlock measurements.
+
+| Event | Observed Allowed (s) | PF open (s) | Full audit done (s) |
+|---|---:|---:|---:|
+| rule-route-added | 7.029 | 6.638 | 7.965 |
+| rule-route-removed | 5.561 | 5.119 | 6.910 |
+| global-route-added | 5.980 | 5.819 | 6.622 |
+| global-route-removed | 4.174 | 3.755 | 5.398 |
+| rule-route-added | 7.391 | 6.835 | 8.377 |
+| rule-route-removed | 7.242 | 6.700 | 7.880 |
+
+One Rule route-added timeline, measured from the actual route request:
+
+| Seconds | Work |
+|---|---|
+| 0.000–0.151 | Event delivery / scheduling before the blocking worker |
+| 0.151–1.106 | Block PF, revoke old states and confirm denial |
+| 0.197–0.615 | Clear engine connections — concurrent with blocking |
+| 0.199–0.553 | Check/reuse profile — concurrent with blocking |
+| 1.109–1.519 | Grant only private probe access |
+| 1.521–4.196 | Fresh allowed exit-IP lookup |
+| 4.196–4.391 | Core-to-supervisor handoff / scheduling |
+| 4.391–4.602 | Check current attempt, allowed IP and reusable baseline |
+| 4.603–6.475 | Wait for the lifecycle lock |
+| 6.475–6.804 | Recheck engine and installed policy identities |
+| 6.804–6.835 | Apply the small Open grant; internet opens |
+| 6.835–8.377 | Traffic open; installation/runtime/PF/native audit completes in background |
+
+The shared-state observer saw Allowed at **7.391 s**; PF had opened at **6.835 s**. These are different measurements. The audit checks overlap after opening. The event-to-probe preparation also overlaps as shown above; the handoff gap is included rather than hidden. Detailed lifecycle-lock, mutation-lock, identity and grant spans for every case are in the [timeline JSON](Tests/ReleaseEvidence/mimo-optimistic-timeline.json).
+
+In the deliberately stalled audit, denial was requested **3.081 s** after opening and the PF barrier completed **3.676 s** after opening. This is an observed fault response, not a guaranteed maximum exposure. The test confirms ordinary HTTPS is denied afterward and full recovery is required. It does not count every packet during the accepted open interval.
+
+All 186 shared tests, 17 PF-source checks, service regressions, 20 packet/fault checks, eight background-audit checks, three engine-restart checks, four in-flight-change checks, two PF fallback/restoration checks, three stalled-controller checks and three native-writer recovery checks pass. Original Rule, proxy/password, allowlist and service intent are restored; installed hashes/signature and test cleanup are verified. Actual sleep, hostname endpoints, simultaneous GUI sessions, first-packet boot protection and current native visual rendering are not newly qualified. Live Tailscale peer coverage is also pending: the native client was stopped during this campaign. Writer contention/recovery is tested separately. Public Homebrew v1.0 is unchanged. See the [qualification checkpoint](Tests/ReleaseEvidence/mimo-optimistic-checkpoint.json).
+
+In this example the IP lookup took **2.675 s** and lifecycle-lock acquisition took **1.872 s**. The final permission write took **0.030 s**. Those measured waits explain why optimistic opening alone has not achieved the three-second target.

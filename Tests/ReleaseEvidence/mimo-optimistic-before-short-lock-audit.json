@@ -1,0 +1,25 @@
+{
+  "success": true,
+  "passed": [
+    "pending-full-audit-times-out-and-blocks-ordinary-HTTPS",
+    "audit-timeout-requires-full-recovery-before-next-opening",
+    "Direct-cancels-audit-deadline-and-survives-native-cleanup-failure",
+    "real-controller-drift-fails-background-audit-after-opening-and-blocks",
+    "runtime-drift-repaired-by-full-verification-without-manual-refresh",
+    "missing-permission-denies-public-traffic",
+    "missing-open-policy-denies-public-traffic",
+    "original-mode-configuration-credential-and-service-intent-restored"
+  ],
+  "errors": [],
+  "trials": [
+    {
+      "openSeconds": 3.658,
+      "timeoutRequestedAfterOpenSeconds": 3.116,
+      "blockCompletedAfterOpenSeconds": 3.833
+    }
+  ],
+  "packageSHA256": "c80e018187c55123ee49c6d67ed3a3fd1b13f473266f0e94fd80b2e3d05f0631",
+  "helperSHA256": "b639ff6bfc3926402193e5e0bdfc589a7e4d3349ba8387ff3d482b69c2b258ea",
+  "scope": "Actual installed Release in mimo-vm, real host routes and native-writer lock contention, explicit Direct, missing PF grant/policy, ordinary-user HTTPS. No synthetic events or replacement helper.",
+  "qualificationNote": "Intermediate c80e018 candidate, before short-lock revocation. Retained comparison only; final candidate requires separate qualification."
+}

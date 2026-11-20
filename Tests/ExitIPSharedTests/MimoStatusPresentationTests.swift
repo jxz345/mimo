@@ -2,6 +2,23 @@ import XCTest
 @testable import ExitIPShared
 
 final class MimoStatusPresentationTests: XCTestCase {
+    func testOptimisticOpeningShowsPendingAuditWithoutClaimingBlockedOrFullyVerified() {
+        var routing = MimoRoutingState()
+        routing.configuration.mode = .rule
+        routing.phase = .active; routing.effectiveMode = .rule
+        routing.backgroundVerification = true
+        let pending = MimoStatusPresentation(routing: routing, snapshot: nil, preferences: .init(), date: .now)
+        XCTAssertTrue(routing.allowsTraffic)
+        XCTAssertTrue(pending.isBackgroundVerification)
+        XCTAssertFalse(pending.trafficIsBlocked)
+        XCTAssertTrue(pending.title.contains("Background verification"))
+        routing.backgroundVerification = false
+        let finished = MimoStatusPresentation(routing: routing, snapshot: nil, preferences: .init(), date: .now)
+        XCTAssertNotEqual(pending.visualKey, finished.visualKey)
+        XCTAssertNotEqual(pending.symbol, finished.symbol)
+        XCTAssertTrue(finished.title.contains("Verified"))
+    }
+
     func testApprovedIPWhileReadinessIsPendingStillShowsBlockedChecking() {
         var routing = MimoRoutingState()
         routing.configuration.mode = .rule

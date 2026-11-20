@@ -1,0 +1,14 @@
+{
+  "success": false,
+  "packageSHA256": "1c6d939c2514f273e899e5dfd866825a0303a20be6ad6f6c47752dd741062f20",
+  "scope": "Initial optimistic candidate and minimal PF reference qualification in mimo-vm only",
+  "finding": "Loading a relative ../native-transport PF anchor reference caused a bounds-safety kernel panic in pfctl on the VM kernel (OS build 26B131). Syntax-only validation succeeded. Automatic supervisor restarts repeated the failure before test services were paused.",
+  "diagnostic": [
+    "Empty permission anchor flush: passed",
+    "Relative syntax-only validation: passed",
+    "Relative unreferenced anchor load: kernel panic",
+    "Absolute syntax, unreferenced load and readback: passed"
+  ],
+  "resolution": "Replace all sibling references with absolute /com.apple/000.mimo/... paths; repackage and requalify the installed candidate. No Delta PF/networking was changed.",
+  "qualification": "Initial candidate is rejected. This report does not qualify the replacement or optimistic opening."
+}

@@ -1,0 +1,12 @@
+{
+  "success": true,
+  "passed": [
+    "engine-startup-parent-invalidates-cached-policy-and-requires-full-verification",
+    "Global-ordinary-HTTPS-recovers-after-real-engine-Restart",
+    "original-mode-settings-credential-and-service-intent-restored"
+  ],
+  "errors": [],
+  "packageSHA256": "3e47e3bb07251bebcb52a95769ca5abf894f3877f961b7f15ab4466bc8dfd1f1",
+  "helperSHA256": "eccfdf1f6dc234d5fd4b54ed56683bfb1e90f957baaed28141a36be7a369b10f",
+  "scope": "Normal installed arm64 Release in mimo-vm, real saved proxy, actual Global engine Restart and ordinary-user HTTPS; no runtime substitution."
+}

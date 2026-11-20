@@ -8,14 +8,18 @@ final class MimoNativeTransportWriter: @unchecked Sendable {
     private var installed: String?
     private let healthLock = NSLock()
     private var updateFailed = false
+    private var lastSuccess: ContinuousClock.Instant?
 
     var isHealthy: Bool { healthLock.withLock { !updateFailed } }
+    func hasObservation(since instant: ContinuousClock.Instant) -> Bool {
+        healthLock.withLock { !updateFailed && lastSuccess.map { $0 >= instant } == true }
+    }
 
     func update(_ transport: MimoNativeTransport) throws {
         try lock.withLock {
             do {
                 try apply(transport)
-                healthLock.withLock { updateFailed = false }
+                healthLock.withLock { updateFailed = false; lastSuccess = .now }
             } catch {
                 healthLock.withLock { updateFailed = true }
                 throw error
@@ -42,15 +46,17 @@ final class MimoNativeTransportWriter: @unchecked Sendable {
             let anchor = MimoFirewallPolicy.anchor + "/native-transport"
             let data = Data(rules.utf8)
             for arguments in [["-n", "-a", anchor, "-f", "-"], ["-a", anchor, "-f", "-"]] {
-                let result = BoundedProcess.run("/sbin/pfctl", arguments, timeout: 3, captureError: true, input: data)
-                guard result.status == 0 else {
-                    RuntimeLog.shared.error("mimo_native_transport_write_failed", fields: [
-                        "stage": arguments.contains("-n") ? "validate" : "apply", "status": String(result.status)
-                    ])
+                try MimoFirewallLock.mutate {
+                    let result = BoundedProcess.run("/sbin/pfctl", arguments, timeout: 3, captureError: true, input: data)
+                    guard result.status == 0 else {
+                        RuntimeLog.shared.error("mimo_native_transport_write_failed", fields: [
+                            "stage": arguments.contains("-n") ? "validate" : "apply", "status": String(result.status)
+                        ])
 #if MIMO_VM_ACCEPTANCE
-                    RuntimeLog.shared.error("mimo_vm_native_write_diagnostic", fields: ["detail": result.text])
+                        RuntimeLog.shared.error("mimo_vm_native_write_diagnostic", fields: ["detail": result.text])
 #endif
-                    throw MimoRuntimeError.unavailable("Native transport firewall rules could not be updated.")
+                        throw MimoRuntimeError.unavailable("Native transport firewall rules could not be updated.")
+                    }
                 }
             }
             installed = rules

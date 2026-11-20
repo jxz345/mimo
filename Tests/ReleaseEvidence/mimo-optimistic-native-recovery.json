@@ -1,0 +1,12 @@
+{
+  "success": true,
+  "passed": [
+    "native-update-failure-remains-blocked-through-infrastructure-check-and-denies-HTTPS",
+    "successful-native-update-automatically-rechecks-IP-and-critical-state-before-reopening",
+    "original-Rule-settings-credential-and-service-intent-restored"
+  ],
+  "errors": [],
+  "packageSHA256": "3e47e3bb07251bebcb52a95769ca5abf894f3877f961b7f15ab4466bc8dfd1f1",
+  "helperSHA256": "eccfdf1f6dc234d5fd4b54ed56683bfb1e90f957baaed28141a36be7a369b10f",
+  "scope": "Installed normal arm64 Release in mimo-vm. Actual bounded native-writer lock contention; no PF rule weakened, helper replaced, or synthetic event injected. Recovery uses no manual Refresh."
+}

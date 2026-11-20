@@ -4,6 +4,25 @@ import Foundation
 /// user-provided interface names, shell fragments, or arbitrary configuration text.
 public enum MimoFirewallPolicy {
     public static let anchor = "com.apple/000.mimo"
+    public static let permissionAnchor = anchor + "/permission"
+    /// No permission child means no public access. The independent power guard
+    /// can also revoke grants without depending on supervisor actor scheduling.
+    public static let permissionParent = "anchor \"power-guard\" out quick\nanchor \"permission\" out quick\n" + startupBlocking
+    public static func permission(open: Bool) -> String {
+        "anchor \"/\(anchor)/\(open ? "open-policy" : "probe-policy")\" out quick\n"
+    }
+
+    public static func preparedPolicy(group: UInt32, endpoints: [String], proxyPort: Int?, mode: ProxyMode? = nil) throws -> String {
+        var rules = try render(group: group, endpoints: endpoints, proxyPort: proxyPort,
+                               mode: mode, tunnel: mode == nil ? nil : MihomoProfile.tunnelDevice)
+        rules = rules.replacingOccurrences(of: "anchor \"power-guard\" out quick\n", with: "")
+            .replacingOccurrences(of: "anchor \"native-transport\"", with: "anchor \"/\(anchor)/native-transport\"")
+        // Literal endpoints never need an unrestricted bootstrap exception.
+        if !endpoints.isEmpty {
+            rules = rules.replacingOccurrences(of: "pass out quick proto tcp to \(bootstrapResolver) port 443 group \(group) no state\n", with: "")
+        }
+        return rules
+    }
     public static let bootstrapResolver = "1.1.1.1"
     public static let directIPv4 = "pass out quick on lo0 all no state\nblock return out quick inet6 all\n"
     /// Applied before dependency/group validation. No unverified runtime group

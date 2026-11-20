@@ -125,6 +125,9 @@ public struct MimoRoutingState: Codable, Equatable, Sendable {
     public var observedIP: MimoIPObservation?
     public var blockingIP: MimoIPObservation?
     public var verification: MimoVerification?
+    /// Traffic is allowed after optimistic checks while the full audit runs.
+    /// Optional for compatibility with earlier stored snapshots.
+    public var backgroundVerification: Bool?
     public var services: [MimoServiceStatus] = []
     /// Native Tailscale is starting/running. Nil means it has not been observed yet.
     public var tailnetExpected: Bool?
@@ -169,6 +172,7 @@ public struct MimoAccessPolicy: Sendable {
 
     @discardableResult
     public mutating func begin(configuration: MimoConfiguration, revision: Int, networkGeneration: UInt64) -> MimoVerification {
+        state.backgroundVerification = nil
         let verification = MimoVerification(revision: revision, networkGeneration: networkGeneration)
         state.configuration = configuration
         state.phase = .validating
@@ -222,6 +226,7 @@ public struct MimoAccessPolicy: Sendable {
     }
 
     public mutating func directRestored(configuration: MimoConfiguration) {
+        state.backgroundVerification = nil
         state.configuration = configuration
         state.configuration.mode = .direct
         state.phase = .active; state.effectiveMode = .direct
@@ -230,6 +235,7 @@ public struct MimoAccessPolicy: Sendable {
     }
 
     public mutating func block(_ reason: String, confirmed: Bool = true) {
+        state.backgroundVerification = nil
         state.phase = confirmed ? .blocked : .unavailable
         state.effectiveMode = nil
         state.reason = reason
@@ -237,10 +243,17 @@ public struct MimoAccessPolicy: Sendable {
     }
 
     public mutating func requestingBlock(_ reason: String) {
+        state.backgroundVerification = nil
         state.phase = .closing
         state.effectiveMode = nil
         state.reason = reason
         state.verification = nil
+    }
+
+    public mutating func auditing(_ pending: Bool) {
+        guard state.allowsTraffic, state.configuration.mode.requiresVerification else { return }
+        state.backgroundVerification = pending
+        state.reason = pending ? "Exit IP approved. Internet is allowed while background verification runs." : "Exit IP approved. Background verification passed."
     }
 }
 
