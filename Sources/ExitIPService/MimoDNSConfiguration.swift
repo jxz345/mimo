@@ -16,7 +16,7 @@ final class MimoDNSConfiguration {
         return actual == expected
     }
 
-    func install() throws {
+    func install(willChange: (() -> Void)? = nil, didChange: (() -> Void)? = nil) throws {
         if store == nil { store = SCDynamicStoreCreate(nil, "Mimo protected DNS" as CFString, nil, nil) }
         guard let store else { throw MimoRuntimeError.unavailable("Could not configure the protected DNS resolver.") }
         // Match each existing supplemental domain at a higher priority, so a native
@@ -43,6 +43,8 @@ final class MimoDNSConfiguration {
             expected = value as NSDictionary
             return
         }
+        willChange?()
+        defer { didChange?() }
         let success = installed ? SCDynamicStoreSetValue(store, key, value as CFDictionary) :
             SCDynamicStoreAddTemporaryValue(store, key, value as CFDictionary)
         guard success else { throw MimoRuntimeError.unavailable("Could not install the protected DNS resolver.") }

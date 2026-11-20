@@ -14,6 +14,14 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
     private var installationCheck: Task<Void, Error>?
     private var forceProfileReload = true
     private let preparationQueue = MimoBlockingWorkQueue("com.mimo.prepare-profile")
+    private struct PreparedCandidate: Sendable {
+        var proxy: ClashProxySettings
+        var profile: String?
+        var reused: Bool
+    }
+    private var profilePreparation: Task<PreparedCandidate, Error>?
+    private var profileInspection: Task<MimoReadinessReceipt, Error>?
+    private var completedReadiness: MimoReadinessReceipt?
     private var readinessCheck: Task<MimoReadinessReceipt, Error>?
     nonisolated let heartbeatLease = MimoHeartbeatLease()
     private var watchdog: Task<Void, Never>?
@@ -301,10 +309,10 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 installationCheck = installation
                 let password = try probePassword()
                 let mode = validated.mode
-                // Local preparation and installation inspection need no forwarding
-                // exception. Start both before waiting for the independent PF worker.
-                async let prepared = preparationQueue.run {
-                    Result { () throws -> (ClashProxySettings, String?) in
+                let mustReload = forceProfileReload
+                let cleanup = runtime.requestConnectionCleanup()
+                let preparation = Task { () throws -> PreparedCandidate in
+                    guard let result = await preparationQueue.run({ Result { () throws -> (ClashProxySettings, String?) in
                         var preparationTiming = MimoTransitionTiming("preparation")
                         let secret = try SystemCredentials().read(account: MimoRuntime.proxyPasswordAccount) ?? ""
                         let candidate = try metadata.settings(password: secret)
@@ -312,8 +320,19 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                             try MihomoProfile.render(candidate, mode: mode, stage: .active, probePassword: password)
                         preparationTiming.record("credentials_and_render")
                         return (candidate, profile)
+                    } }) else { throw CancellationError() }
+                    try Task.checkCancellation()
+                    guard epoch == generation else { throw CancellationError() }
+                    let (proxy, profile) = try result.get()
+                    var preflightTiming = MimoTransitionTiming("profile")
+                    let reused = profile.map { !mustReload && runtime.canReuseProfile($0) } ?? false
+                    if reused, let profile {
+                        profileInspection = try runtime.startReadiness(profile: profile, proxy: proxy, installation: installation)
                     }
+                    preflightTiming.record("profile_preflight")
+                    return PreparedCandidate(proxy: proxy, profile: profile, reused: reused)
                 }
+                profilePreparation = preparation
                 RuntimeLog.shared.info("mimo_parallel_preparation_started")
                 do { try await runtime.confirmApplicationGate(gate) }
                 catch {
@@ -328,26 +347,34 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 let check = policy.begin(configuration: validated, revision: revision, networkGeneration: network)
                 allowlist = allowed
                 guard networkObserver.isRunning, powerGuard.isRunning, sessionObserver.isRunning else { throw MimoRuntimeError.unavailable("Network, session or power change observation is unavailable. Repair installation.") }
-                guard let preparedResult = await prepared else { throw CancellationError() }
-                guard epoch == generation, check == policy.state.verification else { throw CancellationError() }
-                var (proxy, renderedProfile) = try preparedResult.get()
-                timing.record("preparation_join")
-                // Strict PF denies even old engine egress while flows are
-                // discarded. Do not install the old endpoint's probe policy
-                // merely to replace it with the freshly resolved endpoint.
-                do { try runtime.disconnectFlows() }
+                let candidate: PreparedCandidate
+                do { candidate = try await preparation.value }
                 catch {
-                    // launchd can publish the replacement PID before its Unix
-                    // controller is ready. Retry after the next healthy bounded
-                    // infrastructure pass, keeping the gate closed meanwhile.
-                    infrastructureRecoveryPending = true
-                    RuntimeLog.shared.info("mimo_controller_recovery_pending")
+                    guard epoch == generation else { throw CancellationError() }
                     throw error
                 }
-                timing.record("connection_cleanup")
-                if IPAddressValidator.normalize(proxy.server) == nil {
-                    // Hostnames need only the fixed encrypted bootstrap
-                    // resolver before resolution; no old proxy exception.
+                guard epoch == generation, check == policy.state.verification else { throw CancellationError() }
+                var proxy = candidate.proxy
+                var reused = candidate.reused
+                var finalProfile = candidate.profile
+                timing.record("preparation_join")
+                func joinCleanup() async throws {
+                    do { try await runtime.confirmConnectionCleanup(cleanup) }
+                    catch {
+                        guard epoch == generation else { throw CancellationError() }
+                        if !(error is CancellationError) {
+                            infrastructureRecoveryPending = true
+                            RuntimeLog.shared.info("mimo_controller_recovery_pending")
+                        }
+                        throw error
+                    }
+                    guard epoch == generation, policy.state.verification == check else { throw CancellationError() }
+                }
+                let hostname = IPAddressValidator.normalize(proxy.server) == nil
+                if hostname {
+                    // Bootstrap traffic needs the old connections gone first.
+                    // Literal IPv4 endpoints skip this dependency entirely.
+                    try await joinCleanup()
                     try runtime.closeGate()
                     try powerGuard.fence.activate(epoch: powerEpoch) { try MimoPowerGuard.clear() }
                 }
@@ -357,23 +384,34 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                     guard epoch == generation else { throw CancellationError() }
                     throw error
                 }
-                timing.record("endpoint_resolution")
                 guard epoch == generation, policy.state.verification == check, !runtime.maintenanceActive else { throw CancellationError() }
                 proxy.server = address
+                if finalProfile == nil {
+                    let rendered = try MihomoProfile.render(proxy, mode: mode, stage: .active, probePassword: password)
+                    finalProfile = rendered
+                    reused = !mustReload && runtime.canReuseProfile(rendered)
+                    if reused {
+                        profileInspection = try runtime.startReadiness(profile: rendered, proxy: proxy, installation: installation)
+                    }
+                }
+                guard let finalProfile else { throw DaemonFailure.invalidRequest }
+                // Prepare the parent PF policy while cleanup/inspection workers
+                // run. The strict child barrier stays closed until the first join.
                 try runtime.closeGate(endpoints: [address], proxyPort: proxy.port)
-                // The parent gate denies applications. Release the system
-                // barrier only for this fresh, restricted verification path.
-                try powerGuard.fence.activate(epoch: powerEpoch) { try MimoPowerGuard.clear() }
-                let finalProfile = try renderedProfile ?? MihomoProfile.render(proxy, mode: validated.mode, stage: .active, probePassword: password)
-                timing.record("probe_gate")
-                let reused = !forceProfileReload && runtime.canReuseProfile(finalProfile)
+                timing.record("probe_policy")
+                if !hostname { try await joinCleanup() }
                 if !reused { try runtime.loadProfile(finalProfile) }
                 forceProfileReload = false
-                timing.record(reused ? "reused_profile" : "final_profile")
-                RuntimeLog.shared.info(reused ? "mimo_final_profile_reused" : "mimo_final_profile_loaded", fields: ["attempt": check.id.uuidString])
+                if profileInspection == nil {
+                    profileInspection = try runtime.startReadiness(profile: finalProfile, proxy: proxy, installation: installation)
+                }
+                guard let inspection = profileInspection else { throw CancellationError() }
                 self.proxy = proxy; endpoint = address; activeProfile = finalProfile
+                RuntimeLog.shared.info(reused ? "mimo_final_profile_reused" : "mimo_final_profile_loaded", fields: ["attempt": check.id.uuidString])
+                try powerGuard.fence.activate(epoch: powerEpoch) { try MimoPowerGuard.clear() }
+                timing.record("private_probe_join")
+                RuntimeLog.shared.info("mimo_private_probe_barrier_ready", fields: ["attempt": check.id.uuidString])
                 let readinessGeneration = generation
-                let candidateProxy = proxy
                 readinessCheck = Task { [weak self] in
                     guard let self else { throw CancellationError() }
                     do {
@@ -381,9 +419,11 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                         guard readinessGeneration == self.generation, check == self.policy.state.verification else { throw CancellationError() }
                         RuntimeLog.shared.info("mimo_readiness_started", fields: ["attempt": check.id.uuidString])
                         try runtime.configureProtectedDNS()
-                        let receipt = try await runtime.inspectReadiness(profile: finalProfile, proxy: candidateProxy, installation: installation)
+                        let receipt = try await inspection.value
                         try Task.checkCancellation()
                         guard readinessGeneration == self.generation, check == self.policy.state.verification else { throw CancellationError() }
+                        try runtime.confirmReadiness(receipt)
+                        self.completedReadiness = receipt
                         RuntimeLog.shared.info("mimo_readiness_passed", fields: ["attempt": check.id.uuidString])
                         return receipt
                     } catch {
@@ -410,19 +450,25 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 let activationGeneration = generation
                 RuntimeLog.shared.info("mimo_exit_ip_approved", fields: ["attempt": check.id.uuidString])
                 policy.waitingForReadiness(address: address, verification: check)
-                progress?(response())
+                // Completed background checks need no slow status reconstruction
+                // here. Only pending work streams a readiness progress update.
+                if completedReadiness == nil { progress?(response()) }
                 let receipt: MimoReadinessReceipt
-                do { receipt = try await readinessCheck.value }
+                do {
+                    if let completedReadiness { receipt = completedReadiness }
+                    else { receipt = try await readinessCheck.value }
+                }
                 catch {
                     guard activationGeneration == generation, check == policy.state.verification else { throw CancellationError() }
                     throw error
                 }
                 guard activationGeneration == generation, check == policy.state.verification else { throw CancellationError() }
-                guard self.activeProfile == activeProfile, runtime.receiptIsCurrent(receipt),
+                guard self.activeProfile == activeProfile, runtime.receiptMatchesLoadedProfile(receipt),
                       networkObserver.isRunning, powerGuard.isRunning, sessionObserver.isRunning else {
                     throw MimoRuntimeError.unavailable("The verified runtime changed before opening. A fresh check is required.")
                 }
-                timing.record("readiness_join")
+                timing.record("opening_join")
+                RuntimeLog.shared.info("mimo_opening_barrier_ready", fields: ["attempt": check.id.uuidString])
                 guard policy.approve(address: address, at: .now, allowlist: allowlist, verification: check, runtimeMatches: true) else {
                     close("The active profile did not match the verified candidate."); return response()
                 }
@@ -432,6 +478,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                     try MimoPowerGuard.clear()
                 }
                 self.readinessCheck = nil; installationCheck = nil
+                profilePreparation = nil; profileInspection = nil; completedReadiness = nil
                 timing.record("open_gate")
                 RuntimeLog.shared.info("mimo_traffic_opened", fields: ["mode": policy.state.configuration.mode.rawValue, "ip": address])
             case .service:
@@ -501,6 +548,10 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
     }
 
     private func cancelReadiness() {
+        runtime.cancelConnectionCleanup()
+        profilePreparation?.cancel(); profilePreparation = nil
+        profileInspection?.cancel(); profileInspection = nil
+        completedReadiness = nil
         readinessCheck?.cancel(); readinessCheck = nil
         installationCheck?.cancel(); installationCheck = nil
     }

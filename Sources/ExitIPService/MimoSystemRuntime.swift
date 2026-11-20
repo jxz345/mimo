@@ -41,6 +41,9 @@ final class MimoSystemRuntime {
     private nonisolated let nativeTransportWriter = MimoNativeTransportWriter()
     private let dns = MimoDNSConfiguration()
     nonisolated let readinessChecks = MimoReadinessChecks()
+    private nonisolated let controllerLock = NSLock()
+    private let cleanupQueue = MimoBlockingWorkQueue("com.mimo.clear-connections", qos: .userInitiated)
+    private var cleanupRequest: (token: MimoGateRequest, task: Task<Void, Error>)?
     private let gateQueue = MimoBlockingWorkQueue("com.mimo.close-gate", qos: .userInitiated)
     private var gateRequest: (token: MimoGateRequest, task: Task<Bool, Error>)?
     private let infrastructureQueue = MimoBlockingWorkQueue("com.mimo.infrastructure-check")
@@ -316,6 +319,7 @@ final class MimoSystemRuntime {
 
     func restoreDirect(maintenanceRecovery: Bool = false, uninstalling: Bool = false) throws {
         cancelApplicationGate()
+        cancelConnectionCleanup()
         try withFirewallLock {
             guard maintenanceRecovery || !maintenanceActive else { throw MimoRuntimeError.unavailable("Service installation is in progress.") }
             _ = try writePrivate(Data("pending".utf8), name: "gate.state")
@@ -357,9 +361,7 @@ final class MimoSystemRuntime {
     }
 
     func configureProtectedDNS() throws {
-        profileWillChange?()
-        defer { profileDidChange?() }
-        try dns.install()
+        try dns.install(willChange: profileWillChange, didChange: profileDidChange)
         // openGate verifies the live resolver and engine-owned TCP/UDP
         // listeners immediately before activation. Avoid repeating that same
         // inspection here while application traffic is still blocked.
@@ -444,6 +446,10 @@ final class MimoSystemRuntime {
     }
 
     func loadProfile(_ profile: String) throws {
+        try controllerLock.withLock { try loadProfileUnderControllerLock(profile) }
+    }
+
+    private func loadProfileUnderControllerLock(_ profile: String) throws {
         profileWillChange?()
         defer { profileDidChange?() }
         loadedProfile = nil
@@ -479,8 +485,46 @@ final class MimoSystemRuntime {
         return MihomoProfile.blocking()
     }
 
+    func requestConnectionCleanup() -> MimoGateRequest {
+        cancelConnectionCleanup()
+        let token = MimoGateRequest()
+        let queue = cleanupQueue
+        let task = Task {
+            guard let result = await queue.run({ Result {
+                try self.controllerLock.withLock {
+                    guard !token.isCancelled else { throw CancellationError() }
+                    var timing = MimoTransitionTiming("cleanup")
+                    try self.disconnectUnderControllerLock()
+                    timing.record("connection_cleanup")
+                }
+            } }) else { throw CancellationError() }
+            try result.get()
+        }
+        cleanupRequest = (token, task)
+        return token
+    }
+
+    func confirmConnectionCleanup(_ token: MimoGateRequest) async throws {
+        guard let request = cleanupRequest, request.token === token else { throw CancellationError() }
+        try await request.task.value
+        guard cleanupRequest?.token === token, !token.isCancelled else { throw CancellationError() }
+        cleanupRequest = nil
+    }
+
+    func cancelConnectionCleanup() {
+        cleanupRequest?.token.cancel()
+        cleanupRequest?.task.cancel()
+        cleanupRequest = nil
+    }
+
     func disconnectFlows() throws {
-        guard isRunning(MimoRuntime.engineLabel) else { return }
+        cancelConnectionCleanup()
+        try controllerLock.withLock { try disconnectUnderControllerLock() }
+    }
+
+    private nonisolated func disconnectUnderControllerLock() throws {
+        guard runningProcessID(MimoRuntime.engineLabel) != nil else { return }
+        try secureController()
         try command("/usr/bin/curl", ["--silent", "--fail", "--max-time", "2", "--unix-socket", MimoRuntime.controller.path,
                                      "-X", "DELETE", "http://localhost/connections"])
     }
@@ -523,45 +567,51 @@ final class MimoSystemRuntime {
                                              config: config, rules: rules, proxies: proxies)
     }
 
+    func receiptMatchesLoadedProfile(_ receipt: MimoReadinessReceipt) -> Bool {
+        guard let loadedProfile else { return false }
+        return loadedProfile.process == receipt.process && Data(loadedProfile.digest) == receipt.profileDigest &&
+            receipt.checkedAt.duration(to: .now) < .seconds(15)
+    }
+
     func receiptIsCurrent(_ receipt: MimoReadinessReceipt) -> Bool {
-        guard let loadedProfile, loadedProfile.process == receipt.process,
-              Data(loadedProfile.digest) == receipt.profileDigest,
-              receipt.checkedAt.duration(to: .now) < .seconds(15),
-              runningProcessID(MimoRuntime.engineLabel) == receipt.process else { return false }
-        return true
+        receiptMatchesLoadedProfile(receipt) && runningProcessID(MimoRuntime.engineLabel) == receipt.process
+    }
+
+    /// Start independent reads immediately. The detached task cannot be delayed
+    /// behind main-actor PF commands. Live resolver and receipt checks are joined
+    /// by the supervisor, and openGate still checks engine identity under PF lock.
+    func startReadiness(profile: String, proxy: ClashProxySettings,
+                        installation: Task<Void, Error>, recordTiming: Bool = true) throws -> Task<MimoReadinessReceipt, Error> {
+        guard let loadedProfile, loadedProfile.digest == SHA256.hash(data: Data(profile.utf8)) else {
+            throw MimoRuntimeError.unavailable("The loaded profile changed before inspection.")
+        }
+        try secureController()
+        let process = loadedProfile.process
+        let digest = Data(loadedProfile.digest)
+        let checks = readinessChecks
+        return Task.detached {
+            try await checks.inspect(profile: profile, proxy: proxy, process: process, digest: digest,
+                                     installation: installation, recordTiming: recordTiming,
+                                     currentProcess: { self.runningProcessID(MimoRuntime.engineLabel) })
+        }
+    }
+
+    func confirmReadiness(_ receipt: MimoReadinessReceipt) throws {
+        guard dns.matches, receiptMatchesLoadedProfile(receipt) else {
+            throw MimoRuntimeError.unavailable("The final profile, tunnel or protected DNS could not be confirmed.")
+        }
+        try secureController()
     }
 
     func inspectReadiness(profile: String, proxy: ClashProxySettings,
                           installation: Task<Void, Error>, recordTiming: Bool = true) async throws -> MimoReadinessReceipt {
-        guard let loadedProfile, loadedProfile.digest == SHA256.hash(data: Data(profile.utf8)) else {
-            throw MimoRuntimeError.unavailable("The loaded profile changed before inspection.")
-        }
-        let process = loadedProfile.process
-        try secureController()
-        var timing = MimoTransitionTiming("readiness")
-        async let configData = readinessChecks.controller("configs")
-        async let rulesData = readinessChecks.controller("rules")
-        async let proxiesData = readinessChecks.controller("proxies")
-        async let listeners = readinessChecks.listeners(process: process)
-        try await installation.value
-        let (config, rules, proxies, sockets) = try await (configData, rulesData, proxiesData, listeners)
-        try Task.checkCancellation()
-        func object(_ data: Data) throws -> [String: Any] {
-            guard let result = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-                throw MimoRuntimeError.unavailable("Mihomo controller returned an invalid inspection.")
-            }
-            return result
-        }
-        let receipt = MimoReadinessReceipt(process: process, profileDigest: Data(loadedProfile.digest), checkedAt: .now)
-        guard sockets, dns.matches, receiptIsCurrent(receipt),
-              MihomoRuntimeInspection.matches(profile: profile, active: true, proxy: MimoProxy(proxy),
-                config: try object(config), rules: try object(rules)["rules"] as? [[String: Any]] ?? [],
-                proxies: try object(proxies)["proxies"] as? [String: Any] ?? [:]) else {
-            throw MimoRuntimeError.unavailable("The final profile, tunnel or protected DNS could not be confirmed.")
-        }
-        try secureController()
-        if recordTiming { timing.record("critical_checks") }
-        return receipt
+        let inspection = try startReadiness(profile: profile, proxy: proxy, installation: installation, recordTiming: recordTiming)
+        return try await withTaskCancellationHandler {
+            let receipt = try await inspection.value
+            try Task.checkCancellation()
+            try confirmReadiness(receipt)
+            return receipt
+        } onCancel: { inspection.cancel() }
     }
 
     func service(_ service: MimoServiceID, operation: MimoServiceOperation) throws {
@@ -607,7 +657,7 @@ final class MimoSystemRuntime {
         return nil
     }
 
-    private func command(_ executable: String, _ arguments: [String], timeout: TimeInterval = 3, input: Data? = nil) throws {
+    private nonisolated func command(_ executable: String, _ arguments: [String], timeout: TimeInterval = 3, input: Data? = nil) throws {
         let result = BoundedProcess.run(executable, arguments, timeout: timeout, input: input)
         guard result.status == 0 else {
 #if MIMO_VM_ACCEPTANCE

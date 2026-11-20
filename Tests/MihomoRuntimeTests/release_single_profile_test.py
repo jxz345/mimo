@@ -19,6 +19,7 @@ import time
 import traceback
 
 from monotonic_uptime import uptime_ms
+from parallel_timing_contract import verify_trial
 from installed_acceptance_test import command
 from saved_proxy_test import WORKER
 from release_final_state import configuration_values
@@ -93,11 +94,19 @@ def main():
         assert any(v['event']=='mimo_gate_closed' and v['fields'].get('confirmed')=='true' for v in ordered[:names.index('mimo_private_probe_ready')])
         writes=[v['fields']['policy'] for v in ordered[:names.index('mimo_traffic_opened')+1] if v['event']=='mimo_pf_policy_installed']
         assert writes==['probe','active'], 'Unexpected full parent firewall writes: '+str(writes)
+        spans = [v['fields'] for v in rows if v['event']=='mimo_transition_timing']
+        span = lambda name: next(v for v in spans if v['stage']==name)
+        assert int(span('connection_cleanup')['start_uptime_ms']) < int(span('confirmed_close')['end_uptime_ms']), 'Cleanup waited for PF confirmation'
+        assert int(span('profile_preflight')['end_uptime_ms']) < int(span('probe_policy')['end_uptime_ms']), 'Profile reuse was left behind probe setup'
+        assert int(span('critical_checks')['start_uptime_ms']) < int(span('private_probe_join')['end_uptime_ms']), 'Inspection did not start before the private-probe join'
+        assert names.index('mimo_private_probe_barrier_ready') < names.index('mimo_private_probe_ready')
+        assert names.index('mimo_opening_barrier_ready') < names.index('mimo_traffic_opened')
         opening = next(v['fields'] for v in ordered if v['event']=='mimo_transition_timing' and v['fields'].get('stage')=='open_gate')
         opened_after = (int(opening['end_uptime_ms'])-requested_uptime)/1000
         assert 0 < opened_after <= elapsed + 0.1, 'Monotonic clocks must agree before reporting open time'
         trials.append(dict(name=label, seconds=round(elapsed,3), firewallOpenSeconds=round(opened_after,3), eventRequestedUptimeMS=requested_uptime, finalProfileLoads=0, finalProfileReuses=1, parentPolicyWrites=writes,
             criticalChecksBeforeOpen=True, stages=[v['fields'] for v in rows if v['event']=='mimo_transition_timing']))
+        verify_trial(trials[-1])
         record(label+'-reuses-profile-with-fresh-concurrent-checks-before-open')
         print('Timing:',label,round(elapsed,3),'seconds',flush=True)
     try:
@@ -154,7 +163,9 @@ def main():
         baseline=offsets(LOGS)
         command(BASE/'installation-check','mihomo','start');client('refresh')
         wait(lambda:any(v['event']=='mimo_final_profile_loaded' for v in events(LOGS,baseline)), 'DNS-conflict final profile')
-        wait(lambda:state()['phase'] in ('blocked','unavailable') and 'protected DNS' in state()['reason'],'DNS conflict blocked')
+        wait(lambda:state()['phase'] in ('blocked','unavailable') and any(
+            v['event']=='mimo_gate_closed' and 'protected DNS' in v['fields'].get('reason','')
+            for v in events(LOGS,baseline)), 'DNS conflict blocked with recorded critical failure')
         rows=events(LOGS,baseline);(root/'dns-conflict-private-events.json').write_text(json.dumps(rows))
         assert any(v['event']=='mimo_readiness_started' for v in rows)
         assert not any(v['event']=='mimo_traffic_opened' for v in rows)
@@ -200,6 +211,11 @@ def main():
         (root/'private-failure.txt').write_text(traceback.format_exc())
     finally:
         for sock in blockers:sock.close()
+        if blockers:
+            # A failed assertion during the port conflict still needs the same
+            # supported engine Restart used by the successful recovery path.
+            command(BASE/'installation-check','mihomo','restart',check=False)
+            blockers=[]
         (root/'private-packet-phases.json').write_text(json.dumps(phases))
         if route_added:command('/sbin/route','-n','delete','-host',DESTINATION,check=False)
         if capture and capture.poll() is None:capture.send_signal(signal.SIGINT);capture.wait(timeout=5)

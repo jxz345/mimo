@@ -2,6 +2,8 @@
 
 ## Unreleased — current VM candidate
 
+- Run connection cleanup, profile reuse checks and runtime inspection alongside PF closure and probe-policy preparation. Use two explicit joins before IP probing and final opening; fence cancelled controller work, retain the atomic final check, and skip unchanged DNS mutation bookkeeping.
+
 - Retry protected verification after controller startup/cleanup failure once the infrastructure check is healthy; keep traffic blocked and require a fresh IP approval.
 
 - Run PF closure concurrently with local preparation and installation inspection; share the event/prepare closure and fence cancellation under the firewall lock. Reuse unchanged profiles in the same engine process while still requiring fresh runtime and exit-IP checks. Manual Reload and engine changes force loading. Record monotonic spans to show concurrency.

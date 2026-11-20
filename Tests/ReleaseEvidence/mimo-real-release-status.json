@@ -75,10 +75,14 @@
     {
       "evidence": "mimo-concurrent-engine-race-attempt.json",
       "result": "A replacement launchd PID appeared before the controller was ready. An early cleanup failed closed, with no timely automatic retry. Current helper schedules fresh verification after a healthy infrastructure pass; automatic stalled-controller and crash recovery pass."
+    },
+    {
+      "evidence": "mimo-parallel-initial-attempt.json",
+      "result": "The DNS fault stayed blocked, but the driver timed out waiting for a transient dashboard reason after background inspection moved earlier. The revised assertion requires a recorded critical DNS failure, blocked state and traffic denial. The completed route timings are retained; the final complete rerun qualifies packet/fault behavior."
     }
   ],
   "architecture": "arm64",
-  "currentCheckpoint": "Concurrent PF/local preparation and unchanged-profile reuse pass 184 shared tests, service regressions, 20 installed packet/fault assertions, four in-flight-change assertions, two PF fallback/restoration assertions and three stalled-controller/automatic-recovery assertions. Six route changes took 7.769\u20139.213 seconds as observed; Rule averaged 8.36 seconds. Original Rule/settings/credential/service intent restored.",
+  "currentCheckpoint": "Parallel connection cleanup, profile preparation and early runtime inspection with two joins pass 184 shared tests, service regressions, 20 installed packet/fault assertions, four in-flight-change assertions, two PF fallback/restoration assertions and three stalled-controller/automatic-recovery assertions. 10 route changes took 5.124\u20139.572 seconds as observed; Rule averaged 6.43 seconds. Original Rule/settings/credential/service intent restored.",
   "latestCompletedEvidence": [
     "mimo-service-progress.json",
     "mimo-service-progress-user-confirmation.json",
@@ -106,7 +110,15 @@
     "mimo-concurrent-stalled-controller.json",
     "mimo-concurrent-timing.json",
     "mimo-concurrent-checkpoint.json",
-    "mimo-concurrent-timeline.json"
+    "mimo-concurrent-timeline.json",
+    "mimo-parallel-runtime.json",
+    "mimo-parallel-races.json",
+    "mimo-parallel-pf-fallback.json",
+    "mimo-parallel-stalled-controller.json",
+    "mimo-parallel-timing.json",
+    "mimo-parallel-joins.json",
+    "mimo-parallel-checkpoint.json",
+    "mimo-parallel-timeline.json"
   ],
   "historicalCheckpoint": {
     "packageSHA256": "16b78e9d9dc487f275b017f1c4cd09da31a188145e43605f187ccdb604e9448a",
@@ -182,9 +194,9 @@
     ],
     "note": "Historical cumulative checkpoint, superseded by currentCheckpoint and latestCompletedEvidence. Per-session authorization and 165-test counts refer to earlier builds."
   },
-  "packageSHA256": "823f5fc0152995d00b58c69d280b2cf1797aee57f4ffe555b8c0b1e427f4ca21",
-  "helperSHA256": "c48d77ecc804d44ca43f82a17fa8b2dca793277b749b4edc4d082d697bf892dd",
-  "guiSHA256": "459e94dcd4b1a798c7542dd607c4cf7f97b0dd8a008486a07d79f32b3e480c30",
+  "packageSHA256": "d5062e8a7c1a29329da70b59e6bd2e5c00a3bca1afad6901dc2ebdfb24552783",
+  "helperSHA256": "7f6056df68706725bdd9fe502dd08f95c5c59918d2ebb22b48a51f96a9726533",
+  "guiSHA256": "98fe0f8fbb90fb32ab7c311f5ee9fc3a82c016eb72fce6da0c0973b117591b76",
   "activeRun": "No test running. Final installed signature/hashes, original configuration/credential/service intent and active Rule verified.",
   "limitations": [
     "Current candidate is installed through a VM-local acceptance tap; public v1.0 preview is unchanged.",
@@ -194,13 +206,13 @@
     "Network notifications are asynchronous; event tests do not prove zero pre-detection delay."
   ],
   "sourceCheckpoint": {
-    "baselineCommit": "9d17458",
+    "baselineCommit": "0920725",
     "branch": "release/current-candidate",
     "published": true,
     "pullRequest": "https://github.com/jxz345/mimo/pull/1",
     "draft": true,
     "publicBinaryUpdated": false,
-    "note": "Exact runtime qualification uses package/helper hashes; the branch contains the subsequent concurrent-preparation source."
+    "note": "Exact runtime qualification uses package/helper hashes; the branch contains the subsequent parallel-preparation source."
   },
   "manualSleepEvidence": "mimo-protected-dns-manual-sleep.json: unsupported/incomplete, kernel sleep count unchanged; original Rule retained",
   "sessionEvidence": "mimo-session-events-checkpoint.json",
@@ -235,5 +247,25 @@
     "mimo-concurrent-timing.json",
     "mimo-concurrent-checkpoint.json",
     "mimo-concurrent-timeline.json"
+  ],
+  "parallelCandidate": {
+    "packageSHA256": "d5062e8a7c1a29329da70b59e6bd2e5c00a3bca1afad6901dc2ebdfb24552783",
+    "helperSHA256": "7f6056df68706725bdd9fe502dd08f95c5c59918d2ebb22b48a51f96a9726533",
+    "guiSHA256": "98fe0f8fbb90fb32ab7c311f5ee9fc3a82c016eb72fce6da0c0973b117591b76",
+    "configuration": "Release",
+    "architecture": "arm64",
+    "inputs": {
+      "Tests/MihomoRuntimeTests/saved_proxy_test.py": "d10754b14b87901cb020d6feebe958b55115817400c8cbbc89ce125a1ba4fabc"
+    }
+  },
+  "parallelEvidence": [
+    "mimo-parallel-runtime.json",
+    "mimo-parallel-races.json",
+    "mimo-parallel-pf-fallback.json",
+    "mimo-parallel-stalled-controller.json",
+    "mimo-parallel-timing.json",
+    "mimo-parallel-joins.json",
+    "mimo-parallel-checkpoint.json",
+    "mimo-parallel-timeline.json"
   ]
 }

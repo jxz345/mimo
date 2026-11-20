@@ -1,0 +1,19 @@
+{
+  "success": true,
+  "trials": 10,
+  "firstJoinPrerequisitesBeforeIP": true,
+  "secondJoinPrerequisitesBeforeOpen": true,
+  "measuredCleanupBlockingOverlap": true,
+  "openingJoinMS": [
+    0,
+    0,
+    0,
+    0,
+    17,
+    1,
+    0,
+    0,
+    0,
+    0
+  ]
+}

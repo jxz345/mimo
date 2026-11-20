@@ -1,0 +1,40 @@
+{
+  "date": "2026-11-20",
+  "environment": "mimo-vm only",
+  "packageSHA256": "d5062e8a7c1a29329da70b59e6bd2e5c00a3bca1afad6901dc2ebdfb24552783",
+  "helperSHA256": "7f6056df68706725bdd9fe502dd08f95c5c59918d2ebb22b48a51f96a9726533",
+  "guiSHA256": "98fe0f8fbb90fb32ab7c311f5ee9fc3a82c016eb72fce6da0c0973b117591b76",
+  "configuration": "Release",
+  "architecture": "arm64",
+  "inputs": {
+    "Tests/MihomoRuntimeTests/saved_proxy_test.py": "d10754b14b87901cb020d6feebe958b55115817400c8cbbc89ce125a1ba4fabc"
+  },
+  "sharedTests": {
+    "passed": 184,
+    "failed": 0
+  },
+  "serviceRegressionsPassed": true,
+  "installedChecks": {
+    "mimo-parallel-runtime.json": 20,
+    "mimo-parallel-races.json": 4,
+    "mimo-parallel-pf-fallback.json": 2,
+    "mimo-parallel-stalled-controller.json": 3,
+    "mimo-parallel-timing.json": 2
+  },
+  "reports": [
+    "mimo-parallel-runtime.json",
+    "mimo-parallel-races.json",
+    "mimo-parallel-pf-fallback.json",
+    "mimo-parallel-stalled-controller.json",
+    "mimo-parallel-timing.json",
+    "mimo-parallel-joins.json"
+  ],
+  "restoration": {
+    "passed": true,
+    "mode": "rule",
+    "originalConfigurationCredentialAndServiceIntent": true,
+    "installedSignatureAndHashesMatch": true,
+    "testProcessesRemaining": false
+  },
+  "scope": "Normal installed arm64 Release, real saved proxy, PF, launchd, ordinary traffic and physical-interface captures. No new actual sleep/unlock, native visual, simultaneous-login, peer UDP or early-boot qualification."
+}

@@ -50,11 +50,11 @@ This change applies to machines running Mimo. Delta's host networking is not cha
 
 ### Approved shorter verification flow (2026-11-20)
 
-Implemented in the normal Release installed in mimo-vm. Targeted packet, failure and race evidence is linked below; actual sleep/unlock timing is separate. The approved sequence is **parallel blocking + local preparation → private probe setup → reuse or load final profile → exit-IP lookup with critical checks → firewall open**. Critical checks run concurrently and must succeed before opening; they are never assumed healthy. Previous timing results describe the older two-profile candidate.
+Implemented in the normal Release installed in mimo-vm. Targeted packet, failure and race evidence is linked below; actual sleep/unlock timing is separate. The approved sequence is **start blocking + cleanup + profile/critical checks → join private-probe prerequisites → exit-IP lookup → join remaining critical checks → firewall open**. Critical checks run concurrently and must succeed before opening; they are never assumed healthy. Previous timing results describe the older two-profile candidate.
 
 1. Keep the independent PF boot loader and credential-free startup profile. Saved service Stop intent remains respected.
 2. Restore saved Direct immediately without an allowlist gate. Direct events only refresh the observed IP; IPv6 remains denied.
-3. For Rule/Global, invalidate old approval and request the small PF safety barrier on an independent worker. Run local credential/profile preparation and installation inspection concurrently. Share the network-event closure with preparation. Confirm effective blocking, clear existing engine connections, resolve the IPv4 proxy endpoint if necessary, and install the restricted probe policy once. Keep the safety barrier until cleanup and this policy are complete; missing/damaged PF falls back to the full blocking policy.
+3. For Rule/Global, invalidate old approval and request the small PF safety barrier on an independent worker. Run connection cleanup, credential/profile preparation and installation inspection concurrently. Start unchanged-profile inspection as soon as identity matches. Share the network-event closure with preparation. Confirm effective blocking and prepare the restricted parent policy while other workers run; keep the child barrier until cleanup and final-profile readiness join. Resolve hostname endpoints only after cleanup and restricted bootstrap access. Keep the safety barrier until cleanup and this policy are complete; missing/damaged PF falls back to the full blocking policy.
 4. Reuse an unchanged final profile in the same engine process; otherwise validate and load the final Rule/Global profile once through stdin/private controller payload. Manual Reload and service changes force a load. TUN, DNS and the ordinary proxy listener may exist, but the closed application gate must deny their ordinary traffic. The existing authenticated, destination-restricted probe remains usable.
 5. Run engine installation checks and final profile/TUN/DNS readiness inspections on bounded background workers. Configure protected DNS while closed. Independent controller reads can overlap one another and the exit-IP request; firewall/profile mutations remain serialized.
 6. Probe the current configured HTTPS lookup provider and require a fresh allowlisted IPv4. Empty/mismatched lists, failed lookup or exhausted quota stay blocked.
@@ -618,3 +618,59 @@ Representative Rule run: **7.716 s to PF opening**, **8.214 s until the test obs
 | 5.37–7.72 s | Open PF |
 
 See [raw stage spans and all six trials](Tests/ReleaseEvidence/mimo-concurrent-timeline.json). Failed initial attempts are retained alongside the successful reports.
+
+
+## Parallel jobs and two joins — 20 November 2026
+
+Start PF closure, connection cleanup, credential/profile preparation and installation inspection together. As soon as unchanged-profile identity is known, start controller, engine, TUN and DNS-listener reads on independent workers, without waiting for PF confirmation. Prepare the restricted parent policy behind the strict child barrier while cleanup and inspection run. PF writes serialize under the shared firewall lock; they do not overwrite one another concurrently.
+
+The first join requires confirmed blocking, successful connection cleanup, a ready final profile and the restricted private-probe policy. Only then release the strict child barrier for the private exit-IP request; ordinary applications remain blocked. Hostname endpoints additionally need cleanup before bootstrap DNS can resolve their IPv4 address. Changed profiles and manual Reload still load once behind confirmed blocking.
+
+The second join combines the fresh IP result with the background inspections, current configuration/network/session attempt and observer health. The allowlist comparison needs the returned IP; it is a local comparison with no subprocess. Completed checks skip redundant progress reconstruction and duplicate engine lookup. The final PF-opening transaction still verifies current engine identity, profile receipt, resolver and TUN. Empty/mismatched allowlists and failed/stale jobs stay blocked.
+
+Queued controller cleanup has its own mutation lock and cancellation token, so late cleanup cannot affect a newer completed Direct/service transition. An unchanged DNS configuration no longer runs observer mutation hooks. Controller failures retain automatic recovery through the infrastructure monitor. Stage spans and both joins are recorded for installed VM qualification; earlier timing evidence remains tied to its earlier package.
+
+
+```mermaid
+flowchart LR
+    E[Protected event] --> B[Block PF and confirm]
+    E --> C[Clear old connections]
+    E --> P[Prepare profile and check reuse]
+    E --> I[Inspect installation]
+    P --> R[Inspect runtime, tunnel and DNS listeners]
+    B --> F[Prepare restricted parent PF policy]
+    B --> J1[First join: private probe prerequisites]
+    C --> J1
+    P --> J1
+    F --> J1
+    J1 --> IP[Check fresh exit IP]
+    IP --> J2[Second join: allowed IP and current critical checks]
+    R --> J2
+    I --> J2
+    J2 --> O[Open PF]
+```
+
+
+## Measured two-join timeline — 20 November 2026
+
+Parallel cleanup, profile preparation and inspection with two joins are installed and tested in mimo-vm. 10 actual route changes took **5.12–9.57 seconds** as observed; Rule averaged **6.43 seconds**, versus **8.36 seconds** previously. PF opening completed after **4.73–9.03 seconds**. All 184 shared tests, service regressions, 20 packet/fault checks, four in-flight-change checks, two PF fallback/restoration checks and three stalled-controller/recovery checks pass. Original Rule, proxy/password, allowlist and service intent are restored.
+
+Representative Rule run: **5.776 s to PF opening**, **6.177 s until the test observed Active**. Chosen nearest the median Rule observation, from `mimo-parallel-runtime.json`. Overlapping rows must not be added together. Dispatch, DNS setup and interprocess handoffs are not all timed separately. These are route changes with the saved proxy, not a new lock/unlock or physical-sleep measurement.
+
+| Time from route request | Work |
+|---|---|
+| 0.31–1.01 s | PF closure and confirmation (worker) |
+| 0.43–0.43 s | Credentials and profile rendering — parallel |
+| 0.43–0.82 s | Clear old engine connections |
+| 0.43–0.89 s | Installation inspection — parallel |
+| 0.43–1.33 s | Prepare waits for confirmed closure |
+| 0.43–0.62 s | Confirm unchanged-profile reuse — concurrent |
+| 0.62–1.12 s | Background profile, tunnel and DNS inspection |
+| 1.33–1.33 s | Join local preparation |
+| 1.33–2.44 s | Prepare private-probe parent policy |
+| 2.44–2.56 s | First join: permit private IP probing |
+| 2.94–4.18 s | Fresh exit-IP lookup |
+| 4.57–4.57 s | Second join: allowed IP and current critical results |
+| 4.57–5.78 s | Open PF |
+
+See [raw stage spans and all completed trials](Tests/ReleaseEvidence/mimo-parallel-timeline.json). Failed initial attempts are retained alongside the successful reports.

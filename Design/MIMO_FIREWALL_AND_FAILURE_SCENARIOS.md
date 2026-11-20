@@ -438,3 +438,17 @@ If controller connection cleanup fails during preparation (including a launchd r
 
 
 The [current exact-build qualification](../Tests/ReleaseEvidence/mimo-concurrent-checkpoint.json) covers unchanged-profile isolation, empty/mismatched allowlists, foreign DNS ownership, controller stall/automatic recovery, engine crash, PF readback fallback and in-flight Direct/network changes in mimo-vm. All pass with original Rule/settings/credential/service intent restored. [Measured overlap](../Tests/ReleaseEvidence/mimo-concurrent-timeline.json) does not establish zero detection delay, first-boot-packet protection or actual sleep qualification.
+
+
+## Parallel jobs and two joins — 20 November 2026
+
+Start PF closure, connection cleanup, credential/profile preparation and installation inspection together. As soon as unchanged-profile identity is known, start controller, engine, TUN and DNS-listener reads on independent workers, without waiting for PF confirmation. Prepare the restricted parent policy behind the strict child barrier while cleanup and inspection run. PF writes serialize under the shared firewall lock; they do not overwrite one another concurrently.
+
+The first join requires confirmed blocking, successful connection cleanup, a ready final profile and the restricted private-probe policy. Only then release the strict child barrier for the private exit-IP request; ordinary applications remain blocked. Hostname endpoints additionally need cleanup before bootstrap DNS can resolve their IPv4 address. Changed profiles and manual Reload still load once behind confirmed blocking.
+
+The second join combines the fresh IP result with the background inspections, current configuration/network/session attempt and observer health. The allowlist comparison needs the returned IP; it is a local comparison with no subprocess. Completed checks skip redundant progress reconstruction and duplicate engine lookup. The final PF-opening transaction still verifies current engine identity, profile receipt, resolver and TUN. Empty/mismatched allowlists and failed/stale jobs stay blocked.
+
+Queued controller cleanup has its own mutation lock and cancellation token, so late cleanup cannot affect a newer completed Direct/service transition. An unchanged DNS configuration no longer runs observer mutation hooks. Controller failures retain automatic recovery through the infrastructure monitor. Stage spans and both joins are recorded for installed VM qualification; earlier timing evidence remains tied to its earlier package.
+
+
+The [current exact-build qualification](../Tests/ReleaseEvidence/mimo-parallel-checkpoint.json) covers unchanged-profile isolation, empty/mismatched allowlists, foreign DNS ownership, controller stall/automatic recovery, engine crash, PF readback fallback and in-flight Direct/network changes in mimo-vm. All pass with original Rule/settings/credential/service intent restored. [Measured overlap](../Tests/ReleaseEvidence/mimo-parallel-timeline.json) does not establish zero detection delay, first-boot-packet protection or actual sleep qualification.

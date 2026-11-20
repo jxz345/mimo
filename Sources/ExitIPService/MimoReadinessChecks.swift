@@ -8,7 +8,38 @@ final class MimoReadinessChecks: Sendable {
     private let config = MimoBlockingWorkQueue("com.mimo.check-config")
     private let rules = MimoBlockingWorkQueue("com.mimo.check-rules")
     private let proxies = MimoBlockingWorkQueue("com.mimo.check-proxies")
+    private let identity = MimoBlockingWorkQueue("com.mimo.check-engine-identity")
     private let dns = MimoBlockingWorkQueue("com.mimo.check-dns")
+
+    func inspect(profile: String, proxy: ClashProxySettings, process: Int32, digest: Data,
+                 installation: Task<Void, Error>, recordTiming: Bool,
+                 currentProcess: @escaping @Sendable () -> Int32?) async throws -> MimoReadinessReceipt {
+        var timing = MimoTransitionTiming("readiness")
+        let checkedAt = ContinuousClock.now
+        if recordTiming { RuntimeLog.shared.info("mimo_runtime_inspection_started") }
+        async let configData = controller("configs")
+        async let rulesData = controller("rules")
+        async let proxiesData = controller("proxies")
+        async let sockets = listeners(process: process)
+        async let engine = identity.run { currentProcess() == process }
+        try await installation.value
+        let (config, rules, proxies, listenersReady, sameEngine) = try await (configData, rulesData, proxiesData, sockets, engine)
+        try Task.checkCancellation()
+        func object(_ data: Data) throws -> [String: Any] {
+            guard let result = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                throw MimoRuntimeError.unavailable("Mihomo controller returned an invalid inspection.")
+            }
+            return result
+        }
+        guard listenersReady, sameEngine == true,
+              MihomoRuntimeInspection.matches(profile: profile, active: true, proxy: MimoProxy(proxy),
+                config: try object(config), rules: try object(rules)["rules"] as? [[String: Any]] ?? [],
+                proxies: try object(proxies)["proxies"] as? [String: Any] ?? [:]) else {
+            throw MimoRuntimeError.unavailable("The final profile, tunnel or protected DNS could not be confirmed.")
+        }
+        if recordTiming { timing.record("critical_checks") }
+        return MimoReadinessReceipt(process: process, profileDigest: digest, checkedAt: checkedAt)
+    }
 
     func validateInstallation(_ operation: @escaping @Sendable () throws -> Void) async throws {
         guard let result = await installation.run({ Result {

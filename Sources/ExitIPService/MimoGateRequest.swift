@@ -1,8 +1,9 @@
 import Foundation
 
-/// Cancellation is checked while holding firewall.lock. A later Direct/service
-/// transition either follows a running close under that lock or cancels a close
-/// which has not acquired it yet. No late worker can overwrite Direct.
+/// Cancellation is checked under the mutation's lock: firewall.lock for PF,
+/// controllerLock for connection cleanup. Direct/service transitions either
+/// follow already-running work or cancel work which has not acquired its lock.
+/// A delayed waiter never creates another operation after cancellation.
 final class MimoGateRequest: @unchecked Sendable {
     private let lock = NSLock()
     private var cancelled = false

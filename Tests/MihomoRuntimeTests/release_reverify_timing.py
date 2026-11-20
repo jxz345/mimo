@@ -14,6 +14,7 @@ import time
 import traceback
 
 from monotonic_uptime import uptime_ms
+from parallel_timing_contract import verify_trial
 from installed_acceptance_test import command
 from release_final_state import configuration_values
 from release_network_progress_test import LOGS, offsets, events, DESTINATION
@@ -84,6 +85,7 @@ def main():
                          blockingOperationCount=len(barriers),closeConfirmationCount=names[:opened + 1].count('mimo_gate_closed'),
                          privateProbeCount=names[:opened + 1].count('mimo_private_probe_ready'),
                          stages=[v['fields'] for v in rows if v['event'] == 'mimo_transition_timing'])
+            verify_trial(trial)
             trials.append(trial)
             print('PASS:',label,round(elapsed,3),'seconds;',trial['blockingOperationCount'],'blocking operation',flush=True)
             # Allow configd's delayed DNS notifications to settle between trials.
