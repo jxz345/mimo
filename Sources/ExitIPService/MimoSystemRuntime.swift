@@ -63,6 +63,10 @@ final class MimoSystemRuntime {
     var profileDidChange: (() -> Void)?
     var maintenanceActive: Bool { FileManager.default.fileExists(atPath: directory.appendingPathComponent("maintenance").path) }
 
+    private var infrastructureRepairPending: Bool {
+        FileManager.default.fileExists(atPath: directory.appendingPathComponent("infrastructure-repair").path)
+    }
+
     func ensureIndependentBootGuard() throws {
         try secureDirectory(MimoRuntime.guardDirectory)
         try secureFile(MimoRuntime.guardScript)
@@ -268,7 +272,7 @@ final class MimoSystemRuntime {
     }
 
     func installProbePolicy(_ policy: MimoPreparedProbePolicy) throws {
-        guard closed, !maintenanceActive, policy.group == group else {
+        guard closed, !maintenanceActive, !infrastructureRepairPending, policy.group == group else {
             throw MimoRuntimeError.unavailable("Blocking or the prepared firewall policy changed before installation.")
         }
         var timing = MimoTransitionTiming("firewall")
@@ -388,6 +392,7 @@ final class MimoSystemRuntime {
     func permitPrivateProbe() throws {
         guard closed, installedPolicy != nil else { throw DaemonFailure.conflict }
         try MimoFirewallLock.mutate {
+            guard !maintenanceActive, !infrastructureRepairPending else { throw DaemonFailure.conflict }
             try command("/sbin/pfctl", ["-a", MimoFirewallPolicy.permissionAnchor, "-f", "-"],
                         input: Data(MimoFirewallPolicy.permission(open: false).utf8))
         }
@@ -453,35 +458,35 @@ final class MimoSystemRuntime {
     }
 
     func openGate(receipt: MimoReadinessReceipt) throws {
-        // Event and prepare share one close; retire it before opening so it
-        // cannot be mistaken for confirmation of the next event's closure.
         cancelApplicationGate()
         var timing = MimoTransitionTiming("grant")
-        try withFirewallLock {
-            timing.record("grant_lifecycle_lock")
-            guard !maintenanceActive, closed, installedPolicy?.activeRules != nil,
-                  nativeTransportIsHealthy, receiptIsCurrent(receipt) else {
-                throw MimoRuntimeError.unavailable("The optimistic runtime identity changed before opening.")
+        // Opening shares only the short PF commit lock. Routine launchd/file
+        // inspections must not hold this grant behind the lifecycle lock.
+        // Actual repair publishes its marker under this same PF lock before
+        // closing the parent or changing a job; a healthy scan clears it.
+        try MimoFirewallLock.mutate {
+            timing.record("grant_mutation_lock")
+            guard !maintenanceActive, !infrastructureRepairPending, closed,
+                  installedPolicy?.activeRules != nil, nativeTransportIsHealthy,
+                  receiptIsCurrent(receipt) else {
+                throw MimoRuntimeError.unavailable("The runtime is changing or being repaired. Fresh verification is required.")
             }
             timing.record("grant_identity")
-            try MimoFirewallLock.mutate {
-                timing.record("grant_mutation_lock")
-                let live = BoundedProcess.run("/sbin/pfctl", ["-a", MimoFirewallPolicy.anchor, "-sr"])
-                let expected = try String(contentsOf: directory.appendingPathComponent("guard.expected"), encoding: .utf8)
-                let final = BoundedProcess.run("/sbin/pfctl", ["-a", MimoFirewallPolicy.anchor + "/open-policy", "-sr"])
-                guard live.status == 0, live.text == expected, live.text.contains("permission") else {
-                    throw MimoRuntimeError.unavailable("The default-deny firewall parent changed.")
-                }
-                guard final.status == 0, final.text == expectedPolicies["open-policy"] else {
-                    throw MimoRuntimeError.unavailable("The preinstalled final policy changed.")
-                }
-                timing.record("grant_parent_identity")
-                try command("/sbin/pfctl", ["-a", MimoFirewallPolicy.permissionAnchor, "-f", "-"],
-                            input: Data(MimoFirewallPolicy.permission(open: true).utf8))
-                timing.record("grant_permission")
-                _ = try writePrivate(Data("active".utf8), name: "gate.state")
-                closed = false
+            let live = BoundedProcess.run("/sbin/pfctl", ["-a", MimoFirewallPolicy.anchor, "-sr"])
+            let expected = try String(contentsOf: directory.appendingPathComponent("guard.expected"), encoding: .utf8)
+            let final = BoundedProcess.run("/sbin/pfctl", ["-a", MimoFirewallPolicy.anchor + "/open-policy", "-sr"])
+            guard live.status == 0, live.text == expected, live.text.contains("permission") else {
+                throw MimoRuntimeError.unavailable("The default-deny firewall parent changed.")
             }
+            guard final.status == 0, final.text == expectedPolicies["open-policy"] else {
+                throw MimoRuntimeError.unavailable("The preinstalled final policy changed.")
+            }
+            timing.record("grant_parent_identity")
+            try command("/sbin/pfctl", ["-a", MimoFirewallPolicy.permissionAnchor, "-f", "-"],
+                        input: Data(MimoFirewallPolicy.permission(open: true).utf8))
+            timing.record("grant_permission")
+            _ = try writePrivate(Data("active".utf8), name: "gate.state")
+            closed = false
         }
     }
 

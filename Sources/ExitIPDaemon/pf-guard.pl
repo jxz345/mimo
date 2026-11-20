@@ -250,6 +250,14 @@ sub job_matches {
     return 1;
 }
 
+sub begin_job_repair {
+    my ($id) = @_;
+    with_pf_mutation(sub {
+        atomic_write("$runtime/infrastructure-repair", $id);
+        close_gate_locked($id);
+    });
+}
+
 sub repair_jobs {
     my ($id) = @_;
     my $preferences = decode_json(read_file("$runtime/services.json"));
@@ -268,18 +276,18 @@ sub repair_jobs {
     for my $job (@jobs) {
         my ($label, $path, $program, $argument, $keepalive, $wanted) = @$job;
         if ($wanted && !(eval { secure($program, 0); -x $program })) {
-            close_gate($id);
+            begin_job_repair($id);
             die "Missing or unsafe executable for launchd job $label; repair installation\n";
         }
         my $file_changed = restore_file("$guard/$label.plist", $path, 0644);
         my $state = inspect_job($label);
         my $wrong = defined($state) && (!job_matches($state, $path, $program, $argument, $keepalive) || $file_changed);
-        my $is_disabled = $disabled =~ /"\Q$label\E"\s*=>\s*true/;
+        my $is_disabled = $disabled =~ /"\Q$label\E"\s*=>\s*(?:true|disabled)\b/;
         my $not_running = $keepalive && defined($state) && $state !~ /^\s*state = running$/m;
         next if !$file_changed && ($wanted ? defined($state) && !$wrong && !$is_disabled && !$not_running : !defined($state));
         # A launchd repair never restores active permissions. Supervision must
         # recover and perform a new verification; Direct can recover normally.
-        close_gate($id) unless $changed;
+        begin_job_repair($id) unless $changed;
         if (defined($state) && (!$wanted || $wrong)) { required('/bin/launchctl', 'bootout', "system/$label"); $state = undef; }
         if ($wanted) {
             required('/bin/launchctl', 'enable', "system/$label");
@@ -373,6 +381,13 @@ sub run {
         $pf_healthy = 1;
     });
     $changed += repair_jobs($id);
+    # All job changes have finished under the lifecycle lock. Clear only after
+    # a healthy scan; a killed/failed checker leaves opening inhibited until
+    # the next successful scan. No routine scan creates this marker.
+    with_pf_mutation(sub {
+        unlink("$runtime/infrastructure-repair") or die "Cannot clear repair marker\n"
+            if -e "$runtime/infrastructure-repair";
+    });
     atomic_write("$guard/health.json", encode_json({boot => $id, checkedAt => time(), repaired => $changed, status => 'healthy', pf => 'enabled', launchd => 'healthy'}));
     print "repaired\n" if $changed;
 }

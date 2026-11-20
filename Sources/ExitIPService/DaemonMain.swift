@@ -50,7 +50,9 @@ enum DaemonMain {
                 try runtime.closeGate()
                 return
             case ["--begin-maintenance"]:
-                _ = try runtime.writePrivate(Data(), name: "maintenance")
+                try MimoFirewallLock.mutate {
+                    _ = try runtime.writePrivate(Data(), name: "maintenance")
+                }
                 try runtime.closeGate()
                 return
             case ["--restore-direct-offline"]:

@@ -1,0 +1,153 @@
+{
+  "date": "2026-11-20",
+  "packageSHA256": "d139769e95217bfdf860673fc68b4eb2fa12bfab259b23fe7d4f0bcedba1b63a",
+  "helperSHA256": "2e8d91e1224a3a979754aca0e38affa659152152c3db6eea0c6be8657e4c0ff7",
+  "guiSHA256": "c3ef134de9907b4952d3a9adba9aeb79b29c93ab0bc459e500b1c3cd4fe41675",
+  "configuration": "Release",
+  "architecture": "arm64",
+  "inputs": {
+    "Tests/MihomoRuntimeTests/saved_proxy_test.py": "d10754b14b87901cb020d6feebe958b55115817400c8cbbc89ce125a1ba4fabc"
+  },
+  "firewallOpenSeconds": 4.505,
+  "fullAuditSeconds": 5.561,
+  "lifecycleLockAcquired": false,
+  "oldLifecycleLockHeldThroughAudit": true,
+  "stages": [
+    {
+      "stage": "deny_mutation_wait",
+      "startSeconds": 0.461,
+      "endSeconds": 0.614
+    },
+    {
+      "stage": "rule_reuse",
+      "startSeconds": 0.614,
+      "endSeconds": 0.614
+    },
+    {
+      "stage": "credentials_and_render",
+      "startSeconds": 0.615,
+      "endSeconds": 0.617
+    },
+    {
+      "stage": "deny_permission",
+      "startSeconds": 0.614,
+      "endSeconds": 0.721
+    },
+    {
+      "stage": "profile_preflight",
+      "startSeconds": 0.617,
+      "endSeconds": 0.893
+    },
+    {
+      "stage": "deny_barrier",
+      "startSeconds": 0.721,
+      "endSeconds": 0.912
+    },
+    {
+      "stage": "connection_cleanup",
+      "startSeconds": 0.615,
+      "endSeconds": 1.009
+    },
+    {
+      "stage": "deny_states",
+      "startSeconds": 0.912,
+      "endSeconds": 1.164
+    },
+    {
+      "stage": "deny_readback",
+      "startSeconds": 1.165,
+      "endSeconds": 1.604
+    },
+    {
+      "stage": "barrier_and_confirmation",
+      "startSeconds": 0.461,
+      "endSeconds": 1.605
+    },
+    {
+      "stage": "confirmed_close",
+      "startSeconds": 0.614,
+      "endSeconds": 1.673
+    },
+    {
+      "stage": "rule_validation_join",
+      "startSeconds": 1.673,
+      "endSeconds": 1.673
+    },
+    {
+      "stage": "install_probe_policy",
+      "startSeconds": 1.673,
+      "endSeconds": 1.673
+    },
+    {
+      "stage": "probe_policy",
+      "startSeconds": 1.673,
+      "endSeconds": 1.674
+    },
+    {
+      "stage": "preparation_join",
+      "startSeconds": 1.674,
+      "endSeconds": 1.674
+    },
+    {
+      "stage": "permit_private_probe",
+      "startSeconds": 1.675,
+      "endSeconds": 2.077
+    },
+    {
+      "stage": "private_probe_join",
+      "startSeconds": 1.674,
+      "endSeconds": 2.078
+    },
+    {
+      "stage": "opening_join",
+      "startSeconds": 3.995,
+      "endSeconds": 4.049
+    },
+    {
+      "stage": "grant_mutation_lock",
+      "startSeconds": 4.05,
+      "endSeconds": 4.05
+    },
+    {
+      "stage": "grant_identity",
+      "startSeconds": 4.05,
+      "endSeconds": 4.194
+    },
+    {
+      "stage": "grant_parent_identity",
+      "startSeconds": 4.194,
+      "endSeconds": 4.329
+    },
+    {
+      "stage": "grant_permission",
+      "startSeconds": 4.329,
+      "endSeconds": 4.504
+    },
+    {
+      "stage": "open_gate",
+      "startSeconds": 4.049,
+      "endSeconds": 4.505
+    },
+    {
+      "stage": "installation_inspection",
+      "startSeconds": 4.507,
+      "endSeconds": 5.086
+    },
+    {
+      "stage": "critical_checks",
+      "startSeconds": 4.632,
+      "endSeconds": 5.159
+    },
+    {
+      "stage": "background_audit",
+      "startSeconds": 4.632,
+      "endSeconds": 5.561
+    },
+    {
+      "stage": "exit_ip",
+      "startSeconds": 2.079,
+      "endSeconds": 3.887
+    }
+  ],
+  "scope": "One timed warm recheck in the focused two-case campaign; not a broad performance benchmark. Both functional cases and restoration passed."
+}

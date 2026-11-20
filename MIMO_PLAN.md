@@ -929,3 +929,26 @@ In the deliberately stalled audit, denial was requested **3.081 s** after openin
 All 186 shared tests, 17 PF-source checks, service regressions, 20 packet/fault checks, eight background-audit checks, three engine-restart checks, four in-flight-change checks, two PF fallback/restoration checks, three stalled-controller checks and three native-writer recovery checks pass. Original Rule, proxy/password, allowlist and service intent are restored; installed hashes/signature and test cleanup are verified. Actual sleep, hostname endpoints, simultaneous GUI sessions, first-packet boot protection and current native visual rendering are not newly qualified. Live Tailscale peer coverage is also pending: the native client was stopped during this campaign. Writer contention/recovery is tested separately. Public Homebrew v1.0 is unchanged. See the [qualification checkpoint](Tests/ReleaseEvidence/mimo-optimistic-checkpoint.json).
 
 In this example the IP lookup took **2.675 s** and lifecycle-lock acquisition took **1.872 s**. The final permission write took **0.030 s**. Those measured waits explain why optimistic opening alone has not achieved the three-second target.
+
+
+## PF-only opening — 20 November 2026
+
+Remove the broader lifecycle-lock acquisition from protected `openGate`. Under only the short PF mutation lock, check maintenance/repair state, current engine/approval and the installed parent/final policy, then grant access and publish active state. Private-probe permission checks maintenance/repair under the same lock. Routine launchd/file scanning cannot queue opening behind its broader lock. Administrative installation, saved Stop intent and actual service actions retain separate coordination; this change removes that dependency from the verification/opening path.
+
+Before a real independent launchd repair, atomically publish an `infrastructure-repair` marker and close PF under the short lock. Keep the marker through job changes and clear it under the short lock only after a healthy scan. Failure or checker death leaves admission blocked until a later successful scan. The startup parent also invalidates cached policy readiness, requiring full recovery after repair. Maintenance marker creation is serialized with opening too. The checker recognizes both `true` and `disabled` launchd output.
+
+At the user’s request, qualify only two focused installed VM cases: a warm route change while the actual old lifecycle lock stays held, and real launchd-override repair with fresh recovery. Do not rerun the broad suite or apply its older hashes to this candidate.
+
+Two focused cases pass on the installed normal Release in mimo-vm: opening/audit while the old lifecycle lock stays held, and actual launchd-override repair with full recovery. PF opened in **4.505 s** and the full audit finished at **5.561 s** in the final warm trial. No lifecycle lock is acquired during opening; the short PF grant lock was acquired without waiting in that trial. The three-second opening target remains unmet. Original Rule/settings/credential/service intent, installed signature/hashes, enabled jobs and cleanup are verified. The full suite was not rerun, as requested.
+
+| Seconds | Work |
+|---|---|
+| 0.000–0.461 | Event delivery / scheduling |
+| 0.461–1.673 | Block and confirm PF; connection cleanup and profile reuse overlap |
+| 1.675–2.077 | Permit the private probe |
+| 2.079–3.887 | Fresh exit-IP lookup |
+| 3.887–4.049 | Handoff and current approval |
+| 4.050–4.505 | PF lock only: identity/policy checks and Open grant |
+| 4.505–5.561 | Internet open; full audit completes in the background |
+
+[Focused results](Tests/ReleaseEvidence/mimo-pf-only-gate.json) · [Timeline](Tests/ReleaseEvidence/mimo-pf-only-timeline.json). Actual administrative install/stop/restart coordination remains separate; the opening path no longer acquires its lock. The first repair test found a launchd output spelling mismatch; it was fixed before both final cases passed.

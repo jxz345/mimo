@@ -86,7 +86,7 @@
     }
   ],
   "architecture": "arm64",
-  "currentCheckpoint": "Optimistic rechecks are implemented and tested in the normal arm64 Release in mimo-vm. 6 real route changes showed Allowed in 4.17\u20137.39 seconds. Rule averaged 6.81 seconds, versus 8.25 seconds in the staged candidate. PF opening completed in 3.75\u20136.83 seconds. The three-second opening target is not met. All 186 shared tests, 17 PF-source checks, service regressions, 20 packet/fault checks, eight background-audit checks, three engine-restart checks, four in-flight-change checks, two PF fallback/restoration checks, three stalled-controller checks and three native-writer recovery checks pass. Original Rule, proxy/password, allowlist and service intent are restored; installed hashes/signature and test cleanup are verified.",
+  "currentCheckpoint": "Two focused cases pass on the installed normal Release in mimo-vm: opening/audit while the old lifecycle lock stays held, and actual launchd-override repair with full recovery. PF opened in 4.505 s and the full audit finished at 5.561 s in the final warm trial. No lifecycle lock is acquired during opening; the short PF grant lock was acquired without waiting in that trial. The three-second opening target remains unmet. Original Rule/settings/credential/service intent, installed signature/hashes, enabled jobs and cleanup are verified. The full suite was not rerun, as requested.",
   "latestCompletedEvidence": [
     "mimo-service-progress.json",
     "mimo-service-progress-user-confirmation.json",
@@ -142,7 +142,9 @@
     "mimo-optimistic-native-recovery.json",
     "mimo-optimistic-timing.json",
     "mimo-optimistic-timeline.json",
-    "mimo-optimistic-checkpoint.json"
+    "mimo-optimistic-checkpoint.json",
+    "mimo-pf-only-gate.json",
+    "mimo-pf-only-timeline.json"
   ],
   "historicalCheckpoint": {
     "packageSHA256": "16b78e9d9dc487f275b017f1c4cd09da31a188145e43605f187ccdb604e9448a",
@@ -218,10 +220,10 @@
     ],
     "note": "Historical cumulative checkpoint, superseded by currentCheckpoint and latestCompletedEvidence. Per-session authorization and 165-test counts refer to earlier builds."
   },
-  "packageSHA256": "3e47e3bb07251bebcb52a95769ca5abf894f3877f961b7f15ab4466bc8dfd1f1",
-  "helperSHA256": "eccfdf1f6dc234d5fd4b54ed56683bfb1e90f957baaed28141a36be7a369b10f",
-  "guiSHA256": "4594123518d10cfaf6f977eb978b0a649d14f368d179b269f8ca37df647ce7ad",
-  "activeRun": "No test running. Final hashes/signature, original settings/credential/service intent, active Rule, enabled jobs and cleanup verified.",
+  "packageSHA256": "d139769e95217bfdf860673fc68b4eb2fa12bfab259b23fe7d4f0bcedba1b63a",
+  "helperSHA256": "2e8d91e1224a3a979754aca0e38affa659152152c3db6eea0c6be8657e4c0ff7",
+  "guiSHA256": "c3ef134de9907b4952d3a9adba9aeb79b29c93ab0bc459e500b1c3cd4fe41675",
+  "activeRun": "No test running. Original Rule/settings/credential/service intent, installed hashes/signature and cleanup verified.",
   "limitations": [
     "Current candidate is installed through a VM-local acceptance tap; public v1.0 preview is unchanged.",
     "Boot capture starts with its launchd worker and does not establish first-packet protection.",
@@ -232,13 +234,13 @@
     "Native Tailscale was stopped: live peer transport and current native indicator rendering remain unqualified on this artifact."
   ],
   "sourceCheckpoint": {
-    "baselineCommit": "3c82cc1",
+    "baselineCommit": "e342b41",
     "branch": "release/current-candidate",
     "published": true,
     "pullRequest": "https://github.com/jxz345/mimo/pull/1",
     "draft": true,
     "publicBinaryUpdated": false,
-    "note": "Exact runtime qualification uses package/helper hashes; branch includes optimistic opening, background audit and startup-parent cache repair."
+    "note": "PF-only protected opening with explicit repair admission; administrative operations remain coordinated separately. Only focused checks rerun on current artifact."
   },
   "manualSleepEvidence": "mimo-protected-dns-manual-sleep.json: unsupported/incomplete, kernel sleep count unchanged; original Rule retained",
   "sessionEvidence": "mimo-session-events-checkpoint.json",
@@ -343,5 +345,19 @@
     "mimo-optimistic-timing.json",
     "mimo-optimistic-timeline.json",
     "mimo-optimistic-checkpoint.json"
+  ],
+  "pfOnlyCandidate": {
+    "packageSHA256": "d139769e95217bfdf860673fc68b4eb2fa12bfab259b23fe7d4f0bcedba1b63a",
+    "helperSHA256": "2e8d91e1224a3a979754aca0e38affa659152152c3db6eea0c6be8657e4c0ff7",
+    "guiSHA256": "c3ef134de9907b4952d3a9adba9aeb79b29c93ab0bc459e500b1c3cd4fe41675",
+    "configuration": "Release",
+    "architecture": "arm64",
+    "inputs": {
+      "Tests/MihomoRuntimeTests/saved_proxy_test.py": "d10754b14b87901cb020d6feebe958b55115817400c8cbbc89ce125a1ba4fabc"
+    }
+  },
+  "pfOnlyEvidence": [
+    "mimo-pf-only-gate.json",
+    "mimo-pf-only-timeline.json"
   ]
 }
