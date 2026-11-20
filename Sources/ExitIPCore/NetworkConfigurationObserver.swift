@@ -10,12 +10,17 @@ import Foundation
 final class NetworkConfigurationObserver {
     private var store: SCDynamicStore?
     private let onConfigurationChange: ([String]) -> Void
+    private let deliveryQueue: DispatchQueue
 
     init(onConfigurationChange: @escaping () -> Void) {
         self.onConfigurationChange = { _ in onConfigurationChange() }
+        deliveryQueue = .main
     }
 
-    init(onChangedKeys: @escaping ([String]) -> Void) { onConfigurationChange = onChangedKeys }
+    init(deliveryQueue: DispatchQueue = .main, onChangedKeys: @escaping ([String]) -> Void) {
+        self.deliveryQueue = deliveryQueue
+        onConfigurationChange = onChangedKeys
+    }
 
     var isRunning: Bool { store != nil }
 
@@ -52,9 +57,9 @@ final class NetworkConfigurationObserver {
             return
         }
 
-        // Deliver on the owning process's main queue. The supervisor closes
-        // protected traffic before notifying core to request a fresh IP check.
-        guard SCDynamicStoreSetDispatchQueue(dynamicStore, DispatchQueue.main) else {
+        // The supervisor supplies an independent queue for early PF revocation;
+        // other consumers retain main-queue delivery.
+        guard SCDynamicStoreSetDispatchQueue(dynamicStore, deliveryQueue) else {
             Self.logUnavailable(step: "set_dispatch_queue")
             return
         }

@@ -952,3 +952,37 @@ Two focused cases pass on the installed normal Release in mimo-vm: opening/audit
 | 4.505–5.561 | Internet open; full audit completes in the background |
 
 [Focused results](Tests/ReleaseEvidence/mimo-pf-only-gate.json) · [Timeline](Tests/ReleaseEvidence/mimo-pf-only-timeline.json). Actual administrative install/stop/restart coordination remains separate; the opening path no longer acquires its lock. The first repair test found a launchd output spelling mismatch; it was fixed before both final cases passed.
+
+## Early event blocking — 20 November 2026
+
+Start PF revocation from the independent network callback for clearly external changes, alongside delivery to the supervisor actor. A locked snapshot of engine/tunnel ownership identifies route events that cannot be self changes even if the recorded tunnel still matches. Clearly external SystemConfiguration keys also qualify; ambiguous global DNS/interface announcements retain the full existing filter on the actor. SystemConfiguration delivery now has its own queue in the supervisor. Other consumers keep their original main-queue delivery.
+
+```text
+OS callback arrives → quick external-event / protected-mode check
+                         ├─ independent worker: Block PF + confirmation ─┐
+                         └─ actor delivery → status + core scheduling    │
+                              → cleanup + profile preparation ───────────┤
+                                                        join results ←──┘
+                                               permit private probe
+                                                    fresh exit IP
+                                                 validate → Open PF
+                                               full background audit
+```
+
+The callback invalidates old approvals under the same fence used by Direct and final opening. It starts a cancellable close request; actor handling and preparation join that request instead of repeating it. A newer external event replaces an older request, including a completed closure whose private probe might already be permitted. Direct cancels outstanding closure before replacing PF and makes early callbacks skip blocking. Callback reception still depends on macOS delivering the notification; this does not remove pre-detection exposure or the accepted post-opening audit risk.
+
+`route_actor_delivery` and `configuration_actor_delivery` measure callback-to-actor delay. `mimo_network_event_dispatch.early_gate` identifies early versus fully filtered dispatch. Existing `barrier_and_confirmation` and `deny_*` timings measure the concurrent PF operation. Qualification is limited to a warm real route change, Direct superseding a queued early closure under real PF contention, and Direct route changes. No broad suite is requested.
+
+Three focused cases pass on the installed normal Release in mimo-vm. The warm route change opens PF at **3.887 s** and finishes the full audit at **5.060 s**. PF blocking starts **0.002 s** after the route request, overlapping event handling and preparation. Previous individual trial: **4.505 s** to open; these single observations are not a benchmark. Original Rule/settings/credential/service intent and installed hashes/signature are verified. No broad suite was rerun.
+
+| Seconds after route request | Work |
+|---|---|
+| 0.002–1.393 | Block PF and confirm; starts at callback delivery |
+| 0.002–0.641 | Concurrent actor delivery, core scheduling, cleanup and profile reuse/preflight |
+| 1.396–1.688 | Permit private probe after confirmation/join |
+| 1.690–3.082 | Fresh exit-IP lookup |
+| 3.082–3.454 | Core handoff and approval join |
+| 3.454–3.887 | Current identity/policy checks and Open PF |
+| 3.887–5.060 | Internet open; full background audit completes |
+
+[Focused results](Tests/ReleaseEvidence/mimo-early-gate.json) · [Timeline](Tests/ReleaseEvidence/mimo-early-gate-timeline.json).

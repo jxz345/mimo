@@ -1,0 +1,154 @@
+{
+  "date": "2026-11-20",
+  "environment": "mimo-vm",
+  "mode": "rule",
+  "trials": 1,
+  "firewallOpenSeconds": 3.887,
+  "auditFinishedSeconds": 5.06,
+  "previousPFOnlyTrialSeconds": 4.505,
+  "stages": [
+    {
+      "stage": "route_actor_delivery",
+      "startSeconds": 0.002,
+      "endSeconds": 0.002
+    },
+    {
+      "stage": "deny_mutation_wait",
+      "startSeconds": 0.002,
+      "endSeconds": 0.002
+    },
+    {
+      "stage": "deny_permission",
+      "startSeconds": 0.002,
+      "endSeconds": 0.051
+    },
+    {
+      "stage": "deny_barrier",
+      "startSeconds": 0.051,
+      "endSeconds": 0.273
+    },
+    {
+      "stage": "rule_reuse",
+      "startSeconds": 0.332,
+      "endSeconds": 0.332
+    },
+    {
+      "stage": "credentials_and_render",
+      "startSeconds": 0.333,
+      "endSeconds": 0.337
+    },
+    {
+      "stage": "connection_cleanup",
+      "startSeconds": 0.333,
+      "endSeconds": 0.537
+    },
+    {
+      "stage": "deny_states",
+      "startSeconds": 0.273,
+      "endSeconds": 0.576
+    },
+    {
+      "stage": "profile_preflight",
+      "startSeconds": 0.337,
+      "endSeconds": 0.641
+    },
+    {
+      "stage": "deny_readback",
+      "startSeconds": 0.577,
+      "endSeconds": 0.931
+    },
+    {
+      "stage": "barrier_and_confirmation",
+      "startSeconds": 0.002,
+      "endSeconds": 1.393
+    },
+    {
+      "stage": "confirmed_close",
+      "startSeconds": 0.332,
+      "endSeconds": 1.394
+    },
+    {
+      "stage": "rule_validation_join",
+      "startSeconds": 1.394,
+      "endSeconds": 1.394
+    },
+    {
+      "stage": "install_probe_policy",
+      "startSeconds": 1.394,
+      "endSeconds": 1.394
+    },
+    {
+      "stage": "probe_policy",
+      "startSeconds": 1.394,
+      "endSeconds": 1.394
+    },
+    {
+      "stage": "preparation_join",
+      "startSeconds": 1.394,
+      "endSeconds": 1.395
+    },
+    {
+      "stage": "permit_private_probe",
+      "startSeconds": 1.396,
+      "endSeconds": 1.688
+    },
+    {
+      "stage": "private_probe_join",
+      "startSeconds": 1.395,
+      "endSeconds": 1.688
+    },
+    {
+      "stage": "opening_join",
+      "startSeconds": 3.275,
+      "endSeconds": 3.454
+    },
+    {
+      "stage": "grant_mutation_lock",
+      "startSeconds": 3.455,
+      "endSeconds": 3.455
+    },
+    {
+      "stage": "grant_identity",
+      "startSeconds": 3.455,
+      "endSeconds": 3.598
+    },
+    {
+      "stage": "grant_parent_identity",
+      "startSeconds": 3.598,
+      "endSeconds": 3.856
+    },
+    {
+      "stage": "grant_permission",
+      "startSeconds": 3.856,
+      "endSeconds": 3.886
+    },
+    {
+      "stage": "open_gate",
+      "startSeconds": 3.454,
+      "endSeconds": 3.887
+    },
+    {
+      "stage": "installation_inspection",
+      "startSeconds": 3.888,
+      "endSeconds": 4.34
+    },
+    {
+      "stage": "critical_checks",
+      "startSeconds": 4.163,
+      "endSeconds": 4.382
+    },
+    {
+      "stage": "background_audit",
+      "startSeconds": 4.163,
+      "endSeconds": 5.06
+    },
+    {
+      "stage": "exit_ip",
+      "startSeconds": 1.69,
+      "endSeconds": 3.082
+    }
+  ],
+  "scope": "One warm real route trial. Earlier and current timings are individual observations, not a controlled latency benchmark.",
+  "packageSHA256": "2f85429a2359428623af6f85ddcc65c9e1b95781e48ceaaf1d059a0d0ff46a53",
+  "helperSHA256": "2f7b6f246f5406dc941a70670e11f4d918713cd854c0a2f07e8eef2caf5111c3"
+}

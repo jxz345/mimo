@@ -56,8 +56,7 @@ final class MimoSystemRuntime {
     private let cleanupQueue = MimoBlockingWorkQueue("com.mimo.clear-connections", qos: .userInitiated)
     private var cleanupRequest: (token: MimoGateRequest, task: Task<Void, Error>)?
     private nonisolated let firewallPreparationQueue = MimoBlockingWorkQueue("com.mimo.prepare-firewall")
-    private let gateQueue = MimoBlockingWorkQueue("com.mimo.close-gate", qos: .userInitiated)
-    private var gateRequest: (token: MimoGateRequest, task: Task<Bool, Error>)?
+    private nonisolated let applicationGate = MimoApplicationGate()
     private let infrastructureQueue = MimoBlockingWorkQueue("com.mimo.infrastructure-check")
     var profileWillChange: (() -> Void)?
     var profileDidChange: (() -> Void)?
@@ -306,31 +305,25 @@ final class MimoSystemRuntime {
     /// of replacing it with startup rules and then replacing it again for probing.
     /// A damaged/missing parent always takes the full blocking fallback.
     func requestApplicationGate() -> MimoGateRequest {
-        if let gateRequest { return gateRequest.token }
         closed = false
-        let token = MimoGateRequest()
-        let queue = gateQueue
-        let task = Task {
-            guard let result = await queue.run({ Result { try self.holdGateUnderLock(token) } }) else { throw CancellationError() }
-            return try result.get()
-        }
-        gateRequest = (token, task)
-        return token
+        return applicationGate.request { try self.holdGateUnderLock($0) }
+    }
+
+    nonisolated func requestEarlyApplicationGate() {
+        // A new external event also revokes an earlier private-probe grant.
+        // Its completed close request must not be reused as fresh confirmation.
+        _ = applicationGate.request(replacing: true) { try self.holdGateUnderLock($0) }
     }
 
     func confirmApplicationGate(_ token: MimoGateRequest) async throws {
-        guard let request = gateRequest, request.token === token else { throw CancellationError() }
-        let held = try await request.task.value
-        guard gateRequest?.token === request.token, !request.token.isCancelled else { throw CancellationError() }
+        let held = try await applicationGate.confirm(token)
         guard !closed else { return }
         if held { closed = true }
         else { try closeGate(rules: MimoFirewallPolicy.startupBlocking, applyIPv4Preferences: false, cancelPending: false) }
     }
 
     func cancelApplicationGate() {
-        gateRequest?.token.cancel()
-        gateRequest?.task.cancel()
-        gateRequest = nil
+        applicationGate.cancel()
     }
 
     func holdApplicationGate() throws {

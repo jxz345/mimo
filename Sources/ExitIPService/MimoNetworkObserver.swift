@@ -7,6 +7,8 @@ import SystemConfiguration
 @MainActor
 final class MimoNetworkObserver {
     private let changed: (String) -> Void
+    private let earlyBlock: @Sendable () -> Bool
+    private let routeOwnership = MimoRouteOwnership()
     private var engineProcess: Int32?
     private var tunnelSignature: String?
     private var tunnelIndices: Set<UInt16> = []
@@ -17,15 +19,37 @@ final class MimoNetworkObserver {
     private var globalConfiguration: [String: NSDictionary]?
     private var externalDNSConfiguration: [String: NSDictionary]?
     var diagnostic: ((String) -> Void)?
-    private lazy var configuration = NetworkConfigurationObserver(onChangedKeys: { [weak self] keys in
-        Task { @MainActor in self?.configurationChanged(keys) }
+    private lazy var configuration = NetworkConfigurationObserver(
+        deliveryQueue: DispatchQueue(label: "app.mimo.network-configuration", qos: .userInitiated),
+        onChangedKeys: { [weak self, earlyBlock] keys in
+        let timing = MimoTransitionTiming("network_event")
+        let external = keys.isEmpty || keys.contains { key in
+            key != MimoRuntime.dnsStateKey && key != "State:/Network/Interface" &&
+            !key.hasPrefix("State:/Network/Global/") &&
+            !key.hasPrefix("State:/Network/Interface/\(MihomoProfile.tunnelDevice)/")
+        }
+        let early = external && earlyBlock()
+        Task { @MainActor in
+            var timing = timing
+            timing.record("configuration_actor_delivery")
+            self?.configurationChanged(keys, early: early)
+        }
     })
-    private lazy var routes = RouteChangeObserver(onChanges: { [weak self] changes in
+    private lazy var routes = RouteChangeObserver(onChanges: { [weak self, routeOwnership, earlyBlock] changes in
         let receivedAt = ContinuousClock.now
-        Task { @MainActor in self?.routesChanged(changes, receivedAt: receivedAt) }
+        let timing = MimoTransitionTiming("network_event")
+        let early = routeOwnership.isDefinitelyExternal(changes, at: receivedAt) && earlyBlock()
+        Task { @MainActor in
+            var timing = timing
+            timing.record("route_actor_delivery")
+            self?.routesChanged(changes, receivedAt: receivedAt, early: early)
+        }
     })
 
-    init(changed: @escaping (String) -> Void) { self.changed = changed }
+    init(earlyBlock: @escaping @Sendable () -> Bool, changed: @escaping (String) -> Void) {
+        self.earlyBlock = earlyBlock
+        self.changed = changed
+    }
     var isRunning: Bool { configuration.isRunning && routes.isRunning }
 
     func start() {
@@ -42,6 +66,7 @@ final class MimoNetworkObserver {
         tunnelIndices.removeAll()
         rememberTunnelIndex()
         tunnelAddresses = addresses(in: currentTunnelSignature())
+        publishRouteOwnership()
     }
 
     func didChangeProfile() {
@@ -50,8 +75,14 @@ final class MimoNetworkObserver {
         tunnelAddresses.formUnion(addresses(in: tunnelSignature ?? ""))
         profileChangeDeadline = .now.advanced(by: .seconds(2))
         expectedDNS = currentDNS()
+        publishRouteOwnership()
         // Do not refresh the external-interface baseline here: an external change
         // concurrent with profile loading must still be delivered afterwards.
+    }
+
+    private func publishRouteOwnership() {
+        routeOwnership.update(engine: engineProcess, indices: tunnelIndices,
+                              addresses: tunnelAddresses, deadline: profileChangeDeadline)
     }
 
     private func addresses(in signature: String) -> Set<String> {
@@ -111,7 +142,7 @@ final class MimoNetworkObserver {
         return NSDictionary(dictionary: resolver) == NSDictionary(dictionary: expected)
     }
 
-    private func configurationChanged(_ keys: [String]) {
+    private func configurationChanged(_ keys: [String], early: Bool) {
         diagnostic?("configuration: " + keys.joined(separator: ","))
         let current = interfaces()
         let currentGlobals = globals()
@@ -143,16 +174,22 @@ final class MimoNetworkObserver {
             return true
         }
         otherInterfaces = current
-        if keys.isEmpty || !externalKeys.isEmpty {
+        if early || keys.isEmpty || !externalKeys.isEmpty {
             RuntimeLog.shared.info("mimo_network_configuration_external", fields: [
                 "keys": externalKeys.joined(separator: ","), "tunnelMatches": String(tunnelMatches)
             ])
+            RuntimeLog.shared.info("mimo_network_event_dispatch", fields: ["source": "configuration", "early_gate": String(early)])
             changed("configuration")
         }
     }
 
-    private func routesChanged(_ changes: [RouteChangeObserver.Change], receivedAt: ContinuousClock.Instant) {
+    private func routesChanged(_ changes: [RouteChangeObserver.Change], receivedAt: ContinuousClock.Instant, early: Bool) {
         diagnostic?("routes: " + changes.map { "type=\($0.type) interface=\($0.interfaceName ?? "unknown") index=\($0.interfaceIndex) pid=\($0.processID.map(String.init) ?? "none") addresses=\($0.addresses.joined(separator: ","))" }.joined(separator: "; "))
+        if early {
+            RuntimeLog.shared.info("mimo_network_event_dispatch", fields: ["source": "route", "early_gate": "true"])
+            changed("route")
+            return
+        }
         let signatureMatches = tunnelSignature != nil && tunnelSignature == currentTunnelSignature()
         let external = changes.contains { change in
             let owned = change.interfaceName == MihomoProfile.tunnelDevice ||
@@ -163,6 +200,41 @@ final class MimoNetworkObserver {
                 ownedAddress: !tunnelAddresses.isDisjoint(with: change.addresses),
                 insideProfileChangeWindow: receivedAt <= profileChangeDeadline)
         }
-        if external { changed("route") }
+        if external {
+            RuntimeLog.shared.info("mimo_network_event_dispatch", fields: ["source": "route", "early_gate": "false"])
+            changed("route")
+        }
+    }
+}
+
+/// The callback uses only this small locked snapshot, never actor-owned state or
+/// ifconfig. Assume the tunnel matches: only changes that are external even with
+/// that generous self-event assumption qualify for early revocation.
+private final class MimoRouteOwnership: @unchecked Sendable {
+    private let lock = NSLock()
+    private var engine: Int32?
+    private var indices: Set<UInt16> = []
+    private var addresses: Set<String> = []
+    private var deadline = ContinuousClock.now
+
+    func update(engine: Int32?, indices: Set<UInt16>, addresses: Set<String>, deadline: ContinuousClock.Instant) {
+        lock.withLock {
+            self.engine = engine; self.indices = indices
+            self.addresses = addresses; self.deadline = deadline
+        }
+    }
+
+    func isDefinitelyExternal(_ changes: [RouteChangeObserver.Change], at receivedAt: ContinuousClock.Instant) -> Bool {
+        lock.withLock {
+            changes.contains { change in
+                let owned = change.interfaceName == MihomoProfile.tunnelDevice ||
+                    (change.interfaceName == nil && indices.contains(change.interfaceIndex))
+                return !MimoNetworkChangePolicy.isExpectedTunnelChange(ownedInterface: owned,
+                    recordedTunnelMatches: true, eventProcess: change.processID, engineProcess: engine,
+                    unresolvedInterface: change.interfaceIndex == 0 && change.interfaceName == nil,
+                    ownedAddress: !addresses.isDisjoint(with: change.addresses),
+                    insideProfileChangeWindow: receivedAt <= deadline)
+            }
+        }
     }
 }

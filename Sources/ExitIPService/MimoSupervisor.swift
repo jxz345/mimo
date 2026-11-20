@@ -40,7 +40,11 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
     private var configurationKnown = false
     private var directRestorationAllowed = false
     private var commandFence = MimoCommandFence()
-    private lazy var networkObserver = MimoNetworkObserver { [weak self] reason in self?.networkChanged(reason) }
+    private lazy var networkObserver = MimoNetworkObserver(earlyBlock: { [runtime, fence = powerGuard.fence] in
+        // Invalidate old approvals at callback delivery, before actor scheduling.
+        // The fence also serializes with Direct and excludes Direct from blocking.
+        (try? fence.invalidate { runtime.requestEarlyApplicationGate() }) ?? false
+    }, changed: { [weak self] reason in self?.networkChanged(reason) })
     private lazy var powerGuard = MimoPowerGuard { [weak self] reason in self?.networkChanged(reason) }
     private lazy var sessionObserver = MimoSessionObserver(powerGuard: powerGuard) { [weak self] reason in self?.networkChanged(reason) }
     private var verificationPowerEpoch: UInt64?
