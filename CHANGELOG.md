@@ -1,6 +1,9 @@
 # Mimo changelog
 
-## Unreleased — current VM candidate
+## 1.0 — 2026-11-20
+
+- Publish the accepted Apple silicon build through `brew install --cask jxz345/tap/mimo`, with pinned mihomo 1.19.34 and Mimo.app. Put complete Homebrew installation and preview-reinstallation steps at the top of README.
+- Cancel obsolete IP lookups, serialize one pending follow-up and join tailnet-provider changes without an extra standalone close. Final focused VM checks pass; warm route opening took 3.708 seconds and tailnet on/off took 6.547/8.252 seconds.
 
 - Recover automatically from native Tailscale firewall-update failures only after a successful native update and fresh protected verification; keep the final opening blocked while native-rule health is failed.
 
@@ -25,7 +28,7 @@
 - Use proxied encrypted public DNS in both Rule and Global, while retaining private MagicDNS and explicit encrypted bootstrap.
 - Follow native Tailscale connectivity automatically, repair relay recovery, and report a stopped provider as a failure only when the tailnet is expected.
 - Use Dashboard/Settings tabs, stable layout, consistent service typography, compact Monitoring controls, menu shortcuts and the Finder app icon in the Dock. Retain the colored live menu indicators and triggering blocked IP.
-- Record exact-build installed tests in [VM acceptance evidence](Tests/ReleaseEvidence/MIMO_NORMAL_RELEASE_ACCEPTANCE.md). Early traffic before the independent PF loader, actual macOS sleep/wake, peer UDP and simultaneous logged-in GUI sessions are not qualified. The user confirms physical mode/Quit shortcuts and sequential account sign-in checks. The public 1.0 preview below is unchanged.
+- Record exact-build installed tests in [VM acceptance evidence](Tests/ReleaseEvidence/MIMO_NORMAL_RELEASE_ACCEPTANCE.md). Early traffic before the independent PF loader, actual macOS sleep/wake, peer UDP and simultaneous logged-in GUI sessions are not qualified. The user confirms physical mode/Quit shortcuts and sequential account sign-in checks. The final release replaces the earlier 1.0 preview.
 
 ## 1.0 — 2026-11-18 (preview)
 

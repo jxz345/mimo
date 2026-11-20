@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# Cask for the Mimo preview. Update `version` and `sha256` after each release, taking both
+# Cask for Mimo. Update `version` and `sha256` after each release, taking both
 # from the release's SHA256SUMS (Scripts/package-release.sh prints them). Background:
 # https://github.com/jxz345/mimo#first-launch
 cask "mimo" do
@@ -9,12 +9,8 @@ cask "mimo" do
 
   url "https://github.com/jxz345/mimo/releases/download/v#{version}/ExitIPMonitor-#{version}.zip"
   name "Mimo"
-  desc "IPv4 exit-IP monitor with shared background services (preview)"
+  desc "IPv4 proxy routing and exit-IP monitoring"
   homepage "https://github.com/jxz345/mimo"
-
-  livecheck do
-    skip "Preview release; protected routing is not yet qualified"
-  end
 
   depends_on macos: :sonoma
   depends_on arch: :arm64
@@ -384,9 +380,9 @@ cask "mimo" do
   ]
 
   caveats <<~EOS
-    Mimo 1.0 is a preview for Apple silicon Macs. Rule and Global require a
-    verified proxy exit on the saved allowlist. Release qualification is ongoing.
-    Do not use this preview to protect live traffic.
+    Mimo 1.0 supports Apple silicon Macs and IPv4 traffic. Rule and Global
+    require a configured proxy and a verified exit IP on the saved allowlist.
+    See the release notes for protection boundaries and tested environments.
 
     Installation requires administrator authentication, installs pinned mihomo
     1.19.34, and disables IPv6 on network services while Mimo is installed.
