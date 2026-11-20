@@ -124,17 +124,20 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
         let interruptsVerification = routing?.state.phase == .checking || routing?.state.phase == .validating || routing?.state.phase == .closing
         if interruptsVerification {
             engine.invalidatePendingLookup()
-            await routing?.beginConfigurationChange(reason: "Tailscale connection changed. Verification is required.")
+            // A check already owns closure. Invalidate its result immediately,
+            // then join the monitor's single follow-up; do not send another
+            // standalone close before committing this provider-only setting.
+            routing?.supervisorNetworkChanged()
         }
-        defer { if interruptsVerification { routing?.endConfigurationChange() } }
         do {
             var next = settings
             next.tailscaleProviderEnabled = enabled
             try storage.update(["service.settings": try JSONEncoder().encode(next), "service.revision": revision + 1])
             settings = next; revision += 1
+            RuntimeLog.shared.info("mimo_tailnet_settings_committed", fields: ["enabled": String(enabled), "revision": String(revision)])
             provider.setEnabled(enabled)
             await routing?.update(configuration: routingConfiguration, allowlist: settings.allowlist, revision: revision,
-                                  preservingAccess: !interruptsVerification)
+                                  preservingAccess: true)
             if interruptsVerification {
                 Task { [engine] in await engine.refresh(force: true, bypassMinimumInterval: true, trigger: .networkConfiguration) }
             }

@@ -7,11 +7,12 @@
     "Actual macOS sleep/wake: VM refused the real last request (exit 71), counters unchanged",
     "Simultaneous GUI sessions and existing peer UDP echo: environment limitations",
     "First-packet traffic before independent PF initialization remains outside the guarantee",
-    "Public release/tap update remains separate from this source candidate"
+    "Public release/tap update remains separate from this source candidate",
+    "Tailnet toggle end-to-end latency: 6.547/8.252 s in the focused run, above the 3\u20134 second target"
   ],
   "failures": [],
   "architecture": "arm64",
-  "currentCheckpoint": "The remaining installed-VM regression campaign is complete, apart from environment-dependent limits. The broad pre-fix build passed 206 checks covering packets, DNS privacy, live Tailscale/DERP, cross-account access, service controls and PF/launchd repair. Testing found and fixed a hostname-bootstrap deadlock: Mimo now removes the previous TUN under closed PF before permitting restricted DNS. The corrected build passes 4 hostname checks, 20 packet/fault checks, 5 real network-event checks, 12 detailed Homebrew checks, 10 real reboot checks per protected mode, 4 human lock/unlock checks and 7 final restoration checks. N1\u2013N3 are retained. The human unlock opened PF about 2 seconds after detection (whole-second logs). Four warm route trials opened PF in 2.865\u20133.573 seconds; this is not a latency guarantee. Actual system sleep was refused by the VM (exit 71; unchanged counters). A working hostname for the actual proxy, simultaneous GUI sessions, peer UDP echo and protection before the independent boot loader remain outside this qualification. Original Rule/settings/password/service intent and Tailscale Stopped are restored; all test jobs/processes are removed. Public release/tap binaries are unchanged.",
+  "currentCheckpoint": "Limited scheduling/cancellation/status patch installed in mimo-vm. Four real event scenarios plus restoration passed; separate baseline/hash/signature verification passed. Warm Global route opened at 3.708 s; Rule tailnet on/off at 6.547/8.252 s, so the tailnet end-to-end 3\u20134 second target is still unmet. Original Rule, native state, settings, credential and service intent restored. No broad regression suite rerun; PF rules/locks, approval fences and N1\u2013N3 unchanged.",
   "latestCompletedEvidence": [
     "mimo-final-coverage-accounts-0.json",
     "mimo-final-coverage-accounts-1.json",
@@ -442,5 +443,7 @@
     "mimo-pf-only-gate.json",
     "mimo-pf-only-timeline.json"
   ],
-  "currentTimeline": "mimo-final-coverage-timeline.json"
+  "currentTimeline": "mimo-final-coverage-timeline.json",
+  "beforeEventSchedulingCheckpoint": "The remaining installed-VM regression campaign is complete, apart from environment-dependent limits. The broad pre-fix build passed 206 checks covering packets, DNS privacy, live Tailscale/DERP, cross-account access, service controls and PF/launchd repair. Testing found and fixed a hostname-bootstrap deadlock: Mimo now removes the previous TUN under closed PF before permitting restricted DNS. The corrected build passes 4 hostname checks, 20 packet/fault checks, 5 real network-event checks, 12 detailed Homebrew checks, 10 real reboot checks per protected mode, 4 human lock/unlock checks and 7 final restoration checks. N1\u2013N3 are retained. The human unlock opened PF about 2 seconds after detection (whole-second logs). Four warm route trials opened PF in 2.865\u20133.573 seconds; this is not a latency guarantee. Actual system sleep was refused by the VM (exit 71; unchanged counters). A working hostname for the actual proxy, simultaneous GUI sessions, peer UDP echo and protection before the independent boot loader remain outside this qualification. Original Rule/settings/password/service intent and Tailscale Stopped are restored; all test jobs/processes are removed. Public release/tap binaries are unchanged.",
+  "eventSchedulingEvidence": "mimo-event-scheduling.json"
 }

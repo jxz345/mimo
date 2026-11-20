@@ -1053,3 +1053,35 @@ Fresh installation on Homebrew 6 needs item-level trust for `jxz345/tap/mihomo@1
 The remaining installed-VM regression campaign is complete, apart from environment-dependent limits. The broad pre-fix build passed 206 checks covering packets, DNS privacy, live Tailscale/DERP, cross-account access, service controls and PF/launchd repair. Testing found and fixed a hostname-bootstrap deadlock: Mimo now removes the previous TUN under closed PF before permitting restricted DNS. The corrected build passes 4 hostname checks, 20 packet/fault checks, 5 real network-event checks, 12 detailed Homebrew checks, 10 real reboot checks per protected mode, 4 human lock/unlock checks and 7 final restoration checks. N1–N3 are retained.
 
 The human unlock opened PF about 2 seconds after detection (whole-second logs). Four warm route trials opened PF in 2.865–3.573 seconds; this is not a latency guarantee. Actual system sleep was refused by the VM (exit 71; unchanged counters). A working hostname for the actual proxy, simultaneous GUI sessions, peer UDP echo and protection before the independent boot loader remain outside this qualification. Original Rule/settings/password/service intent and Tailscale Stopped are restored; all test jobs/processes are removed. Public release/tap binaries are unchanged. [Full evidence](Tests/ReleaseEvidence/MIMO_FINAL_COVERAGE.md). Homebrew 6 item trust is documented in the install instructions; only the verified pinned formula was trusted. Source implementation is `30c295c`; the public release is separate.
+
+## Limited event scheduling correction — 20 November 2026
+
+Keep the existing fast Rule/Global path: immediate approval invalidation and concurrent PF blocking/preparation → confirmed block and restricted probe permission → fresh allowed exit IP → current-generation approval and PF opening → background audit. The warm target remains 3–4 seconds, not a guarantee for a VPN that continues changing routes.
+
+Only scheduling changes: cancel the actual obsolete lookup, retain its slot until it ends, and merge all pending network events into one immediate follow-up. Check cancellation before interpreting an interrupted prepare reply as a provider failure. Preserve a confirmed blocked indication during preparation. Tailnet-provider settings changes invalidate obsolete verification and commit promptly, then join the same pending follow-up without a second standalone close. Strict saved-revision checks and immediate real OS notifications remain in place. This avoids a new approval-revision scheme or a new PF gate implementation. Direct continues to refresh without blocking.
+
+Validate with a small number of real native Tailscale toggles, a real route change, Direct-event behavior, and final configuration/credential restoration in mimo-vm. Do not rerun the broad suite for this change.
+
+Focused VM validation passed on the installed Release: native Tailscale on/off in Rule, a real route change in Global, a real route change in Direct, and restoration of original Rule/native state/settings/password/service intent. No overlapping lookups or spurious “Blocking traffic and preparing verification” provider error appeared; each protected action opened once, and Direct never closed. A separate read-only check verified installed hashes/signature and the pre-installation configuration baseline. No broad suite was rerun.
+
+| Actual VM action | Notifications | Lookup attempts (including cancelled preparation) | PF openings | Action → open |
+| --- | ---: | ---: | ---: | ---: |
+| Rule: Tailscale on | 6 | 2 | 1 | 6.547 s |
+| Rule: Tailscale off | 5 | 4 | 1 | 8.252 s |
+| Global: warm route added | 1 | 1 | 1 | 3.708 s |
+| Direct: route added | 1 | 1 | 0 | Stayed open |
+
+The warm route meets the 3–4 second target in this sample; end-to-end Tailscale toggles do not. Later network changes and cancelled preparation can still require another attempt. This limited patch does not coalesce PF mutations or redesign supervisor RPC cancellation.
+
+Warm Global timeline (seconds after the real route request):
+
+| Time | Work |
+| --- | --- |
+| 0.004–1.342 | PF block and confirmation; event delivery, connection cleanup and profile preflight run concurrently |
+| 1.342–1.615 | Install reused restricted rules; permit private probe |
+| 1.617–2.630 | Fresh exit-IP lookup |
+| 2.630–3.086 | Core handoff and current approval checks |
+| 3.086–3.708 | Final identity/permission checks and PF opening |
+| 3.852–4.886 | Background audit, passed |
+
+[Exact artifact hashes and monotonic stage evidence](Tests/ReleaseEvidence/mimo-event-scheduling.json).

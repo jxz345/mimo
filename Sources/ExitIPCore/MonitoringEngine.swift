@@ -76,9 +76,10 @@ final class MonitoringEngine: ObservableObject {
             }
         }
     }
-    var networkConfigurationChanged: (() async -> Void)?
+    var networkConfigurationChanged: (() -> Void)?
     var requiredCheckUnavailable: ((String) -> Void)?
     private var activeLookupID: UUID?
+    private var activeLookupTask: Task<ExitIPSnapshot, Error>?
     @Published private(set) var preferences: MonitoringPreferences
     @Published private(set) var indicators: MonitorIndicatorState
     @Published private(set) var allowedIPList: AllowedIPList
@@ -144,6 +145,7 @@ final class MonitoringEngine: ObservableObject {
     private var isRefreshing = false
     /// Highest urgency among requests folded into the post-lookup `.recheck`; `nil` when none is owed.
     private var recheckUrgency: RefreshUrgency?
+    private var recheckBypassesMinimumInterval = false
     /// The single pending `.queued` refresh (boundary + highest urgency).
     private var pendingRefresh = PendingRefresh()
     private var hasVerifiedAddressThisSession = false
@@ -251,7 +253,9 @@ final class MonitoringEngine: ObservableObject {
         RuntimeLog.shared.info("monitor_stopped")
         isStarted = false
         lifecycleGeneration &+= 1
+        activeLookupTask?.cancel()
         recheckUrgency = nil
+        recheckBypassesMinimumInterval = false
         refreshTimer?.invalidate()
         refreshTimer = nil
         displayTimer?.invalidate()
@@ -330,12 +334,13 @@ final class MonitoringEngine: ObservableObject {
         }
     }
 
-    /// Discard results started with a configuration that is about to be replaced.
+    /// Cancel obsolete work, but keep its slot until it has actually unwound.
+    /// Later requests share one follow-up instead of starting overlapping probes.
     func invalidatePendingLookup() {
         lifecycleGeneration &+= 1
-        activeLookupID = nil
-        isRefreshing = false
+        activeLookupTask?.cancel()
         recheckUrgency = nil
+        recheckBypassesMinimumInterval = false
         retryTask?.cancel()
         retryTask = nil
     }
@@ -482,6 +487,7 @@ final class MonitoringEngine: ObservableObject {
             // Routine triggers don't need a recheck: the in-flight lookup already answers them.
             if force, urgency >= .followUp, trigger != .manual {
                 recheckUrgency = max(recheckUrgency ?? urgency, urgency)
+                recheckBypassesMinimumInterval = recheckBypassesMinimumInterval || bypassMinimumInterval
             }
             RuntimeLog.shared.info("refresh_coalesced_in_flight", fields: ["trigger": trigger.rawValue])
             return
@@ -584,23 +590,31 @@ final class MonitoringEngine: ObservableObject {
         activeLookupID = lookupID
         isRefreshing = true
         status = .refreshing
-        RuntimeLog.shared.info("lookup_started", fields: ["provider": activeProvider.rawValue])
+        RuntimeLog.shared.info("lookup_started", fields: ["provider": activeProvider.rawValue, "lookup": lookupID.uuidString])
         defer {
+            RuntimeLog.shared.info("lookup_finished", fields: ["lookup": lookupID.uuidString])
             if activeLookupID == lookupID {
                 activeLookupID = nil
+                activeLookupTask = nil
                 isRefreshing = false
-                if let urgency = recheckUrgency {
+                if isStarted, let urgency = recheckUrgency {
+                    let bypass = recheckBypassesMinimumInterval
                     recheckUrgency = nil
-                    Task { await self.refresh(force: true, trigger: .recheck, urgency: urgency) }
+                    recheckBypassesMinimumInterval = false
+                    Task {
+                        guard self.isStarted else { return }
+                        await self.refresh(force: true, bypassMinimumInterval: bypass, trigger: .recheck, urgency: urgency)
+                    }
                 }
             }
         }
 
         do {
             let token = activeProvider == .ipinfoLite ? ipinfoToken : nil
-            var fetched = try await lookup(
-                configuration: LookupConfiguration(provider: activeProvider, ipinfoToken: token)
-            )
+            let configuration = LookupConfiguration(provider: activeProvider, ipinfoToken: token)
+            let request = Task { try await self.lookup(configuration: configuration) }
+            activeLookupTask = request
+            var fetched = try await request.value
             guard isStarted, refreshGeneration == lifecycleGeneration else {
                 RuntimeLog.shared.info("lookup_discarded_after_stop", fields: ["provider": activeProvider.rawValue])
                 return
@@ -668,10 +682,12 @@ final class MonitoringEngine: ObservableObject {
                 }
                 refreshAttemptStore.recordAttempt(for: confirmationProvider, at: currentDate)
                 do {
-                    let confirmation = try await confirmCountryChange(
-                        primaryProvider: activeProvider,
-                        ipinfoToken: token
-                    )
+                    let primaryProvider = activeProvider
+                    let request = Task {
+                        try await self.confirmCountryChange(primaryProvider: primaryProvider, ipinfoToken: token)
+                    }
+                    activeLookupTask = request
+                    let confirmation = try await request.value
                     guard isStarted, refreshGeneration == lifecycleGeneration else { return }
                     cooldownStore.clear(for: confirmationProvider)
                     updateProviderHealth(confirmationProvider) { record in
@@ -1013,12 +1029,10 @@ final class MonitoringEngine: ObservableObject {
     /// `refresh` sends that trailing lookup to the next provider, so neither lookup has to queue.
     private func handleEventTrigger(_ trigger: RefreshTrigger) {
         if let networkConfigurationChanged {
-            lifecycleGeneration &+= 1
-            activeLookupID = nil
-            isRefreshing = false
+            invalidatePendingLookup()
+            networkConfigurationChanged()
             let generation = lifecycleGeneration
             Task {
-                await networkConfigurationChanged()
                 guard generation == lifecycleGeneration, isStarted else { return }
                 await refresh(force: true, bypassMinimumInterval: true, trigger: trigger)
             }

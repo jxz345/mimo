@@ -182,6 +182,8 @@ final class MimoCoordinator {
             message.configuration = configuration; message.allowlist = allowlist
             message.revision = revision; message.networkGeneration = generation
             let result = try await send(message)
+            try Task.checkCancellation()
+            guard generation == networkGeneration, revision == self.revision else { throw CancellationError() }
             guard result.phase == .checking, let token = result.verification,
                   token.revision == revision, token.networkGeneration == generation else {
                 throw MimoRuntimeError.unavailable(result.reason)

@@ -331,7 +331,11 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 let epoch = generation
                 cancelReadiness()
                 activeProfile = nil
-                policy.requestingBlock("Blocking traffic and preparing verification.")
+                if runtime.closed, [.blocked, .validating, .checking].contains(policy.state.phase) {
+                    policy.block("Preparing verification. Internet remains blocked.")
+                } else {
+                    policy.requestingBlock("Blocking traffic and preparing verification.")
+                }
                 let gate = runtime.requestApplicationGate()
                 guard let powerEpoch = verificationPowerEpoch else { throw CancellationError() }
                 var validated = try configuration.validated()
