@@ -1,0 +1,11 @@
+{
+  "success": true,
+  "packageSHA256": "0e2be8e633927db5fde7e1203e0d7a8f2c2c852e5e44382083c255d60c650065",
+  "guiSHA256": "9ae83fead6840b5cfeb1330415aadafa483242a4faf9127ab0401d2d375b33a7",
+  "helperSHA256": "3c8cfed59222a780f0bbf4bf55f9b4437cb0034fff7dbf1c26ab0d7b0d487d1c",
+  "passed": [
+    "installed-app-permitted-controls-and-profile-access-as-jay-without-password",
+    "root-only-operations-remain-restricted"
+  ],
+  "scope": "Non-mutating installed-app --check-service-access after both actual reboot tests; no physical GUI click claimed."
+}

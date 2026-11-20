@@ -1,0 +1,22 @@
+{
+  "success": true,
+  "evidence": "mimo-release-brew-jk7iti5q",
+  "passed": [
+    "uninstalled-retains-saved-configuration-and-Keychain-password",
+    "brew-uninstall-removes-app-runtime-jobs-and-persistent-PF-policy",
+    "brew-uninstall-restores-original-IPv6-enabled-flags",
+    "brew-uninstall-restores-ordinary-user-HTTPS",
+    "installed-retains-saved-configuration-and-Keychain-password",
+    "brew-installed-Release-helper-signature-Direct-and-service-intent-confirmed",
+    "explicitly-installed-pinned-mihomo-remains-after-Mimo-uninstall"
+  ],
+  "packageSHA256": "0e2be8e633927db5fde7e1203e0d7a8f2c2c852e5e44382083c255d60c650065",
+  "helperSHA256": "3c8cfed59222a780f0bbf4bf55f9b4437cb0034fff7dbf1c26ab0d7b0d487d1c",
+  "guiSHA256": "9ae83fead6840b5cfeb1330415aadafa483242a4faf9127ab0401d2d375b33a7",
+  "scope": "Actual Homebrew uninstall/install as jay in mimo-vm; standard bundled privileged service setup using authorized VM test administrator; original explicit dependency intent retained.",
+  "limitations": [
+    "VM-local acceptance tap; public release unchanged.",
+    "Successful interactive jay password flow not exercised; postflight without authentication followed by authorized standard service setup.",
+    "Automatic removal of an unused dependency was covered by the earlier normal-release Brew report, not repeated in this cycle."
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "success": true,
+  "mode": "global",
+  "passed": [
+    "actual-macOS-reboot-confirmed",
+    "startup-with-GUI-executable-unavailable-and-login-preference-unchanged",
+    "saved-global-recovered-with-user-approved-exit",
+    "independent-boot-guard-and-IPv4-policy-active",
+    "fresh-private-probe-precedes-opening-after-reboot",
+    "unchanged-normal-Release-helper",
+    "original-Direct-settings-service-intent-and-password-restored",
+    "original-GUI-executable-and-app-signature-restored",
+    "same-user-process-Direct-capture-positive-control",
+    "no-direct-ordinary-packets-during-captured-protected-startup"
+  ],
+  "errors": [],
+  "helperSHA256": "3c8cfed59222a780f0bbf4bf55f9b4437cb0034fff7dbf1c26ab0d7b0d487d1c",
+  "packageSHA256": "0e2be8e633927db5fde7e1203e0d7a8f2c2c852e5e44382083c255d60c650065",
+  "captureStartedAt": 1795140191.310843,
+  "protectedCaptureEndedAt": 1795140218.107876,
+  "firstPacketBootProtectionProven": false,
+  "scope": "Normal installed Release helper; actual saved proxy; real reboot with GUI executable temporarily unavailable; capture starts at launchd worker"
+}
