@@ -1,6 +1,8 @@
 # Mimo for macOS
 
-## Current candidate and published 1.0
+**Project accepted and development closed — 20 November 2026.** The project owner accepted the current version, source [`5a6eb77`](https://github.com/jxz345/mimo/commit/5a6eb775059ac286bc90af4492f6bb286c271ceb), installed in mimo-vm. The final focused checks and measured timings are recorded in [the acceptance evidence](Tests/ReleaseEvidence/mimo-event-scheduling.json). Remaining performance and qualification limits stay documented; they are not reported as passed. No further implementation or testing is scheduled. This acceptance does not publish a new release or update the public Homebrew tap.
+
+## Accepted candidate and published 1.0
 
 **Completed VM regression campaign (2026-11-20):** The remaining installed-VM regression campaign is complete, apart from environment-dependent limits. The broad pre-fix build passed 206 checks covering packets, DNS privacy, live Tailscale/DERP, cross-account access, service controls and PF/launchd repair. Testing found and fixed a hostname-bootstrap deadlock: Mimo now removes the previous TUN under closed PF before permitting restricted DNS. The corrected build passes 4 hostname checks, 20 packet/fault checks, 5 real network-event checks, 12 detailed Homebrew checks, 10 real reboot checks per protected mode, 4 human lock/unlock checks and 7 final restoration checks. N1–N3 are retained.
 

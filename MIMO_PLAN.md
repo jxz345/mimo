@@ -1085,3 +1085,11 @@ Warm Global timeline (seconds after the real route request):
 | 3.852–4.886 | Background audit, passed |
 
 [Exact artifact hashes and monotonic stage evidence](Tests/ReleaseEvidence/mimo-event-scheduling.json).
+
+## Project acceptance and closure — 20 November 2026
+
+The project owner accepted the delivered version as good enough and closed development. Accepted implementation: `5a6eb77`, installed in mimo-vm and identified by the exact artifact hashes in [the final focused evidence](Tests/ReleaseEvidence/mimo-event-scheduling.json). At handoff, original Rule/settings/credentials/service intent were restored and Mimo was reopened.
+
+No further code changes, timing optimization or tests are planned. The recorded tailnet timings of 6.547/8.252 seconds remain above the original target. Unqualified actual sleep/wake, simultaneous GUI sessions, successful hostname-proxy coverage, peer UDP echo and the pre-PF boot interval remain documented limitations; project acceptance does not turn them into test passes. Public release and Homebrew tap binaries remain unchanged.
+
+This closeout changes documentation only. The existing installation continues operating.

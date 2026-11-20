@@ -12,7 +12,7 @@
   ],
   "failures": [],
   "architecture": "arm64",
-  "currentCheckpoint": "Limited scheduling/cancellation/status patch installed in mimo-vm. Four real event scenarios plus restoration passed; separate baseline/hash/signature verification passed. Warm Global route opened at 3.708 s; Rule tailnet on/off at 6.547/8.252 s, so the tailnet end-to-end 3\u20134 second target is still unmet. Original Rule, native state, settings, credential and service intent restored. No broad regression suite rerun; PF rules/locks, approval fences and N1\u2013N3 unchanged.",
+  "currentCheckpoint": "Project owner accepted the delivered version and closed development on 2026-11-20. No further implementation or testing is scheduled. Limited scheduling/cancellation/status patch installed in mimo-vm. Four real event scenarios plus restoration passed; separate baseline/hash/signature verification passed. Warm Global route opened at 3.708 s; Rule tailnet on/off at 6.547/8.252 s, so the tailnet end-to-end 3\u20134 second target is still unmet. Original Rule, native state, settings, credential and service intent restored. No broad regression suite rerun; PF rules/locks, approval fences and N1\u2013N3 unchanged.",
   "latestCompletedEvidence": [
     "mimo-final-coverage-accounts-0.json",
     "mimo-final-coverage-accounts-1.json",
@@ -445,5 +445,14 @@
   ],
   "currentTimeline": "mimo-final-coverage-timeline.json",
   "beforeEventSchedulingCheckpoint": "The remaining installed-VM regression campaign is complete, apart from environment-dependent limits. The broad pre-fix build passed 206 checks covering packets, DNS privacy, live Tailscale/DERP, cross-account access, service controls and PF/launchd repair. Testing found and fixed a hostname-bootstrap deadlock: Mimo now removes the previous TUN under closed PF before permitting restricted DNS. The corrected build passes 4 hostname checks, 20 packet/fault checks, 5 real network-event checks, 12 detailed Homebrew checks, 10 real reboot checks per protected mode, 4 human lock/unlock checks and 7 final restoration checks. N1\u2013N3 are retained. The human unlock opened PF about 2 seconds after detection (whole-second logs). Four warm route trials opened PF in 2.865\u20133.573 seconds; this is not a latency guarantee. Actual system sleep was refused by the VM (exit 71; unchanged counters). A working hostname for the actual proxy, simultaneous GUI sessions, peer UDP echo and protection before the independent boot loader remain outside this qualification. Original Rule/settings/password/service intent and Tailscale Stopped are restored; all test jobs/processes are removed. Public release/tap binaries are unchanged.",
-  "eventSchedulingEvidence": "mimo-event-scheduling.json"
+  "eventSchedulingEvidence": "mimo-event-scheduling.json",
+  "closure": {
+    "status": "accepted_closed",
+    "date": "2026-11-20",
+    "acceptedSourceCommit": "5a6eb775059ac286bc90af4492f6bb286c271ceb",
+    "followUpWorkPlanned": false,
+    "acceptanceEvidence": "mimo-event-scheduling.json",
+    "remainingQualificationItems": "Retained in pending as documented limits; not reported as passed.",
+    "publicReleaseAndTap": "Unchanged by acceptance and closeout."
+  }
 }
