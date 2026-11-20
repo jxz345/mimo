@@ -220,10 +220,10 @@
     ],
     "note": "Historical cumulative checkpoint, superseded by currentCheckpoint and latestCompletedEvidence. Per-session authorization and 165-test counts refer to earlier builds."
   },
-  "packageSHA256": "2f85429a2359428623af6f85ddcc65c9e1b95781e48ceaaf1d059a0d0ff46a53",
-  "helperSHA256": "2f7b6f246f5406dc941a70670e11f4d918713cd854c0a2f07e8eef2caf5111c3",
-  "guiSHA256": "a311c2d0ed81395feef83e8b2e7db9a06dfd6bc5cf513eb378ef86466bcc4512",
-  "activeRun": "No test running. Three focused early-callback cases passed; original Rule/settings/credential/service intent and installed hashes/signature verified.",
+  "packageSHA256": "897ed7bdd43c0d9c34044c8b402a30580238f96ac7f8f42f8621e4d46f8ddb27",
+  "helperSHA256": "08b95a446b0ade19e64a7e7c2e194ec5358c3da581c80027fa766cf419862fa1",
+  "guiSHA256": "189499fdb5e59cdac09792cf1af25e8b0993aa37b1aab119a5642dd0ecdf5d96",
+  "activeRun": "No test running. Five focused N1\u2013N3 checks passed; original Rule/settings/credentials/service intent, installed hashes/signature and cleanup verified.",
   "limitations": [
     "Current candidate is installed through a VM-local acceptance tap; public v1.0 preview is unchanged.",
     "Boot capture starts with its launchd worker and does not establish first-packet protection.",
@@ -234,13 +234,13 @@
     "Native Tailscale was stopped: live peer transport and current native indicator rendering remain unqualified on this artifact."
   ],
   "sourceCheckpoint": {
-    "baselineCommit": "fb954e3",
+    "baselineCommit": "2708087",
     "branch": "release/current-candidate",
     "published": true,
     "pullRequest": "https://github.com/jxz345/mimo/pull/1",
     "draft": true,
     "publicBinaryUpdated": false,
-    "note": "Early network callback blocking runs alongside actor scheduling; three focused cases only. Older broad evidence retains its own hashes."
+    "note": "Revocation priority, separate recovery state and cheap tunnel/DNS checks. Five focused installed VM checks; older broad tests retain their original hashes."
   },
   "manualSleepEvidence": "mimo-protected-dns-manual-sleep.json: unsupported/incomplete, kernel sleep count unchanged; original Rule retained",
   "sessionEvidence": "mimo-session-events-checkpoint.json",
@@ -373,5 +373,19 @@
   "earlyGateEvidence": [
     "mimo-early-gate.json",
     "mimo-early-gate-timeline.json"
+  ],
+  "n123Candidate": {
+    "packageSHA256": "897ed7bdd43c0d9c34044c8b402a30580238f96ac7f8f42f8621e4d46f8ddb27",
+    "helperSHA256": "08b95a446b0ade19e64a7e7c2e194ec5358c3da581c80027fa766cf419862fa1",
+    "guiSHA256": "189499fdb5e59cdac09792cf1af25e8b0993aa37b1aab119a5642dd0ecdf5d96",
+    "configuration": "Release",
+    "architecture": "arm64",
+    "inputs": {
+      "Tests/MihomoRuntimeTests/saved_proxy_test.py": "d10754b14b87901cb020d6feebe958b55115817400c8cbbc89ce125a1ba4fabc"
+    }
+  },
+  "n123Evidence": [
+    "mimo-n123.json",
+    "mimo-n123-timeline.json"
   ]
 }

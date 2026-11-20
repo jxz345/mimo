@@ -74,13 +74,17 @@ final class MimoSystemRuntime {
 
     /// The same fixed checker also runs from its own system launchd job, so a
     /// missing supervisor cannot disable infrastructure inspection and repair.
-    func repairInfrastructure() async throws {
+    func repairInfrastructure() async throws -> Bool {
         try secureDirectory(MimoRuntime.guardDirectory)
         try secureFile(MimoRuntime.guardScript)
         guard let result = await infrastructureQueue.run({
             BoundedProcess.run("/usr/bin/perl", [MimoRuntime.guardScript.path, "--check"], timeout: 25, captureError: true)
         }) else { throw CancellationError() }
         try Task.checkCancellation()
+        if result.status == 75 {
+            RuntimeLog.shared.info("mimo_infrastructure_check_deferred", fields: ["reason": "pf_revocation"])
+            return false
+        }
         guard result.status == 0 else {
             RuntimeLog.shared.error("mimo_infrastructure_check_failed", fields: [
                 "status": String(result.status), "detail": String(result.text.prefix(512))
@@ -90,6 +94,7 @@ final class MimoSystemRuntime {
         if result.text.split(separator: "\n").contains("repaired") {
             RuntimeLog.shared.info("mimo_infrastructure_repaired", fields: ["gate": gateState ?? "unknown"])
         }
+        return true
     }
 
     func enforceIPv4Policy() throws {
@@ -396,13 +401,18 @@ final class MimoSystemRuntime {
         guard let loadedProfile, let verifiedBaseline,
               verifiedBaseline.digest == Data(loadedProfile.digest), verifiedBaseline.process == loadedProfile.process,
               loadedProfile.digest == SHA256.hash(data: Data(profile.utf8)),
-              installedPolicy?.activeRules != nil, nativeTransportIsHealthy,
+              installedPolicy?.activeRules != nil, nativeTransportIsHealthy, quickNetworkMatches,
               runningProcessID(MimoRuntime.engineLabel) == loadedProfile.process,
               (try? processIdentity(loadedProfile.process)) == loadedProfile.started else { return nil }
         return MimoReadinessReceipt(process: loadedProfile.process, profileDigest: Data(loadedProfile.digest), checkedAt: .now)
     }
 
     var hasVerifiedBaseline: Bool { verifiedBaseline != nil && installedPolicy?.activeRules != nil }
+
+    /// In-process checks; functional DNS/TUN inspection remains in the full audit.
+    private var quickNetworkMatches: Bool {
+        if_nametoindex(MihomoProfile.tunnelDevice) != 0 && dns.matches
+    }
 
     func revokeBaseline() { verifiedBaseline = nil }
 
@@ -460,7 +470,7 @@ final class MimoSystemRuntime {
         try MimoFirewallLock.mutate {
             timing.record("grant_mutation_lock")
             guard !maintenanceActive, !infrastructureRepairPending, closed,
-                  installedPolicy?.activeRules != nil, nativeTransportIsHealthy,
+                  installedPolicy?.activeRules != nil, nativeTransportIsHealthy, quickNetworkMatches,
                   receiptIsCurrent(receipt) else {
                 throw MimoRuntimeError.unavailable("The runtime is changing or being repaired. Fresh verification is required.")
             }

@@ -46,7 +46,7 @@ final class MimoNativeTransportWriter: @unchecked Sendable {
             let anchor = MimoFirewallPolicy.anchor + "/native-transport"
             let data = Data(rules.utf8)
             for arguments in [["-n", "-a", anchor, "-f", "-"], ["-a", anchor, "-f", "-"]] {
-                try MimoFirewallLock.mutate {
+                let apply = {
                     let result = BoundedProcess.run("/sbin/pfctl", arguments, timeout: 3, captureError: true, input: data)
                     guard result.status == 0 else {
                         RuntimeLog.shared.error("mimo_native_transport_write_failed", fields: [
@@ -58,6 +58,9 @@ final class MimoNativeTransportWriter: @unchecked Sendable {
                         throw MimoRuntimeError.unavailable("Native transport firewall rules could not be updated.")
                     }
                 }
+                // Immutable stdin syntax validation does not mutate PF.
+                if arguments.contains("-n") { try apply() }
+                else { try MimoFirewallLock.mutate(apply) }
             }
             installed = rules
         }

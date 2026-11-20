@@ -22,6 +22,8 @@ my $begin = '# BEGIN MIMO BOOT GUARD';
 my $end = '# END MIMO BOOT GUARD';
 my $active_child;
 my ($current_boot, $pf_healthy);
+our $pf_mutation_held = 0;
+our $pf_revoking = 0;
 
 sub managed_configuration {
     my ($text, $install) = @_;
@@ -79,6 +81,10 @@ sub atomic_write {
 # group on timeout before releasing the firewall lock.
 sub command {
     my ($limit, @arguments) = @_;
+    # A routine scan keeps a coherent snapshot only while no revocation is
+    # waiting. Yield at command boundaries, release mutation, and retry later.
+    # A deferred scan must never publish a healthy result or clear repair state.
+    die "MIMO_PF_DEFERRED\n" if $pf_mutation_held && !$pf_revoking && revocation_pending();
     my ($out, $out_path) = tempfile('.command-out-XXXXXXXX', DIR => $guard, UNLINK => 1);
     my ($err, $err_path) = tempfile('.command-err-XXXXXXXX', DIR => $guard, UNLINK => 1);
     my $pid = fork();
@@ -162,24 +168,50 @@ sub ensure_reference {
 # PF reads which decide repair and actual mutations share Swift's short lock.
 # The broader lifecycle lock still protects jobs/files, without delaying an
 # event's immediate gate revocation while those slower checks run.
-our $pf_mutation_held = 0;
+sub revocation_pending {
+    sysopen(my $priority, "$runtime/pf-revocation.lock", O_RDWR | O_CREAT | O_NOFOLLOW, 0600)
+        or die "Cannot inspect PF revocation admission\n";
+    return !flock($priority, LOCK_EX | LOCK_NB);
+}
+
 sub with_pf_mutation {
-    my ($operation) = @_;
+    my ($operation, $revoking) = @_;
     return $operation->() if $pf_mutation_held;
     sysopen(my $mutation, "$runtime/pf-mutation.lock", O_RDWR | O_CREAT | O_NOFOLLOW, 0600)
         or die "Cannot open PF mutation lock\n";
-    my $deadline = time() + 2;
-    until (flock($mutation, LOCK_EX | LOCK_NB)) {
-        die "PF mutation is busy\n" if time() >= $deadline;
-        sleep 0.01;
+    sysopen(my $priority, "$runtime/pf-revocation.lock", O_RDWR | O_CREAT | O_NOFOLLOW, 0600)
+        or die "Cannot open PF revocation admission\n";
+    if ($revoking) {
+        my $deadline = time() + 60;
+        until (flock($priority, LOCK_EX | LOCK_NB)) {
+            die "PF revocation admission is busy\n" if time() >= $deadline;
+            sleep 0.01;
+        }
+        $deadline = time() + 30;
+        until (flock($mutation, LOCK_EX | LOCK_NB)) {
+            die "PF mutation is busy\n" if time() >= $deadline;
+            sleep 0.01;
+        }
+    } else {
+        my $deadline = time() + 5;
+        while (1) {
+            if (flock($priority, LOCK_EX | LOCK_NB)) {
+                my $acquired = flock($mutation, LOCK_EX | LOCK_NB);
+                flock($priority, LOCK_UN) or die "Cannot release PF admission\n";
+                last if $acquired;
+            }
+            die "MIMO_PF_DEFERRED\n" if time() >= $deadline;
+            sleep 0.01;
+        }
     }
     local $pf_mutation_held = 1;
+    local $pf_revoking = $revoking // 0;
     return $operation->();
 }
 
 sub close_gate {
     my ($id) = @_;
-    return with_pf_mutation(sub { close_gate_locked($id); });
+    return with_pf_mutation(sub { close_gate_locked($id); }, 1);
 }
 
 sub close_gate_locked {
@@ -255,7 +287,7 @@ sub begin_job_repair {
     with_pf_mutation(sub {
         atomic_write("$runtime/infrastructure-repair", $id);
         close_gate_locked($id);
-    });
+    }, 1);
 }
 
 sub repair_jobs {
@@ -396,6 +428,10 @@ unless (caller) {
     eval { die "One operation is required\n" unless @ARGV == 1; run($ARGV[0]); };
     if ($@) {
         my $error = $@;
+        if ($error =~ /^MIMO_PF_DEFERRED\b/) {
+            print STDERR "mimo_infrastructure_deferred reason=pf_revocation\n";
+            exit 75;
+        }
         if (($ARGV[0] // '') eq '--check' && defined $current_boot) {
             eval { atomic_write("$guard/health.json", encode_json({boot => $current_boot, checkedAt => time(), status => 'failed', pf => $pf_healthy ? 'enabled' : 'unavailable', launchd => 'unavailable'})); };
         }

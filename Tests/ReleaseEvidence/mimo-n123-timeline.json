@@ -1,0 +1,182 @@
+{
+  "date": "2026-11-20",
+  "environment": "mimo-vm",
+  "mode": "rule",
+  "trials": 1,
+  "firewallOpenSeconds": 5.492,
+  "auditFinishedSeconds": 6.767,
+  "previousEarlyGateTrialSeconds": 3.887,
+  "stages": [
+    {
+      "stage": "route_actor_delivery",
+      "startSeconds": 0.002,
+      "endSeconds": 0.002,
+      "durationMS": 0
+    },
+    {
+      "stage": "deny_mutation_wait",
+      "startSeconds": 0.002,
+      "endSeconds": 0.002,
+      "durationMS": 0
+    },
+    {
+      "stage": "deny_permission",
+      "startSeconds": 0.002,
+      "endSeconds": 0.113,
+      "durationMS": 111
+    },
+    {
+      "stage": "rule_reuse",
+      "startSeconds": 0.247,
+      "endSeconds": 0.247,
+      "durationMS": 0
+    },
+    {
+      "stage": "credentials_and_render",
+      "startSeconds": 0.248,
+      "endSeconds": 0.249,
+      "durationMS": 1
+    },
+    {
+      "stage": "deny_barrier",
+      "startSeconds": 0.113,
+      "endSeconds": 0.328,
+      "durationMS": 215
+    },
+    {
+      "stage": "connection_cleanup",
+      "startSeconds": 0.248,
+      "endSeconds": 0.486,
+      "durationMS": 238
+    },
+    {
+      "stage": "profile_preflight",
+      "startSeconds": 0.25,
+      "endSeconds": 0.582,
+      "durationMS": 332
+    },
+    {
+      "stage": "deny_states",
+      "startSeconds": 0.328,
+      "endSeconds": 0.616,
+      "durationMS": 287
+    },
+    {
+      "stage": "deny_readback",
+      "startSeconds": 0.616,
+      "endSeconds": 1.192,
+      "durationMS": 576
+    },
+    {
+      "stage": "barrier_and_confirmation",
+      "startSeconds": 0.002,
+      "endSeconds": 2.008,
+      "durationMS": 2006
+    },
+    {
+      "stage": "confirmed_close",
+      "startSeconds": 0.247,
+      "endSeconds": 2.009,
+      "durationMS": 1761
+    },
+    {
+      "stage": "rule_validation_join",
+      "startSeconds": 2.009,
+      "endSeconds": 2.009,
+      "durationMS": 0
+    },
+    {
+      "stage": "install_probe_policy",
+      "startSeconds": 2.009,
+      "endSeconds": 2.009,
+      "durationMS": 0
+    },
+    {
+      "stage": "probe_policy",
+      "startSeconds": 2.009,
+      "endSeconds": 2.009,
+      "durationMS": 0
+    },
+    {
+      "stage": "preparation_join",
+      "startSeconds": 2.009,
+      "endSeconds": 2.01,
+      "durationMS": 0
+    },
+    {
+      "stage": "permit_private_probe",
+      "startSeconds": 2.011,
+      "endSeconds": 2.261,
+      "durationMS": 250
+    },
+    {
+      "stage": "private_probe_join",
+      "startSeconds": 2.01,
+      "endSeconds": 2.262,
+      "durationMS": 251
+    },
+    {
+      "stage": "opening_join",
+      "startSeconds": 3.986,
+      "endSeconds": 4.015,
+      "durationMS": 28
+    },
+    {
+      "stage": "grant_mutation_lock",
+      "startSeconds": 4.015,
+      "endSeconds": 4.821,
+      "durationMS": 805
+    },
+    {
+      "stage": "grant_identity",
+      "startSeconds": 4.821,
+      "endSeconds": 4.944,
+      "durationMS": 122
+    },
+    {
+      "stage": "grant_parent_identity",
+      "startSeconds": 4.944,
+      "endSeconds": 5.272,
+      "durationMS": 328
+    },
+    {
+      "stage": "grant_permission",
+      "startSeconds": 5.272,
+      "endSeconds": 5.491,
+      "durationMS": 218
+    },
+    {
+      "stage": "open_gate",
+      "startSeconds": 4.015,
+      "endSeconds": 5.492,
+      "durationMS": 1477
+    },
+    {
+      "stage": "installation_inspection",
+      "startSeconds": 5.493,
+      "endSeconds": 5.939,
+      "durationMS": 446
+    },
+    {
+      "stage": "critical_checks",
+      "startSeconds": 5.985,
+      "endSeconds": 6.491,
+      "durationMS": 506
+    },
+    {
+      "stage": "background_audit",
+      "startSeconds": 5.985,
+      "endSeconds": 6.767,
+      "durationMS": 781
+    },
+    {
+      "stage": "exit_ip",
+      "startSeconds": 2.263,
+      "endSeconds": 3.516,
+      "durationMS": 1252
+    }
+  ],
+  "scope": "One warm route trial on N1\u2013N3 installed normal Release. Slower than the previous single observation; this is not a controlled benchmark. Grant PF-lock wait 806 ms; exit IP 1253 ms. No broad suite rerun.",
+  "packageSHA256": "897ed7bdd43c0d9c34044c8b402a30580238f96ac7f8f42f8621e4d46f8ddb27",
+  "helperSHA256": "08b95a446b0ade19e64a7e7c2e194ec5358c3da581c80027fa766cf419862fa1"
+}

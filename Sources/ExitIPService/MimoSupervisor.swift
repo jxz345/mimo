@@ -32,6 +32,9 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
     private var watchdog: Task<Void, Never>?
     private var infrastructureMonitor: Task<Void, Never>?
     private var infrastructureRecoveryPending = false
+    private var verificationRecoveryPending = false
+    private var nativeRecoveryPending = false
+    private var nativeRecoveryRequested = false
     private var profileEnabled = true
     private var engineEnabled = true
     private var coreEnabled = true
@@ -58,13 +61,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 RuntimeLog.shared.error("mimo_native_transport_failed", fields: ["reason": reason])
                 // Direct does not use this sub-anchor. A delayed worker error
                 // from the preceding protected mode must not close Direct.
-                if self.policy.state.configuration.mode.requiresVerification {
-                    if !self.infrastructureRecoveryPending {
-                        self.runtime.revokeBaseline()
-                        self.infrastructureRecoveryPending = true
-                        self.close(reason, strictOnly: true)
-                    }
-                }
+                self.nativeFailed(reason)
             }
         }
     }
@@ -114,10 +111,13 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 guard let self else { return }
                 if !self.runtime.maintenanceActive {
                     do {
-                        try await self.runtime.repairInfrastructure()
-                        if self.infrastructureRecoveryPending, self.runtime.nativeTransportIsHealthy {
+                        let checked = try await self.runtime.repairInfrastructure()
+                        if checked {
+                            let recovered = self.infrastructureRecoveryPending || self.verificationRecoveryPending
                             self.infrastructureRecoveryPending = false
-                            self.networkChanged("infrastructure_recovered")
+                            if recovered, self.runtime.nativeTransportIsHealthy, self.policy.state.phase == .blocked {
+                                self.networkChanged("infrastructure_recovered")
+                            }
                         }
                     }
                     catch {
@@ -137,6 +137,18 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 if self.runtime.maintenanceActive {
                     if self.policy.state.phase != .blocked { self.close("Service installation is in progress.") }
                     continue
+                }
+                if self.policy.state.configuration.mode.requiresVerification {
+                    if !self.runtime.nativeTransportIsHealthy {
+                        self.nativeFailed("Native transport rules need recovery.")
+                        continue
+                    }
+                    if self.nativeRecoveryPending, !self.nativeRecoveryRequested,
+                       !self.infrastructureRecoveryPending {
+                        self.nativeRecoveryRequested = true
+                        RuntimeLog.shared.info("mimo_native_recovery_started")
+                        self.networkChanged("native_recovered")
+                    }
                 }
                 if self.configurationKnown, self.directRestorationAllowed,
                    self.policy.state.configuration.mode == .direct, self.runtime.gateState != "direct" {
@@ -413,7 +425,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                     catch {
                         guard epoch == generation else { throw CancellationError() }
                         if !(error is CancellationError) {
-                            infrastructureRecoveryPending = true
+                            verificationRecoveryPending = true
                             RuntimeLog.shared.info("mimo_controller_recovery_pending")
                         }
                         throw error
@@ -539,7 +551,8 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 if let candidate = optimisticCandidate {
                     guard let current = runtime.optimisticReceipt(profile: activeProfile),
                           current.process == candidate.process, current.profileDigest == candidate.profileDigest,
-                          !heartbeatLease.expired(), !infrastructureRecoveryPending else {
+                          !heartbeatLease.expired(), !infrastructureRecoveryPending,
+                          !verificationRecoveryPending, !nativeRecoveryPending else {
                         throw MimoRuntimeError.unavailable("The optimistic baseline changed. Full verification is required.")
                     }
                     receipt = current
@@ -556,7 +569,8 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 }
                 guard activationGeneration == generation, check == policy.state.verification,
                       self.activeProfile == activeProfile, runtime.receiptMatchesLoadedProfile(receipt),
-                      networkObserver.isRunning, powerGuard.isRunning, sessionObserver.isRunning else {
+                      networkObserver.isRunning, powerGuard.isRunning, sessionObserver.isRunning,
+                      !infrastructureRecoveryPending else {
                     throw MimoRuntimeError.unavailable("The runtime changed before opening. A fresh check is required.")
                 }
                 timing.record("opening_join")
@@ -585,6 +599,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                     policy.auditing(true)
                 } else {
                     try fence.activate(epoch: powerEpoch) { try runtime.openGate(receipt: receipt) }
+                    verifiedRecovery()
                 }
                 self.readinessCheck = nil; installationCheck = nil
                 firewallPreparation = nil; profilePreparation = nil; profileInspection = nil; completedReadiness = nil
@@ -650,7 +665,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
             if !(error is CancellationError) {
                 runtime.revokeBaseline()
                 if [.prepare, .approve].contains(message.command), policy.state.configuration.mode.requiresVerification {
-                    infrastructureRecoveryPending = true
+                    verificationRecoveryPending = true
                 }
                 close(error.localizedDescription)
             }
@@ -685,6 +700,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 guard epoch == self.generation, self.policy.state.allowsTraffic else { throw CancellationError() }
                 try runtime.acceptBaseline(receipt)
                 guard self.auditDeadline?.finish() == true else { throw CancellationError() }
+                self.verifiedRecovery()
                 self.policy.auditing(false)
                 self.auditDeadline = nil; self.auditTask = nil; self.installationCheck = nil
                 timing.record("background_audit")
@@ -701,8 +717,30 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
     private func failAudit(_ reason: String) {
         runtime.revokeBaseline()
         forceProfileReload = true
-        infrastructureRecoveryPending = true
+        verificationRecoveryPending = true
         close(reason, strictOnly: true)
+    }
+
+    private func nativeFailed(_ reason: String) {
+        guard policy.state.configuration.mode.requiresVerification else { return }
+        // A pending unrelated fault must never suppress a new native failure
+        // while active/checking. Repeated failures while already blocked coalesce.
+        let mustClose = !nativeRecoveryPending || policy.state.phase != .blocked || !runtime.closed
+        nativeRecoveryPending = true
+        nativeRecoveryRequested = false
+        runtime.revokeBaseline()
+        if mustClose { close(reason, strictOnly: true) }
+    }
+
+    private func verifiedRecovery() {
+        // Called only for the current generation after full verification. Actual
+        // infrastructure faults are cleared solely by its successful checker.
+        guard runtime.nativeTransportIsHealthy else { return }
+        let recovered = nativeRecoveryPending || verificationRecoveryPending
+        nativeRecoveryPending = false
+        nativeRecoveryRequested = false
+        verificationRecoveryPending = false
+        if recovered { RuntimeLog.shared.info("mimo_verification_recovery_completed") }
     }
 
     private func cancelReadiness() {

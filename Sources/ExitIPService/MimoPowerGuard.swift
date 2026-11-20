@@ -155,7 +155,7 @@ final class MimoPowerGuard: @unchecked Sendable {
 
     static func closeBarrier(request: MimoGateRequest? = nil) throws {
         var timing = MimoTransitionTiming("deny")
-        try MimoFirewallLock.mutate {
+        try MimoFirewallLock.mutate(revoking: true) {
             timing.record("deny_mutation_wait")
             guard request?.isCancelled != true else { throw CancellationError() }
             // Flush the grant first. Keep the barrier for old/fallback parents.

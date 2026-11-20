@@ -5,9 +5,31 @@ import Foundation
 enum MimoFirewallLock {
     /// Separate from the lifecycle lock: only bounded PF transactions belong
     /// here. Native updates and independent power/deadline revocation share it.
-    static func mutate<T>(_ operation: () throws -> T) throws -> T {
-        let lock = try acquire(at: MimoRuntime.directory.appendingPathComponent("pf-mutation.lock"), timeout: .seconds(2))
-        return try withExtendedLifetime(lock, operation)
+    static func mutate<T>(revoking: Bool = false, _ operation: () throws -> T) throws -> T {
+        let priority = MimoRuntime.directory.appendingPathComponent("pf-revocation.lock")
+        let mutation = MimoRuntime.directory.appendingPathComponent("pf-mutation.lock")
+        if revoking {
+            // Hold admission while waiting: later grants/ordinary writers yield.
+            // This cannot interrupt a running pfctl. Wait longer than the bounded
+            // normal transaction, rather than abandoning denial after two seconds.
+            let admission = try acquire(at: priority, timeout: .seconds(60))
+            return try withExtendedLifetime(admission) {
+                let lock = try acquire(at: mutation, timeout: .seconds(30))
+                return try withExtendedLifetime(lock, operation)
+            }
+        }
+        let deadline = ContinuousClock.now.advanced(by: .seconds(5))
+        repeat {
+            // Never hold admission while an ordinary writer waits for mutation.
+            // Release it before executing so revocation can announce priority.
+            let lock: SingleInstanceLock? = try {
+                guard let admission = try SingleInstanceLock(url: priority) else { return nil }
+                return try withExtendedLifetime(admission) { try SingleInstanceLock(url: mutation) }
+            }()
+            if let lock { return try withExtendedLifetime(lock, operation) }
+            Thread.sleep(forTimeInterval: 0.01)
+        } while ContinuousClock.now < deadline
+        throw MimoRuntimeError.unavailable("Firewall revocation or another mutation is pending. Retry shortly.")
     }
     static func acquire(at url: URL, timeout: Duration = .seconds(5)) throws -> SingleInstanceLock {
         let deadline = ContinuousClock.now.advanced(by: timeout)

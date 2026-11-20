@@ -986,3 +986,30 @@ Three focused cases pass on the installed normal Release in mimo-vm. The warm ro
 | 3.887–5.060 | Internet open; full background audit completes |
 
 [Focused results](Tests/ReleaseEvidence/mimo-early-gate.json) · [Timeline](Tests/ReleaseEvidence/mimo-early-gate-timeline.json).
+
+## Review fixes N1–N3 — 20 November 2026
+
+**N1, revocation priority:** `pf-revocation.lock` controls admission to the existing `pf-mutation.lock`. A revoker retains admission while waiting for mutation and while denying traffic, so later ordinary writers/grants cannot pass it. Ordinary writers hold admission only for a nonblocking mutation-lock attempt and release it before their actual work. Both Swift and the independent Perl checker use this protocol. No concurrent PF write bypass is introduced. Revocation waits up to 30 seconds for the mutation holder instead of abandoning closure after two seconds (up to 60 seconds for admission behind another revoker). These are failure timeouts, not expected latency or a guarantee of immediate blocking.
+
+Native syntax validation runs outside mutation. An ordinary independent PF scan checks for a waiting revoker between commands, abandons its snapshot and releases mutation when necessary. It exits with deferred status 75, does not publish health, and cannot clear a pending infrastructure failure. A later scan retries. Already-running commands are not interrupted; long-running OS commands, another revoker or an external lock holder can still delay closure.
+
+**N2, distinct recovery state:** Native transport, actual infrastructure faults and failed verification have separate pending flags. A native failure while active/checking always requests closure even if another failure is pending. The active watchdog also checks native health. After native writes recover it requests full verification automatically; only successful current-generation full verification clears native/verification pending state. Only a successful independent scan clears an infrastructure failure. Repeated failures while already blocked are coalesced; a later failure after recovery is not suppressed.
+
+**N3, cheap live checks:** Optimistic selection and final opening require the tunnel interface to exist via `if_nametoindex` and the owned resolver entry to match via `dns.matches`. These in-process checks avoid another subprocess. Missing state rejects optimistic reuse or opening. They do not prove functional routing/DNS, and full background auditing remains required. Wake/session events retain fresh-IP verification and may use the optimistic path when these checks and the unchanged baseline pass.
+
+Qualification is deliberately focused: one warm real-route timeline, actual PF-lock contention beyond the old two-second limit with the real checker, two successive native-writer failures/recoveries, and removal of the actual Mimo DNS entry. Original settings/credentials/service intent must be restored. No broad suite or actual-sleep claim.
+
+N1–N3 are installed in the normal arm64 Release in mimo-vm. Five focused checks pass: warm route verification, revocation beyond the old two-second timeout with real PF-lock/checker contention, two successive native-writer failures with automatic full recovery, and actual Mimo DNS-entry removal requiring full verification. Original Rule/settings/credentials/service intent, installed hashes/signature and cleanup are verified. No broad suite was rerun. The warm trial opened PF at **5.492 s** and finished its audit at **6.767 s**, slower than the previous individual **3.887 s** opening. Opening waited **0.806 s** for PF mutation; the IP lookup took **1.253 s**. These are individual observations, not a controlled benchmark; the three-second target remains unmet.
+
+| Seconds after route request | Work |
+|---|---|
+| 0.002–2.008 | Priority PF denial, readback and confirmation |
+| 0.002–0.582 | Concurrent event handling, cleanup and profile preflight |
+| 2.011–2.261 | Permit private probe |
+| 2.263–3.516 | Fresh exit-IP lookup |
+| 3.516–4.015 | Handoff and approval join |
+| 4.015–4.821 | Wait for PF mutation lock at opening |
+| 4.821–5.492 | Current identity/DNS/tunnel/policy checks and Open grant |
+| 5.492–6.767 | Internet open; full background audit finishes |
+
+[Focused evidence](Tests/ReleaseEvidence/mimo-n123.json) · [Timeline](Tests/ReleaseEvidence/mimo-n123-timeline.json). Missing-tunnel rejection and scanner command-boundary yielding are implemented but not independently fault-qualified in this limited run.

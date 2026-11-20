@@ -1,0 +1,222 @@
+{
+  "success": true,
+  "passed": [
+    "warm-route-optimistic-verification-and-audit-with-N1-N3",
+    "revocation-retains-priority-past-two-seconds-and-recovers-with-real-checker-contention",
+    "native-failure-cycle-1-blocks-and-clears-pending-state-after-full-recovery",
+    "native-failure-cycle-2-blocks-and-clears-pending-state-after-full-recovery",
+    "removed-protected-DNS-entry-rejects-optimistic-reuse-and-recovers-through-full-verification",
+    "original-mode-settings-credential-and-service-intent-restored"
+  ],
+  "errors": [],
+  "trials": [
+    {
+      "event": "real-route-added",
+      "eventRequestedUptimeMS": 9979482,
+      "firewallOpenSeconds": 5.492,
+      "verifiedSeconds": 6.767,
+      "stages": [
+        {
+          "start_uptime_ms": "9979484",
+          "stage": "route_actor_delivery",
+          "operation": "network_event",
+          "duration_ms": "0",
+          "end_uptime_ms": "9979484"
+        },
+        {
+          "operation": "deny",
+          "start_uptime_ms": "9979484",
+          "end_uptime_ms": "9979484",
+          "stage": "deny_mutation_wait",
+          "duration_ms": "0"
+        },
+        {
+          "end_uptime_ms": "9979595",
+          "start_uptime_ms": "9979484",
+          "operation": "deny",
+          "stage": "deny_permission",
+          "duration_ms": "111"
+        },
+        {
+          "end_uptime_ms": "9979729",
+          "start_uptime_ms": "9979729",
+          "operation": "firewall_preparation",
+          "stage": "rule_reuse",
+          "duration_ms": "0"
+        },
+        {
+          "operation": "preparation",
+          "start_uptime_ms": "9979730",
+          "end_uptime_ms": "9979731",
+          "stage": "credentials_and_render",
+          "duration_ms": "1"
+        },
+        {
+          "end_uptime_ms": "9979810",
+          "start_uptime_ms": "9979595",
+          "operation": "deny",
+          "stage": "deny_barrier",
+          "duration_ms": "215"
+        },
+        {
+          "end_uptime_ms": "9979968",
+          "start_uptime_ms": "9979730",
+          "operation": "cleanup",
+          "stage": "connection_cleanup",
+          "duration_ms": "238"
+        },
+        {
+          "end_uptime_ms": "9980064",
+          "operation": "profile",
+          "stage": "profile_preflight",
+          "start_uptime_ms": "9979732",
+          "duration_ms": "332"
+        },
+        {
+          "start_uptime_ms": "9979810",
+          "stage": "deny_states",
+          "operation": "deny",
+          "duration_ms": "287",
+          "end_uptime_ms": "9980098"
+        },
+        {
+          "operation": "deny",
+          "start_uptime_ms": "9980098",
+          "end_uptime_ms": "9980674",
+          "stage": "deny_readback",
+          "duration_ms": "576"
+        },
+        {
+          "start_uptime_ms": "9979484",
+          "stage": "barrier_and_confirmation",
+          "operation": "blocking",
+          "duration_ms": "2006",
+          "end_uptime_ms": "9981490"
+        },
+        {
+          "operation": "prepare",
+          "start_uptime_ms": "9979729",
+          "end_uptime_ms": "9981491",
+          "stage": "confirmed_close",
+          "duration_ms": "1761"
+        },
+        {
+          "operation": "prepare",
+          "start_uptime_ms": "9981491",
+          "end_uptime_ms": "9981491",
+          "stage": "rule_validation_join",
+          "duration_ms": "0"
+        },
+        {
+          "operation": "firewall",
+          "start_uptime_ms": "9981491",
+          "end_uptime_ms": "9981491",
+          "stage": "install_probe_policy",
+          "duration_ms": "0"
+        },
+        {
+          "operation": "prepare",
+          "start_uptime_ms": "9981491",
+          "end_uptime_ms": "9981491",
+          "stage": "probe_policy",
+          "duration_ms": "0"
+        },
+        {
+          "operation": "prepare",
+          "start_uptime_ms": "9981491",
+          "end_uptime_ms": "9981492",
+          "stage": "preparation_join",
+          "duration_ms": "0"
+        },
+        {
+          "operation": "permission",
+          "start_uptime_ms": "9981493",
+          "end_uptime_ms": "9981743",
+          "stage": "permit_private_probe",
+          "duration_ms": "250"
+        },
+        {
+          "operation": "prepare",
+          "start_uptime_ms": "9981492",
+          "end_uptime_ms": "9981744",
+          "stage": "private_probe_join",
+          "duration_ms": "251"
+        },
+        {
+          "end_uptime_ms": "9983497",
+          "operation": "approve",
+          "stage": "opening_join",
+          "duration_ms": "28",
+          "start_uptime_ms": "9983468"
+        },
+        {
+          "start_uptime_ms": "9983497",
+          "duration_ms": "805",
+          "operation": "grant",
+          "stage": "grant_mutation_lock",
+          "end_uptime_ms": "9984303"
+        },
+        {
+          "end_uptime_ms": "9984426",
+          "start_uptime_ms": "9984303",
+          "operation": "grant",
+          "stage": "grant_identity",
+          "duration_ms": "122"
+        },
+        {
+          "end_uptime_ms": "9984754",
+          "operation": "grant",
+          "stage": "grant_parent_identity",
+          "start_uptime_ms": "9984426",
+          "duration_ms": "328"
+        },
+        {
+          "end_uptime_ms": "9984973",
+          "operation": "grant",
+          "stage": "grant_permission",
+          "start_uptime_ms": "9984754",
+          "duration_ms": "218"
+        },
+        {
+          "end_uptime_ms": "9984974",
+          "operation": "approve",
+          "stage": "open_gate",
+          "start_uptime_ms": "9983497",
+          "duration_ms": "1477"
+        },
+        {
+          "start_uptime_ms": "9984975",
+          "duration_ms": "446",
+          "operation": "installation",
+          "stage": "installation_inspection",
+          "end_uptime_ms": "9985421"
+        },
+        {
+          "start_uptime_ms": "9985467",
+          "stage": "critical_checks",
+          "operation": "readiness",
+          "duration_ms": "506",
+          "end_uptime_ms": "9985973"
+        },
+        {
+          "end_uptime_ms": "9986249",
+          "operation": "background_audit",
+          "stage": "background_audit",
+          "duration_ms": "781",
+          "start_uptime_ms": "9985467"
+        },
+        {
+          "start_uptime_ms": "9981745",
+          "stage": "exit_ip",
+          "duration_ms": "1252",
+          "end_uptime_ms": "9982998",
+          "operation": "lookup"
+        }
+      ]
+    }
+  ],
+  "packageSHA256": "897ed7bdd43c0d9c34044c8b402a30580238f96ac7f8f42f8621e4d46f8ddb27",
+  "helperSHA256": "08b95a446b0ade19e64a7e7c2e194ec5358c3da581c80027fa766cf419862fa1",
+  "guiSHA256": "189499fdb5e59cdac09792cf1af25e8b0993aa37b1aab119a5642dd0ecdf5d96",
+  "scope": "Five focused checks in installed normal Release in mimo-vm: one warm route timeline, real PF-lock/checker contention, two native-writer lock failures with automatic full recovery, and actual protected DNS-entry removal. No broad suite, replacement helper, synthetic notification or sleep claim. Missing-tunnel rejection and priority-scan yielding are not independently fault-qualified."
+}
