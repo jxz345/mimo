@@ -67,7 +67,8 @@
     "mimo-protected-dns-brew.json",
     "mimo-protected-dns-boot-rule.json",
     "mimo-protected-dns-boot-global.json",
-    "mimo-protected-dns-restoration.json"
+    "mimo-protected-dns-restoration.json",
+    "mimo-protected-dns-app-access.json"
   ],
   "historicalCheckpoint": {
     "packageSHA256": "16b78e9d9dc487f275b017f1c4cd09da31a188145e43605f187ccdb604e9448a",
@@ -157,7 +158,10 @@
   "sourceCheckpoint": {
     "commit": "82787b9",
     "branch": "release/current-candidate",
-    "published": false
+    "published": true,
+    "pullRequest": "https://github.com/jxz345/mimo/pull/1",
+    "draft": true,
+    "publicBinaryUpdated": false
   },
   "awaitingUser": "Physical mode/Quit shortcuts and native GUI user switching; actual sleep remains last. No mode-changing test is running."
 }
