@@ -65,7 +65,7 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
         provider.changed = { [weak self] in self?.schedulePublication() }
         routing?.changed = { [weak self] in self?.schedulePublication() }
         if let routing {
-            engine.networkConfigurationChanged = { await routing.networkChanged() }
+            engine.networkConfigurationChanged = { routing.supervisorNetworkChanged() }
             engine.requiredCheckUnavailable = { reason in Task { await routing.invalidate(reason: reason) } }
             tailnetLifecycle = MimoTailnetLifecycle { [weak self] enabled in
                 await self?.applyAutomaticTailnet(enabled) ?? false

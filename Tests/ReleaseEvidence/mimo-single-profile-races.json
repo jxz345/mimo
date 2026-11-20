@@ -1,0 +1,12 @@
+{
+  "success": true,
+  "passed": [
+    "route-change-during-private-probe-requires-new-IP-and-readiness-before-opening",
+    "Direct-during-private-probe-rejects-late-protected-work-and-keeps-IPv4-open",
+    "original-mode-settings-password-and-service-intent-restored"
+  ],
+  "errors": [],
+  "packageSHA256": "c72bcdaa90031a3f890d2ac2a223e004213de4363eda40669901bb1a78194f0a",
+  "helperSHA256": "6c1ecf28c670be26136f9b0ee14b9ef2bc46530782962980a9bd50e79f174259",
+  "scope": "Normal installed Release in mimo-vm; actual kernel route and mode changes during private probing, ordinary-user HTTPS and exact restoration. No synthetic events."
+}

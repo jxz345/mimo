@@ -2,6 +2,10 @@
 
 ## Unreleased — current VM candidate
 
+- Load the final protected profile once behind PF; overlap exit-IP verification with mandatory installation/profile/TUN/DNS checks. Use a small blocking barrier before one probe-policy installation, retain old-flow cleanup, fence late results, and show approved-IP/readiness progress without opening early. Keep watchdog inspection off the supervisor's main executor. Exact-build VM qualification is tracked separately.
+
+- Reduce redundant protected recheck work: prepare streams confirmed blocking, supervisor events avoid a second core close request, and unchanged protected DNS is retained. Add per-stage timing while keeping fresh verification and stale-approval protection.
+
 - Detect lock/unlock, login/logout, user switching and display sleep/wake in the root supervisor, independently of the GUI. Revoke old protected approvals and close PF before rechecking; keep Direct open. Re-establish the barrier on wake/cancelled sleep and preserve the sleep hold across session events.
 
 - Enable Rule/Global through real profile validation, private exit-IP verification and the saved allowlist. Empty or mismatched allowlists remain blocked.

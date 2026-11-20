@@ -88,6 +88,24 @@ final class MimoRoutingTests: XCTestCase {
         return value
     }
 
+    func testApprovedIPWaitsForReadinessAndLateReadinessCannotUndoDirect() {
+        var policy = MimoAccessPolicy(configuration: configuration)
+        let token = policy.begin(configuration: configuration, revision: 1, networkGeneration: 1)
+        policy.checking(token)
+        policy.waitingForReadiness(address: "203.0.113.42", verification: token)
+        XCTAssertFalse(policy.state.allowsTraffic)
+        XCTAssertEqual(policy.state.phase, .checking)
+        XCTAssertEqual(policy.state.observedIP?.address, "203.0.113.42")
+        XCTAssertTrue(policy.state.reason.contains("profile, tunnel and DNS"))
+        XCTAssertFalse(policy.approve(address: "203.0.113.42", at: .now, allowlist: allowed,
+                                      verification: token, runtimeMatches: false))
+        policy.directRestored(configuration: MimoConfiguration())
+        policy.waitingForReadiness(address: "203.0.113.42", verification: token)
+        XCTAssertTrue(policy.state.allowsTraffic)
+        XCTAssertEqual(policy.state.effectiveMode, .direct)
+        XCTAssertNil(policy.state.observedIP)
+    }
+
     func testStartupNeverTrustsPersistedModeWithoutConfirmation() {
         let policy = MimoAccessPolicy(configuration: configuration)
         XCTAssertFalse(policy.state.allowsTraffic)

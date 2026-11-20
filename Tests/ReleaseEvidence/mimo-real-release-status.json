@@ -3,7 +3,8 @@
   "environment": "mimo-vm only",
   "configuration": "Release",
   "pending": [
-    "Real lock/unlock, login/logout and display-event acceptance for new supervisor observer",
+    "Actual user lock/unlock timing on the single-profile helper; native readiness-progress visual check (Tart input returns noWindowsAvailable)",
+    "Direct/Global lock/session events and login/logout/fast user switch remain unqualified on new helper",
     "Two users logged in simultaneously / concurrent GUI sessions (not tested; user reports VM limitation)",
     "Existing peer UDP service coverage if available; no peer/Delta configuration changes",
     "Actual macOS sleep LAST; kernel sleep/wake counters must advance",
@@ -54,10 +55,18 @@
     {
       "evidence": "User-reported lock/unlock after manual sleep attempt",
       "result": "Previous GUI callback only refreshed state; no protected recheck. New root observer installed; actual event acceptance pending."
+    },
+    {
+      "evidence": "mimo-single-profile-initial-attempt.json",
+      "result": "Starting pktap created a real interface and triggered protection before the baseline connection. Corrected driver waits for that event; full rerun passes."
+    },
+    {
+      "evidence": "mimo-single-profile-dns-reload-attempt.json",
+      "result": "Foreign DNS owner correctly blocked traffic. Same-profile reload did not recreate the failed mihomo listener after port release; supported Restart restored it. Full corrected run and final restoration pass."
     }
   ],
   "architecture": "arm64",
-  "currentCheckpoint": "2026-11-20: session-event correction passes 181 shared tests, service regressions and installed Rule/configuration/signature/access preflight; human lock/unlock pending",
+  "currentCheckpoint": "Single final-profile/concurrent readiness is installed and passes 183 shared tests, service regressions, 19 installed packet/fault assertions, three in-flight route/Direct assertions and three stalled-controller assertions. Eight real route changes took 8.428\u201311.796 seconds; original Rule/settings/password/service intent restored.",
   "latestCompletedEvidence": [
     "mimo-service-progress.json",
     "mimo-service-progress-user-confirmation.json",
@@ -74,7 +83,11 @@
     "mimo-protected-dns-boot-global.json",
     "mimo-protected-dns-restoration.json",
     "mimo-protected-dns-app-access.json",
-    "mimo-protected-dns-manual-ui.json"
+    "mimo-protected-dns-manual-ui.json",
+    "mimo-single-profile-runtime.json",
+    "mimo-single-profile-races.json",
+    "mimo-single-profile-stalled-controller.json",
+    "mimo-single-profile-checkpoint.json"
   ],
   "historicalCheckpoint": {
     "packageSHA256": "16b78e9d9dc487f275b017f1c4cd09da31a188145e43605f187ccdb604e9448a",
@@ -150,10 +163,10 @@
     ],
     "note": "Historical cumulative checkpoint, superseded by currentCheckpoint and latestCompletedEvidence. Per-session authorization and 165-test counts refer to earlier builds."
   },
-  "packageSHA256": "2e8c6e7c5629591226a41bb21f09b0fed9e6fdddfa20fbb5339c26e9a32cf678",
-  "helperSHA256": "8e23dff0f092a63027fe1a97b4c06041d82cd665fae9742ac96647de59f45fd6",
-  "guiSHA256": "1b7eda42384d42fe32ed56017bfce3d2e27e34a1fb981d01d6506f979eb710d9",
-  "activeRun": "Read-only Rule lock/unlock observer; no automated mode or service changes",
+  "packageSHA256": "8f89d246eac6485afbc0d3682710408e79b3f1ca8f360bfe6ba1e0b280b83166",
+  "helperSHA256": "53b998ad7d571a9299d644d99cbdcb0e67dff74a6afef4c59fc1201c3884845f",
+  "guiSHA256": "8a8d9edccea586d650d549c6e4e9b20b4bdbd09f456b24a3b1aa0a294774a859",
+  "activeRun": "No test running. Current Rule is active; installed hashes/signature and original configuration/credential/service intent confirmed.",
   "limitations": [
     "Current candidate is installed through a VM-local acceptance tap; public v1.0 preview is unchanged.",
     "Boot capture starts with its launchd worker and does not establish first-packet protection.",
@@ -162,14 +175,26 @@
     "Network notifications are asynchronous; event tests do not prove zero pre-detection delay."
   ],
   "sourceCheckpoint": {
-    "commit": "82787b9",
+    "commit": "5ca81e5",
     "branch": "release/current-candidate",
     "published": true,
     "pullRequest": "https://github.com/jxz345/mimo/pull/1",
     "draft": true,
     "publicBinaryUpdated": false
   },
-  "awaitingUser": "Lock macOS in mimo-vm for about 10 seconds, then unlock and report dashboard/menu transitions",
   "manualSleepEvidence": "mimo-protected-dns-manual-sleep.json: unsupported/incomplete, kernel sleep count unchanged; original Rule retained",
-  "sessionEvidence": "mimo-session-events-checkpoint.json"
+  "sessionEvidence": "mimo-session-events-checkpoint.json",
+  "sessionLogAudit": "mimo-session-events-rule-log-audit.json",
+  "singleProfileCandidate": {
+    "packageSHA256": "c72bcdaa90031a3f890d2ac2a223e004213de4363eda40669901bb1a78194f0a",
+    "helperSHA256": "6c1ecf28c670be26136f9b0ee14b9ef2bc46530782962980a9bd50e79f174259",
+    "guiSHA256": "6d0d64c283b98d8945566182d42f729c45c52373d56631ea77f0193b67574ccd",
+    "configuration": "Release",
+    "architecture": "arm64",
+    "inputs": {
+      "Tests/MihomoRuntimeTests/saved_proxy_test.py": "d10754b14b87901cb020d6feebe958b55115817400c8cbbc89ce125a1ba4fabc"
+    }
+  },
+  "singleProfileEvidence": "mimo-single-profile-checkpoint.json",
+  "singleProfileTimeline": "mimo-single-profile-timeline.json"
 }

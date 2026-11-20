@@ -13,6 +13,7 @@ public struct MimoStatusPresentation: Equatable, Sendable {
     public let isDirect: Bool
     public let trafficIsBlocked: Bool
     public let isValidating: Bool
+    public let isCheckingReadiness: Bool
     public let isClosing: Bool
     public let isRestoringDirect: Bool
 
@@ -21,6 +22,7 @@ public struct MimoStatusPresentation: Equatable, Sendable {
         trafficIsBlocked = routing.phase == .blocked || (routing.configuration.mode.requiresVerification
             && [.validating, .checking].contains(routing.phase))
         isValidating = routing.phase == .validating
+        isCheckingReadiness = routing.phase == .checking && routing.observedIP != nil
         isClosing = routing.phase == .closing
         isRestoringDirect = routing.phase == .restoringDirect
         let tailnet = routing.services.first(where: { $0.id == .tailnetProvider })
@@ -58,7 +60,7 @@ public struct MimoStatusPresentation: Equatable, Sendable {
         case .directWarning: title = "Direct · IP check unavailable"
         case .checking:
             title = isRestoringDirect ? "Switching to Direct" : isClosing ? "\(routing.configuration.mode.title) · Closing traffic" : trafficIsBlocked
-                ? "\(routing.configuration.mode.title) · Blocked · \(isValidating ? "Validating profile" : "Checking exit IP")"
+                ? "\(routing.configuration.mode.title) · Blocked · \(isValidating ? "Validating profile" : isCheckingReadiness ? "Checking readiness" : "Checking exit IP")"
                 : "\(routing.configuration.mode.title) · Checking exit IP"
         case .blocked: title = "\(routing.configuration.mode.title) · Internet blocked"
         case .verified: title = "\(routing.configuration.mode.title) · Exit approved"
@@ -101,14 +103,14 @@ public struct MimoStatusPresentation: Equatable, Sendable {
         switch kind {
         case .checking where trafficIsBlocked:
             return isValidating ? "Traffic blocked → Validate profile → Check IP → Reopen if allowed"
-                : "Traffic blocked → Checking exit IP → Reopen if allowed"
+                : isCheckingReadiness ? "Traffic blocked → Exit IP approved → Checking readiness" : "Traffic blocked → Checking exit IP → Reopen if allowed"
         case .verified, .tailnetWarning:
             return "Traffic blocked → Exit IP approved → Internet reopened"
         default: return nil
         }
     }
 
-    public var visualKey: String { "\(kind.rawValue)|\(country ?? "")|\(countryChanged)|\(isDirect)|\(trafficIsBlocked)|\(isValidating)|\(isClosing)|\(isRestoringDirect)" }
+    public var visualKey: String { "\(kind.rawValue)|\(country ?? "")|\(countryChanged)|\(isDirect)|\(trafficIsBlocked)|\(isValidating)|\(isCheckingReadiness)|\(isClosing)|\(isRestoringDirect)" }
     public var symbol: String {
         switch kind {
         case .direct: "arrow.up.right"

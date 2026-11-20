@@ -15,7 +15,74 @@ enum MimoCoordinatorTests {
         try await delayedDirectCannotOpenClosedGate()
         try await delayedCloseCannotUndoDirect()
         try await nonRoutingRevisionPreservesVerifiedAccess()
+        try await singlePreparationOwnsClosure()
+        try await approvalProgressWaitsAndCannotUndoDirect()
+        try await failedPreparationCannotProbe()
+        try await supervisorEventInvalidatesWithoutDuplicateClose()
         print("PASS: stale supervisor replies, interrupted preparation/probes, credential mutation fencing and Direct failure isolation")
+    }
+
+    private static func singlePreparationOwnsClosure() async throws {
+        let fixture = Fixture()
+        fixture.holdPrepare = true
+        let coordinator = fixture.coordinator()
+        let task = Task { try await coordinator.lookup(Fixture.lookupConfiguration) }
+        try await wait { fixture.prepareGate.waiting }
+        require(coordinator.state.phase == .validating, "confirmed prepare progress must display blocking before profile completion")
+        require(fixture.closeRequests == 0, "prepare must not be preceded by a duplicate close RPC")
+        let staleProgress = fixture.lastProgress
+        var blocked = MimoRoutingState(configuration: fixture.configuration)
+        blocked.phase = .blocked
+        fixture.prepareGate.resume(fixture.policy.state)
+        _ = try await task.value
+        staleProgress?(blocked)
+        require(coordinator.state.allowsTraffic, "late preparation progress must not overwrite completed approval")
+    }
+
+    private static func approvalProgressWaitsAndCannotUndoDirect() async throws {
+        let fixture = Fixture()
+        fixture.holdApproval = true
+        let coordinator = fixture.coordinator()
+        let task = Task { try await coordinator.lookup(Fixture.lookupConfiguration) }
+        try await wait { fixture.approvalGate.waiting }
+        require(coordinator.state.phase == .checking && !coordinator.state.allowsTraffic,
+                "approved IP must remain visibly blocked until readiness completes")
+        require(coordinator.state.observedIP?.address == Fixture.snapshot.ipAddress,
+                "readiness progress must show the newly checked IP")
+        let lateProgress = fixture.lastProgress
+        let old = fixture.policy.state
+        var direct = fixture.configuration; direct.mode = .direct
+        await coordinator.update(configuration: direct, allowlist: Fixture.allowed, revision: 2)
+        lateProgress?(old)
+        fixture.approvalGate.resume(old)
+        try await cancelled(task)
+        require(coordinator.state.allowsTraffic && coordinator.state.effectiveMode == .direct,
+                "late readiness progress/results cannot undo the newer Direct selection")
+    }
+
+    private static func failedPreparationCannotProbe() async throws {
+        let fixture = Fixture()
+        fixture.failPrepareClose = true
+        let coordinator = fixture.coordinator()
+        do { _ = try await coordinator.lookup(Fixture.lookupConfiguration); fatalError("failed closure must abort") } catch {}
+        require(fixture.lookupCount == 0 && fixture.approvals.isEmpty && coordinator.state.phase == .unavailable,
+                "failed prepare closure must never spend an exit lookup, approve or display confirmed blocking")
+    }
+
+    private static func supervisorEventInvalidatesWithoutDuplicateClose() async throws {
+        let fixture = Fixture()
+        fixture.holdLookup = true
+        let coordinator = fixture.coordinator()
+        let old = Task { try await coordinator.lookup(Fixture.lookupConfiguration) }
+        try await wait { fixture.lookupGate.waiting }
+        coordinator.supervisorNetworkChanged()
+        fixture.lookupGate.resume(Fixture.snapshot)
+        try await cancelled(old)
+        require(fixture.approvals.isEmpty && fixture.closeRequests == 0,
+                "a supervisor event must revoke old results without requesting another full close")
+        _ = try await coordinator.lookup(Fixture.lookupConfiguration)
+        require(coordinator.state.allowsTraffic && fixture.approvals.count == 1,
+                "only the fresh post-event probe may approve")
     }
 
     private static func nonRoutingRevisionPreservesVerifiedAccess() async throws {
@@ -156,7 +223,7 @@ enum MimoCoordinatorTests {
         let statusGate = Gate<Bool>()
         var pulses = 0
         let coordinator = MimoCoordinator(configuration: configuration, allowlist: Fixture.allowed, revision: 1,
-            transport: { message in
+            transport: { message, _ in
                 if message.livenessOnly == true { pulses += 1 }
                 else if message.command == .heartbeat { _ = await statusGate.wait() }
                 return MimoRoutingState(configuration: configuration)
@@ -246,16 +313,21 @@ enum MimoCoordinatorTests {
         var failHeartbeat = false
         var failDirect = false
         var holdPrepare = false
+        var holdApproval = false
         var holdLookup = false
         var lookupCount = 0
         var holdDirectDelivery = false
         var holdCloseDelivery = false
+        var closeRequests = 0
+        var failPrepareClose = false
+        var lastProgress: MimoCoordinator.Progress?
         var commandFence = MimoCommandFence()
         let directDeliveryGate = Gate<Bool>()
         let closeDeliveryGate = Gate<Bool>()
         var approvals: [MimoVerification] = []
         let heartbeatGate = Gate<Result<MimoRoutingState, DaemonFailure>>()
         let prepareGate = Gate<MimoRoutingState>()
+        let approvalGate = Gate<MimoRoutingState>()
         let lookupGate = Gate<ExitIPSnapshot>()
 
         init(mode: ProxyMode = .rule) {
@@ -269,7 +341,7 @@ enum MimoCoordinatorTests {
 
         func coordinator() -> MimoCoordinator {
             MimoCoordinator(configuration: configuration, allowlist: Self.allowed, revision: 1,
-                            transport: { try await self.handle($0) }, lookup: { _, protected in
+                            transport: { try await self.handle($0, progress: $1) }, lookup: { _, protected in
                 require(protected, "fixture probes must use the protected path")
                 self.lookupCount += 1
                 if self.holdLookup {
@@ -280,7 +352,7 @@ enum MimoCoordinatorTests {
             })
         }
 
-        private func handle(_ message: MimoSupervisorRequest) async throws -> MimoRoutingState {
+        private func handle(_ message: MimoSupervisorRequest, progress: @escaping MimoCoordinator.Progress) async throws -> MimoRoutingState {
             if message.command == .direct, holdDirectDelivery {
                 holdDirectDelivery = false
                 _ = await directDeliveryGate.wait()
@@ -301,11 +373,17 @@ enum MimoCoordinatorTests {
                     return try await heartbeatGate.wait().get()
                 }
                 if failHeartbeat { throw DaemonFailure.unavailable }
-            case .close: policy.block("Verification required")
+            case .close:
+                closeRequests += 1
+                policy.block("Verification required")
             case .direct:
                 if failDirect { throw DaemonFailure.unavailable }
                 policy.directRestored(configuration: message.configuration ?? configuration)
             case .prepare:
+                policy.block("Preparing", confirmed: !failPrepareClose)
+                if failPrepareClose { return policy.state }
+                lastProgress = progress
+                progress(policy.state)
                 let token = policy.begin(configuration: message.configuration!, revision: message.revision!,
                                          networkGeneration: message.networkGeneration!)
                 policy.checking(token)
@@ -314,6 +392,13 @@ enum MimoCoordinatorTests {
                     return await prepareGate.wait()
                 }
             case .approve:
+                if holdApproval {
+                    holdApproval = false
+                    policy.waitingForReadiness(address: message.address!, verification: message.verification!)
+                    lastProgress = progress
+                    progress(policy.state)
+                    return await approvalGate.wait()
+                }
                 approvals.append(message.verification!)
                 _ = policy.approve(address: message.address!, at: .now, allowlist: Self.allowed,
                                    verification: message.verification!, runtimeMatches: true)

@@ -5,6 +5,7 @@ The human performs the real macOS event. This script never changes modes,
 services, saved settings, power state or GUI state. It is not a sleep test.
 """
 import hashlib
+import datetime
 import json
 import os
 from pathlib import Path
@@ -63,7 +64,7 @@ def main():
     offsets = {p: p.stat().st_size for p in Path('/Library/Logs/ExitIPMonitor').glob('runtime-*.jsonl')}
     before_check = state.get('observedIP', {}).get('checkedAt')
     events = []; timeline = []; locks = []; errors = []; passed = []
-    deadline = time.monotonic() + 1200
+    deadline = time.monotonic() + 3600
     print('READY: lock and unlock macOS in mimo-vm; current ' + mode + ' is preserved. Evidence: ' + str(root), flush=True)
     try:
         while time.monotonic() < deadline:
@@ -117,7 +118,16 @@ def main():
     # Detailed events may contain private IPs: keep them root-only in the VM.
     (root / 'private-events.json').write_text(json.dumps(events, indent=2))
     (root / 'timeline.json').write_text(json.dumps(dict(locks=locks, states=timeline), indent=2))
-    report = dict(success=not errors, passed=passed, errors=errors, mode=mode,
+    timings = []
+    for index, event in enumerate(events):
+        if event.get('event') != 'mimo_session_changed': continue
+        opened = next((v for v in events[index + 1:] if v['event'] == 'mimo_traffic_opened'), None)
+        if opened:
+            start = datetime.datetime.fromisoformat(event['timestamp'].replace('Z', '+00:00'))
+            end = datetime.datetime.fromisoformat(opened['timestamp'].replace('Z', '+00:00'))
+            timings.append(dict(source=event['fields'].get('source'), detectedAtUTC=event['timestamp'],
+                                openedAtUTC=opened['timestamp'], secondsToOpen=(end-start).total_seconds()))
+    report = dict(success=not errors, passed=passed, errors=errors, mode=mode, timings=timings,
                   packageSHA256=build['packageSHA256'], helperSHA256=build['helperSHA256'],
                   readOnlyObserver=True, realSleepTest=False,
                   scope='Human lock/unlock in the installed Release VM; state and ordered event evidence, not continuous packet proof')

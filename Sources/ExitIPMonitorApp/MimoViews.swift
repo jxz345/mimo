@@ -331,7 +331,7 @@ struct DashboardView: View {
         case .blocked: "Internet is blocked."
         case .checking:
             presentation.isRestoringDirect ? "Switching to direct connection…" : presentation.isClosing ? "Closing internet access…" : presentation.trafficIsBlocked
-                ? (presentation.isValidating ? "Blocked · Validating profile…" : "Blocked · Checking exit IP…")
+                ? (presentation.isValidating ? "Blocked · Validating profile…" : presentation.isCheckingReadiness ? "Blocked · Checking readiness…" : "Blocked · Checking exit IP…")
                 : "Checking your exit IP…"
         case .directWarning: "Direct · IP check unavailable."
         case .tailnetWarning: "Connected · Tailnet unavailable."

@@ -1,0 +1,26 @@
+{
+  "success": true,
+  "mode": "rule",
+  "trials": [
+    {
+      "event": "route-added",
+      "seconds": 27.326,
+      "confirmedCloseBeforeProbeBeforeOpen": true,
+      "fullCloseCount": 4,
+      "privateProbeCount": 1,
+      "stages": []
+    },
+    {
+      "event": "route-removed",
+      "seconds": 28.964,
+      "confirmedCloseBeforeProbeBeforeOpen": true,
+      "fullCloseCount": 4,
+      "privateProbeCount": 1,
+      "stages": []
+    }
+  ],
+  "errors": [],
+  "packageSHA256": "2e8c6e7c5629591226a41bb21f09b0fed9e6fdddfa20fbb5339c26e9a32cf678",
+  "helperSHA256": "8e23dff0f092a63027fe1a97b4c06041d82cd665fae9742ac96647de59f45fd6",
+  "scope": "Actual kernel host-route add/remove, saved proxy and ordinary-user HTTPS in mimo-vm; not a physical sleep/unlock or continuous packet test"
+}

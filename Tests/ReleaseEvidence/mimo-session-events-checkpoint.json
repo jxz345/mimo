@@ -15,13 +15,16 @@
     "Normal arm64 Release build and strict signature/package checks",
     "Installed Release hashes/signature and original Rule/proxy/allowlist/credential/service intent retained",
     "Installed observer reports healthy; saved Rule recovered with approved exit",
-    "Installed-app password-free control/private-profile diagnostic"
+    "Installed-app password-free control/private-profile diagnostic",
+    "Human Rule lock/unlock and associated display sleep/wake: persistent service logs confirm barriers and fresh probe-before-open; user confirms UI",
+    "Post-event current Rule, installed hashes/signature and saved configuration/credentials retained"
   ],
   "pending": [
-    "Human lock/unlock on this exact build",
     "Actual macOS sleep/wake unavailable in prior VM attempt; not replaced by lock test",
-    "Login/logout, fast-user-switch and display-only events on this exact build"
+    "Direct/Global session events and login/logout/fast-user-switch on this exact build"
   ],
   "scope": "Logic regressions plus installed preflight; no synthetic session/power event is counted as real OS acceptance",
-  "manualEvidenceRoot": "/var/tmp/mimo-session-dncdhqkx"
+  "manualEvidenceRoot": "/var/tmp/mimo-session-dncdhqkx",
+  "logAudit": "mimo-session-events-rule-log-audit.json",
+  "recorderTimeout": "mimo-session-observer-timeout.json"
 }

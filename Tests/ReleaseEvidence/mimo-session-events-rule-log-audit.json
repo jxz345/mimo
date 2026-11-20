@@ -1,0 +1,59 @@
+{
+  "success": true,
+  "environment": "mimo-vm only",
+  "packageSHA256": "2e8c6e7c5629591226a41bb21f09b0fed9e6fdddfa20fbb5339c26e9a32cf678",
+  "helperSHA256": "8e23dff0f092a63027fe1a97b4c06041d82cd665fae9742ac96647de59f45fd6",
+  "mode": "rule",
+  "passed": [
+    "screen_locked-barrier-then-confirmed-gate-and-private-probe-before-open",
+    "display_sleep-barrier-then-confirmed-gate-and-private-probe-before-open",
+    "display_wake-barrier-then-confirmed-gate-and-private-probe-before-open",
+    "screen_unlocked-barrier-then-confirmed-gate-and-private-probe-before-open",
+    "no-barrier-or-session-observation-failure-in-event-window",
+    "current-Rule-has-fresh-post-unlock-approved-IP",
+    "original-settings-password-and-service-intent-retained"
+  ],
+  "sequence": [
+    {
+      "event": "screen_locked",
+      "barrierClosedAtUTC": "2026-11-20T03:04:05Z",
+      "trafficOpenedAtUTC": "2026-11-20T03:04:20Z"
+    },
+    {
+      "event": "display_sleep",
+      "barrierClosedAtUTC": "2026-11-20T03:04:35Z",
+      "trafficOpenedAtUTC": "2026-11-20T03:05:05Z"
+    },
+    {
+      "event": "display_wake",
+      "barrierClosedAtUTC": "2026-11-20T03:09:03Z",
+      "trafficOpenedAtUTC": "2026-11-20T03:09:28Z"
+    },
+    {
+      "event": "screen_unlocked",
+      "barrierClosedAtUTC": "2026-11-20T03:09:07Z",
+      "trafficOpenedAtUTC": "2026-11-20T03:09:28Z"
+    }
+  ],
+  "checkedAtUTC": "2026-11-20T03:09:27.406827+00:00",
+  "userReportedUI": "Looks okay after lock/unlock",
+  "recorderResult": "Original 20-minute live observer expired while locked, before the later unlock. Original unsuccessful timeout report retained separately.",
+  "evidenceSources": [
+    "Persistent service logs for 2026-11-20 03:03:50Z to 03:11:00Z",
+    "Independent live IORegistry sample and shared-state trace during lock/display sleep",
+    "Current unlocked registry, active Rule state and configuration/credential comparison",
+    "User visual confirmation"
+  ],
+  "realSleepTest": false,
+  "powerCounts": {
+    "sleep": 0,
+    "darkWake": 0,
+    "userWake": 0
+  },
+  "limitations": [
+    "No continuous packet capture or proof of zero pre-detection traffic",
+    "Live state recorder ended before unlock; unlock sequence is from persistent service logs and user confirmation",
+    "Overlapping display-wake/unlock events caused repeated preparation; final reopening was about 21 seconds after unlock",
+    "Direct/Global session events and login/logout/user switching were not exercised in this cycle"
+  ]
+}

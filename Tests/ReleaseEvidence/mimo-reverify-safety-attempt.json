@@ -1,0 +1,16 @@
+{
+  "success": false,
+  "passed": [
+    "empty-allowlist-blocks-after-fresh-IP",
+    "mismatching-allowlist-blocks-after-fresh-IP",
+    "original-allowlist-recovers-with-fresh-approval",
+    "original-protected-mode-configuration-credentials-and-service-intent-restored"
+  ],
+  "errors": [
+    "AssertionError: The stalled-controller test did not reach preparation"
+  ],
+  "mode": "rule",
+  "packageSHA256": "8f89d246eac6485afbc0d3682710408e79b3f1ca8f360bfe6ba1e0b280b83166",
+  "helperSHA256": "53b998ad7d571a9299d644d99cbdcb0e67dff74a6afef4c59fc1201c3884845f",
+  "scope": "Installed normal Release in mimo-vm; real allowlist rejection, suspended/resumed mihomo controller, ordinary-user HTTPS and restoration. No synthetic events or helper replacement."
+}

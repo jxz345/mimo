@@ -36,6 +36,13 @@ final class MimoDNSConfiguration {
             "SupplementalMatchDomainsNoSearch": 1, "SearchOrder": 1
         ]
         let key = MimoRuntime.dnsStateKey as CFString
+        // Re-publishing an identical resolver can cause configd to issue new
+        // global-DNS notifications and restart a just-completed verification.
+        // Read the actual live value; a missing/changed value must be repaired.
+        if installed, SCDynamicStoreCopyValue(store, key) as? NSDictionary == value as NSDictionary {
+            expected = value as NSDictionary
+            return
+        }
         let success = installed ? SCDynamicStoreSetValue(store, key, value as CFDictionary) :
             SCDynamicStoreAddTemporaryValue(store, key, value as CFDictionary)
         guard success else { throw MimoRuntimeError.unavailable("Could not install the protected DNS resolver.") }

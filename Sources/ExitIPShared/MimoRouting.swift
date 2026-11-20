@@ -185,6 +185,13 @@ public struct MimoAccessPolicy: Sendable {
         state.reason = "Checking the exit IP. Internet remains blocked."
     }
 
+    public mutating func waitingForReadiness(address: String, verification: MimoVerification) {
+        guard state.verification == verification, state.phase == .checking else { return }
+        state.observedIP = MimoIPObservation(address: address, checkedAt: .now)
+        state.blockingIP = nil
+        state.reason = "Exit IP approved. Checking profile, tunnel and DNS. Internet remains blocked."
+    }
+
     @discardableResult
     public mutating func approve(address: String, at date: Date, allowlist: AllowedIPList,
                                  verification: MimoVerification, runtimeMatches: Bool) -> Bool {

@@ -3,7 +3,8 @@ import Foundation
 /// Core owns verification scheduling and provider budgets. The independent supervisor owns the gate.
 @MainActor
 final class MimoCoordinator {
-    typealias Transport = @MainActor (MimoSupervisorRequest) async throws -> MimoRoutingState
+    typealias Progress = @MainActor @Sendable (MimoRoutingState) -> Void
+    typealias Transport = @MainActor (MimoSupervisorRequest, @escaping Progress) async throws -> MimoRoutingState
     typealias Lookup = @MainActor (LookupConfiguration, Bool) async throws -> ExitIPSnapshot
 
     private(set) var state: MimoRoutingState
@@ -37,7 +38,7 @@ final class MimoCoordinator {
         self.transport = transport ?? Self.callSupervisor
         if let transport {
             heartbeatChannel = nil
-            pulse = { _ = try await transport($0) }
+            pulse = { _ = try await transport($0, { _ in }) }
         } else {
             let channel = MimoHeartbeatChannel()
             heartbeatChannel = channel
@@ -134,6 +135,16 @@ final class MimoCoordinator {
         await invalidate(reason: "Network settings changed. Checking the exit IP immediately.")
     }
 
+    /// The root supervisor already attempted closure before delivering this
+    /// event. Invalidate local work immediately, then let prepare confirm the
+    /// current gate. Do not send a second standalone close round trip.
+    func supervisorNetworkChanged() {
+        networkGeneration &+= 1
+        transitionGeneration &+= 1
+        guard configuration.mode.requiresVerification else { return }
+        markPending("System or network changed. Preparing a fresh exit-IP check.")
+    }
+
     func invalidate(reason: String) async {
         networkGeneration &+= 1
         guard configuration.mode.requiresVerification else { return }
@@ -164,15 +175,9 @@ final class MimoCoordinator {
             guard state.allowsTraffic else { throw MimoRuntimeError.unavailable(state.reason) }
         } else {
             markPending("Preparing verification. Waiting for the supervisor to confirm blocking.")
-            // Publish a confirmed closed gate before preparing the profile. The
-            // preparation RPC can take time; never display the previous approval
-            // or claim blocking from an unacknowledged request during that work.
-            let closed = try await send(MimoSupervisorRequest(.close))
-            guard generation == networkGeneration, revision == self.revision else { throw CancellationError() }
-            guard closed.phase == .blocked else { throw MimoRuntimeError.unavailable(closed.reason) }
-            state.phase = .validating
-            state.reason = "Validating the profile. Internet remains blocked."
-            changed?()
+            // Prepare streams confirmed blocking before slower profile work.
+            // One request owns closure and preparation, avoiding a duplicate
+            // full firewall transaction solely to display progress.
             var message = MimoSupervisorRequest(.prepare)
             message.configuration = configuration; message.allowlist = allowlist
             message.revision = revision; message.networkGeneration = generation
@@ -186,6 +191,7 @@ final class MimoCoordinator {
         try Task.checkCancellation()
         guard generation == networkGeneration, revision == self.revision else { throw CancellationError() }
         do {
+            var timing = MimoTransitionTiming("lookup")
             let result: ExitIPSnapshot
             if let lookupOverride {
                 result = try await lookupOverride(lookup, mode.requiresVerification)
@@ -194,6 +200,7 @@ final class MimoCoordinator {
                 defer { session.invalidateAndCancel() }
                 result = try await PublicIPLookupClient(session: session).lookup(configuration: lookup)
             }
+            timing.record("exit_ip")
             try Task.checkCancellation()
             guard generation == networkGeneration, revision == self.revision else { throw CancellationError() }
             if let check {
@@ -258,7 +265,21 @@ final class MimoCoordinator {
                 (pollCanPublish && transitionsInFlight == 0 && sequence > appliedPollSequence))
         }
         do {
-            var result = try await transport(message)
+            var result = try await transport(message) { [weak self] interim in
+                guard let self, self.transitionGeneration == generation, self.transitionsInFlight > 0 else { return }
+                let preparing = message.command == .prepare && interim.phase == .blocked
+                let waiting = message.command == .approve && interim.phase == .checking
+                    && interim.verification == message.verification && interim.observedIP != nil
+                guard preparing || waiting else { return }
+                self.state = interim
+                self.state.configuration.mode = self.configuration.mode
+                self.state.configuration.proxy = self.configuration.proxy
+                if preparing {
+                    self.state.phase = .validating
+                    self.state.reason = "Validating the profile. Internet remains blocked."
+                }
+                self.changed?()
+            }
             guard isCurrent() else { throw CancellationError() }
             if isPoll { appliedPollSequence = sequence }
             // Selected configuration is owned by core, while supervisor reports the actual gate.
@@ -277,10 +298,14 @@ final class MimoCoordinator {
         }
     }
 
-    private static func callSupervisor(_ message: MimoSupervisorRequest) async throws -> MimoRoutingState {
+    private static func callSupervisor(_ message: MimoSupervisorRequest, progress: @escaping Progress) async throws -> MimoRoutingState {
         var request = DaemonRequest(.supervisor)
         request.supervisor = message
-        let response = try await DaemonRPC.call(request, timeout: 20, serviceLabel: MimoRuntime.supervisorLabel)
+        let response = try await DaemonRPC.call(request, timeout: 20, serviceLabel: MimoRuntime.supervisorLabel,
+                                               progress: { response in
+            guard let state = response.routing else { return }
+            Task { @MainActor in progress(state) }
+        })
         guard let result = response.routing else { throw DaemonFailure.unavailable }
         return result
     }

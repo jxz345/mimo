@@ -2,6 +2,22 @@ import XCTest
 @testable import ExitIPShared
 
 final class MimoStatusPresentationTests: XCTestCase {
+    func testApprovedIPWhileReadinessIsPendingStillShowsBlockedChecking() {
+        var routing = MimoRoutingState()
+        routing.configuration.mode = .rule
+        routing.phase = .checking
+        routing.observedIP = .init(address: "203.0.113.42", checkedAt: .now)
+        routing.reason = "Exit IP approved. Checking profile, tunnel and DNS. Internet remains blocked."
+        let value = MimoStatusPresentation(routing: routing, snapshot: nil,
+            preferences: MonitoringPreferences(), date: .now)
+        XCTAssertTrue(value.trafficIsBlocked)
+        XCTAssertTrue(value.isCheckingReadiness)
+        XCTAssertEqual(value.kind, .checking)
+        XCTAssertTrue(value.title.contains("Checking readiness"))
+        XCTAssertTrue(value.verificationProgress?.contains("Exit IP approved") == true)
+        XCTAssertFalse(routing.allowsTraffic)
+    }
+
     func testDirectTransitionDoesNotClaimBlockingOrApproval() {
         var routing = MimoRoutingState()
         routing.phase = .restoringDirect
