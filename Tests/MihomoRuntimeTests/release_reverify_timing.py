@@ -13,6 +13,7 @@ import tempfile
 import time
 import traceback
 
+from monotonic_uptime import uptime_ms
 from installed_acceptance_test import command
 from release_final_state import configuration_values
 from release_network_progress_test import LOGS, offsets, events, DESTINATION
@@ -48,7 +49,7 @@ def main():
         assert active(), 'Original saved mode is not active before the trial'
         for add in (True, False):
             baseline = offsets(LOGS)
-            started = time.monotonic()
+            started = time.monotonic(); requested_uptime = uptime_ms()
             if add:
                 command('/sbin/route', '-n', 'add', '-host', DESTINATION, gateway); added = True
             else:
@@ -72,16 +73,23 @@ def main():
             assert not any(v.get('level') == 'error' for v in ordered[:opened + 1]), 'Supervisor reported an error before opening'
             command('/usr/bin/sudo', '-n', '-u', 'jay', '/usr/bin/curl', '--silent', '--fail', '--noproxy', '*',
                     '--max-time', '10', '--head', 'https://one.one.one.one/')
-            trial = dict(event=label,seconds=round(elapsed,3),confirmedCloseBeforeProbeBeforeOpen=True,
-                         fullCloseCount=names[:opened + 1].count('mimo_gate_closed'),
+            assert names.count('mimo_final_profile_reused') == 1 and names.count('mimo_final_profile_loaded') == 0
+            spans = [v['fields'] for v in rows if v['event'] == 'mimo_transition_timing']
+            barriers = [v for v in spans if v['stage'] == 'barrier_and_confirmation']
+            assert len(barriers) == 1, 'Event and preparation repeated the blocking operation'
+            opening = next(v for v in spans if v['stage'] == 'open_gate')
+            opened_after = (int(opening['end_uptime_ms'])-requested_uptime)/1000
+            assert 0 < opened_after <= elapsed + 0.1
+            trial = dict(event=label,seconds=round(elapsed,3),firewallOpenSeconds=round(opened_after,3),eventRequestedUptimeMS=requested_uptime,confirmedCloseBeforeProbeBeforeOpen=True,
+                         blockingOperationCount=len(barriers),closeConfirmationCount=names[:opened + 1].count('mimo_gate_closed'),
                          privateProbeCount=names[:opened + 1].count('mimo_private_probe_ready'),
                          stages=[v['fields'] for v in rows if v['event'] == 'mimo_transition_timing'])
             trials.append(trial)
-            print('PASS:',label,round(elapsed,3),'seconds;',trial['fullCloseCount'],'full closes',flush=True)
+            print('PASS:',label,round(elapsed,3),'seconds;',trial['blockingOperationCount'],'blocking operation',flush=True)
             # Allow configd's delayed DNS notifications to settle between trials.
             time.sleep(4)
         assert configuration_values(read_settings()) == configuration_values(original)
-        assert FLAGS.read_bytes() == flags
+        assert json.loads(FLAGS.read_bytes()) == json.loads(flags)
         assert command(BASE / 'acceptance-client', 'credential-digest').stdout.strip() == credential
     except Exception as exc:
         errors.append(type(exc).__name__ + ': ' + str(exc))

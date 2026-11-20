@@ -11,7 +11,11 @@ final class MimoReadinessChecks: Sendable {
     private let dns = MimoBlockingWorkQueue("com.mimo.check-dns")
 
     func validateInstallation(_ operation: @escaping @Sendable () throws -> Void) async throws {
-        guard let result = await installation.run({ Result { try operation() } }) else { throw CancellationError() }
+        guard let result = await installation.run({ Result {
+            var timing = MimoTransitionTiming("installation")
+            try operation()
+            timing.record("installation_inspection")
+        } }) else { throw CancellationError() }
         try result.get()
     }
 

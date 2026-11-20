@@ -235,6 +235,13 @@ public struct MimoAccessPolicy: Sendable {
         state.reason = reason
         state.verification = nil
     }
+
+    public mutating func requestingBlock(_ reason: String) {
+        state.phase = .closing
+        state.effectiveMode = nil
+        state.reason = reason
+        state.verification = nil
+    }
 }
 
 /// Ordering identity for one core process. Authorization still uses the XPC peer.

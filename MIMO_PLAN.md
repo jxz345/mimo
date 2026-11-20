@@ -50,12 +50,12 @@ This change applies to machines running Mimo. Delta's host networking is not cha
 
 ### Approved shorter verification flow (2026-11-20)
 
-Implemented in the normal Release installed in mimo-vm. Targeted packet, failure and race evidence is linked below; actual sleep/unlock timing is separate. The approved sequence is **combined close/probe preparation → one final-profile load → exit-IP lookup → firewall open**. Critical checks run concurrently and must succeed before opening; they are never assumed healthy. Previous timing results describe the older two-profile candidate.
+Implemented in the normal Release installed in mimo-vm. Targeted packet, failure and race evidence is linked below; actual sleep/unlock timing is separate. The approved sequence is **parallel blocking + local preparation → private probe setup → reuse or load final profile → exit-IP lookup with critical checks → firewall open**. Critical checks run concurrently and must succeed before opening; they are never assumed healthy. Previous timing results describe the older two-profile candidate.
 
 1. Keep the independent PF boot loader and credential-free startup profile. Saved service Stop intent remains respected.
 2. Restore saved Direct immediately without an allowlist gate. Direct events only refresh the observed IP; IPv6 remains denied.
-3. For Rule/Global, invalidate old approval and close the small PF safety barrier. Confirm effective blocking, clear existing engine connections, resolve the IPv4 proxy endpoint if necessary, and install the restricted probe policy once. Keep the safety barrier until cleanup and this policy are complete; missing/damaged PF falls back to the full blocking policy.
-4. Validate and load the final Rule/Global profile once through stdin/private controller payload. TUN, DNS and the ordinary proxy listener may exist, but the closed application gate must deny their ordinary traffic. The existing authenticated, destination-restricted probe remains usable.
+3. For Rule/Global, invalidate old approval and request the small PF safety barrier on an independent worker. Run local credential/profile preparation and installation inspection concurrently. Share the network-event closure with preparation. Confirm effective blocking, clear existing engine connections, resolve the IPv4 proxy endpoint if necessary, and install the restricted probe policy once. Keep the safety barrier until cleanup and this policy are complete; missing/damaged PF falls back to the full blocking policy.
+4. Reuse an unchanged final profile in the same engine process; otherwise validate and load the final Rule/Global profile once through stdin/private controller payload. Manual Reload and service changes force a load. TUN, DNS and the ordinary proxy listener may exist, but the closed application gate must deny their ordinary traffic. The existing authenticated, destination-restricted probe remains usable.
 5. Run engine installation checks and final profile/TUN/DNS readiness inspections on bounded background workers. Configure protected DNS while closed. Independent controller reads can overlap one another and the exit-IP request; firewall/profile mutations remain serialized.
 6. Probe the current configured HTTPS lookup provider and require a fresh allowlisted IPv4. Empty/mismatched lists, failed lookup or exhausted quota stay blocked.
 7. Join the current attempt's critical results. Bind them to profile bytes, engine process, saved revision and network/session generation. A change or failure invalidates the attempt; late replies cannot reopen traffic or close a newer Direct selection.
@@ -538,7 +538,7 @@ DNS listener recovery: a real foreign owner of `127.0.0.1:1053` must keep protec
 
 ### Single-profile verification result — 2026-11-20
 
-The approved flow is installed in mimo-vm: one final-profile load, small-barrier closure plus one probe-policy write, concurrent mandatory checks, then one active-policy write. Readiness is never assumed healthy. Across eight real route-change runs, recovery was **8.428–11.796 seconds** (about 10.1 seconds on average). The four Rule runs averaged **9.8 seconds**, versus 17.571 seconds for the preceding two-profile Rule runs. These are kernel route-change timings, not new manual unlock/sleep measurements.
+The preceding candidate used one final-profile load, small-barrier closure plus one probe-policy write, concurrent mandatory checks, then one active-policy write. Readiness is never assumed healthy. Across eight real route-change runs, recovery was **8.428–11.796 seconds** (about 10.1 seconds on average). The four Rule runs averaged **9.8 seconds**, versus 17.571 seconds for the preceding two-profile Rule runs. These are kernel route-change timings, not new manual unlock/sleep measurements.
 
 The [installed packet/fault run](Tests/ReleaseEvidence/mimo-single-profile-runtime.json) passes 19 assertions, including Rule/Global final-profile isolation, existing/new ordinary traffic denial, empty/mismatched allowlists, DNS ownership failure and Restart recovery, actual engine crash, Direct bypass, packet attribution and restoration. The [in-flight change run](Tests/ReleaseEvidence/mimo-single-profile-races.json) passes a new route during probing, Direct during probing, and exact restoration. [Detailed timing](Tests/ReleaseEvidence/mimo-single-profile-timeline.json) separates concurrent checks from the serial path. 183 shared tests and the service regressions passed inside mimo-vm; the normal arm64 Release package built and its installed signature/hashes matched.
 
@@ -560,3 +560,61 @@ Installation validation also runs in the background and has no separate stage ti
 The first capture attempt created a pktap interface and correctly triggered protection before the test baseline connection; the driver now waits for that real event to settle. The next attempt identified the pinned engine's DNS reload limitation; after releasing the conflicting port, Restart is required. Both failed attempts are retained, and the complete corrected run passes. Native progress rendering on this build remains visually unverified because Tart input returns `noWindowsAvailable`; shared presentation/progress tests passed.
 
 The focused [stalled-controller test](Tests/ReleaseEvidence/mimo-single-profile-stalled-controller.json) also passes: SIGSTOP prevents preparation from advancing to a probe/open, SIGCONT plus a fresh check recovers, and original Rule/settings are restored. [Final checkpoint](Tests/ReleaseEvidence/mimo-single-profile-checkpoint.json) records all 25 installed assertions, 183 shared tests, service regressions and final installed-state verification.
+
+
+## Approved concurrent preparation update — 20 November 2026
+
+Request PF blocking immediately and run its bounded worker concurrently with credential reading, exact profile rendering and installation checks. Preparation does not wait for PF confirmation to begin. Show **Blocking** until closure is confirmed; then show **Blocked / Checking**. Changes to forwarding permissions, controller flow cleanup and the private probe path still require confirmed closure. Failed confirmation cannot open traffic.
+
+A network event and the following preparation share the same close operation. Cancelled close work checks its cancellation under the common firewall lock: Direct either follows an already-running close or prevents a queued close from running. The worker cannot close Direct later. Confirmation is tied to the original request identity, so a delayed waiter cannot create a new closure after cancellation. Configuration/network/session generations still invalidate stale checks. PF mutations still serialize under the common lock; requesting closure is not a promise of zero detection or lock-wait delay.
+
+For an unchanged profile in the same mihomo process, reuse the loaded bytes and perform fresh controller, TUN, DNS and installation inspection alongside a new exit-IP lookup. Never reuse an IP approval. Changed bytes, a different engine process, startup, manual Reload and service changes force a profile load. A failed readiness inspection forces a load on the next attempt. DNS listener failure may still require mihomo Restart, as documented above.
+
+Opening waits for confirmed closure, a fresh allowlisted IPv4 address, successful critical checks and current engine/configuration/network/session identity. Empty or mismatched allowlists stay blocked. Direct remains open during events and ignores the allowlist. Existing boot-before-PF and event-detection windows remain; concurrency does not eliminate them. New monotonic stage start/end times will show actual overlap in VM acceptance evidence.
+
+If controller connection cleanup fails during preparation (including a launchd replacement that has a PID but no ready controller), keep blocking and schedule a fresh attempt after the next healthy infrastructure pass, normally within ten seconds plus verification time. This retry does not reuse an IP approval or bypass failed cleanup. It adds no wait to the healthy recheck path.
+
+
+```mermaid
+flowchart LR
+    E[Protected event] --> B[PF blocking worker]
+    E --> P[Read credentials and render profile]
+    E --> I[Inspect installation]
+    B --> C[Confirmed blocking]
+    C --> F[Clear flows and install private probe policy]
+    P --> F
+    F --> R[Reuse unchanged profile or load final profile]
+    R --> IP[Fresh exit IP lookup]
+    R --> H[Inspect profile, tunnel and DNS]
+    IP --> J[Current allowlisted IP and all critical checks pass]
+    H --> J
+    I --> J
+    J --> O[Open PF]
+```
+
+Any stale attempt is discarded. A failed close, failed check or empty/mismatched allowlist cannot reach Open PF. A new Direct selection cancels pending protected work and restores IPv4 independently of the allowlist.
+
+
+## Measured concurrent timeline — 20 November 2026
+
+Concurrent blocking/preparation and profile reuse are installed and tested in mimo-vm. Six actual route changes took **7.77–9.21 seconds** as observed; Rule averaged **8.36 seconds**, versus **9.8 seconds** previously. PF actually opened after **7.37–8.76 seconds**. All 184 shared tests, service regressions, 20 packet/fault checks, four in-flight-change checks, two PF fallback/restoration checks and three stalled-controller/recovery checks pass. Original Rule, proxy/password, allowlist and service intent are restored.
+
+Representative Rule run: **7.716 s to PF opening**, **8.214 s until the test observed Active**. Chosen nearest the median Rule observation, from `mimo-concurrent-runtime.json`. Overlapping rows must not be added together. Dispatch, DNS setup and interprocess handoffs are not all timed separately. These are route changes with the saved proxy, not a new lock/unlock or physical-sleep measurement.
+
+| Time from route request | Work |
+|---|---|
+| 0.06–1.00 s | PF closure and confirmation (worker) |
+| 0.19–0.19 s | Credentials and profile rendering — concurrent |
+| 0.19–0.77 s | Installation inspection — concurrent |
+| 0.19–1.31 s | Prepare waits for confirmed closure |
+| 1.31–1.32 s | Join local preparation |
+| 1.32–1.65 s | Clear old engine connections |
+| 1.65–1.65 s | Resolve proxy endpoint |
+| 1.65–3.06 s | Install restricted private-probe policy |
+| 3.06–3.26 s | Reuse unchanged profile; no reload |
+| 3.57–4.90 s | Fresh exit-IP lookup |
+| 4.43–5.11 s | Profile, tunnel and DNS inspection — overlaps lookup |
+| 5.19–5.37 s | Approval validation and readiness join |
+| 5.37–7.72 s | Open PF |
+
+See [raw stage spans and all six trials](Tests/ReleaseEvidence/mimo-concurrent-timeline.json). Failed initial attempts are retained alongside the successful reports.

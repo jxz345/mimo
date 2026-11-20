@@ -2,6 +2,18 @@ import XCTest
 @testable import ExitIPShared
 
 final class MimoRoutingTests: XCTestCase {
+    func testPendingBlockRevokesApprovalWithoutClaimingConfirmedBlocking() {
+        var policy = MimoAccessPolicy()
+        policy.directRestored(configuration: MimoConfiguration())
+        policy.requestingBlock("Blocking traffic.")
+        XCTAssertEqual(policy.state.phase, .closing)
+        XCTAssertNil(policy.state.effectiveMode)
+        XCTAssertNil(policy.state.verification)
+        XCTAssertFalse(policy.state.allowsTraffic)
+        policy.block("Confirmed.")
+        XCTAssertEqual(policy.state.phase, .blocked)
+    }
+
     func testLostSupervisorDoesNotLeaveServiceProgressClaimingConfirmedBlocking() {
         var pending = MimoRoutingState(); pending.phase = .blocked
         pending.supervisorCheckedAt = Date(timeIntervalSince1970: 101)

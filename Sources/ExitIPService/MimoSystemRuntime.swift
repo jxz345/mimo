@@ -30,7 +30,7 @@ struct MimoPFReference: Codable {
 /// Fixed-path privileged operations. No caller supplies a command, YAML, or executable path.
 @MainActor
 final class MimoSystemRuntime {
-    private let directory = MimoRuntime.directory
+    private nonisolated let directory = MimoRuntime.directory
     private nonisolated var group: UInt32 {
         getgrnam(MimoRuntime.engineGroup).map { $0.pointee.gr_gid } ?? UInt32.max
     }
@@ -41,6 +41,8 @@ final class MimoSystemRuntime {
     private nonisolated let nativeTransportWriter = MimoNativeTransportWriter()
     private let dns = MimoDNSConfiguration()
     nonisolated let readinessChecks = MimoReadinessChecks()
+    private let gateQueue = MimoBlockingWorkQueue("com.mimo.close-gate", qos: .userInitiated)
+    private var gateRequest: (token: MimoGateRequest, task: Task<Bool, Error>)?
     private let infrastructureQueue = MimoBlockingWorkQueue("com.mimo.infrastructure-check")
     var profileWillChange: (() -> Void)?
     var profileDidChange: (() -> Void)?
@@ -194,7 +196,7 @@ final class MimoSystemRuntime {
     }
 #endif
 
-    func writePrivate(_ data: Data, name: String) throws -> URL {
+    nonisolated func writePrivate(_ data: Data, name: String) throws -> URL {
         try writePrivate(data, name: name, directory: directory)
     }
 
@@ -203,7 +205,7 @@ final class MimoSystemRuntime {
         _ = try writePrivate(Data(MihomoProfile.blocking().utf8), name: "blocking.yaml", directory: MimoRuntime.profileDirectory)
     }
 
-    private func writePrivate(_ data: Data, name: String, directory: URL) throws -> URL {
+    private nonisolated func writePrivate(_ data: Data, name: String, directory: URL) throws -> URL {
         try secureDirectory(directory)
         let url = directory.appendingPathComponent(name)
         guard !name.contains("/"), !name.contains("..") else { throw DaemonFailure.invalidRequest }
@@ -221,10 +223,47 @@ final class MimoSystemRuntime {
     /// Close the small sub-anchor first. Reuse a verified parent policy instead
     /// of replacing it with startup rules and then replacing it again for probing.
     /// A damaged/missing parent always takes the full blocking fallback.
-    func holdApplicationGate() throws {
+    func requestApplicationGate() -> MimoGateRequest {
+        if let gateRequest { return gateRequest.token }
         closed = false
-        try MimoPowerGuard.closeBarrier()
-        let held = try withFirewallLock {
+        let token = MimoGateRequest()
+        let queue = gateQueue
+        let task = Task {
+            guard let result = await queue.run({ Result { try self.holdGateUnderLock(token) } }) else { throw CancellationError() }
+            return try result.get()
+        }
+        gateRequest = (token, task)
+        return token
+    }
+
+    func confirmApplicationGate(_ token: MimoGateRequest) async throws {
+        guard let request = gateRequest, request.token === token else { throw CancellationError() }
+        let held = try await request.task.value
+        guard gateRequest?.token === request.token, !request.token.isCancelled else { throw CancellationError() }
+        guard !closed else { return }
+        if held { closed = true }
+        else { try closeGate(rules: MimoFirewallPolicy.startupBlocking, applyIPv4Preferences: false, cancelPending: false) }
+    }
+
+    func cancelApplicationGate() {
+        gateRequest?.token.cancel()
+        gateRequest?.task.cancel()
+        gateRequest = nil
+    }
+
+    func holdApplicationGate() throws {
+        cancelApplicationGate()
+        closed = false
+        if try holdGateUnderLock(MimoGateRequest()) { closed = true }
+        else { try closeStartupGate() }
+    }
+
+    private nonisolated func holdGateUnderLock(_ request: MimoGateRequest) throws -> Bool {
+        var timing = MimoTransitionTiming("blocking")
+        defer { timing.record("barrier_and_confirmation") }
+        return try withFirewallLock {
+            guard !request.isCancelled else { throw CancellationError() }
+            try MimoPowerGuard.closeBarrier()
             let main = BoundedProcess.run("/sbin/pfctl", ["-sr"])
             let live = BoundedProcess.run("/sbin/pfctl", ["-a", MimoFirewallPolicy.anchor, "-sr"])
             let status = BoundedProcess.run("/sbin/pfctl", ["-s", "info"])
@@ -236,17 +275,16 @@ final class MimoSystemRuntime {
                   (try? secureFile(expected)) != nil,
                   live.text == (try? String(contentsOf: expected, encoding: .utf8)) else { return false }
             _ = try writePrivate(Data("blocked".utf8), name: "gate.state")
-            closed = true
             return true
         }
-        if !held { try closeStartupGate() }
     }
 
     func closeStartupGate() throws {
         try closeGate(rules: MimoFirewallPolicy.startupBlocking, applyIPv4Preferences: false)
     }
 
-    private func closeGate(rules: String, applyIPv4Preferences: Bool) throws {
+    private func closeGate(rules: String, applyIPv4Preferences: Bool, cancelPending: Bool = true) throws {
+        if cancelPending { cancelApplicationGate() }
         closed = false
         try withFirewallLock {
             _ = try writePrivate(Data("pending".utf8), name: "gate.state")
@@ -277,6 +315,7 @@ final class MimoSystemRuntime {
     }
 
     func restoreDirect(maintenanceRecovery: Bool = false, uninstalling: Bool = false) throws {
+        cancelApplicationGate()
         try withFirewallLock {
             guard maintenanceRecovery || !maintenanceActive else { throw MimoRuntimeError.unavailable("Service installation is in progress.") }
             _ = try writePrivate(Data("pending".utf8), name: "gate.state")
@@ -396,6 +435,12 @@ final class MimoSystemRuntime {
             throw MimoRuntimeError.unavailable("The current boot identifier is unavailable.")
         }
         return String(cString: bytes)
+    }
+
+    func canReuseProfile(_ profile: String) -> Bool {
+        guard let loadedProfile else { return false }
+        return loadedProfile.digest == SHA256.hash(data: Data(profile.utf8)) &&
+            loadedProfile.process == runningProcessID(MimoRuntime.engineLabel)
     }
 
     func loadProfile(_ profile: String) throws {
@@ -608,7 +653,7 @@ final class MimoSystemRuntime {
         }
     }
 
-    private func withFirewallLock<T>(_ operation: () throws -> T) throws -> T {
+    private nonisolated func withFirewallLock<T>(_ operation: () throws -> T) throws -> T {
         try secureDirectory(directory)
         let lock = try MimoFirewallLock.acquire(at: directory.appendingPathComponent("firewall.lock"))
         return try withExtendedLifetime(lock, operation)

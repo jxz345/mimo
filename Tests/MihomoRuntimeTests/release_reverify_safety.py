@@ -84,20 +84,27 @@ def main():
         deadline = time.monotonic()+25
         while time.monotonic()<deadline:
             rows = events(LOGS,baseline)
-            prepared = next((i for i,v in enumerate(rows) if v['event']=='mimo_gate_closed' and v['fields'].get('reason')=='Validating the protected profile.'),None)
+            prepared = next((i for i,v in enumerate(rows) if v['event']=='mimo_gate_closed' and v['fields'].get('reason') in ('prepare','Validating the protected profile.')),None)
             if prepared is not None and any(v['event']=='mimo_gate_closed' and 'curl' in v['fields'].get('reason','') for v in rows[prepared+1:]):break
             time.sleep(.2)
         else:raise AssertionError('No completed stalled-controller preparation was observed')
         (root/'controller-stalled-private-events.json').write_text(json.dumps(rows))
-        assert any(v['event'] == 'mimo_gate_closed' and v['fields'].get('reason') == 'Validating the protected profile.' for v in rows), 'The stalled-controller test did not reach preparation'
+        assert any(v['event'] == 'mimo_gate_closed' and v['fields'].get('reason') in ('prepare','Validating the protected profile.') for v in rows), 'The stalled-controller test did not reach preparation'
         assert not any(v['event'] in ('mimo_private_probe_ready','mimo_traffic_opened') for v in rows), 'Failed controller cleanup proceeded to probing/opening'
         assert not active(state())
         https(False)
         record('actual-stalled-controller-cannot-prepare-probe-or-open')
+        assert any(v['event']=='mimo_controller_recovery_pending' for v in rows), 'Failed cleanup did not schedule recovery'
+        resumed = offsets(LOGS)
         os.kill(stopped,signal.SIGCONT); stopped = None
         guard.terminate(); guard.wait(); guard = None
-        client('refresh'); wait(active); https(True)
-        record('controller-resume-requires-fresh-approval-and-recovers')
+        wait(active); https(True)
+        recovered = events(LOGS,resumed)
+        names = [v['event'] for v in recovered]
+        assert names.index('mimo_private_probe_ready') < names.index('mimo_traffic_opened')
+        assert names.index('mimo_readiness_passed') < names.index('mimo_traffic_opened')
+        assert names.index('mimo_exit_ip_approved') < names.index('mimo_traffic_opened')
+        record('controller-resume-automatically-rechecks-and-recovers-without-manual-Refresh')
     except Exception as exc:
         errors.append(type(exc).__name__+': '+str(exc))
         print('FAIL:',errors[-1],flush=True)
@@ -112,7 +119,7 @@ def main():
             if not active(state()): client('refresh')
             wait(active)
             assert configuration_values(read_settings()) == configuration_values(original)
-            assert FLAGS.read_bytes() == flags
+            assert json.loads(FLAGS.read_bytes()) == json.loads(flags)
             assert client('credential-digest').stdout.strip() == credential
             record('original-protected-mode-configuration-credentials-and-service-intent-restored')
         except Exception as exc: errors.append('Restoration: '+type(exc).__name__+': '+str(exc))

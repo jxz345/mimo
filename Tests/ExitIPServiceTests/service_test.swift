@@ -7,6 +7,7 @@ struct ServiceTests {
     static func main() async throws {
         MimoCommandFenceTests.run()
         try MimoPowerTests.run()
+        try await MimoGateTests.run()
         MimoNativeObserverTests.run()
         try await MimoRecoveryTests.run()
         let boot = UUID().uuidString

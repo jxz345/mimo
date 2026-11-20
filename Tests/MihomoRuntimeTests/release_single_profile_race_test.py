@@ -30,6 +30,20 @@ def main():
         wait(lambda:active(mode),'original mode')
         assert DESTINATION not in command('/usr/sbin/netstat','-rn','-f','inet').stdout
         gateway=re.search(r'gateway: (\S+)',command('/sbin/route','-n','get','default').stdout)[1]
+        baseline=offsets(LOGS)
+        command('/sbin/route','-n','add','-host',DESTINATION,gateway);added=True
+        wait(lambda:any(v['event']=='mimo_parallel_preparation_started' for v in events(LOGS,baseline)),'parallel preparation')
+        before_direct=events(LOGS,baseline)
+        assert not any(v['event']=='mimo_private_probe_ready' for v in before_direct), 'Early Direct test missed the preparation window'
+        client('mode','direct');wait(lambda:active('direct'),'Direct during blocking')
+        command('/sbin/route','-n','delete','-host',DESTINATION);added=False
+        time.sleep(4);assert active('direct');https()
+        rows=events(LOGS,baseline)
+        supervisor=next(v['file'] for v in rows if v['event']=='mimo_direct_restored')
+        ordered=[v for v in rows if v['file']==supervisor];start=max(i for i,v in enumerate(ordered) if v['event']=='mimo_direct_restored')
+        assert not any(v['event'] in ('mimo_gate_closed','mimo_traffic_opened') for v in ordered[start+1:])
+        record('Direct-during-parallel-preparation-cancels-late-work-and-keeps-IPv4-open')
+        client('mode',mode);wait(lambda:active(mode),'protected mode after early Direct')
         for direct in (False,True):
             baseline=offsets(LOGS)
             command('/sbin/route','-n','add','-host',DESTINATION,gateway);added=True
@@ -62,8 +76,8 @@ def main():
             if json.loads(read_settings()['service.routing'])['mode']!=mode:client('mode',mode)
             if not active(mode):client('refresh')
             wait(lambda:active(mode),'original mode restored')
-            assert configuration_values(read_settings())==configuration_values(original) and FLAGS.read_bytes()==flags
-            assert client('credential-digest').stdout.strip()==credential
+            assert configuration_values(read_settings())==configuration_values(original) and json.loads(FLAGS.read_bytes())==json.loads(flags)
+            assert client('credential-digest').stdout.strip()==credential, 'Credential changed'
             record('original-mode-settings-password-and-service-intent-restored')
         except Exception as error:errors.append('Restoration: '+str(error))
         (root/'report.json').write_text(json.dumps(dict(success=not errors,passed=passed,errors=errors,packageSHA256=build['packageSHA256'],helperSHA256=build['helperSHA256'],scope='Normal installed Release in mimo-vm; actual kernel route and mode changes during private probing, ordinary-user HTTPS and exact restoration. No synthetic events.'),indent=2)+'\n')

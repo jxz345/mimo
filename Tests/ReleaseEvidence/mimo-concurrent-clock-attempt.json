@@ -1,0 +1,17 @@
+{
+  "success": false,
+  "passed": [
+    "rule-final-profile-and-private-proxied-DNS-loaded-while-blocked",
+    "rule-empty-allowlist-denies-existing-and-new-ordinary-traffic",
+    "rule-mismatched-allowlist-denies-ordinary-traffic",
+    "rule-original-allowlist-restores-ordinary-HTTPS",
+    "original-mode-proxy-allowlist-credentials-and-service-intent-restored"
+  ],
+  "errors": [
+    "AssertionError: Monotonic clocks must agree before reporting open time"
+  ],
+  "trials": [],
+  "packageSHA256": "387f6216ffe3c66e6160134d90039e6ab7620d05c35c293dba975f743ce53c67",
+  "helperSHA256": "23cbfee03a6d55e6dbee4662cae559c70519dae39e67812c788c31a74285fc9c",
+  "scope": "Exact installed Release in mimo-vm, saved real proxy, Rule/Global/Direct, real route events, foreign DNS owner, engine crash, ordinary-user connections and physical-interface captures. No physical sleep/unlock or simultaneous-login claim."
+}

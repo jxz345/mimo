@@ -18,6 +18,7 @@ import tempfile
 import time
 import traceback
 
+from monotonic_uptime import uptime_ms
 from installed_acceptance_test import command
 from saved_proxy_test import WORKER
 from release_final_state import configuration_values
@@ -78,23 +79,26 @@ def main():
             assert not request('udp'), 'Ordinary DNS/UDP passed a closed gate'
             assert not request('ipv6'), 'IPv6 connected'
         record(label+'-denies-existing-and-new-ordinary-traffic' if existing else label+'-denies-ordinary-traffic')
-    def ready_events(baseline, mode, label, started):
+    def ready_events(baseline, mode, label, started, requested_uptime):
         wait(lambda: any(v['event']=='mimo_traffic_opened' for v in events(LOGS,baseline)) and active(mode), label)
         elapsed=time.monotonic()-started
         rows=events(LOGS,baseline); (root/(label+'-private-events.json')).write_text(json.dumps(rows))
         opened=next(v for v in rows if v['event']=='mimo_traffic_opened')
         ordered=[v for v in rows if v['file']==opened['file']]
         names=[v['event'] for v in ordered]
-        assert names.count('mimo_final_profile_loaded')==1, 'Expected exactly one final profile load'
-        assert names.index('mimo_final_profile_loaded') < names.index('mimo_private_probe_ready') < names.index('mimo_traffic_opened')
+        assert names.count('mimo_final_profile_loaded')==0 and names.count('mimo_final_profile_reused')==1, 'Expected unchanged-profile reuse without reload'
+        assert names.index('mimo_final_profile_reused') < names.index('mimo_private_probe_ready') < names.index('mimo_traffic_opened')
         assert names.index('mimo_readiness_passed') < names.index('mimo_traffic_opened')
         assert names.index('mimo_exit_ip_approved') < names.index('mimo_traffic_opened')
         assert any(v['event']=='mimo_gate_closed' and v['fields'].get('confirmed')=='true' for v in ordered[:names.index('mimo_private_probe_ready')])
         writes=[v['fields']['policy'] for v in ordered[:names.index('mimo_traffic_opened')+1] if v['event']=='mimo_pf_policy_installed']
         assert writes==['probe','active'], 'Unexpected full parent firewall writes: '+str(writes)
-        trials.append(dict(name=label, seconds=round(elapsed,3), finalProfileLoads=1, parentPolicyWrites=writes,
+        opening = next(v['fields'] for v in ordered if v['event']=='mimo_transition_timing' and v['fields'].get('stage')=='open_gate')
+        opened_after = (int(opening['end_uptime_ms'])-requested_uptime)/1000
+        assert 0 < opened_after <= elapsed + 0.1, 'Monotonic clocks must agree before reporting open time'
+        trials.append(dict(name=label, seconds=round(elapsed,3), firewallOpenSeconds=round(opened_after,3), eventRequestedUptimeMS=requested_uptime, finalProfileLoads=0, finalProfileReuses=1, parentPolicyWrites=writes,
             criticalChecksBeforeOpen=True, stages=[v['fields'] for v in rows if v['event']=='mimo_transition_timing']))
-        record(label+'-single-profile-concurrent-checks-before-open')
+        record(label+'-reuses-profile-with-fresh-concurrent-checks-before-open')
         print('Timing:',label,round(elapsed,3),'seconds',flush=True)
     try:
         wait(lambda:active(original_mode),'original mode')
@@ -133,12 +137,12 @@ def main():
             gateway=re.search(r'gateway: (\S+)',command('/sbin/route','-n','get','default').stdout)[1]
             assert DESTINATION not in command('/usr/sbin/netstat','-rn','-f','inet').stdout
             for add in (True,False):
-                baseline=offsets(LOGS); started=time.monotonic()
+                baseline=offsets(LOGS); started=time.monotonic();requested_uptime=uptime_ms()
                 if add:
                     command('/sbin/route','-n','add','-host',DESTINATION,gateway); route_added=True
                 else:
                     command('/sbin/route','-n','delete','-host',DESTINATION); route_added=False
-                ready_events(baseline,mode,mode+('-route-added' if add else '-route-removed'),started)
+                ready_events(baseline,mode,mode+('-route-added' if add else '-route-removed'),started,requested_uptime)
                 time.sleep(3)
         # A real port conflict: another process owns both protected DNS bindings.
         # Never replace the helper or feed a test-only profile to the engine.
@@ -163,11 +167,18 @@ def main():
         command(BASE/'installation-check','mihomo','restart')
         client('refresh');wait(lambda:active('global'),'DNS conflict recovered')
         record('DNS-conflict-removal-plus-mihomo-Restart-recovers-after-fresh-verification')
+        baseline=offsets(LOGS)
+        command(BASE/'installation-check','profileHosting','restart')
+        client('refresh');wait(lambda:active('global'),'manual Reload recovery')
+        rows=events(LOGS,baseline)
+        assert any(v['event']=='mimo_final_profile_loaded' for v in rows), 'Manual Reload reused the profile'
+        record('manual-Reload-forces-final-profile-load-and-fresh-verification')
         # An actual engine crash must close/reverify under launchd recovery.
         baseline=offsets(LOGS);old_pid=engine_pid();os.kill(old_pid,signal.SIGKILL)
         wait(lambda:any(v['event']=='mimo_gate_closed' for v in events(LOGS,baseline)),'engine crash closes')
         wait(lambda: command('/bin/launchctl','print','system/'+ENGINE,check=False).returncode==0 and re.search(r'^\s*pid = (\d+)$',command('/bin/launchctl','print','system/'+ENGINE).stdout,re.M) is not None and engine_pid()!=old_pid,'launchd engine restart')
         client('refresh');wait(lambda:active('global'),'engine crash recovery')
+        assert any(v['event']=='mimo_final_profile_loaded' for v in events(LOGS,baseline)), 'New engine process reused old profile'
         record('engine-crash-closes-launchd-restarts-and-fresh-refresh-recovers')
         client('mode','direct');wait(lambda:active('direct'),'Direct selected')
         client('allow')
@@ -198,9 +209,9 @@ def main():
             if json.loads(read_settings()['service.routing'])['mode']!=original_mode:client('mode',original_mode)
             if not active(original_mode):client('refresh')
             wait(lambda:active(original_mode),'original mode restored')
-            assert configuration_values(read_settings())==configuration_values(original)
-            assert FLAGS.read_bytes()==flags
-            assert client('credential-digest').stdout.strip()==credential
+            assert configuration_values(read_settings())==configuration_values(original), "Saved configuration changed"
+            assert json.loads(FLAGS.read_bytes())==json.loads(flags), "Service intent changed"
+            assert client('credential-digest').stdout.strip()==credential, 'Credential changed'
             record('original-mode-proxy-allowlist-credentials-and-service-intent-restored')
         except Exception as error:errors.append('Restoration: '+type(error).__name__+': '+str(error))
         report=dict(success=not errors,passed=passed,errors=errors,trials=trials,packageSHA256=build['packageSHA256'],helperSHA256=build['helperSHA256'],
