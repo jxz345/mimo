@@ -1,0 +1,21 @@
+{
+  "success": false,
+  "passed": [
+    "native-off-provider-off",
+    "direct-native-connect-automatically-starts-real-provider",
+    "direct-manual-stop-reports-failure-and-preserves-public-access",
+    "direct-reconnect-overrides-manual-stop",
+    "direct-native-off-stops-provider-and-clears-warning",
+    "rule-single-activation-with-native-off-and-no-warning",
+    "rule-native-connect-automatically-starts-real-provider",
+    "rule-manual-stop-reports-failure-and-preserves-public-access",
+    "rule-reconnect-overrides-manual-stop",
+    "rule-native-off-stops-provider-and-clears-warning",
+    "original-Direct-native-off-proxy-allowlist-password-and-services-restored"
+  ],
+  "scope": "Installed normal Release in mimo-vm; actual native Tailscale connection changes, provider HTTP, GUI state logs, ordinary-user HTTPS and networksetup DNS changes. No simulated events, helper substitution or sleep claim.",
+  "packageSHA256": "a60a88843d2bc14b8cdb3f2b18e14e000ecdd53a0d96df17cfa2d8c63dd11d56",
+  "helperSHA256": "06fe89a1a7611b0d846d27448f53f160d407f80f143b775434887f1c53b07fb2",
+  "error": "AssertionError: global performed redundant activation",
+  "evidence": "mimo-tailnet-lifecycle-59lasg_y"
+}

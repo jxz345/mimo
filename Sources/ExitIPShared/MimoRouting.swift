@@ -8,7 +8,7 @@ public enum ProxyMode: String, CaseIterable, Codable, Sendable, Identifiable {
 }
 
 public enum MimoAccessPhase: String, Codable, Sendable {
-    case blocked, validating, checking, active, unavailable
+    case closing, blocked, validating, checking, restoringDirect, active, unavailable
 }
 
 /// Public metadata only. The password lives in a distinct System Keychain account.
@@ -84,6 +84,29 @@ public struct MimoIPObservation: Codable, Equatable, Sendable {
     public init(address: String, checkedAt: Date) { self.address = address; self.checkedAt = checkedAt }
 }
 
+public enum MimoInfrastructureHealth: String, Codable, Sendable {
+    case healthy, failed, stale, unknown
+    public var title: String {
+        switch self { case .healthy: "Healthy"; case .failed: "Needs repair"; case .stale: "Check overdue"; case .unknown: "Unavailable" }
+    }
+}
+
+/// Last independent inspection, never inferred from the selected routing mode.
+public struct MimoInfrastructureStatus: Codable, Equatable, Sendable {
+    public var pf: MimoInfrastructureHealth
+    public var launchd: MimoInfrastructureHealth
+    public var checkedAt: Date?
+    public init(pf: MimoInfrastructureHealth = .unknown, launchd: MimoInfrastructureHealth = .unknown, checkedAt: Date? = nil) {
+        self.pf = pf; self.launchd = launchd; self.checkedAt = checkedAt
+    }
+    public func current(at date: Date) -> Self {
+        guard let checkedAt else { return Self() }
+        let age = date.timeIntervalSince(checkedAt)
+        guard age >= -5, age <= 35 else { return Self(pf: .stale, launchd: .stale, checkedAt: checkedAt) }
+        return self
+    }
+}
+
 /// A verification result is useful only for exactly this configuration/network transition.
 public struct MimoVerification: Codable, Equatable, Sendable {
     public let id: UUID
@@ -103,13 +126,36 @@ public struct MimoRoutingState: Codable, Equatable, Sendable {
     public var blockingIP: MimoIPObservation?
     public var verification: MimoVerification?
     public var services: [MimoServiceStatus] = []
+    /// Native Tailscale is starting/running. Nil means it has not been observed yet.
+    public var tailnetExpected: Bool?
+    public var infrastructure: MimoInfrastructureStatus?
+    /// Time the supervisor produced this state; retained through core/UI caches.
+    public var supervisorCheckedAt: Date?
     public var hasProxyPassword = false
     public var mihomoVersion: String?
     public init(configuration: MimoConfiguration = MimoConfiguration()) { self.configuration = configuration }
     public var allowsTraffic: Bool { phase == .active && effectiveMode == configuration.mode }
     public var displayedIP: MimoIPObservation? {
-        guard phase != .unavailable else { return nil }
+        guard ![.unavailable, .closing, .restoringDirect].contains(phase) else { return nil }
         return blockingIP ?? observedIP
+    }
+}
+
+/// A service action's confirmed closure must not be replaced by an older core
+/// snapshot that still says Allowed. Only fresh progress/proof can replace it.
+public enum MimoServiceProgress {
+    public static func canReplace(_ pending: MimoRoutingState, with current: MimoRoutingState,
+                                  startedAt: Date, configurationAdvanced: Bool) -> Bool {
+        // A failed supervisor poll has no new supervisor timestamp. It must
+        // still remove any assurance that the last confirmed barrier is live.
+        if current.phase == .unavailable { return true }
+        if let barrier = pending.supervisorCheckedAt {
+            guard let checkedAt = current.supervisorCheckedAt, checkedAt >= barrier else { return false }
+        }
+        if current.configuration.mode != pending.configuration.mode { return configurationAdvanced }
+        if [.blocked, .validating, .checking, .unavailable].contains(current.phase) { return true }
+        guard current.allowsTraffic, let observation = current.observedIP else { return false }
+        return observation.checkedAt > startedAt && observation.checkedAt > (pending.observedIP?.checkedAt ?? .distantPast)
     }
 }
 
@@ -217,8 +263,12 @@ public enum MimoRuntime {
     public static let engineLabel = "com.example.exitipmonitor.mihomo"
     public static let engineGroup = "_mimo"
     public static let supervisorPlist = "/Library/LaunchDaemons/\(supervisorLabel).plist"
-    // Only the supervisor is automatically bootstrapped by macOS. It registers these
-    // independent launchd jobs after establishing the guard and reading stop intent.
+    public static let bootGuardLabel = "com.mimo.pf-boot"
+    public static let infrastructureLabel = "com.mimo.infrastructure"
+    public static let guardDirectory = URL(fileURLWithPath: "/Library/Application Support/Mimo/Guard", isDirectory: true)
+    public static let guardScript = guardDirectory.appendingPathComponent("pf-guard.pl")
+    // The supervisor and independent PF/health jobs start at boot. Core and
+    // engine registration is repaired according to the saved service intent.
     public static let jobDirectory = ExitIPService.support.appendingPathComponent("LaunchDaemons", isDirectory: true)
     public static let directory = ExitIPService.support.appendingPathComponent("Mihomo", isDirectory: true)
     public static let engine = directory.appendingPathComponent("mihomo")

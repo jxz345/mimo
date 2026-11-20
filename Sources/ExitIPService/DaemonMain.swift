@@ -19,6 +19,9 @@ enum DaemonMain {
 #endif
             let runtime = MimoSystemRuntime()
             if CommandLine.arguments.dropFirst() == ["--supervisor"] || CommandLine.arguments.dropFirst() == ["--engine"] {
+                // Synchronize with the separate boot loader before any process
+                // can restore Direct or approve traffic in this boot.
+                try runtime.ensureIndependentBootGuard()
                 // Establish the public-traffic boundary before touching services
                 // such as Keychain or directory lookups during a cold boot.
                 try runtime.closeStartupGate()
@@ -39,6 +42,9 @@ enum DaemonMain {
                 return
             case ["--installation-mode"]:
                 print(try runtime.savedConfiguration().mode.rawValue)
+                return
+            case ["--print-startup-firewall"]:
+                print(MimoFirewallPolicy.startupBlocking, terminator: "")
                 return
             case ["--close-gate"]:
                 try runtime.closeGate()
@@ -73,7 +79,7 @@ enum DaemonMain {
                 try runtime.checkInstallation()
                 let flags = try runtime.servicePreferences()
                 Task { @MainActor in
-                    for _ in 0..<8 {
+                    for _ in 0..<20 {
                         var request = DaemonRequest(.supervisor)
                         request.supervisor = MimoSupervisorRequest(.state)
                         if let response = try? await DaemonRPC.call(request, timeout: 2, serviceLabel: MimoRuntime.supervisorLabel),
@@ -96,12 +102,16 @@ enum DaemonMain {
                 let listener = NSXPCListener(machServiceName: MimoRuntime.supervisorLabel)
                 listener.delegate = supervisor
                 listener.resume()
+                let controls = try? InstalledAppControlListener(label: ExitIPService.supervisorControlLabel) {
+                    supervisor.accept($0, installedApp: true)
+                }
+                if controls == nil { RuntimeLog.shared.error("mimo_installed_app_control_unavailable") }
                 supervisor.start()
                 signal(SIGTERM, SIG_IGN)
                 let termination = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
-                termination.setEventHandler { supervisor.stop(); listener.invalidate(); exit(0) }
+                termination.setEventHandler { supervisor.stop(); listener.invalidate(); controls?.invalidate(); exit(0) }
                 termination.resume()
-                withExtendedLifetime((supervisor, listener, termination)) { RunLoop.main.run() }
+                withExtendedLifetime((supervisor, listener, controls, termination)) { RunLoop.main.run() }
                 return
             }
             if CommandLine.arguments.dropFirst() == ["--recover-direct"] {
@@ -151,13 +161,17 @@ enum DaemonMain {
             let listener = NSXPCListener(machServiceName: ExitIPService.label)
             listener.delegate = service
             listener.resume()
+            let controls = try? InstalledAppControlListener(label: ExitIPService.controlLabel) {
+                service.accept($0, installedApp: true)
+            }
+            if controls == nil { RuntimeLog.shared.error("mimo_installed_app_control_unavailable") }
             signal(SIGTERM, SIG_IGN)
             let termination = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
-            termination.setEventHandler { service.stop(); listener.invalidate(); exit(0) }
+            termination.setEventHandler { service.stop(); listener.invalidate(); controls?.invalidate(); exit(0) }
             termination.resume()
             Task { await service.start() }
             RuntimeLog.shared.info("daemon_started", fields: ["pid": String(getpid())])
-            withExtendedLifetime((lock, service, listener, termination)) { RunLoop.main.run() }
+            withExtendedLifetime((lock, service, listener, controls, termination)) { RunLoop.main.run() }
         } catch {
             RuntimeLog.shared.error("daemon_start_failed", fields: ["error": error.localizedDescription])
             fputs("Mimo service operation failed: \(error.localizedDescription)\n", stderr)

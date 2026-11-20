@@ -1,0 +1,30 @@
+{
+  "date": "2026-11-20",
+  "evidence": "/var/tmp/mimo-tailnet-lifecycle-59lasg_y",
+  "success": false,
+  "assertion": "global performed redundant activation",
+  "observedTimelineUTC": [
+    {
+      "time": "17:10:21",
+      "event": "Native VPN/interface/DNS configuration notification"
+    },
+    {
+      "time": "17:10:26",
+      "event": "Global selected"
+    },
+    {
+      "time": "17:10:30",
+      "event": "Route-change notification required verification"
+    },
+    {
+      "time": "17:10:45",
+      "event": "Global approved"
+    },
+    {
+      "time": "17:10:56",
+      "event": "Queued follow-up Global verification approved"
+    }
+  ],
+  "interpretation": "The single-activation assertion overlapped reported network changes after native VPN teardown. This differs from the diagnosed owned-global-DNS duplicate. The exact route message was not captured, so its origin is not claimed. No route notifications were suppressed to make the test pass.",
+  "followup": "Wait for the previous check to finish before a normal mode-selection test; run Global separately from a settled Direct/native-off baseline. Keep real native reconnection tests as separate transitions."
+}

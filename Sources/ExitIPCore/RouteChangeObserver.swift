@@ -52,8 +52,9 @@ final class RouteChangeObserver {
         source = nil
     }
 
-    /// Reads every pending message (one per `read`) and reports at most once per wakeup;
-    /// `PublicIPMonitor` debounces further and the persisted 5-second gate still applies.
+    /// Reads every pending message (one per `read`) and reports once per wakeup.
+    /// The supervisor closes protected access immediately when it handles an
+    /// external change; it does not debounce the firewall response.
     private func drain(_ descriptor: Int32) {
         var buffer = [UInt8](repeating: 0, count: 4096)
         var changes: [Change] = []

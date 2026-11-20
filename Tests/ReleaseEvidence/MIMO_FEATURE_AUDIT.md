@@ -1,6 +1,10 @@
 # Mimo feature audit — 2026-11-19
 
-The reported immediate Rule error is the production qualification gate: **“Protected routing is not qualified on this build. Direct remains available.”** The saved proxy, password and approved IPv4 are present. This rejection occurs before testing the proxy. Normal Rule/Global remain unavailable; isolated tests use a separately compiled VM-only helper. Passing those tests does not enable protected routing in the normal app.
+**2026-11-19 normal Release acceptance:** The current candidate permits Rule/Global through the actual verification checks and is being exercised as the exact Homebrew-installed package in `mimo-vm`. The published 1.0 archive is unchanged. [Current results and unresolved checks](MIMO_NORMAL_RELEASE_ACCEPTANCE.md) distinguish these runs from the historical VM-only helper evidence below. No simulated sleep or replacement runtime is used in the current campaign.
+
+## Historical qualification-gated build
+
+In the earlier build, the reported immediate Rule error was the production qualification gate: **“Protected routing is not qualified on this build. Direct remains available.”** The saved proxy, password and approved IPv4 are present. This rejection occurs before testing the proxy. Normal Rule/Global remain unavailable; isolated tests use a separately compiled VM-only helper. Passing those tests does not enable protected routing in the normal app.
 
 All network mutations and packet captures were confined to `mimo-vm`. Delta's networking was not changed. Saved settings and credentials are backed up privately, compared on restoration, and never included in published evidence. No observed IP is automatically approved and no qualification manifest is created.
 
@@ -65,3 +69,14 @@ Further repeated relay testing exposed two concurrency defects: native socket en
 The final candidate passes **44 relay checkpoints in each of two consecutive runs**, including ten forced DERP reconnects, both native down/up cycles, and peer Stop/Start/Restart with verified public access preserved. The fix also separates native sub-anchor transactions from the parent firewall lock; delayed parent transactions had still made socket observations obsolete. A native restart must reach a stable verified public baseline before the separate provider-control assertions begin. The driver retains tracebacks and private supervisor state for failures. The two runs retain exact helper hashes and packet-boundary results in the relay repair record. Full power/failure regression results are recorded separately.
 
 Final regression on the same repaired helper passes **77/77 power and failure checks**, with continuous packet attribution. The matching normal GUI/helper are installed in the VM; exact configuration/password/service intent and fresh Direct IP without rejection were independently verified. The GUI heartbeat advances, its menu icon is present, native Tailscale is Running, and the temporary test state is removed. Normal Rule/Global remain blocked: early boot is not fixed and real sleep is not qualified. The signed packet-filter candidate and physical-Mac test still need implementation/validation and the pending signing/hardware information.
+
+
+## Independent PF startup and active infrastructure repair — 2026-11-19
+
+The [current infrastructure acceptance](mimo-infrastructure.json) passes **33 checks** against the final candidate, including a real reboot with `mimo-core` temporarily absent. The standalone macOS-tool loader enabled blocking PF while core, supervisor and mihomo could not run; numeric public IPv4 TCP probes failed after that boundary. The independent monitor reported the missing executable. The worker restored the helper, exact original settings/service intent and Direct, then removed its boot job.
+
+Fault checks cover PF disable and anchor deletion, deleted saved policy, missing/disabled supervisor/core/engine/boot/monitor jobs, changed engine startup plist, intentional Stop persistence, explicit Start, uninstall/reinstall, and preservation of unrelated PF configuration/enable ownership. Six earlier failed attempts and their fixes remain recorded. Current local validation passes 164 shared tests, service, app/render and daemon-script/guard tests, plus the arm64 build. The new dashboard strip shows PF and launchd health without expanding the 1040 × 570 window.
+
+This is independent recovery after loader startup, not protection from the first boot packet. The actual startup YAML still disables TUN; the failure document's TUN-enabled assumption remains separate. Normal Rule/Global qualification and physical sleep acceptance are unchanged.
+
+Final VM installation at `/Users/jay/Applications/Mimo.app` passes strict bundle verification and matches the installed helper/guard. The running GUI has a fresh ready heartbeat and visible menu icon; Direct public IPv4 works, and PF/launchd inspection is healthy. Saved machine/user configuration and service intent match the test baseline. IP observations, provider-health timestamps and lookup-budget counters continue updating normally. The temporary boot worker and maintenance flag are absent.

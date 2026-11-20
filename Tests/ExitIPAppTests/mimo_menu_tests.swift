@@ -36,9 +36,12 @@ enum MimoMenuTests {
         require(presentation(mismatch).country == nil, "a cached country for another IP cannot represent the approved exit")
         var tailnet = policy.state
         tailnet.services = [.init(id: .tailnetProvider, health: .stopped, transport: "HTTP")]
+        require(presentation(tailnet).kind == .verified,
+                "an intentionally stopped optional provider must not warn about approved public access")
+        tailnet.services = [.init(id: .tailnetProvider, health: .unavailable, transport: "HTTP")]
         let warning = presentation(tailnet)
         require(warning.kind == .tailnetWarning && warning.country == snapshot.countryFlag,
-                "stopped tailnet must warn without calling approved public access blocked")
+                "a failed enabled provider must warn without calling approved public access blocked")
         var blocked = policy.state
         blocked.phase = .blocked; blocked.effectiveMode = nil
         blocked.blockingIP = MimoIPObservation(address: "198.51.100.77", checkedAt: now)
@@ -67,8 +70,14 @@ enum MimoMenuTests {
                 "all modes must exist and be disabled while core is unavailable")
         require(native.menu.items.contains(where: { $0.title == "Open Dashboard" }) &&
                 native.menu.items.contains(where: { $0.title == "Settings…" }) &&
-                native.loginItem.title == "Open Mimo at login" && native.refreshItem.title == "Refresh now",
-                "dashboard, settings, refresh and login actions must stay present")
+                native.refreshItem.title == "Refresh now",
+                "dashboard, settings and refresh actions must stay present")
+        require(!native.menu.items.contains(where: { $0.title.contains("login") || $0.title.contains("Login Items") }),
+                "login controls belong in the dashboard and Settings")
+        let actions = native.menu.items.filter { $0.action != nil }
+        require(actions.allSatisfy { !$0.keyEquivalent.isEmpty }, "every popup action must have a shortcut")
+        require(Set(actions.map { "\($0.keyEquivalentModifierMask.rawValue):\($0.keyEquivalent)" }).count == actions.count,
+                "popup shortcuts must be distinct")
 
         let setupMonitor = PublicIPMonitor()
         var setupState = DaemonState(instanceID: UUID(), build: "UI setup fixture", initialized: false, revision: 0,
@@ -127,15 +136,12 @@ enum MimoMenuTests {
         let directChecking = MimoMenuPresentation(routing: locatedDirect, snapshot: snapshot, preferences: preferences, date: now, monitoringStatus: .refreshing)
         let directFailed = MimoMenuPresentation(routing: locatedDirect, snapshot: snapshot, preferences: preferences, date: now, monitoringStatus: .failed("Offline"))
         let scenarios = [presentation(locatedDirect), directChecking, directFailed, startup, verified, rejected, warning, unavailable]
-        let dock = DockIconController()
         for dark in [false, true] {
             for scenario in scenarios {
                 let label = MimoMenuBarLabel(presentation: scenario)
                 let host = NSHostingView(rootView: label)
                 require(host.fittingSize.height <= 24 && host.fittingSize.width <= 100,
                         "default routing symbols must fit the native menu bar")
-                require(dock.update(label: label, darkAppearance: dark, apply: false), "each new routing scenario must render a Dock image")
-                require(!dock.update(label: label, darkAppearance: dark, apply: false), "unchanged routing must not redraw the Dock")
             }
             let gallery = VStack(alignment: .leading, spacing: 20) {
                 Text("Mimo · Native menu-bar states").font(.title2.weight(.semibold))
@@ -153,7 +159,7 @@ enum MimoMenuTests {
             try CredentialAppTests.render(gallery, size: NSSize(width: 700, height: 650), dark: dark,
                                           to: output.appendingPathComponent("mimo-menu-states-\(dark ? "dark" : "light").png"))
         }
-        print("PASS: native routing icons, exact blocked IP, country/proof matching, stable menu actions and Dock rendering")
+        print("PASS: native routing icons, exact blocked IP, country/proof matching and stable menu actions")
     }
 
     private static func require(_ value: Bool, _ message: String) {

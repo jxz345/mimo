@@ -1,0 +1,24 @@
+{
+  "success": true,
+  "passed": [
+    "rule-approved-to-Direct-without-close-or-allowlist-verification",
+    "rule-approved-to-Direct-restores-ordinary-HTTPS-and-keeps-IPv6-denied",
+    "rule-blocked-to-Direct-without-close-or-allowlist-verification",
+    "rule-blocked-to-Direct-restores-ordinary-HTTPS-and-keeps-IPv6-denied",
+    "global-approved-to-Direct-without-close-or-allowlist-verification",
+    "global-approved-to-Direct-restores-ordinary-HTTPS-and-keeps-IPv6-denied",
+    "global-blocked-to-Direct-without-close-or-allowlist-verification",
+    "global-blocked-to-Direct-restores-ordinary-HTTPS-and-keeps-IPv6-denied",
+    "Direct-route-add-does-not-block-with-empty-allowlist",
+    "Direct-route-remove-does-not-block-with-empty-allowlist",
+    "Direct-native-VPN-connect-does-not-block-with-empty-allowlist",
+    "Direct-native-VPN-disconnect-does-not-block-with-empty-allowlist",
+    "Direct-informational-IP-lookup-works-with-empty-allowlist",
+    "original-Direct-proxy-allowlist-password-service-intent-and-native-off-restored"
+  ],
+  "error": null,
+  "packageSHA256": "1203694706ce854a8f9f9c1ce096b824fc1570686eb9c4b7428946e4afb183b1",
+  "helperSHA256": "4563dde8b0ca85db1586769119154104ecec85e4127a5047e930c1a080d575b2",
+  "guiSHA256": "edd01c9d6cd0134ca443405bb01f4f2b931e1efee5dce9228ec27ee8e6a4280d",
+  "scope": "Installed Release in mimo-vm; approved/rejected Rule/Global \u2192 Direct, real route changes and native VPN reconnect/disconnect, ordinary-user HTTPS and real PF. No physical sleep/login simulation or zero-interruption TCP claim."
+}

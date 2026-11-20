@@ -266,6 +266,7 @@ settings:
   base:
     ARCHS: arm64
     SWIFT_VERSION: "6.0"
+    ENABLE_HARDENED_RUNTIME: YES
     MACOSX_DEPLOYMENT_TARGET: "14.0"
     MARKETING_VERSION: "1.0"
     CURRENT_PROJECT_VERSION: "1"
@@ -281,6 +282,8 @@ targets:
       # Installer for the required shared service ships as a bundle resource:
       # sudo /bin/bash Mimo.app/Contents/Resources/daemon.sh install
       - path: Sources/ExitIPDaemon/daemon.sh
+        buildPhase: resources
+      - path: Sources/ExitIPDaemon/pf-guard.pl
         buildPhase: resources
       - path: Sources/ExitIPDaemon/setup.command
         buildPhase: resources

@@ -8,10 +8,8 @@ final class StatusItemController: NSObject {
     private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let monitor: PublicIPMonitor
     private var observation: AnyCancellable?
-    private var appearanceObservation: NSKeyValueObservation?
     private var hostingView: StatusLabelHostingView?
     private let statusMenu: MimoStatusMenu
-    private var loginObservation: AnyCancellable?
 
     var isVisible: Bool { item.isVisible }
     private(set) var displayedPresentation: MimoStatusPresentation?
@@ -30,14 +28,6 @@ final class StatusItemController: NSObject {
         observation = monitor.objectWillChange.sink { [weak self] _ in
             DispatchQueue.main.async { self?.update() }
         }
-        loginObservation = NotificationCenter.default.publisher(for: LoginItemSync.changed).receive(on: RunLoop.main).sink { [weak self] _ in
-            MainActor.assumeIsolated { self?.statusMenu.update() }
-        }
-        // The Dock follows the system appearance (the menu bar may differ with the wallpaper), so
-        // the monochrome text and stop symbol of the Dock copy are re-colored when it changes.
-        appearanceObservation = NSApp.observe(\.effectiveAppearance, options: [.new]) { [weak self] _, _ in
-            DispatchQueue.main.async { MainActor.assumeIsolated { self?.update() } }
-        }
         RuntimeLog.shared.info("status_item_created")
     }
 
@@ -45,6 +35,7 @@ final class StatusItemController: NSObject {
         guard let button = item.button else { return }
         statusMenu.update()
         let label = MimoMenuBarLabel(presentation: statusMenu.presentation)
+        let statusChanged = displayedPresentation?.visualKey != label.presentation.visualKey
         displayedPresentation = label.presentation
         let host = hostingView ?? StatusLabelHostingView(rootView: label)
         host.rootView = label
@@ -60,10 +51,14 @@ final class StatusItemController: NSObject {
                             width: ceil(size.width), height: size.height)
         button.setAccessibilityLabel(label.presentation.accessibilityText)
         button.toolTip = label.presentation.accessibilityText + " — Open Mimo menu"
-        // The Dock and ⌘-Tab icon is the same label, redrawn at the same moment, colored for the
-        // Dock's (system) appearance so monochrome text and symbols stay legible there.
-        let dark = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-        DockIconController.shared.update(label: label, darkAppearance: dark)
+        if statusChanged {
+            RuntimeLog.shared.info("mimo_access_presentation_changed", fields: [
+                "kind": label.presentation.kind.rawValue,
+                "blocked": String(label.presentation.trafficIsBlocked),
+                "validating": String(label.presentation.isValidating),
+                "direct": String(label.presentation.isDirect)
+            ])
+        }
     }
 }
 

@@ -15,6 +15,7 @@ final class MimoNetworkObserver {
     private var profileChangeDeadline = ContinuousClock.now
     private var expectedDNS: NSDictionary?
     private var globalConfiguration: [String: NSDictionary]?
+    private var externalDNSConfiguration: [String: NSDictionary]?
     var diagnostic: ((String) -> Void)?
     private lazy var configuration = NetworkConfigurationObserver(onChangedKeys: { [weak self] keys in
         Task { @MainActor in self?.configurationChanged(keys) }
@@ -30,6 +31,7 @@ final class MimoNetworkObserver {
     func start() {
         otherInterfaces = interfaces()
         globalConfiguration = globals()
+        externalDNSConfiguration = externalDNS()
         configuration.start(); routes.start()
     }
 
@@ -87,13 +89,36 @@ final class MimoNetworkObserver {
         return SCDynamicStoreCopyMultiple(store, nil, ["State:/Network/Global/.*"] as CFArray) as? [String: NSDictionary]
     }
 
+    private func externalDNS() -> [String: NSDictionary]? {
+        guard let store = SCDynamicStoreCreate(nil, "Mimo external DNS observation" as CFString, nil, nil),
+              var values = SCDynamicStoreCopyMultiple(store, nil,
+                ["State:/Network/Service/.*/DNS", "Setup:/Network/Service/.*/DNS"] as CFArray) as? [String: NSDictionary] else { return nil }
+        values.removeValue(forKey: MimoRuntime.dnsStateKey)
+        return values
+    }
+
+    private func isOwnedGlobalDNS(_ value: NSDictionary?) -> Bool {
+        guard let expectedDNS, currentDNS() == expectedDNS,
+              let value = value as? [String: Any],
+              value["__CONFIGURATION_ID__"] as? String == "Supplemental: com.example.exitipmonitor.dns 0" else { return false }
+        // configd selects our supplemental resolver as the global default. Only
+        // its exact resolver fields plus known configd bookkeeping are expected.
+        let metadata = Set(["__CONFIGURATION_ID__", "__FLAGS__", "__ORDER__"])
+        let resolver = value.filter { !metadata.contains($0.key) }
+        let expected = (expectedDNS as? [String: Any] ?? [:]).filter {
+            !["SupplementalMatchDomains", "SupplementalMatchOrders"].contains($0.key)
+        }
+        return NSDictionary(dictionary: resolver) == NSDictionary(dictionary: expected)
+    }
+
     private func configurationChanged(_ keys: [String]) {
         diagnostic?("configuration: " + keys.joined(separator: ","))
         let current = interfaces()
         let currentGlobals = globals()
-        defer { globalConfiguration = currentGlobals }
+        let currentExternalDNS = externalDNS()
+        defer { globalConfiguration = currentGlobals; externalDNSConfiguration = currentExternalDNS }
         let tunnelMatches = tunnelSignature != nil && tunnelSignature == currentTunnelSignature()
-        let external = keys.isEmpty || keys.contains { key in
+        let externalKeys = keys.filter { key in
             if key == MimoRuntime.dnsStateKey {
                 // configd can deliver this notification after controller work has
                 // occupied the actor. Compare the actual value with the owned
@@ -103,7 +128,13 @@ final class MimoNetworkObserver {
             if key.hasPrefix("State:/Network/Global/"), let currentGlobals, let globalConfiguration {
                 // configd republishes unchanged global keys after supplemental DNS
                 // updates. These are notifications, not a network-policy change.
-                return currentGlobals[key] != globalConfiguration[key]
+                guard currentGlobals[key] != globalConfiguration[key] else { return false }
+                if key == "State:/Network/Global/DNS", let currentExternalDNS,
+                   currentExternalDNS == externalDNSConfiguration, isOwnedGlobalDNS(currentGlobals[key]) {
+                    RuntimeLog.shared.info("mimo_network_owned_dns_selected")
+                    return false
+                }
+                return true
             }
             if key.hasPrefix("State:/Network/Interface/\(MihomoProfile.tunnelDevice)/") {
                 return !tunnelMatches
@@ -112,7 +143,12 @@ final class MimoNetworkObserver {
             return true
         }
         otherInterfaces = current
-        if external { changed("configuration") }
+        if keys.isEmpty || !externalKeys.isEmpty {
+            RuntimeLog.shared.info("mimo_network_configuration_external", fields: [
+                "keys": externalKeys.joined(separator: ","), "tunnelMatches": String(tunnelMatches)
+            ])
+            changed("configuration")
+        }
     }
 
     private func routesChanged(_ changes: [RouteChangeObserver.Change], receivedAt: ContinuousClock.Instant) {

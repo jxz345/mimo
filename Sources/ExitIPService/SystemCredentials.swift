@@ -1,6 +1,43 @@
 import Foundation
 import Security
 
+/// Installation pins the exact GUI code directory in a root-owned file. The
+/// kernel checks every message on this separate endpoint before it is decoded.
+/// Public state readers and root/core traffic-control requests keep their own
+/// endpoints and authorization policy.
+final class InstalledAppControlListener: NSObject, NSXPCListenerDelegate {
+    private let listener: NSXPCListener
+    private let requirement: String
+    private let accept: @Sendable (NSXPCConnection) -> Bool
+
+    init(label: String, accept: @escaping @Sendable (NSXPCConnection) -> Bool) throws {
+        let url = ExitIPService.installedAppIdentity
+        let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
+        guard attributes[.type] as? FileAttributeType == .typeRegular,
+              (attributes[.ownerAccountID] as? NSNumber)?.intValue == 0,
+              let permissions = attributes[.posixPermissions] as? NSNumber,
+              permissions.intValue & 0o077 == 0 else { throw DaemonFailure.unauthorized }
+        let hash = try String(contentsOf: url, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard hash.utf8.count == 40, hash.utf8.allSatisfy({ (48...57).contains($0) || (97...102).contains($0) }) else {
+            throw DaemonFailure.unauthorized
+        }
+        requirement = "cdhash H\"\(hash)\""
+        listener = NSXPCListener(machServiceName: label)
+        self.accept = accept
+        super.init()
+        listener.delegate = self
+        listener.resume()
+        RuntimeLog.shared.info("mimo_installed_app_control_ready", fields: ["endpoint": label])
+    }
+
+    func listener(_ listener: NSXPCListener, shouldAcceptNewConnection connection: NSXPCConnection) -> Bool {
+        connection.setCodeSigningRequirement(requirement)
+        return accept(connection)
+    }
+
+    func invalidate() { listener.invalidate() }
+}
+
 /// The daemon runs in the system context. Never consult a user's login keychain, never show UI,
 /// and never send the saved value back to a client. Every query targets the System file keychain.
 struct SystemCredentials: CredentialBackend {
@@ -68,8 +105,11 @@ enum ServiceAuthorization {
             throw DaemonFailure.unauthorized
         }
         defer { AuthorizationFree(authorization, []) }
+        // Retain the explicit administrator recovery interface for legacy tools.
+        // The GUI uses its installer-pinned XPC connection and never obtains this
+        // right. Do not grant an ambient right to unrelated local processes.
         let rule: [String: Any] = ["class": "user", "group": "admin", "authenticate-user": true,
-                                   "shared": false, "timeout": 300, "allow-root": true]
+                                   "shared": false, "allow-root": true]
         guard AuthorizationRightSet(authorization, ExitIPService.settingsRight, rule as CFDictionary,
                                     "Change shared Mimo settings" as CFString, nil, nil) == errAuthorizationSuccess else {
             throw DaemonFailure.unauthorized

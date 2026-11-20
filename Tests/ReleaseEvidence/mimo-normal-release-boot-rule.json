@@ -1,0 +1,22 @@
+{
+  "success": true,
+  "passed": [
+    "actual-macOS-reboot-confirmed",
+    "startup-with-GUI-executable-unavailable-and-login-preference-unchanged",
+    "saved-rule-recovered-with-user-approved-exit",
+    "independent-boot-guard-and-IPv4-policy-active",
+    "fresh-private-probe-precedes-opening-after-reboot",
+    "unchanged-normal-Release-helper",
+    "original-Direct-settings-service-intent-and-password-restored",
+    "original-GUI-executable-and-app-signature-restored",
+    "same-user-process-Direct-capture-positive-control",
+    "no-direct-ordinary-packets-during-captured-protected-startup"
+  ],
+  "scope": "Normal installed Release helper; actual saved proxy; real reboot with GUI executable temporarily unavailable; capture starts at launchd worker",
+  "packageSHA256": "b25712260cb1304a3bcdd160b5ee8f733b3b66f7d3033e1204ca4b0c253f4be7",
+  "helperSHA256": "e1222bb89fbd963f9c29d3c837c0ebbc6b00f3dcd1212349145e1227734bd85a",
+  "errors": [],
+  "mode": "rule",
+  "firstPacketBootProtectionProven": false,
+  "evidence": "mimo-release-boot-n1sro3b_"
+}

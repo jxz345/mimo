@@ -1,0 +1,17 @@
+{
+  "success": true,
+  "passed": [
+    "rule-mihomo-stop-confirmed-blocking-before-operation-and-reply",
+    "rule-mihomo-stopped-denies-real-HTTPS",
+    "rule-mihomo-start-confirmed-blocking-before-operation-and-reply",
+    "rule-mihomo-restart-confirmed-blocking-before-operation-and-reply",
+    "missing-controller-does-not-prevent-safe-engine-restart",
+    "failed-PF-closure-aborts-restart-without-changing-engine-or-intent",
+    "protected-verification-recovers-after-real-lock-contention"
+  ],
+  "scope": "Focused Rule/mihomo lifecycle, missing controller and PF-lock contention rerun on the final UI-fallback build. Installed normal Release in mimo-vm; real XPC, launchd and ordinary-user HTTPS. No physical GUI click ordering claimed.",
+  "packageSHA256": "74e1f8e02523c88825203537416e6dd7ac058f4f7f40aa918b2cd4cb3086a332",
+  "helperSHA256": "a2f6e2009777826ea5a0ce59167ee175fe05b31d9d690f5362d2014ea403bfa1",
+  "error": null,
+  "evidence": "mimo-service-progress-sjqyuput"
+}

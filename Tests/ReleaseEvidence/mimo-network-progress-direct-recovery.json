@@ -1,0 +1,30 @@
+{
+  "success": true,
+  "passed": [
+    "rule-saved-proxy-approved",
+    "rule-route-added-confirmed-block-before-probe-before-reopen",
+    "rule-route-added-installed-GUI-published-blocked-validation-check-and-approval",
+    "rule-route-removed-confirmed-block-before-probe-before-reopen",
+    "rule-route-removed-installed-GUI-published-blocked-validation-check-and-approval",
+    "rule-ordinary-user-HTTPS-after-approval",
+    "rule-empty-allowlist-retains-rejected-IP-and-denies-ordinary-HTTPS",
+    "rule-wrong-allowlist-retains-rejected-IP-and-denies-ordinary-HTTPS",
+    "rule-original-allowlist-recovers",
+    "global-saved-proxy-approved",
+    "global-route-added-confirmed-block-before-probe-before-reopen",
+    "global-route-added-installed-GUI-published-blocked-validation-check-and-approval",
+    "global-route-removed-confirmed-block-before-probe-before-reopen",
+    "global-route-removed-installed-GUI-published-blocked-validation-check-and-approval",
+    "global-ordinary-user-HTTPS-after-approval",
+    "global-empty-allowlist-retains-rejected-IP-and-denies-ordinary-HTTPS",
+    "global-wrong-allowlist-retains-rejected-IP-and-denies-ordinary-HTTPS",
+    "global-original-allowlist-recovers",
+    "Direct-network-change-checks-IP-without-protected-blocking",
+    "original-Direct-proxy-allowlist-password-and-service-intent-restored"
+  ],
+  "scope": "Installed normal Release in mimo-vm; real kernel route changes, saved proxy, allowlist rejection, ordinary-user HTTPS and GUI presentation logs. No packet-level zero-delay claim; no sleep or login simulation.",
+  "packageSHA256": "b9014ec111cbbc6994acb3a60cb00da93aa9417fd324854e7d44745b1e623f2a",
+  "helperSHA256": "680df53bebbc318a496289e5be6b246dc0188455ed8739e7f0b9384130ab7764",
+  "error": null,
+  "evidence": "mimo-network-progress-65eu9bnz"
+}

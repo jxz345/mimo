@@ -13,6 +13,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
     private var activeProfile: String?
     nonisolated let heartbeatLease = MimoHeartbeatLease()
     private var watchdog: Task<Void, Never>?
+    private var infrastructureMonitor: Task<Void, Never>?
     private var profileEnabled = true
     private var engineEnabled = true
     private var coreEnabled = true
@@ -76,6 +77,21 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
         networkObserver.start()
         tailnetEnabled = (try? runtime.savedTailnetEnabled()) ?? false
         nativeTransportObserver.start(tailnetEnabled: tailnetEnabled)
+        // Infrastructure commands can wait for launchd or the firewall lock.
+        // Keep them off the main actor and separate from the liveness watchdog.
+        infrastructureMonitor = Task { [weak self] in
+            while !Task.isCancelled {
+                guard let self else { return }
+                if !self.runtime.maintenanceActive {
+                    do { try await self.runtime.repairInfrastructure() }
+                    catch {
+                        guard !Task.isCancelled else { return }
+                        self.close(error.localizedDescription)
+                    }
+                }
+                try? await Task.sleep(for: .seconds(10))
+            }
+        }
         watchdog = Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(1))
@@ -96,10 +112,21 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                     } catch { self.policy.block(error.localizedDescription, confirmed: self.runtime.closed) }
                 }
                 if self.policy.state.configuration.mode.requiresVerification,
-                   self.policy.state.phase == .active || self.policy.state.verification != nil,
-                   (self.heartbeatLease.expired() || !self.runtime.isRunning(MimoRuntime.engineLabel) ||
-                    (self.policy.state.phase == .active && self.runtime.gateState != "active")) {
-                    self.close("The controller heartbeat or proxy engine was lost.")
+                   self.policy.state.phase == .active || self.policy.state.verification != nil {
+                    let heartbeatExpired = self.heartbeatLease.expired()
+                    let engineRunning = self.runtime.isRunning(MimoRuntime.engineLabel)
+                    let gate = self.runtime.gateState ?? "unknown"
+                    let gateChanged = self.policy.state.phase == .active && gate != "active"
+                    if heartbeatExpired || !engineRunning || gateChanged {
+                        RuntimeLog.shared.error("mimo_liveness_lost", fields: self.heartbeatLease.diagnostics().merging([
+                            "heartbeatExpired": String(heartbeatExpired),
+                            "heartbeatAgeSeconds": self.heartbeatLease.ageSeconds().map { String($0) } ?? "unregistered",
+                            "engineRunning": String(engineRunning), "gate": gate
+                        ], uniquingKeysWith: { _, new in new }))
+                        self.close(heartbeatExpired ? "The core heartbeat expired. Verification is required." :
+                            !engineRunning ? "The proxy engine stopped. Verification is required." :
+                            "The firewall gate changed. Verification is required.")
+                    }
                 }
                 if self.policy.state.phase == .active, self.policy.state.configuration.mode.requiresVerification {
                     do {
@@ -114,7 +141,8 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
     }
 
     func stop() {
-        watchdog?.cancel(); networkObserver.stop(); nativeTransportObserver.stop(); powerGuard.stop()
+        watchdog?.cancel(); infrastructureMonitor?.cancel()
+        networkObserver.stop(); nativeTransportObserver.stop(); powerGuard.stop()
         if policy.state.configuration.mode.requiresVerification { close("The supervisor is restarting.") }
     }
 
@@ -130,19 +158,25 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
     }
 
     nonisolated func listener(_ listener: NSXPCListener, shouldAcceptNewConnection connection: NSXPCConnection) -> Bool {
+        accept(connection, installedApp: false)
+    }
+
+    nonisolated func accept(_ connection: NSXPCConnection, installedApp: Bool) -> Bool {
         connection.exportedInterface = NSXPCInterface(with: ExitIPDaemonProtocol.self)
-        connection.exportedObject = MimoSupervisorSession(supervisor: self, connection: connection)
+        connection.remoteObjectInterface = NSXPCInterface(with: ExitIPDaemonObserver.self)
+        connection.exportedObject = MimoSupervisorSession(supervisor: self, connection: connection, installedApp: installedApp)
         connection.resume()
         return true
     }
 
     func handle(_ request: DaemonRequest, uid: uid_t, pid: pid_t,
-                receivedAt: ContinuousClock.Instant = .now) async -> DaemonResponse {
+                receivedAt: ContinuousClock.Instant = .now, installedApp: Bool = false,
+                progress: (@Sendable (DaemonResponse) -> Void)? = nil) async -> DaemonResponse {
         guard request.protocolVersion == ExitIPService.protocolVersion else { return DaemonResponse(failure: .incompatible) }
         guard request.command == .supervisor, let message = request.supervisor else { return DaemonResponse(failure: .invalidRequest) }
         do {
             if message.command == .service || message.command == .profile {
-                guard uid == 0 || ServiceAuthorization.validate(request.authorization) else { throw DaemonFailure.unauthorized }
+                guard installedApp || uid == 0 || ServiceAuthorization.validate(request.authorization) else { throw DaemonFailure.unauthorized }
             } else if message.command != .state {
                 guard uid == 0 else { throw DaemonFailure.unauthorized }
             }
@@ -218,10 +252,9 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 let check = policy.begin(configuration: validated, revision: revision, networkGeneration: network)
                 guard let metadata = validated.proxy else { throw MimoRuntimeError.unavailable("Save a proxy in Settings.") }
                 allowlist = allowed
-                // Qualification is checked before staging any permissive runtime configuration.
+                // Verify the installed engine and observers before staging the private probe.
                 try runtime.checkInstallation()
                 guard networkObserver.isRunning, powerGuard.isRunning else { throw MimoRuntimeError.unavailable("Network or power change observation is unavailable. Repair installation.") }
-                try runtime.requireQualifiedRuntime()
                 let secret = try credentials.read(account: MimoRuntime.proxyPasswordAccount) ?? ""
                 var proxy = try metadata.settings(password: secret)
                 let epoch = generation
@@ -264,7 +297,26 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
             case .service:
                 guard !operationPending, let service = message.service, let operation = message.operation else { throw DaemonFailure.conflict }
                 operationPending = true; defer { operationPending = false }
-                if service != .tailnetProvider, policy.state.configuration.mode.requiresVerification { close("A required service is changing state.") }
+                guard service != .tailnetProvider else { throw DaemonFailure.invalidRequest }
+                let savedMode = try runtime.savedConfiguration().mode
+                if savedMode.requiresVerification || policy.state.configuration.mode.requiresVerification {
+                    directRestorationAllowed = false
+                    guard close("A required service is changing state. Internet remains blocked.", serviceChange: true) else {
+                        RuntimeLog.shared.error("mimo_service_change_aborted", fields: ["service": service.rawValue, "operation": operation.rawValue, "reason": "gate_not_confirmed"])
+                        var failure = response(); failure.failure = .unavailable
+                        progress?(failure)
+                        return failure
+                    }
+                    // Deliver confirmed blocking before launchd/controller work,
+                    // which can occupy this actor for several seconds.
+                    progress?(response())
+                    // Strict PF blocking has no public engine/probe exception.
+                    // A broken controller must not prevent replacing the engine.
+                    do { try runtime.disconnectFlows() }
+                    catch { RuntimeLog.shared.info("mimo_service_controller_unavailable", fields: ["gate": "strictly_blocked"]) }
+                }
+                RuntimeLog.shared.info("mimo_service_change_begin", fields: ["service": service.rawValue, "operation": operation.rawValue,
+                    "protected": String(savedMode.requiresVerification), "closed": String(runtime.closed)])
                 // Persist intent before the launchd operation. A crash during Stop must
                 // never turn into an automatic Start on the next boot.
                 switch service {
@@ -296,20 +348,37 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
         } catch {
             if message.command == .profile { return DaemonResponse(failure: .unavailable) }
             if !(error is CancellationError) { close(error.localizedDescription) }
+            if message.command == .service {
+                RuntimeLog.shared.error("mimo_service_change_failed", fields: ["service": message.service?.rawValue ?? "unknown",
+                    "operation": message.operation?.rawValue ?? "unknown"])
+                var failure = response(); failure.failure = .unavailable
+                progress?(failure)
+                return failure
+            }
             return response()
         }
     }
 
-    private func close(_ reason: String) {
+    @discardableResult
+    private func close(_ reason: String, serviceChange: Bool = false) -> Bool {
         generation &+= 1
+        activeProfile = nil
+        var succeeded = false
         do {
-            try runtime.closeGate(endpoints: endpoint.map { [$0] } ?? [], proxyPort: proxy?.port)
-            try runtime.disconnectFlows()
+            // Revoke public engine egress as well as application access before asking
+            // an old/hung controller to discard flows. Queued old engine data
+            // must not resume through a verification endpoint exception.
+            try runtime.closeStartupGate()
+            if !serviceChange {
+                try runtime.disconnectFlows()
+                try runtime.closeGate(endpoints: endpoint.map { [$0] } ?? [], proxyPort: proxy?.port)
+            }
             policy.block(reason)
+            succeeded = runtime.closed
         }
         catch { policy.block("\(reason) Firewall status is unavailable: \(error.localizedDescription)", confirmed: false) }
-        activeProfile = nil
-        RuntimeLog.shared.info("mimo_gate_closed", fields: ["confirmed": String(runtime.closed), "reason": reason])
+        RuntimeLog.shared.info("mimo_gate_closed", fields: ["confirmed": String(succeeded), "reason": reason])
+        return succeeded
     }
 
     private func refreshTailnetPolicy() {
@@ -322,6 +391,8 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
 
     private func response() -> DaemonResponse {
         var state = policy.state
+        state.supervisorCheckedAt = .now
+        state.infrastructure = runtime.infrastructureStatus()
         state.configuration.profileHostingEnabled = profileEnabled
         state.configuration.mihomoEnabled = engineEnabled
         state.services = [
@@ -342,7 +413,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
         case .profileHosting: flags.profile = enabled
         case .tailnetProvider: throw DaemonFailure.invalidRequest
         }
-        _ = try runtime.writePrivate(JSONEncoder().encode(flags), name: "services.json")
+        try runtime.saveServicePreferences(flags)
         coreEnabled = flags.core; engineEnabled = flags.engine; profileEnabled = flags.profile
     }
 
@@ -383,7 +454,10 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
 private final class MimoSupervisorSession: NSObject, ExitIPDaemonProtocol, @unchecked Sendable {
     private let supervisor: MimoSupervisor
     private let connection: NSXPCConnection
-    init(supervisor: MimoSupervisor, connection: NSXPCConnection) { self.supervisor = supervisor; self.connection = connection }
+    private let installedApp: Bool
+    init(supervisor: MimoSupervisor, connection: NSXPCConnection, installedApp: Bool) {
+        self.supervisor = supervisor; self.connection = connection; self.installedApp = installedApp
+    }
     func request(_ data: Data, withReply reply: @escaping @Sendable (Data) -> Void) {
         guard data.count <= ExitIPService.maximumMessageSize, let request = try? JSONDecoder().decode(DaemonRequest.self, from: data) else {
             reply((try? JSONEncoder().encode(DaemonResponse(failure: .invalidRequest))) ?? Data()); return
@@ -400,6 +474,13 @@ private final class MimoSupervisorSession: NSObject, ExitIPDaemonProtocol, @unch
                 return
             }
         }
-        Task { @MainActor in reply((try? JSONEncoder().encode(await supervisor.handle(request, uid: uid, pid: pid, receivedAt: receivedAt))) ?? Data()) }
+        Task { @MainActor in
+            let response = await supervisor.handle(request, uid: uid, pid: pid, receivedAt: receivedAt, installedApp: installedApp) { [self] response in
+                guard request.reportsProgress == true, let data = try? JSONEncoder().encode(response) else { return }
+                let observer = connection.remoteObjectProxyWithErrorHandler { _ in } as? ExitIPDaemonObserver
+                observer?.changed(data)
+            }
+            reply((try? JSONEncoder().encode(response)) ?? Data())
+        }
     }
 }

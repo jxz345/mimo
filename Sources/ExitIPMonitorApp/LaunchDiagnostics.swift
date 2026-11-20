@@ -78,6 +78,60 @@ enum LaunchDiagnostics {
 enum ExitIPEntryPoint {
     @MainActor
     static func main() {
+        if CommandLine.arguments.dropFirst() == ["--check-service-access"] {
+            // A read-only diagnostic uses this exact installed executable, even
+            // from a standard account. Never accepts commands or prints state,
+            // profiles, credentials, or an authorization credential.
+            Task { @MainActor in
+                do {
+                    let core = try await DaemonRPC.call(DaemonRequest(.state), serviceLabel: ExitIPService.controlLabel)
+                    guard core.state != nil else { throw DaemonFailure.unavailable }
+                    // Stale revisions reach each mutation's authorization check
+                    // but cannot change settings, credentials, or routing.
+                    for command: DaemonCommand in [.configure, .initialize, .setToken, .removeToken,
+                                                   .configureRouting, .saveProxy, .removeProxy] {
+                        var stale = DaemonRequest(command)
+                        stale.expectedRevision = -1
+                        do {
+                            _ = try await DaemonRPC.call(stale, serviceLabel: ExitIPService.controlLabel)
+                            throw DaemonFailure.invalidRequest
+                        } catch DaemonFailure.conflict {}
+                    }
+                    var request = DaemonRequest(.supervisor)
+                    request.supervisor = MimoSupervisorRequest(.state)
+                    let supervisor = try await DaemonRPC.call(request, serviceLabel: ExitIPService.supervisorControlLabel)
+                    guard supervisor.routing != nil else { throw DaemonFailure.unavailable }
+                    request.supervisor = MimoSupervisorRequest(.profile)
+                    let profile = try await DaemonRPC.call(request, serviceLabel: ExitIPService.supervisorControlLabel)
+                    guard profile.profileContents != nil else { throw DaemonFailure.unavailable }
+                    // Missing service/operation fields are rejected before a
+                    // lifecycle operation can run, after checking app identity.
+                    request.supervisor = MimoSupervisorRequest(.service)
+                    do {
+                        _ = try await DaemonRPC.call(request, serviceLabel: ExitIPService.supervisorControlLabel)
+                        throw DaemonFailure.invalidRequest
+                    } catch DaemonFailure.conflict {}
+                    if geteuid() != 0 {
+                        request.supervisor = MimoSupervisorRequest(.approve)
+                        do {
+                            _ = try await DaemonRPC.call(request, serviceLabel: ExitIPService.supervisorControlLabel)
+                            throw DaemonFailure.invalidRequest
+                        } catch DaemonFailure.unauthorized {}
+                        do {
+                            _ = try await DaemonRPC.call(DaemonRequest(.networkChanged), serviceLabel: ExitIPService.controlLabel)
+                            throw DaemonFailure.invalidRequest
+                        } catch DaemonFailure.unauthorized {}
+                    }
+                    print("PASS: installed-app controls and private profile access; root-only operations remain restricted")
+                    exit(0)
+                } catch {
+                    fputs("Service access check failed. Reinstall the matching Mimo app and services.\n", stderr)
+                    exit(1)
+                }
+            }
+            RunLoop.main.run()
+            return
+        }
         guard SingleInstanceController.acquire() else { return }
         LaunchDiagnostics.record("process_entered")
         let application = NSApplication.shared

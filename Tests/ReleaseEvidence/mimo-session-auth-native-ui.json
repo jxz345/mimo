@@ -1,0 +1,44 @@
+{
+  "date": "2026-11-19",
+  "environment": "mimo-vm only",
+  "packageSHA256": "e5241b0d05d98ad2d4f4cf1ec2054e3208355d19ca9d54a517b4ce7d0344a7ec",
+  "helperSHA256": "70df1cbf74e6a0553f2250a3b94f2223a106684dcf85b6e294bca97543ca848a",
+  "guiSHA256": "0c89c3861109608048ce52882fe77c6995bfe16a42cf2015b755f6cc0d5a2d1c",
+  "configuration": "Release",
+  "architecture": "arm64",
+  "inputs": {
+    "Tests/MihomoRuntimeTests/saved_proxy_test.py": "d10754b14b87901cb020d6feebe958b55115817400c8cbbc89ce125a1ba4fabc"
+  },
+  "scope": "Actual GUI observation and authorization on the installed normal Release; authorization and dashboard consistency checks completed, broader acceptance remains",
+  "passed": [
+    "Installed app/helper SHA-256 and strict signature match the packaged Release",
+    "Direct dashboard shows colored 26-point arrow and 21-point main message; same sizes as connection icon/IP",
+    "PF firewall, launchd monitor and four service titles visibly match in size and weight",
+    "Default dashboard shows all rows, controls and footer without scrolling",
+    "First protected Reload shows native administrator authorization prompt",
+    "Installed private authorization rule has shared=false, admin authentication, no five-minute expiry",
+    "User completed first native authorization; Direct Reload returned Running with fresh IP",
+    "Separate jay, mimotest and standard-account clients remain unauthorized while GUI holds an active authorization",
+    "Rule selection reuses GUI authorization and verifies saved approved exit",
+    "Protected profile Reload reuses authorization, completes and refreshes checked IP",
+    "Tailnet Start clears warning and shows Running/approved state",
+    "Approved, unavailable and tailnet-warning large status text fit without moving service rows",
+    "Tailnet Restart completes without another prompt; Running/approved status returns",
+    "mihomo Stop shows red blocked status; ordinary jay HTTPS is denied; Start restores verified Rule",
+    "mimo-core Restart completes and restores verified Rule without another prompt",
+    "Dark appearance retains large icon/text layout; System restored",
+    "Window close/reopen retains authorization; Global selection accepted without prompt more than seven minutes after initial authorization",
+    "Direct restored, Tailnet provider stopped and login item remains off",
+    "Quit GUI and reopen starts a new canonical process; Reload requires fresh native authorization",
+    "Cancelling fresh authorization leaves Direct and service intent unchanged",
+    "Control Center gallery lists Mimo; live control placement/action not yet established"
+  ],
+  "pending": [
+    "Actual login-item launch",
+    "Widget/Control Center live actions",
+    "Manual sleep last",
+    "Final restoration"
+  ],
+  "evidencePrivacy": "No credentials or private IPs exported",
+  "authorizationObservedAtUTC": "2026-11-19T14:45:43Z"
+}

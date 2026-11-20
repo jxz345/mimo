@@ -384,8 +384,8 @@ cask "mimo" do
   ]
 
   caveats <<~EOS
-    Mimo 1.0 is a preview for Apple silicon Macs. Direct works; Rule and Global
-    activation remain blocked until protected-routing qualification is complete.
+    Mimo 1.0 is a preview for Apple silicon Macs. Rule and Global require a
+    verified proxy exit on the saved allowlist. Release qualification is ongoing.
     Do not use this preview to protect live traffic.
 
     Installation requires administrator authentication, installs pinned mihomo

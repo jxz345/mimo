@@ -20,18 +20,39 @@ private final class RPCCompletion: @unchecked Sendable {
     }
 }
 
+private final class RPCProgressObserver: NSObject, ExitIPDaemonObserver, @unchecked Sendable {
+    let receive: @Sendable (DaemonResponse) -> Void
+    init(_ receive: @escaping @Sendable (DaemonResponse) -> Void) { self.receive = receive }
+    func changed(_ data: Data) {
+        guard data.count <= ExitIPService.maximumMessageSize,
+              let response = try? JSONDecoder().decode(DaemonResponse.self, from: data) else { return }
+        receive(response)
+    }
+}
+
 public enum DaemonRPC {
-    public static func call(_ request: DaemonRequest, timeout: TimeInterval = 8, serviceLabel: String = ExitIPService.label) async throws -> DaemonResponse {
-        guard [ExitIPService.label, MimoRuntime.supervisorLabel].contains(serviceLabel) else { throw DaemonFailure.invalidRequest }
+    public static func call(_ request: DaemonRequest, timeout: TimeInterval = 8, serviceLabel: String = ExitIPService.label,
+                            returningFailures: Bool = false,
+                            progress: (@Sendable (DaemonResponse) -> Void)? = nil) async throws -> DaemonResponse {
+        guard [ExitIPService.label, MimoRuntime.supervisorLabel,
+               ExitIPService.controlLabel, ExitIPService.supervisorControlLabel].contains(serviceLabel) else { throw DaemonFailure.invalidRequest }
         let connection = NSXPCConnection(machServiceName: serviceLabel, options: .privileged)
-        return try await call(request, connection: connection, timeout: timeout)
+        return try await call(request, connection: connection, timeout: timeout, returningFailures: returningFailures, progress: progress)
     }
 
     // An anonymous listener can exercise the real transport in tests without registering a service.
-    static func call(_ request: DaemonRequest, connection: NSXPCConnection, timeout: TimeInterval = 8) async throws -> DaemonResponse {
+    static func call(_ request: DaemonRequest, connection: NSXPCConnection, timeout: TimeInterval = 8,
+                     returningFailures: Bool = false,
+                     progress: (@Sendable (DaemonResponse) -> Void)? = nil) async throws -> DaemonResponse {
+        var request = request
+        request.reportsProgress = progress != nil
         let data = try JSONEncoder().encode(request)
         guard data.count <= ExitIPService.maximumMessageSize else { throw DaemonFailure.invalidRequest }
         connection.remoteObjectInterface = NSXPCInterface(with: ExitIPDaemonProtocol.self)
+        if let progress {
+            connection.exportedInterface = NSXPCInterface(with: ExitIPDaemonObserver.self)
+            connection.exportedObject = RPCProgressObserver(progress)
+        }
         defer { connection.invalidate() }
         let response: DaemonResponse = try await withCheckedThrowingContinuation { continuation in
             let completion = RPCCompletion(continuation)
@@ -54,7 +75,7 @@ public enum DaemonRPC {
                 completion.finish(.failure(DaemonFailure.unavailable))
             }
         }
-        if let failure = response.failure { throw failure }
+        if let failure = response.failure, !returningFailures { throw failure }
         if let state = response.state, state.protocolVersion != ExitIPService.protocolVersion { throw DaemonFailure.incompatible }
         return response
     }

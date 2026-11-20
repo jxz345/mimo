@@ -22,6 +22,8 @@ public enum EventLogLine {
         case "daemon_stopped": return "Background service stopped"
         case "daemon_client_started": return "Menu-bar app opened"
         case "daemon_client_stopped": return "Menu-bar app quit"
+        case "mimo_session_event": return "\(fields["source"] == "display_wake" ? "Display woke" : "User session became active") · shared status refreshed"
+        case "mimo_access_presentation_changed": return "Access display · \(fields["validating"] == "true" ? "validating profile" : fields["kind"] ?? "unavailable") · \(fields["blocked"] == "true" ? "traffic blocked" : "see routing state")"
         case "shared_settings_initialized": return "Shared settings imported"
         case "shared_settings_changed": return "Shared settings changed"
         case "shared_credential_changed": return "Shared credential updated"

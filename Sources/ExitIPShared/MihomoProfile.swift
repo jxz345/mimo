@@ -51,12 +51,15 @@ public enum MihomoProfile {
         let rulesStart = profile.range(of: "\nrules:")!.lowerBound
         let originalRules = routingRules(in: profile)
         profile = String(profile[..<rulesStart])
-        if mode == .global {
-            // Preserve MagicDNS; public DNS itself follows the selected proxy.
-            let start = profile.range(of: "  nameserver:\n")!.lowerBound
-            let end = profile.range(of: "  proxy-server-nameserver:\n", range: start..<profile.endIndex)!.lowerBound
-            profile.replaceSubrange(start..<end, with: "  nameserver:\n  - \"https://1.1.1.1/dns-query#Proxy\"\n")
-        }
+        // Public DNS uses the proxy in both protected modes, even when Rule
+        // intentionally sends a website directly. Keep the earlier MagicDNS
+        // policy and a separate encrypted resolver for the proxy endpoint;
+        // resolving the proxy through itself would introduce a bootstrap loop.
+        let dnsUpstreamStart = profile.range(of: "  nameserver:\n")!.lowerBound
+        let dnsUpstreamEnd = profile.range(of: "proxies:\n", range: dnsUpstreamStart..<profile.endIndex)!.lowerBound
+        profile.replaceSubrange(dnsUpstreamStart..<dnsUpstreamEnd, with:
+            "  nameserver:\n  - \"https://1.1.1.1/dns-query#Proxy\"\n" +
+            "  proxy-server-nameserver:\n  - \"https://1.1.1.1/dns-query\"\n")
         // Global keeps inner-tailnet and native-process exceptions, but ordinary
         // visits to Tailscale's public websites must use the proxy like any website.
         let activeRules = (mode == .rule ? originalRules : Array(originalRules.prefix(7)) + Array(originalRules.suffix(8)))

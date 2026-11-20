@@ -1,0 +1,152 @@
+{
+  "updated": "2026-11-20",
+  "environment": "mimo-vm only",
+  "configuration": "Release",
+  "pending": [
+    "Remaining physical mode/Quit shortcuts and native GUI fast-user switching",
+    "Existing peer UDP service coverage if available; no peer/Delta configuration changes",
+    "Final frozen-package regression and source/release checkpoint",
+    "Actual macOS sleep LAST; kernel sleep/wake counters must advance",
+    "Early-boot traffic before independent PF initialization remains outside the guarantee"
+  ],
+  "failures": [
+    {
+      "evidence": "mimo-saved-proxy-huqwro19",
+      "result": "Rule opened after approved check; ordinary HTTPS passed; local proxy HTTPS failed after gate closed. Original Direct/settings/password restored. Intermittent closure under investigation."
+    },
+    {
+      "evidence": "mimo-saved-proxy-w36fxrfc",
+      "result": "Core heartbeat expired after 6.53 seconds while engine and active gate remained available; UDP and subsequent DNS/HTTPS failed. Original settings restored."
+    },
+    {
+      "evidence": "mimo-saved-proxy-nhr_5tha, mimo-saved-proxy-a48l2bpe, mimo-saved-proxy-274k6ws9",
+      "result": "Dedicated-heartbeat candidate introduced an XPC callback actor-isolation trap, confirmed in macOS crash stacks. Repaired with explicitly Sendable callbacks in current candidate; repeat acceptance pending."
+    },
+    {
+      "evidence": "mimo-saved-proxy-7z0u4s79",
+      "result": "Sendable callback repair prevented the crash, but heartbeat transport still returned 4099 and empty-allowlist verification timed out. Saved configuration restored. Subsequent same-behavior candidate with additional transport diagnostics is under test."
+    },
+    {
+      "evidence": "mimo-saved-proxy-60msoyx8",
+      "result": "75 checkpoints passed before final mihomo Restart recovery timed out. All 15 completed capture phases met their packet expectations. Saved configuration restored."
+    },
+    {
+      "evidence": "mimo-saved-proxy-p99xqduh",
+      "result": "PF close confirmed; controller cleanup timeout correctly withheld a Blocked confirmation and returned unavailable. Driver originally required blocked. Revised suspension check requires blocked PF, no effective mode, actual traffic denial and fresh recovery, accepting the conservative unavailable status."
+    },
+    {
+      "evidence": "mimo-release-boot-plksey0b",
+      "result": "Initial reboot could not establish GUI absence because macOS relaunched it; restored Direct. Revised harness temporarily holds GUI executable and restores it without changing login preference."
+    },
+    {
+      "evidence": "mimo-direct-observation-sg15wn_d",
+      "result": "Healthy Direct lost its checked IP after actual firewall-lock contention. Same scenario passes on current helper; original failed report retained."
+    },
+    {
+      "evidence": "mimo-dns-privacy-9wz2pqq2; mimo-dns-privacy-4l871_4q",
+      "result": "Valid NOERROR/NODATA response was rejected by an overly strict NXDOMAIN-only test. Test now checks an authoritative negative answer; reports retained."
+    },
+    {
+      "evidence": "mimo-dns-privacy-otpm_bhr",
+      "result": "Public UDP/TCP/unique-name DNS and HTTPS passed in Rule and Global. MagicDNS query began before native connect/reverification finished and timed out behind the deliberate guard. Test now waits for transaction completion and a fresh approved observation. Original Direct/native-off settings restored."
+    }
+  ],
+  "architecture": "arm64",
+  "currentCheckpoint": "2026-11-20: 175 shared tests and 15 installed protected-DNS checks passed on current candidate; exact-package feature regression running",
+  "latestCompletedEvidence": [
+    "mimo-service-progress.json",
+    "mimo-service-progress-user-confirmation.json",
+    "mimo-password-free-accounts.json",
+    "mimo-direct-transition.json",
+    "mimo-direct-transition-restoration.json",
+    "mimo-login-launch-native-ui.json",
+    "mimo-native-extensions.json",
+    "mimo-shared-tests-protected-dns.json",
+    "mimo-protected-dns.json"
+  ],
+  "historicalCheckpoint": {
+    "packageSHA256": "16b78e9d9dc487f275b017f1c4cd09da31a188145e43605f187ccdb604e9448a",
+    "helperSHA256": "680df53bebbc318a496289e5be6b246dc0188455ed8739e7f0b9384130ab7764",
+    "guiSHA256": "eb8b9d5dcd270cfdeb08af6ca847bcaa990dffe476c3e2d5871452ac098b5c2c",
+    "runtimeTestedPackageSHA256": "b25712260cb1304a3bcdd160b5ee8f733b3b66f7d3033e1204ca4b0c253f4be7",
+    "inputs": {
+      "Tests/MihomoRuntimeTests/saved_proxy_test.py": "d10754b14b87901cb020d6feebe958b55115817400c8cbbc89ce125a1ba4fabc"
+    },
+    "fixUnderTest": "Direct observation repair passed 18 recovery and 20 network-transition checks; latest GUI-only descriptions/Dock change verified separately with identical helper bytes.",
+    "activeRun": "Shared tests passed (165/165). Observing user-operated mode and Quit GUI shortcuts; sleep remains last.",
+    "completed": [
+      "Normal Release package built and signature/arm64/package checks completed",
+      "Existing saved Direct configuration and credential fingerprint preserved privately in VM",
+      "Actual VM reboot completed during removal verification",
+      "Clash Mi app, Homebrew receipt and VPN service removed; extension remains loaded",
+      "Existing Tailscale peer SSH reachable from VM without peer changes",
+      "Homebrew fetched and checksum-verified candidate archive",
+      "Homebrew cancelled-authentication install leaves app and setup recovery screen available",
+      "Standard service installer restores saved Direct using existing authorized VM administrator",
+      "Real Brew uninstall removes app, staged engine, services and PF policy, restores IPv6 flags and ordinary HTTPS, retains saved settings and password",
+      "Explicitly installed mihomo formula survives Mimo uninstall",
+      "Brew installs pinned mihomo automatically when absent and records it as a dependency",
+      "Both jay and mimotest read shared state and cannot change services without explicit authorization",
+      "Native dashboard visually shows PF/launchd normal-size timers, Direct country flag and white menu arrow",
+      "Direct mode mismatching-allowlist regression passed on normal candidate: no Direct warning, rejected Rule IP retained, HTTPS/mixed/UDP/IPv6 denied while blocked, immediate Direct recovery and packet positive controls",
+      "Actual standard-account XPC read/authentication boundary passed alongside jay and mimotest; temporary login-disabled account removed",
+      "Queue repair recovers three consecutive cycles of the actual provider/mihomo Restart reproducer; original configuration/password restored",
+      "Same normal Release passes real engine suspension and supervisor termination, denial/recovery and continuous packet attribution; original Direct/password restored",
+      "Normal Release passes 35 actual PF/launchd/IPv6 repair checks, including real reboot with main helper unavailable and original settings restoration",
+      "Saved Rule recovers after real reboot with GUI executable unavailable, fresh private check before open, physical-interface packet negative/positive controls, and GUI/signature restoration",
+      "Saved Global passes the same actual reboot, GUI-unavailable, fresh verification, packet-capture and restoration checks",
+      "Existing-peer relay audit passes 41 checks on current normal Release: 10 forced DERP reconnects, native down/up, provider Stop/Start/Restart, existing peer SSH and packet attribution",
+      "Current-package Homebrew uninstall automatically removes unused mihomo; explicit mihomo installation and exact Mimo package restored; eight lifecycle assertions passed",
+      "Current-package Direct allowlist regression passes 12 checks with packet attribution",
+      "Current-package three-account XPC authorization audit passes eight checks; temporary standard account removed",
+      "Full normal Release feature audit passes all 88 checks, including engine hang, three process crashes, repeated final restarts and all packet phases",
+      "Native VM Settings: all four sections opened; login on/off, System/Dark/System appearance, transparency on/off, and Event Log exercised through Screen Sharing; original preferences restored",
+      "GUI cached-configuration fallback corrected and updated package installed through real Homebrew in VM; installed helper bytes identical to runtime-tested helper",
+      "Updated GUI process verified at /Applications/Mimo.app/Contents/MacOS/mimo-gui inside mimo-vm (VirtualMac2,1)",
+      "Actual dual-service outage GUI observation passed: saved Global/proxy/allowlist remain visible, live access unavailable, Direct recovers",
+      "Native Refresh, Open profile, Direct Reload, Rule/Global selection, core/mihomo lifecycle and Tailnet Start/Stop observed",
+      "Current candidate strict signature and GUI/helper hashes verified inside VM",
+      "Updated Direct status icon/message and consistent six service-title fonts observed without scrolling",
+      "Updated authorization right keeps private non-shared credentials; three-account unauthenticated changes still denied",
+      "Session authorization reused after more than seven minutes, window close/reopen, protected Reload and service restarts; quitting requires fresh approval and cancellation preserves Direct",
+      "Actual large status icons/messages and consistent six service titles reviewed in light/dark; original appearance and provider intent restored",
+      "Native main-window Settings tabs, all sections, draft retention across tabs and close/reopen, service fonts/alignment/timers and copy-path positioning observed (artifact-scoped evidence retained)",
+      "Installed protected verification progress passes 20 real checks with saved proxy: route add/remove in Rule and Global, confirmed block before probe before open, GUI transitions, empty/wrong allowlist denial, Direct stays open and original settings restoration",
+      "Final native Monitoring uses compact Verification rows, quota table and bottom event list; popup login controls removed and remaining actions show shortcuts",
+      "Current installed-state checkpoint passes seven assertions, including original configuration/password/service intent, Direct, PF/launchd, HTTPS/Tailscale, explicit mihomo and cleanup",
+      "Native View rules link beside Rule / Global scrolls to the complete System & network events card in Monitoring; installed signature and hashes verified",
+      "Reproduced Direct observation loss with actual firewall-lock contention; fixed core-owned observation survives temporary supervisor repair and clears on mode changes",
+      "Current package passes 18 Direct recovery assertions: PF disable, anchor loss, supervisor restart, real lock contention, bundled service reinstall with fresh startup IP, HTTPS and configuration restoration",
+      "Current package passes all 20 real Rule/Global/Direct network-transition checks after observation fix",
+      "Native medium Notification Center widget displays actual Direct state and protected verification updates; Control Center control opens dashboard; temporary placements removed",
+      "Current package passes seven read-only restoration assertions before interactive login/sleep tests",
+      "Dashboard and Settings visibly explain boot startup and continued core operation after GUI quit",
+      "Finder and Dock icon match in installed VM Release after refresh, minimize/restore and dashboard close/reopen; live menu-bar indicators retained",
+      "Latest Dock-icon GUI package passes seven read-only installation/settings/service/network restoration assertions; helper identical to Direct-recovery tested helper",
+      "Actual jay logout/login automatically launched canonical Mimo with ready visible menu-bar icon and dashboard closed; original personal login OFF restored",
+      "User confirms local keyboard execution of menu Settings, Open Dashboard and Refresh now shortcuts in Tart",
+      "Explicit user approval received; Xcode/SDK license accepted in mimo-vm only",
+      "All 165 shared Swift tests pass inside mimo-vm using full Xcode after user-approved license acceptance; 48 staged inputs hash-verified"
+    ],
+    "limitations": [
+      "Candidate download uses a VM-local test tap; public release and tap unchanged",
+      "Boot packet capture begins with its launchd worker and cannot prove first-packet protection",
+      "No existing peer UDP echo service is configured; no peer or Delta changes authorized",
+      "Clash Mi system extension remains listed active after app removal and reboot",
+      "Successful interactive Homebrew password flow not claimed; cancelled-authentication and standard administrator setup passed",
+      "Network notification handling is asynchronous; 20 transition checks do not prove zero pre-detection leakage"
+    ],
+    "note": "Historical cumulative checkpoint, superseded by currentCheckpoint and latestCompletedEvidence. Per-session authorization and 165-test counts refer to earlier builds."
+  },
+  "packageSHA256": "0e2be8e633927db5fde7e1203e0d7a8f2c2c852e5e44382083c255d60c650065",
+  "helperSHA256": "3c8cfed59222a780f0bbf4bf55f9b4437cb0034fff7dbf1c26ab0d7b0d487d1c",
+  "guiSHA256": "9ae83fead6840b5cfeb1330415aadafa483242a4faf9127ab0401d2d375b33a7",
+  "activeRun": "saved_proxy_test.py --installed-features in mimo-vm",
+  "limitations": [
+    "Current candidate is installed through a VM-local acceptance tap; public v1.0 preview is unchanged.",
+    "Boot capture starts with its launchd worker and does not establish first-packet protection.",
+    "Actual macOS sleep/wake is unqualified; prior VirtualMac pmset request was refused.",
+    "Peer UDP and remaining physical GUI interaction checks are unqualified.",
+    "Network notifications are asynchronous; event tests do not prove zero pre-detection delay."
+  ]
+}

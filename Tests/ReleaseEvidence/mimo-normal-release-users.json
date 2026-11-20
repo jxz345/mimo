@@ -1,0 +1,16 @@
+{
+  "success": true,
+  "passed": [
+    "jay-unprivileged-client-reads-shared-Direct-state",
+    "jay-unauthenticated-service-change-denied",
+    "mimotest-unprivileged-client-reads-shared-Direct-state",
+    "mimotest-unauthenticated-service-change-denied",
+    "standard-unprivileged-client-reads-shared-Direct-state",
+    "standard-unauthenticated-service-change-denied",
+    "all-three-accounts-share-configuration-and-one-machine-service-set",
+    "temporary-standard-account-removed"
+  ],
+  "scope": "Actual unprivileged processes for two existing admin accounts and one temporary standard account. Does not claim GUI fast-user switching.",
+  "helperSHA256": "e1222bb89fbd963f9c29d3c837c0ebbc6b00f3dcd1212349145e1227734bd85a",
+  "evidence": "mimo-release-user-_lbswsam"
+}

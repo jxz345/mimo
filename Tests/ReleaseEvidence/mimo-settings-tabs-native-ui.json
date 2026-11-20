@@ -1,0 +1,34 @@
+{
+  "packageSHA256": "a73ca5951beaaa1cb089515d9bb49c5b18ec0c83e9fe3933596244fbbb534121",
+  "helperSHA256": "70df1cbf74e6a0553f2250a3b94f2223a106684dcf85b6e294bca97543ca848a",
+  "guiSHA256": "8cfa56a91d46a7b227b9b087db1b7e929797e04e042c2699e8025a04b70ca05c",
+  "configuration": "Release",
+  "architecture": "arm64",
+  "inputs": {
+    "Tests/MihomoRuntimeTests/saved_proxy_test.py": "d10754b14b87901cb020d6feebe958b55115817400c8cbbc89ce125a1ba4fabc"
+  },
+  "date": "2026-11-19",
+  "environment": "mimo-vm only",
+  "scope": "Actual installed native Settings-tab GUI",
+  "passed": [
+    "Strict signature and installed GUI/helper hashes match package",
+    "Dashboard and Settings occupy the same retained window",
+    "General, Proxy, Allowed IPs and Monitoring available inside Settings",
+    "Dashboard Edit, Allowed IPs and Configure links select their correct Settings sections",
+    "Status-menu Settings reopens the same main window directly on Settings",
+    "Temporary unsaved proxy-name draft survives tab switch, real Refresh and window close/reopen",
+    "Original proxy name restored in draft without saving; dashboard retained original saved name throughout",
+    "Default-size dashboard remains fully visible without scrolling; Refresh/footer persist in Settings"
+  ],
+  "limitations": [
+    "Remote Command key was not forwarded reliably; Cmd-comma execution not claimed"
+  ],
+  "followUp": {
+    "packageSHA256": "2fbfc7fa410b1a8857958931af8163205d02556ce3676aec473e0d07d3a1f33d",
+    "guiSHA256": "0f745b31e91a428cdeb5b477db9162403c77341020bd58064eba34b8157a890b",
+    "passed": [
+      "Native installed dashboard: six service titles/statuses consistent, Healthy/Running bullets aligned, 11-point timers and small left-side profile copy icon observed",
+      "Dashboard fits default window without scrolling"
+    ]
+  }
+}

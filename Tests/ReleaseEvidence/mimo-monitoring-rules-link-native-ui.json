@@ -1,0 +1,24 @@
+{
+  "date": "2026-11-19",
+  "environment": "mimo-vm only",
+  "configuration": "Release",
+  "architecture": "arm64",
+  "packageSHA256": "cfb5d294541cabde3eaccc0e4d25f70227486a3b3871d2dc19469d205ad17d0e",
+  "helperSHA256": "a8344084fbb637998899ae1db494d9c4e1693134e4e9d10179cf04d23664e3ef",
+  "guiSHA256": "86f98b4b772e8bca963971dc7b5be17858408a5daca5ebfb2f2f47c4c2a6b4c8",
+  "deployment": "VM-local Homebrew cask reinstall and bundled service installer; public release unchanged",
+  "checks": [
+    "Release build, arm64 package and signature checks passed",
+    "Installed GUI and helper hashes match manifest; installed strict signature verification passed",
+    "Native Monitoring shows an underlined greyscale View rules link and down arrow beside Rule / Global without adding a row",
+    "Clicking View rules scrolls the same page to System & network events; heading, all six event rows and explanatory note fully visible",
+    "Monitoring remains selected and Refresh now remains available; provider counters did not change when following the link",
+    "On reopening after installation, Direct displayed a current IP and country flag, PF/launchd Healthy, core/engine Running and Tailnet provider Stopped"
+  ],
+  "limitations": [
+    "GUI-only navigation change; helper bytes identical to the earlier 20-check network-progress run",
+    "Reduce Motion behavior implemented but system preference not toggled during this check",
+    "No claim of completing pending login, extensions, sleep or physical shortcut acceptance"
+  ],
+  "success": true
+}

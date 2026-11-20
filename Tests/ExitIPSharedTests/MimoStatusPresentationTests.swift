@@ -2,6 +2,76 @@ import XCTest
 @testable import ExitIPShared
 
 final class MimoStatusPresentationTests: XCTestCase {
+    func testDirectTransitionDoesNotClaimBlockingOrApproval() {
+        var routing = MimoRoutingState()
+        routing.phase = .restoringDirect
+        routing.reason = "Switching to Direct. Removing proxy routing and restoring system DNS."
+        routing.observedIP = .init(address: "192.0.2.9", checkedAt: .now)
+        let value = MimoStatusPresentation(routing: routing, snapshot: nil,
+            preferences: MonitoringPreferences(), date: .now)
+        XCTAssertEqual(value.title, "Switching to Direct")
+        XCTAssertTrue(value.isRestoringDirect)
+        XCTAssertFalse(value.isClosing)
+        XCTAssertFalse(value.trafficIsBlocked)
+        XCTAssertFalse(value.isDirect)
+        XCTAssertFalse(routing.allowsTraffic)
+        XCTAssertNil(value.address)
+        XCTAssertNil(value.verificationProgress)
+    }
+
+    func testPendingCloseIsProgressWithoutClaimingTrafficIsAlreadyBlocked() {
+        var routing = MimoRoutingState()
+        routing.configuration.mode = .rule
+        routing.phase = .closing
+        routing.observedIP = .init(address: "192.0.2.9", checkedAt: .now)
+        let value = MimoStatusPresentation(routing: routing, snapshot: nil,
+            preferences: MonitoringPreferences(), date: .now)
+        XCTAssertEqual(value.kind, .checking)
+        XCTAssertTrue(value.isClosing)
+        XCTAssertFalse(value.trafficIsBlocked)
+        XCTAssertNil(value.address)
+        XCTAssertNil(value.verificationProgress)
+        XCTAssertTrue(value.title.contains("Closing traffic"))
+    }
+
+    func testProviderOffIsNormalWhenNativeTailnetIsOffButAnEnabledFailureWarns() {
+        var routing = MimoRoutingState()
+        routing.configuration.mode = .rule
+        routing.effectiveMode = .rule
+        routing.phase = .active
+        routing.tailnetExpected = false
+        for (health, expected): (MimoServiceHealth, MimoStatusPresentation.Kind) in [
+            (.stopped, .verified), (.running, .verified), (.restarting, .verified),
+            (.unavailable, .tailnetWarning), (.notInstalled, .tailnetWarning)
+        ] {
+            routing.services = [.init(id: .tailnetProvider, health: health, transport: "HTTP")]
+            let value = MimoStatusPresentation(routing: routing, snapshot: nil,
+                preferences: MonitoringPreferences(), date: .now)
+            XCTAssertEqual(value.kind, expected)
+            XCTAssertFalse(value.trafficIsBlocked)
+        }
+    }
+
+    func testStoppedProviderWarnsWhenNativeTailnetIsRunningInEveryMode() {
+        for mode in ProxyMode.allCases {
+            var routing = MimoRoutingState()
+            routing.configuration.mode = mode
+            routing.effectiveMode = mode
+            routing.phase = .active
+            routing.tailnetExpected = true
+            routing.services = [.init(id: .tailnetProvider, health: .stopped, transport: "HTTP")]
+            let value = MimoStatusPresentation(routing: routing, snapshot: nil,
+                preferences: MonitoringPreferences(), date: .now)
+            XCTAssertEqual(value.kind, .tailnetWarning)
+            XCTAssertTrue(value.detail.contains("Tailscale is running, but its provider is stopped"))
+            XCTAssertFalse(value.trafficIsBlocked)
+            XCTAssertEqual(value.isDirect, mode == .direct)
+            let refreshing = MimoStatusPresentation(routing: routing, snapshot: nil,
+                preferences: MonitoringPreferences(), date: .now, monitoringStatus: .refreshing)
+            XCTAssertEqual(refreshing.kind, .tailnetWarning, "A lookup must not hide a stopped required provider")
+        }
+    }
+
     func testBlockedVerificationShowsFailureInsteadOfGenericCloseReason() {
         var routing = MimoRoutingState()
         routing.configuration.mode = .rule
@@ -57,11 +127,39 @@ final class MimoStatusPresentationTests: XCTestCase {
             XCTAssertEqual(status(lookup).country, snapshot.countryFlag)
         }
         XCTAssertEqual(status(.refreshing).kind, .checking)
+        XCTAssertFalse(status(.refreshing).trafficIsBlocked)
+        XCTAssertNil(status(.refreshing).verificationProgress)
         let failed = status(.failed("The network is offline."))
         XCTAssertEqual(failed.kind, .directWarning)
         XCTAssertTrue(failed.detail.contains("network is offline"))
         XCTAssertTrue(failed.detail.contains("Direct remains selected"))
         XCTAssertEqual(status(.ready).kind, .direct)
+    }
+
+    func testProtectedProgressRequiresConfirmedBlockingAndApproval() {
+        var routing = MimoRoutingState()
+        routing.configuration.mode = .global
+        func present() -> MimoStatusPresentation {
+            MimoStatusPresentation(routing: routing, snapshot: nil, preferences: MonitoringPreferences(), date: .now)
+        }
+        // An unacknowledged firewall request must not claim confirmed blocking.
+        XCTAssertFalse(present().trafficIsBlocked)
+        XCTAssertNil(present().verificationProgress)
+        routing.phase = .validating
+        XCTAssertTrue(present().trafficIsBlocked)
+        XCTAssertTrue(present().isValidating)
+        XCTAssertTrue(present().title.contains("Blocked"))
+        routing.phase = .checking
+        XCTAssertTrue(present().trafficIsBlocked)
+        XCTAssertFalse(present().isValidating)
+        XCTAssertTrue(present().title.contains("Checking exit IP"))
+        XCTAssertFalse(present().verificationProgress?.contains("Internet reopened") ?? true)
+        routing.phase = .active
+        routing.effectiveMode = .global
+        XCTAssertFalse(present().trafficIsBlocked)
+        XCTAssertTrue(present().verificationProgress?.contains("Internet reopened") ?? false)
+        routing.effectiveMode = .rule
+        XCTAssertNil(present().verificationProgress, "Mismatched effective mode cannot show a completed verification")
     }
 
     func testProtectedGateTakesPrecedenceOverLookupAndCachedLocation() {

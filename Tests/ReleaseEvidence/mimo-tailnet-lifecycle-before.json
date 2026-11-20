@@ -1,0 +1,13 @@
+{
+  "success": false,
+  "passed": [
+    "native-off-provider-off",
+    "direct-native-connect-automatically-starts-real-provider",
+    "original-Direct-native-off-proxy-allowlist-password-and-services-restored"
+  ],
+  "scope": "Installed normal Release in mimo-vm; actual native Tailscale connection changes, provider HTTP, GUI state logs, ordinary-user HTTPS and networksetup DNS changes. No simulated events, helper substitution or sleep claim.",
+  "packageSHA256": "bacb6f57266703e91288897baf050f59236f90f92fc99f18d5a41a5899110039",
+  "helperSHA256": "07ac285bf659ee6b9e91499bd7bec0ea8f7f3ec356312bb84d188ee0b646ae49",
+  "error": "RuntimeError: Timed out: GUI warns while native Tailscale is running",
+  "evidence": "mimo-tailnet-lifecycle-d7u4plv4"
+}

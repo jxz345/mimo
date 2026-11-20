@@ -567,10 +567,10 @@ final class ExitIPSharedTests: XCTestCase {
         calendar.timeZone = TimeZone(identifier: "UTC")!
         let morning = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 10, day: 3, hour: 9)))
         var budget = LookupBudget(now: morning)
-        XCTAssertEqual(LookupBudget.dailyBudget(for: .ipapiIs), 80)
+        XCTAssertEqual(LookupBudget.dailyBudget(for: .ipapiIs), 24)
         XCTAssertEqual(LookupBudget.dailyBudget(for: .ipWhois), 800)
         XCTAssertNil(LookupBudget.dailyBudget(for: .ipinfoLite))
-        for _ in 0..<79 { budget.recordCall(to: .ipapiIs, now: morning) }
+        for _ in 0..<23 { budget.recordCall(to: .ipapiIs, now: morning) }
         XCTAssertFalse(budget.isExhausted(.ipapiIs, now: morning))
         budget.recordCall(to: .ipapiIs, now: morning)
         XCTAssertTrue(budget.isExhausted(.ipapiIs, now: morning))

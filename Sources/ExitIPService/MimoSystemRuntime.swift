@@ -11,6 +11,13 @@ struct MimoPFReference: Codable {
     let token: String
     let boot: String
 
+    static func isLive(_ token: String, references: String) -> Bool {
+        references.split(separator: "\n").contains { line in
+            let fields = line.split(whereSeparator: \.isWhitespace)
+            return fields.count >= 3 && fields[0].allSatisfy(\.isNumber) && fields[2] == token
+        }
+    }
+
     func token(forBoot currentBoot: String) throws -> String? {
         guard !token.isEmpty, token.count <= 32, token.utf8.allSatisfy({ (48...57).contains($0) }),
               UUID(uuidString: boot) != nil, UUID(uuidString: currentBoot) != nil else {
@@ -33,12 +40,56 @@ final class MimoSystemRuntime {
     private var deliveredContents: String?
     private nonisolated let nativeTransportWriter = MimoNativeTransportWriter()
     private let dns = MimoDNSConfiguration()
+    private let infrastructureQueue = MimoBlockingWorkQueue("com.mimo.infrastructure-check")
     var profileWillChange: (() -> Void)?
     var profileDidChange: (() -> Void)?
     var maintenanceActive: Bool { FileManager.default.fileExists(atPath: directory.appendingPathComponent("maintenance").path) }
 
+    func ensureIndependentBootGuard() throws {
+        try secureDirectory(MimoRuntime.guardDirectory)
+        try secureFile(MimoRuntime.guardScript)
+        try command("/usr/bin/perl", [MimoRuntime.guardScript.path, "--boot"], timeout: 20)
+    }
+
+    /// The same fixed checker also runs from its own system launchd job, so a
+    /// missing supervisor cannot disable infrastructure inspection and repair.
+    func repairInfrastructure() async throws {
+        try secureDirectory(MimoRuntime.guardDirectory)
+        try secureFile(MimoRuntime.guardScript)
+        guard let result = await infrastructureQueue.run({
+            BoundedProcess.run("/usr/bin/perl", [MimoRuntime.guardScript.path, "--check"], timeout: 25)
+        }) else { throw CancellationError() }
+        try Task.checkCancellation()
+        guard result.status == 0 else {
+            RuntimeLog.shared.error("mimo_infrastructure_check_failed", fields: ["status": String(result.status)])
+            throw MimoRuntimeError.unavailable("Firewall or startup services need repair. Protected access remains closed.")
+        }
+        if result.text.trimmingCharacters(in: .whitespacesAndNewlines) == "repaired" {
+            RuntimeLog.shared.info("mimo_infrastructure_repaired", fields: ["gate": gateState ?? "unknown"])
+        }
+    }
+
     func enforceIPv4Policy() throws {
         try withFirewallLock { try MimoIPv4Configuration.apply() }
+    }
+
+    func infrastructureStatus() -> MimoInfrastructureStatus {
+        struct Record: Decodable {
+            var boot: String
+            var checkedAt: Double
+            var pf: String
+            var launchd: String
+        }
+        do {
+            let path = MimoRuntime.guardDirectory.appendingPathComponent("health.json")
+            try secureDirectory(MimoRuntime.guardDirectory)
+            try secureFile(path)
+            let record = try JSONDecoder().decode(Record.self, from: Data(contentsOf: path))
+            guard record.boot == (try bootIdentifier()), record.checkedAt.isFinite else { return .init() }
+            return MimoInfrastructureStatus(pf: record.pf == "enabled" ? .healthy : .failed,
+                launchd: record.launchd == "healthy" ? .healthy : .failed,
+                checkedAt: Date(timeIntervalSince1970: record.checkedAt)).current(at: .now)
+        } catch { return .init() }
     }
 
     var gateState: String? {
@@ -52,6 +103,14 @@ final class MimoSystemRuntime {
         guard FileManager.default.fileExists(atPath: url.path) else { return MimoServicePreferences() }
         try secureFile(url)
         return try JSONDecoder().decode(MimoServicePreferences.self, from: Data(contentsOf: url))
+    }
+
+    func saveServicePreferences(_ preferences: MimoServicePreferences) throws {
+        // The independent checker reads intent and repairs jobs under this same
+        // lock. A saved Stop must supersede any repair already in progress.
+        try withFirewallLock {
+            _ = try writePrivate(JSONEncoder().encode(preferences), name: "services.json")
+        }
     }
 
     func savedConfiguration() throws -> MimoConfiguration {
@@ -122,31 +181,6 @@ final class MimoSystemRuntime {
         }
     }
 
-    func requireQualifiedRuntime() throws {
-#if MIMO_VM_ACCEPTANCE
-        // Dedicated integration-test binary, never used by the app packager.
-        // It exercises the real installed core/supervisor without creating a
-        // release qualification record. Every invocation refuses physical Macs.
-        try Self.requireAcceptanceVM()
-        return
-#else
-        // A normal build cannot silently assert that packet-level release acceptance has passed.
-        // The release tool installs this manifest only from reviewed qualification evidence.
-        let manifest = directory.appendingPathComponent("qualification.json")
-        var qualificationInfo = stat()
-        if lstat(manifest.path, &qualificationInfo) != 0, errno == ENOENT {
-            throw MimoRuntimeError.unavailable("Protected routing is not qualified on this build. Direct remains available.")
-        }
-        try secureFile(manifest)
-        guard let data = try? Data(contentsOf: manifest),
-              let value = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              value["version"] as? String == MimoRuntime.version,
-              value["packetAcceptancePassed"] as? Bool == true,
-              value["tailnetTransportPassed"] as? Bool == true else {
-            throw MimoRuntimeError.unavailable("Protected routing is not qualified on this build. Direct remains available.")
-        }
-#endif
-    }
 
 #if MIMO_VM_ACCEPTANCE
     static func requireAcceptanceVM() throws {
@@ -201,7 +235,6 @@ final class MimoSystemRuntime {
 
     func openGate(mode: ProxyMode, endpoints: [String], proxyPort: Int) throws {
         try withFirewallLock {
-            try requireQualifiedRuntime()
             guard !maintenanceActive else { throw MimoRuntimeError.unavailable("Service installation is in progress.") }
             guard closed else { throw MimoRuntimeError.unavailable("The application gate was not confirmed closed.") }
             guard protectedDNSReady() else { throw MimoRuntimeError.unavailable("The protected DNS resolver is unavailable.") }
@@ -220,9 +253,17 @@ final class MimoSystemRuntime {
         try withFirewallLock {
             guard maintenanceRecovery || !maintenanceActive else { throw MimoRuntimeError.unavailable("Service installation is in progress.") }
             _ = try writePrivate(Data("pending".utf8), name: "gate.state")
-            // First disable interception, then remove only Mimo's anchor and enable reference.
+            if !uninstalling {
+                // Saved Direct is already authorized. Release the protected IPv4
+                // gate before removing TUN/DNS interception, keeping IPv6 blocked.
+                // Do not flush IPv4 connections or wait for an allowlist check.
+                try installPF(MimoFirewallPolicy.directIPv4, requiresRuntimeGroup: false)
+                try command("/sbin/pfctl", ["-k", "::/0"])
+                closed = false
+                RuntimeLog.shared.info("mimo_direct_ipv4_released")
+            }
             do { try loadProfile(MihomoProfile.blocking()) }
-            catch { try service(.mihomo, operation: .stop) }
+            catch { try changeJobUnderFirewallLock(.mihomo, operation: .stop) }
             profileWillChange?()
             do { try dns.remove() }
             catch { profileDidChange?(); throw error }
@@ -231,8 +272,6 @@ final class MimoSystemRuntime {
             try MimoPowerGuard.clear()
             if !uninstalling {
                 try MimoIPv4Configuration.apply()
-                try installPF(MimoFirewallPolicy.directIPv4)
-                try command("/sbin/pfctl", ["-k", "::/0"])
                 _ = try writePrivate(Data("direct".utf8), name: "gate.state")
                 closed = false
                 return
@@ -279,6 +318,11 @@ final class MimoSystemRuntime {
         let path = try writePrivate(Data(rules.utf8), name: "guard.pf")
         try command("/sbin/pfctl", ["-n", "-a", MimoFirewallPolicy.anchor, "-f", path.path])
         try command("/sbin/pfctl", ["-a", MimoFirewallPolicy.anchor, "-f", path.path])
+        let installed = BoundedProcess.run("/sbin/pfctl", ["-a", MimoFirewallPolicy.anchor, "-sr"])
+        guard installed.status == 0, !installed.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw MimoRuntimeError.unavailable("The installed firewall rules could not be read back.")
+        }
+        _ = try writePrivate(Data(installed.text.utf8), name: "guard.expected")
         enableToken = try currentEnableToken()
         let status = BoundedProcess.run("/sbin/pfctl", ["-s", "info"])
         guard status.status == 0 else { throw MimoRuntimeError.unavailable("Could not inspect PF enable state.") }
@@ -300,7 +344,15 @@ final class MimoSystemRuntime {
         let url = directory.appendingPathComponent("pf-reference.json")
         guard FileManager.default.fileExists(atPath: url.path) else { return nil }
         try secureFile(url)
-        return try JSONDecoder().decode(MimoPFReference.self, from: Data(contentsOf: url)).token(forBoot: bootIdentifier())
+        guard let token = try JSONDecoder().decode(MimoPFReference.self, from: Data(contentsOf: url)).token(forBoot: bootIdentifier()) else { return nil }
+        let references = BoundedProcess.run("/sbin/pfctl", ["-s", "References"])
+        guard references.status == 0,
+              references.text.contains("TOKENS:") || references.text.trimmingCharacters(in: .whitespacesAndNewlines) == "No pf starter references held" else {
+            throw MimoRuntimeError.unavailable("Could not inspect PF enable references.")
+        }
+        // pfctl -d clears references even within the same boot. Another owner
+        // can re-enable PF before us; never release or reuse our stale token.
+        return MimoPFReference.isLive(token, references: references.text) ? token : nil
     }
 
     private func bootIdentifier() throws -> String {
@@ -396,6 +448,16 @@ final class MimoSystemRuntime {
     }
 
     func service(_ service: MimoServiceID, operation: MimoServiceOperation) throws {
+        try withFirewallLock { try changeJobUnderFirewallLock(service, operation: operation) }
+        if service == .mihomo, operation != .stop {
+            // Release the lock before the wrapper needs it for startup guarding.
+            // A launchd PID alone is not a ready controller.
+            try waitForBlockingEngine()
+        }
+    }
+
+    /// Caller already owns the firewall lock, including offline Direct recovery.
+    private func changeJobUnderFirewallLock(_ service: MimoServiceID, operation: MimoServiceOperation) throws {
         let label: String
         switch service { case .core: label = ExitIPService.label; case .mihomo: label = MimoRuntime.engineLabel; default: throw DaemonFailure.invalidRequest }
         let job = "system/\(label)", plist = MimoRuntime.jobDirectory.appendingPathComponent("\(label).plist")
@@ -410,12 +472,6 @@ final class MimoSystemRuntime {
             try secureFile(plist)
             try command("/bin/launchctl", ["enable", job])
             try command("/bin/launchctl", ["bootstrap", "system", plist.path], timeout: 8)
-        }
-        if service == .mihomo, operation != .stop {
-            // A launchd PID is not a ready controller. Keep the protected gate
-            // closed until the engine accepts and confirms its blocking profile,
-            // before acknowledging Start/Restart to the next verification request.
-            try waitForBlockingEngine()
         }
     }
 

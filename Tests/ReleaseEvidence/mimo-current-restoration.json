@@ -1,0 +1,20 @@
+{
+  "success": true,
+  "passed": [
+    "normal-Release-app-helper-and-signature-match-tested-package",
+    "original-saved-proxy-allowlist-password-and-service-intent-retained",
+    "both-live-services-confirm-Direct-without-allowlist-rejection",
+    "PF-launchd-and-IPv4-only-policy-healthy",
+    "ordinary-user-HTTPS-and-existing-Tailscale-connection-restored",
+    "original-explicit-mihomo-install-intent-restored",
+    "temporary-test-jobs-routes-captures-account-and-wake-alarm-removed"
+  ],
+  "scope": "Read-only current checkpoint after UI/network changes, before pending login/extension/sleep acceptance",
+  "packageSHA256": "ac0f4a58a5629116b6decbe9a07d3d811efb33b5def7ac1693df1cc0c9c15938",
+  "helperSHA256": "a8344084fbb637998899ae1db494d9c4e1693134e4e9d10179cf04d23664e3ef",
+  "evidence": "mimo-release-final-3fhuf36q",
+  "testCorrections": [
+    "Compare decoded saved configuration; JSON key order and a later revision from authorized GUI edits are not configuration changes",
+    "Run Homebrew read-only check as jay with sudo -H to avoid inheriting the administrator home"
+  ]
+}

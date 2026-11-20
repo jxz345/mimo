@@ -19,6 +19,7 @@ enum MimoDashboardTests {
         routing.configuration.proxy = MimoProxy(ClashProxySettings(name: "Personal proxy", type: .socks5,
             server: "192.0.2.20", port: 1080))
         routing.observedIP = MimoIPObservation(address: "192.0.2.10", checkedAt: now)
+        routing.infrastructure = .init(pf: .healthy, launchd: .healthy, checkedAt: now)
         routing.services = [
             .init(id: .core, health: .running, transport: "XPC / Mach"),
             .init(id: .mihomo, health: .running, transport: "HTTP / SOCKS · Unix controller", address: "127.0.0.1", port: 7890, bindingConfirmed: true),
@@ -26,7 +27,7 @@ enum MimoDashboardTests {
             .init(id: .tailnetProvider, health: .running, transport: "HTTP", address: "127.0.0.1", port: 18766, bindingConfirmed: true)
         ]
         for dark in [false, true] {
-            for scenario in ["direct", "rule", "global", "blocked", "checking", "empty", "tailnet-stopped", "long-text", "direct-checking", "direct-failed", "unqualified"] {
+            for scenario in ["direct", "rule", "global", "blocked", "checking", "empty", "tailnet-stopped", "long-text", "direct-checking", "direct-failed", "unqualified", "infrastructure-failed", "infrastructure-stale"] {
                 var value = routing
                 value.configuration.mode = scenario.hasPrefix("direct") ? .direct : scenario == "global" ? .global : .rule
                 value.phase = .active; value.effectiveMode = value.configuration.mode
@@ -38,6 +39,12 @@ enum MimoDashboardTests {
                     if scenario != "empty" { value.blockingIP = .init(address: "198.51.100.77", checkedAt: now) }
                 }
                 if scenario == "tailnet-stopped" { value.services[3].health = .stopped; value.services[3].bindingConfirmed = false }
+                if scenario == "infrastructure-failed" {
+                    value.infrastructure = .init(pf: .failed, launchd: .failed, checkedAt: now)
+                    value.phase = .unavailable; value.effectiveMode = nil
+                    value.reason = "The independent firewall check failed. Service repair is required."
+                }
+                if scenario == "infrastructure-stale" { value.infrastructure?.checkedAt = now.addingTimeInterval(-60) }
                 if scenario == "long-text" {
                     value.configuration.proxy?.name = "A deliberately long profile name for the primary travel connection"
                     value.reason += " Open Settings to review the proxy configuration and add the expected exit address before retrying."
@@ -51,7 +58,7 @@ enum MimoDashboardTests {
                 state.routing = value
                 state.settings.allowlist = scenario == "empty" ? AllowedIPList() : settings.allowlist
                 let monitor = PublicIPMonitor(); monitor.receive(state)
-                try CredentialAppTests.render(DashboardView(monitor: monitor), size: NSSize(width: 1040, height: 570), dark: dark,
+                try CredentialAppTests.render(DashboardView(monitor: monitor), size: NSSize(width: 1040, height: 640), dark: dark,
                     to: output.appendingPathComponent("dashboard-\(scenario)-\(dark ? "dark" : "light").png"), padding: 0)
             }
             state.routing = routing

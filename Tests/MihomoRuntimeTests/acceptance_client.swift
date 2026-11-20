@@ -76,10 +76,11 @@ enum AcceptanceClient {
             print("Removed only the test proxy credential.")
             return
         }
+        fputs("stage: reading shared state\n", stderr)
         let current = try await DaemonRPC.call(DaemonRequest(.state), timeout: 10)
         guard let state = current.state, current.failure == nil else { throw current.failure ?? DaemonFailure.unavailable }
         if operation == "state" { try printState(state); return }
-        if operation == "check-private-profile" || operation == "check-blocking-profile" {
+        if operation == "check-private-profile" || operation == "check-blocking-profile" || operation == "check-protected-dns" {
             var request = DaemonRequest(.supervisor)
             request.supervisor = MimoSupervisorRequest(.profile)
             let (reference, external) = try authorization()
@@ -91,6 +92,16 @@ enum AcceptanceClient {
             if operation == "check-blocking-profile" {
                 guard profile == MihomoProfile.blocking() else { throw DaemonFailure.conflict }
                 print("{\"openedProfileMatchesBlockingRuntime\":true}")
+                return
+            }
+            if operation == "check-protected-dns" {
+                guard state.routing?.configuration.mode.requiresVerification == true,
+                      profile.contains("  nameserver:\n  - \"https://1.1.1.1/dns-query#Proxy\"\n"),
+                      profile.contains("  proxy-server-nameserver:\n  - \"https://1.1.1.1/dns-query\"\n"),
+                      profile.contains("tcp://100.100.100.100:53#TS-DIRECT"),
+                      !["119.29.29.29", "180.76.76.76", "120.53.53.53", "223.5.5.5", "223.6.6.6"].contains(where: profile.contains)
+                else { throw DaemonFailure.conflict }
+                print("{\"publicDNSProxied\":true,\"privateMagicDNSRetained\":true,\"bootstrapEncrypted\":true}")
                 return
             }
             let secret = try credentials.read(account: MimoRuntime.proxyPasswordAccount) ?? ""
@@ -154,6 +165,7 @@ enum AcceptanceClient {
         let (reference, external) = try authorization()
         defer { AuthorizationFree(reference, [.destroyRights]) }
         request.authorization = external
+        fputs("stage: sending \(request.command.rawValue)\n", stderr)
         let response = try await DaemonRPC.call(request, timeout: 40)
         guard response.failure == nil, let result = response.state else { throw response.failure ?? DaemonFailure.unavailable }
         try printState(result)

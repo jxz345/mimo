@@ -52,7 +52,7 @@ enum CredentialAppTests {
         for dark in [false, true] {
             let mode = dark ? "dark" : "light"
             try render(DashboardView(monitor: PublicIPMonitor()),
-                       size: NSSize(width: 1040, height: 570), dark: dark,
+                       size: NSSize(width: 1040, height: 640), dark: dark,
                        to: output.appendingPathComponent("mimo-dashboard-\(mode).png"))
             for section in MimoSettingsSection.allCases {
                 MimoSettingsNavigation.shared.section = section
@@ -78,7 +78,7 @@ enum CredentialAppTests {
         print("PASS: startup, status, activation, refresh and Test make no Keychain calls; the profile view reads the proxy info at most once; IPinfo waits without quota use")
 
         try profileButtonRowChecks()
-        try dockIconChecks(output: output)
+        try menuBarLabelChecks(output: output)
         try await MimoMenuTests.run(output: output)
         try MimoDraftTests.run()
         try MimoDashboardTests.run(output: output)
@@ -153,10 +153,9 @@ enum CredentialAppTests {
         print("PASS: Load proxy info, Save and Remove share one \(Int(size.width)) pt row, within the narrowest value column")
     }
 
-    /// The Dock icon is the menu-bar label itself: one render per visible change, none otherwise.
-    /// Writes `menubar-<state>.png` and `dock-<state>.png` side by side for visual comparison.
+    /// Render the menu-bar labels and retain error/allowlist presentation coverage.
     @MainActor
-    static func dockIconChecks(output: URL) throws {
+    static func menuBarLabelChecks(output: URL) throws {
         let now = Date()
         let singapore = ExitIPSnapshot(ipAddress: "192.0.2.10", countryCode: "SG", countryName: "Singapore",
                                        provider: .ipWhois, checkedAt: now)
@@ -189,7 +188,6 @@ enum CredentialAppTests {
             return (opaque, red)
         }
         let errorLabel = label(singapore, error: true)
-        let dock = DockIconController()
         let states: [(String, MenuBarCountryLabel, Bool)] = [
             ("flag-sg", label(singapore), true), ("flag-jp", label(japan), true),
             ("changed", label(changed), true), ("error", errorLabel, true),
@@ -199,19 +197,6 @@ enum CredentialAppTests {
             ("outside-allowlist-name-dark", label(singapore, .name, outside: true), false),
         ]
         for (name, menuBar, light) in states {
-            require(dock.update(label: menuBar, darkAppearance: !light, apply: false), "\(name) must render a new icon")
-            require(!dock.update(label: menuBar, darkAppearance: !light, apply: false), "An unchanged \(name) must not re-render")
-            guard let image = dock.image, let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
-                fatalError("No Dock icon for \(name)")
-            }
-            require(cgImage.width == 512 && cgImage.height == 512, "\(name) icon must be a 512 × 512 square")
-            let bitmap = NSBitmapImageRep(cgImage: cgImage)
-            let visible = stride(from: 0, to: 512, by: 8).reduce(0) { count, x in
-                count + stride(from: 0, to: 512, by: 8).filter { (bitmap.colorAt(x: x, y: $0)?.alphaComponent ?? 0) > 0.1 }.count
-            }
-            require(visible > 40, "\(name) icon must draw the label, not an empty canvas")
-            let png = bitmap.representation(using: .png, properties: [:])!
-            try png.write(to: output.appendingPathComponent("dock-\(name).png"))
             let renderer = ImageRenderer(content: menuBar.fixedSize().environment(\.colorScheme, light ? .light : .dark))
             renderer.scale = 4
             if let small = renderer.cgImage,
@@ -224,20 +209,7 @@ enum CredentialAppTests {
         let menuBarErrorCoverage = redCoverage(errorMenuBarImage, sampleStride: 1)
         require(menuBarErrorCoverage.opaque > 3 && menuBarErrorCoverage.red * 10 >= menuBarErrorCoverage.opaque * 9,
                 "The menu-bar lookup error icon must be red (\(menuBarErrorCoverage.red) of \(menuBarErrorCoverage.opaque) red)")
-        require(dock.update(label: errorLabel, darkAppearance: false, apply: false),
-                "The lookup error must re-render the Dock icon")
-        guard let errorDockImage = dock.image?.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
-            fatalError("No Dock error icon")
-        }
-        let dockErrorCoverage = redCoverage(errorDockImage, sampleStride: 8)
-        require(dockErrorCoverage.opaque > 40 && dockErrorCoverage.red * 10 >= dockErrorCoverage.opaque * 9,
-                "The Dock lookup error icon must be red (\(dockErrorCoverage.red) of \(dockErrorCoverage.opaque) red)")
-        require(dock.update(label: label(singapore), darkAppearance: true, apply: false),
-                "A menu-bar appearance change must re-render")
-        print("PASS: the Dock icon re-renders the menu-bar label only when its flag, error, change, stale, style or appearance changes")
-
-        // Outside the allowlist: the menu bar keeps the flag and adds a red stop sign; the Dock shows
-        // only the red stop sign.
+        // Outside the allowlist, the menu bar keeps the flag and adds a red stop sign.
         func width(_ view: MenuBarCountryLabel) -> Int { ImageRenderer(content: view.fixedSize()).cgImage?.width ?? 0 }
         require(width(label(singapore, outside: true)) > width(label(singapore)),
                 "Outside the allowlist the menu bar must show the flag and the stop sign")
@@ -245,19 +217,7 @@ enum CredentialAppTests {
                 "The menu-bar label must say the exit IP is not on the allowlist")
         require(label(singapore, error: true, outside: true).visualKey == label(singapore, error: true).visualKey,
                 "After a failed lookup the error stop sign replaces the flag, without the red one")
-        require(dock.update(label: label(singapore, outside: true), darkAppearance: false, apply: false),
-                "Leaving the allowlist must re-render the Dock icon")
-        require(!dock.update(label: label(japan, .name, outside: true), darkAppearance: false, apply: false),
-                "Outside the allowlist, a flag or style change must not re-render the Dock icon")
-        guard let stopImage = dock.image?.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
-            fatalError("No Dock icon outside the allowlist")
-        }
-        let stopCoverage = redCoverage(stopImage, sampleStride: 8)
-        require(stopCoverage.opaque > 40 && stopCoverage.red * 10 >= stopCoverage.opaque * 9,
-                "The Dock icon must be the red stop sign alone (\(stopCoverage.red) of \(stopCoverage.opaque) red)")
-        require(dock.update(label: label(singapore), darkAppearance: false, apply: false),
-                "Returning to the allowlist must restore the menu-bar label in the Dock")
-        print("PASS: outside the allowlist the menu bar adds a red stop sign beside the flag and the Dock shows only the red stop sign")
+        print("PASS: menu-bar labels retain their error, country-change and allowlist presentation")
     }
 
     static func snapshot(_ provider: ProviderID) -> ExitIPSnapshot {

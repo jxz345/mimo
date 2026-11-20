@@ -31,6 +31,9 @@ public enum MonitoringStatus: Codable, Equatable, Sendable {
 
 public enum ExitIPService {
     public static let label = "com.example.exitipmonitor.daemon"
+    public static let controlLabel = "com.example.exitipmonitor.daemon.control"
+    public static let supervisorControlLabel = "com.example.exitipmonitor.supervisor.control"
+    public static let installedAppIdentity = URL(fileURLWithPath: "/Library/Application Support/Mimo/app.cdhash")
     public static let protocolVersion = 5
     public static let executable = "/Library/PrivilegedHelperTools/mimo-core"
     public static let plist = "/Library/LaunchDaemons/\(label).plist"
@@ -153,9 +156,11 @@ public struct DaemonState: Codable, Sendable {
 public enum DaemonCommand: String, Codable, Sendable {
     case state, subscribe, refresh, testProvider, configure, initialize, presentation, setToken, removeToken, events
     case configureRouting, saveProxy, removeProxy, supervisor, networkChanged
+    case startTailnetProvider
 }
 
 public struct DaemonRequest: Codable, Sendable {
+    public var reportsProgress: Bool?
     public var protocolVersion = ExitIPService.protocolVersion
     public var command: DaemonCommand
     public var expectedRevision: Int?

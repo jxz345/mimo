@@ -194,6 +194,8 @@ final class TailscaleProviderService {
 
     init(persistFiles: Bool = true) { self.persistFiles = persistFiles }
 
+    private let probeQueue = MimoBlockingWorkQueue("com.mimo.provider-probe")
+
     func setEnabled(_ enabled: Bool) {
         guard self.enabled != enabled else { return }
         self.enabled = enabled
@@ -210,11 +212,13 @@ final class TailscaleProviderService {
         }
         startListener()
         let generation = generation
+        let probeQueue = probeQueue
         task = Task { [weak self] in
             var previousUser: uid_t?
             while !Task.isCancelled {
-                let result = await Task.detached(priority: .utility) { [previousUser] in TailscaleProbe.check(previousUser: previousUser) }.value
-                guard !Task.isCancelled, let self, self.generation == generation else { return }
+                guard let result = await probeQueue.run({ [previousUser] in
+                    TailscaleProbe.check(previousUser: previousUser)
+                }), !Task.isCancelled, let self, self.generation == generation else { return }
                 previousUser = result.user
                 let changed = self.status?.served != result.status.served
                 self.status = result.status

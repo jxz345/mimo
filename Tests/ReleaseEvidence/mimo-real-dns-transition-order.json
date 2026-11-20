@@ -1,0 +1,10 @@
+{
+  "success": true,
+  "passed": [
+    "DNS-set-confirmed-close-before-probe-before-open",
+    "DNS-restore-confirmed-close-before-probe-before-open"
+  ],
+  "evidence": "/var/tmp/mimo-tailnet-lifecycle-dfj2olf1",
+  "helperSHA256": "06fe89a1a7611b0d846d27448f53f160d407f80f143b775434887f1c53b07fb2",
+  "scope": "Ordered supervisor events from actual networksetup DNS changes in mimo-vm; no simulated notification."
+}

@@ -15,7 +15,7 @@ struct MenuBarCountryLabel: View {
     /// flag instead, so this one is not added.
     var showsAllowlistStop: Bool { outsideAllowlist && !indicators.suppressLocation }
 
-    /// The red stop sign shown while the exit IP is outside the allowlist; the Dock icon shows it alone.
+    /// The red stop sign shown beside the location while the exit IP is outside the allowlist.
     static var allowlistStop: some View {
         Image(systemName: ExitIPIndicatorSymbol.outsideAllowlist)
             .foregroundStyle(.red)
@@ -54,8 +54,7 @@ struct MenuBarCountryLabel: View {
         .accessibilityLabel(accessibilityText(at: date))
     }
 
-    /// Everything that changes what this label draws, so the Dock copy re-renders only when the
-    /// menu bar's appearance of it changes.
+    /// Everything that changes what this menu-bar label draws.
     var visualKey: String {
         let isChanged = !indicators.suppressLocation && (snapshot?.isCountryChangeHighlighted(at: date) ?? false)
         return [displayStyle.rawValue, indicators.suppressLocation ? "error" : statusLabel(at: date),
@@ -528,7 +527,7 @@ private func openInTextEdit(_ url: URL) {
 }
 
 /// Launch-at-login toggle shared by the dashboard and Settings. State is always read back from
-/// `SMAppService`, so both windows (and changes made in System Settings) stay in agreement.
+/// `SMAppService`, so both tabs (and changes made in System Settings) stay in agreement.
 struct LaunchAtLoginControl: View {
     /// The dashboard's one-row form: toggle and Login Items button side by side, explanation as help.
     var compact = false
@@ -536,19 +535,25 @@ struct LaunchAtLoginControl: View {
     @State private var serviceStatus = SMAppService.mainApp.status
     @State private var errorMessage: String?
 
-    private static let explanation = "Show the menu-bar icon when this account logs in. Shared monitoring starts at boot and continues when this app is closed."
+    private static let label = "Show menu-bar app at login"
+    private static let serviceExplanation = "mimo-core starts at boot and keeps running when you quit Mimo’s interface."
+    private static let explanation = "Show Mimo's menu-bar interface when this account logs in. " + serviceExplanation + " This switch does not change the system services."
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             if dashboardStyle {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Open Mimo at login")
-                        Text(statusMessage ?? "Menu-bar app · This account").font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                        Text(Self.label)
+                        Text(statusMessage ?? "This account · Interface only").font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                     }
                     Spacer()
                     toggle.labelsHidden().toggleStyle(.switch).controlSize(.small)
                 }.help(statusMessage ?? Self.explanation)
+                Text(Self.serviceExplanation)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             } else if compact {
                 HStack {
                     toggle
@@ -586,7 +591,7 @@ struct LaunchAtLoginControl: View {
     }
 
     private var toggle: some View {
-        Toggle("Open Mimo at login", isOn: Binding(
+        Toggle(Self.label, isOn: Binding(
             get: { serviceStatus == .enabled },
             set: { setEnabled($0) }
         ))
@@ -668,7 +673,7 @@ struct BackgroundServiceSection: View {
     var body: some View {
         DashboardGroup("Shared background monitoring") {
             Label(monitor.connected ? "Service connected" : "Service unavailable", systemImage: monitor.connected ? "checkmark.circle" : "exclamationmark.triangle")
-            Text("Monitoring runs for all users, even after you quit this app. Provider settings and the allowlist require administrator authentication; appearance and dismissals are personal.")
+            Text("Monitoring runs for all users, even after you quit this app. Shared settings apply to all users without another administrator password; appearance and dismissals are personal.")
                 .font(.footnote).foregroundStyle(.secondary)
             if let message = monitor.serviceMessage { Text(message).foregroundStyle(.orange) }
             if let error = monitor.operationError { Text(error).foregroundStyle(.orange) }
@@ -710,7 +715,7 @@ private struct TailscaleVergeProviderSection: View {
                     Button("JSON") { NSWorkspace.shared.open(TailscaleVergeProvider.statusURL) }
                 }
             }
-            GroupCaption("The same background service provides the optional Tailscale route for every user. Enabling or disabling it requires administrator authentication. Existing Clash Verge profiles keep the same provider URL.")
+            GroupCaption("The same background service provides the optional Tailscale route for every user. After installation, Start, Stop and Restart work without administrator authentication. Existing Clash Verge profiles keep the same provider URL.")
             if ClashVergeApp.url == nil { Text(ClashVergeApp.missingNote).font(.footnote).foregroundStyle(.secondary) }
         }
         .task {
@@ -1019,7 +1024,7 @@ struct LegacySettingsView: View {
     var body: some View {
         Form {
             Section("Shared service") {
-                Text(monitor.serviceMessage ?? "Connected. Shared settings affect every user and require administrator authentication.")
+                Text(monitor.serviceMessage ?? "Connected. Shared settings affect every user; no administrator password is needed after installation.")
                 if let error = monitor.operationError { Text(error).foregroundStyle(.orange) }
                 if monitor.isChangingSettings { ProgressView("Applying shared settings…") }
             }
@@ -1077,7 +1082,7 @@ struct LegacySettingsView: View {
                     Text(monitor.isCredentialBusy ? "Waiting for Keychain… Complete any macOS access prompt." : (tokenStatus ?? monitor.ipinfoCredentialStatus))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
-                    Text("The shared token is stored in the System Keychain and loaded by the daemon at boot. Import reads this account’s old token once; saving or removing the shared token requires administrator authentication.")
+                    Text("The shared token is stored in the System Keychain and loaded by the daemon at boot. Import reads this account’s old token once; saving or removing the shared token uses the installed background service without an administrator password.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 } else if preferences.provider == .ipapiCo {
@@ -1085,7 +1090,7 @@ struct LegacySettingsView: View {
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 } else if preferences.provider == .ipapiIs {
-                    Text("ipapi.is uses HTTPS without a token and returns country, city, state, and network details. Its anonymous service is limited to 100 requests per day.")
+                    Text("ipapi.is uses HTTPS without a token and returns country, city, state, and network details. Its anonymous service is limited to 30 requests per day.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 } else {
@@ -1203,7 +1208,7 @@ struct LegacySettingsView: View {
         }
         .formStyle(.grouped)
         .padding()
-        // Fills the window SettingsWindowController sizes (560 × 700); a scrolling Form has no
+        // Give this legacy scrolling Form a usable minimum size; it has no
         // useful size of its own.
         .frame(minWidth: 520, maxWidth: .infinity, minHeight: 420, maxHeight: .infinity)
         .task {

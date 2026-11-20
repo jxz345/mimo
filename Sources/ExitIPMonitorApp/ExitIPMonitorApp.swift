@@ -50,11 +50,13 @@ final class ExitIPAppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
 
     static func showDashboard() {
+        MimoSettingsNavigation.shared.tab = .dashboard
         DashboardWindowController.shared.show(monitor: monitor)
     }
 
     static func showSettings() {
-        SettingsWindowController.shared.show(monitor: monitor)
+        MimoSettingsNavigation.shared.tab = .settings
+        DashboardWindowController.shared.show(monitor: monitor)
     }
 
     static func showEventLog() {
@@ -64,8 +66,7 @@ final class ExitIPAppDelegate: NSObject, NSApplicationDelegate {
     /// Minimizing is not closing. Only the dashboard owns the app's Dock presence.
     static func updateActivationPolicy() {
         NSApp.setActivationPolicy(DashboardWindowController.shared.isOpen ? .regular : .accessory)
-        // The Dock tile is recreated when the app becomes regular; keep the menu-bar icon on it.
-        DockIconController.shared.reapply()
+        // macOS uses the bundle's app icon for both the Dock and ⌘-Tab, matching Finder.
     }
 
     @objc private func openDashboard(_ sender: Any?) { Self.showDashboard() }
@@ -76,8 +77,7 @@ final class ExitIPAppDelegate: NSObject, NSApplicationDelegate {
     /// and monitoring continues. Quitting is the Quit menu item or the dashboard's Quit button;
     /// Quit Apple Events (Homebrew, logout, osascript) are unaffected.
     @objc private func closeWindowsFromShortcut(_ sender: Any?) {
-        let windows = [DashboardWindowController.shared.window, SettingsWindowController.shared.window,
-                       EventLogWindowController.shared.window]
+        let windows = [DashboardWindowController.shared.window, EventLogWindowController.shared.window]
             .compactMap { $0 }
             .filter { $0.isVisible || $0.isMiniaturized }
         windows.forEach { $0.close() }
@@ -102,7 +102,8 @@ final class ExitIPAppDelegate: NSObject, NSApplicationDelegate {
         hideOthers.keyEquivalentModifierMask = [.command, .option]
         app.addItem(withTitle: "Show All", action: #selector(NSApplication.unhideAllApplications(_:)), keyEquivalent: "")
         app.addItem(.separator())
-        app.addItem(withTitle: "Quit Mimo", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
+        let quit = app.addItem(withTitle: "Quit Mimo", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        quit.keyEquivalentModifierMask = [.command, .option]
         // ⌘Q closes the windows instead of quitting (the 1.0 dashboard quit the app on ⌘Q).
         let closeWindows = app.addItem(withTitle: "Close Mimo Windows",
                                        action: #selector(closeWindowsFromShortcut(_:)), keyEquivalent: "q")
@@ -126,43 +127,6 @@ final class ExitIPAppDelegate: NSObject, NSApplicationDelegate {
         windows.addItem(withTitle: "Bring All to Front", action: #selector(NSApplication.arrangeInFront(_:)), keyEquivalent: "")
         NSApp.mainMenu = main
         NSApp.windowsMenu = windows
-    }
-}
-
-/// `SettingsLink` and the SwiftUI `Settings` scene don't reliably bring a window forward from an
-/// LSUIElement app, so settings use a retained AppKit window like the dashboard.
-@MainActor
-final class SettingsWindowController: NSObject, NSWindowDelegate {
-    static let shared = SettingsWindowController()
-
-    private(set) var window: NSWindow?
-
-    func show(monitor: PublicIPMonitor) {
-        let window = window ?? makeWindow(monitor: monitor)
-        self.window = window
-        NSApp.activate()
-        if window.isMiniaturized { window.deminiaturize(nil) }
-        keepWindowOnScreen(window)
-        window.makeKeyAndOrderFront(nil)
-        window.orderFrontRegardless()
-    }
-
-    private func makeWindow(monitor: PublicIPMonitor) -> NSWindow {
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 880, height: 620),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable],
-            backing: .buffered,
-            defer: false
-        )
-        window.identifier = NSUserInterfaceItemIdentifier("exit-ip-settings")
-        window.title = "Mimo Settings"
-        window.contentViewController = fixedSizeHostingController(SettingsView(monitor: monitor))
-        window.setContentSize(NSSize(width: 880, height: 620))
-        window.contentMinSize = NSSize(width: 520, height: 420)
-        window.isReleasedWhenClosed = false
-        window.delegate = self
-        placeOnActiveScreen(window)
-        return window
     }
 }
 
@@ -221,7 +185,7 @@ final class DashboardWindowController: NSObject, NSWindowDelegate {
                 .frame(minWidth: 520, minHeight: 380)
         )
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 1040, height: 570),
+            contentRect: NSRect(x: 0, y: 0, width: 1040, height: 640),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
@@ -229,7 +193,7 @@ final class DashboardWindowController: NSObject, NSWindowDelegate {
         window.identifier = NSUserInterfaceItemIdentifier("exit-ip-dashboard")
         window.title = "Mimo"
         window.contentViewController = hostingController
-        window.setContentSize(NSSize(width: 1040, height: 570))
+        window.setContentSize(NSSize(width: 1040, height: 640))
         window.contentMinSize = NSSize(width: 520, height: 380)
         window.isReleasedWhenClosed = false
         window.level = .normal
@@ -239,7 +203,14 @@ final class DashboardWindowController: NSObject, NSWindowDelegate {
         window.delegate = self
         let restored = window.setFrameUsingName("ExitIPDashboard")
         window.setFrameAutosaveName("ExitIPDashboard")
-        if restored { keepWindowOnScreen(window) } else { placeOnActiveScreen(window) }
+        if restored {
+            // Give the normal-size infrastructure rows room in older saved wide windows.
+            let size = window.contentLayoutRect.size
+            if size.width >= 840 && size.height < 640 {
+                window.setContentSize(NSSize(width: size.width, height: 640))
+            }
+            keepWindowOnScreen(window)
+        } else { placeOnActiveScreen(window) }
         return window
     }
 }

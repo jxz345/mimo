@@ -156,6 +156,9 @@ final class MimoNativeObservationSession: @unchecked Sendable {
 final class MimoNativeTransportObserver {
     typealias Probe = @Sendable (TailscaleProbe.Result?, Set<String>) -> MimoNativeTransport
     private var tasks: [Task<Void, Never>] = []
+    private let discoveryQueue = MimoBlockingWorkQueue("com.mimo.native-discovery")
+    private let interfaceQueue = MimoBlockingWorkQueue("com.mimo.native-interface")
+    private let socketQueue = MimoBlockingWorkQueue("com.mimo.native-sockets", qos: .userInitiated)
     private var session: MimoNativeObservationSession?
     private let infrastructure = MimoNativeInfrastructureObservations()
     private let changed: @Sendable (MimoNativeTransport) -> Void
@@ -175,16 +178,18 @@ final class MimoNativeTransportObserver {
         let session = MimoNativeObservationSession(infrastructure: infrastructure)
         self.session = session
         let changed = changed, probe = probe
+        let discoveryQueue = discoveryQueue, interfaceQueue = interfaceQueue, socketQueue = socketQueue
         if discoverInfrastructure {
             tasks.append(Task.detached(priority: .utility) {
                 var nextBootstrap = ContinuousClock.now
                 while !Task.isCancelled {
                     let includeBootstrap = ContinuousClock.now >= nextBootstrap
                     if includeBootstrap { nextBootstrap = .now.advanced(by: .seconds(60)) }
-                    let refreshed = MimoNativeTransportProbe.infrastructure(includeBootstrap: includeBootstrap) {
-                        session.infrastructure($0)
-                    }
-                    guard !Task.isCancelled else { return }
+                    guard let refreshed = await discoveryQueue.run({
+                        MimoNativeTransportProbe.infrastructure(includeBootstrap: includeBootstrap) {
+                            session.infrastructure($0)
+                        }
+                    }), !Task.isCancelled else { return }
                     session.infrastructure(refreshed)
                     try? await Task.sleep(for: .seconds(10))
                 }
@@ -194,8 +199,9 @@ final class MimoNativeTransportObserver {
             tasks.append(Task.detached(priority: .utility) {
                 var previousUser: uid_t?
                 while !Task.isCancelled {
-                    let value = TailscaleProbe.check(previousUser: previousUser)
-                    guard !Task.isCancelled else { return }
+                    guard let value = await interfaceQueue.run({ [previousUser] in
+                        TailscaleProbe.check(previousUser: previousUser)
+                    }), !Task.isCancelled else { return }
                     previousUser = value.user
                     session.observed(value)
                     try? await Task.sleep(for: .seconds(2))
@@ -204,25 +210,29 @@ final class MimoNativeTransportObserver {
         }
         tasks.append(Task.detached(priority: .userInitiated) {
             while !Task.isCancelled {
-                let (interface, addresses) = session.snapshot()
+                let applied = await socketQueue.run {
+                    let (interface, addresses) = session.snapshot()
 #if MIMO_VM_ACCEPTANCE
-                let began = Date()
+                    let began = Date()
 #endif
-                let result = probe(interface, addresses)
+                    let result = probe(interface, addresses)
 #if MIMO_VM_ACCEPTANCE
-                let probed = Date()
+                    let probed = Date()
 #endif
-                guard !Task.isCancelled, session.apply(result, using: changed) else { return }
+                    guard session.apply(result, using: changed) else { return false }
 #if MIMO_VM_ACCEPTANCE
-                RuntimeLog.shared.info("mimo_vm_native_observed", fields: [
-                    "elapsedMs": String(Int(Date().timeIntervalSince(began) * 1000)),
-                    "probeMs": String(Int(probed.timeIntervalSince(began) * 1000)),
-                    "applyMs": String(Int(Date().timeIntervalSince(probed) * 1000)),
-                    "interfaceVerified": result.interface == nil ? "false" : "true",
-                    "infrastructureCount": String(result.infrastructure.count),
-                    "tcpPorts": result.sockets.filter { $0.destination != nil }.map { String($0.port) }.sorted().joined(separator: ",")
-                ])
+                    RuntimeLog.shared.info("mimo_vm_native_observed", fields: [
+                        "elapsedMs": String(Int(Date().timeIntervalSince(began) * 1000)),
+                        "probeMs": String(Int(probed.timeIntervalSince(began) * 1000)),
+                        "applyMs": String(Int(Date().timeIntervalSince(probed) * 1000)),
+                        "interfaceVerified": result.interface == nil ? "false" : "true",
+                        "infrastructureCount": String(result.infrastructure.count),
+                        "tcpPorts": result.sockets.filter { $0.destination != nil }.map { String($0.port) }.sorted().joined(separator: ",")
+                    ])
 #endif
+                    return true
+                }
+                guard !Task.isCancelled, applied == true else { return }
                 try? await Task.sleep(for: .milliseconds(250))
             }
         })

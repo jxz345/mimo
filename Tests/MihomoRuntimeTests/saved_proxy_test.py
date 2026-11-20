@@ -36,8 +36,11 @@ for line in sys.stdin:
   op=v['op']
   if op=='peer':
    s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM if v['udp'] else socket.SOCK_STREAM);s.settimeout(4)
-   payload=('mimo-peer-'+v['token']+'-saved-proxy-check').encode()
-   s.connect((v['host'],v['port']));s.sendall(payload);assert s.recv(512)==payload
+   s.connect((v['host'],v['port']))
+   if v.get('existingService')=='SSH':assert not v['udp'] and s.recv(255).startswith(b'SSH-')
+   else:
+    payload=('mimo-peer-'+v['token']+'-saved-proxy-check').encode()
+    s.sendall(payload);assert s.recv(512)==payload
   elif op=='udp':
    s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM);s.settimeout(4)
    packet=struct.pack('!6H',0x4142,0x0100,1,0,0,0)+b'\x07example\x03com\x00'+struct.pack('!2H',1,1)
@@ -84,6 +87,13 @@ def restore(root):
     with (root/'restore.lock').open('a+b') as lock:
         fcntl.flock(lock,fcntl.LOCK_EX)
         if (root/'cleanup-complete').exists():return
+        # A boot fault may deliberately make only the GUI unavailable. Its
+        # original file must also be restored by the independent watchdog.
+        held_gui=root/'boot-gui'
+        if held_gui.exists():
+            gui=Path('/Applications/Mimo.app/Contents/MacOS/mimo-gui')
+            assert not gui.exists(), 'GUI changed during the boot test; retain both files for review'
+            os.replace(held_gui,gui)
         marker=root/'capture.pid'
         if marker.exists():
             pid=int(marker.read_text())
@@ -102,13 +112,23 @@ def restore(root):
         if (root/'test-route').exists():
             command('/sbin/route','-n','delete','-host','198.51.100.254',check=False)
             (root/'test-route').unlink()
+        installed = (root/'installed-release').exists()
+        if installed:
+            command(HELPER, '--begin-maintenance')
         stop_jobs()
         original=plistlib.loads((root/'private-backup/state.plist').read_bytes())
-        # Retain consumed lookup budget/cooldowns rather than resetting quotas.
-        original=restored_settings(original,read_settings())
-        atomic_write(STORAGE,plistlib.dumps(original,fmt=plistlib.FMT_BINARY))
+        # The old core can outlive launchd's removal acknowledgement briefly.
+        with (STORAGE.parent/'instance.lock').open('a+b') as state_lock:
+            fcntl.flock(state_lock,fcntl.LOCK_EX)
+            # Retain consumed lookup budget/cooldowns rather than resetting quotas.
+            original=restored_settings(original,read_settings())
+            atomic_write(STORAGE,plistlib.dumps(original,fmt=plistlib.FMT_BINARY))
         atomic_write(FLAGS,(root/'private-backup/services.json').read_bytes())
-        replace_helper(root/'private-backup/mimo-core')
+        if not installed:
+            replace_helper(root/'private-backup/mimo-core')
+        else:
+            assert HELPER.read_bytes() == (root/'private-backup/mimo-core').read_bytes()
+            (RUNTIME/'maintenance').unlink(missing_ok=True)
         start_jobs()
         deadline=time.monotonic()+60
         while time.monotonic()<deadline:
@@ -155,7 +175,7 @@ def watchdog(root,parent):
     if not (root/'cleanup-complete').exists():restore(root)
 
 
-def run(direct_only=False,features=False,power=False,relay=None):
+def run(direct_only=False,features=False,power=False,relay=None,installed=False,faults_only=False):
     assert os.geteuid()==0 and command('/usr/sbin/sysctl','-n','hw.model').stdout.startswith('VirtualMac')
     base=Path(__file__).resolve().parent
     original=read_settings();routing=json.loads(original['service.routing']);settings=json.loads(original['service.settings'])
@@ -164,15 +184,25 @@ def run(direct_only=False,features=False,power=False,relay=None):
     if relay:
         peer=json.loads(relay.read_text())['peer']
         assert len(peer['addresses'])==1 and ipaddress.IPv4Address(peer['addresses'][0]) in ipaddress.IPv4Network('100.64.0.0/10')
-        assert peer['port']==18889 and re.fullmatch('[0-9a-f]{64}',peer['token'])
+        if installed and peer.get('existingService')=='SSH':assert peer['port']==22
+        else:assert peer['port']==18889 and re.fullmatch('[0-9a-f]{64}',peer['token'])
     ipaddress.IPv4Address(proxy['server'])
     assert not (RUNTIME/'qualification.json').exists()
     assert all(json.loads(FLAGS.read_bytes()).get(k) for k in ('core','engine','profile'))
-    assert 'VM-only acceptance runtime' in command(base/'mimo-core-vm-acceptance','--vm-acceptance-status').stdout
-    build=json.loads((base/'acceptance-build.json').read_text())
-    assert hashlib.sha256((base/'mimo-core-vm-acceptance').read_bytes()).hexdigest()==build['helperSHA256']
+    build=json.loads((base/('release-build.json' if installed else 'acceptance-build.json')).read_text())
+    if installed:
+        assert not power, 'Real Release acceptance must not inject power events'
+        app_helper=Path('/Applications/Mimo.app/Contents/MacOS/mimo-core')
+        assert app_helper.read_bytes()==HELPER.read_bytes(), 'Installed helper differs from the packaged application'
+        assert b'VM-only acceptance runtime' not in HELPER.read_bytes()
+        assert hashlib.sha256(HELPER.read_bytes()).hexdigest()==build['helperSHA256']
+    else:
+        assert 'VM-only acceptance runtime' in command(base/'mimo-core-vm-acceptance','--vm-acceptance-status').stdout
+        assert hashlib.sha256((base/'mimo-core-vm-acceptance').read_bytes()).hexdigest()==build['helperSHA256']
     assert hashlib.sha256(Path(__file__).read_bytes()).hexdigest()==build['inputs']['Tests/MihomoRuntimeTests/saved_proxy_test.py']
     root=Path(tempfile.mkdtemp(prefix='mimo-saved-proxy-',dir='/var/tmp'));root.chmod(0o700)
+    if installed:(root/'installed-release').touch()
+    shutil.copyfile(__file__,root/'driver.py')
     backup=root/'private-backup';backup.mkdir(mode=0o700)
     for source,name in [(HELPER,'mimo-core'),(STORAGE,'state.plist'),(FLAGS,'services.json')]:shutil.copyfile(source,backup/name)
     (backup/'credential.digest').write_text(command(base/'acceptance-client','credential-digest').stdout.strip())
@@ -181,7 +211,13 @@ def run(direct_only=False,features=False,power=False,relay=None):
     print('Evidence:',root,flush=True)
 
     def record(name):completed.append(name);print('PASS:',name,flush=True)
-    def client(*args):return json.loads(command(base/'acceptance-client',*args,timeout=70).stdout)
+    def client(*args):
+        try:
+            return json.loads(command(base/'acceptance-client',*args,timeout=70).stdout)
+        except subprocess.CalledProcessError as error:
+            (root/'client-failure.json').write_text(json.dumps(dict(operation=args[0], code=error.returncode,
+                stdout=error.stdout, stderr=error.stderr)))
+            raise RuntimeError('acceptance-client '+str(args[0])+' failed with exit '+str(error.returncode)+'; private diagnostics retained') from error
     def supervisor(*args):return json.loads(command(base/'installation-check',*args,timeout=40).stdout)
     def active(mode):return lambda s:s.get('phase')=='active' and s.get('effectiveMode')==mode and (RUNTIME/'gate.state').read_text()==('direct' if mode=='direct' else 'active')
     def blocked(s):return s.get('phase')=='blocked' and not s.get('effectiveMode') and (RUNTIME/'gate.state').read_text()=='blocked'
@@ -254,6 +290,27 @@ def run(direct_only=False,features=False,power=False,relay=None):
         record(mode+'-existing-HTTPS-positive-control')
     def refresh_active(name):
         client('refresh');return wait_for(active('global'),name)
+    def freeze_engine():
+        engine_pid=pid(ENGINE);assert engine_pid
+        os.kill(engine_pid,signal.SIGSTOP)
+        try:
+            # A frozen controller cannot acknowledge connection cleanup. Mimo
+            # conservatively reports unavailable even after PF closes; do not
+            # mistake that diagnostic distinction for an open firewall.
+            value=wait_for(lambda s:s.get('phase') in ('blocked','unavailable') and not s.get('effectiveMode')
+                and (RUNTIME/'gate.state').read_text()=='blocked','unresponsive-engine-closes-gate',timeout=45)
+            (root/'engine-suspension-state.json').write_text(json.dumps(value))
+            deny('unresponsive-engine')
+        finally:
+            os.kill(engine_pid,signal.SIGCONT)
+        refresh_active('engine-resume-reverifies-Global')
+    def crash_services(cases):
+        for label,name in cases:
+            offsets=event_offsets();old=pid(label);assert old;os.kill(old,signal.SIGKILL)
+            wait_event(offsets,lambda rows:closed_event(rows) or (label==SUPERVISOR and any(r['event']=='mimo_startup_guard_closed' and r['fields'].get('confirmed')=='true' for r in rows)),name+'-closes-gate')
+            deadline=time.monotonic()+30
+            while pid(label) in (None,old):assert time.monotonic()<deadline;time.sleep(.25)
+            refresh_active(name+'-fresh-verification-recovers')
     def provider_cycle(mode):
         for operation in ['start','stop','start']:
             client('tailnet',operation)
@@ -290,11 +347,11 @@ def run(direct_only=False,features=False,power=False,relay=None):
             reply=native('ping','--c=1','--until-direct=false','--timeout=3s',peer['addresses'][0])
             with (root/(label+'-ping.txt')).open('a') as stream:stream.write(reply.stdout+reply.stderr)
             ping=reply.returncode==0 and (not require_relay or 'via DERP(' in reply.stdout)
-            tcp=request('peer',host=peer['addresses'][0],port=peer['port'],token=peer['token'],udp=False)
-            udp=request('peer',host=peer['addresses'][0],port=peer['port'],token=peer['token'],udp=True)
+            tcp=peer_request(False)
+            udp=None if peer.get('existingService')=='SSH' else peer_request(True)
             attempts.append({'time':time.time(),'ping':ping,'TCP':tcp,'UDP':udp})
             (root/(label+'.json')).write_text(json.dumps(attempts))
-            if ping and tcp and udp:record(label+'-ping-TCP-UDP');return
+            if ping and tcp and (udp is None or udp):record(label+('-ping-and-existing-SSH' if udp is None else '-ping-TCP-UDP'));return
         for kind in ['metrics','daemon-goroutines']:
             r=native('debug',kind);(root/(label+'-'+kind+'.txt')).write_text(r.stdout+r.stderr)
         for kind,args in [('guard',('/sbin/pfctl','-a','com.apple/000.mimo','-vvsr')),
@@ -303,6 +360,8 @@ def run(direct_only=False,features=False,power=False,relay=None):
                           ('route',('/sbin/route','-n','get',peer['addresses'][0]))]:
             r=command(*args,check=False);(root/(label+'-'+kind+'.txt')).write_text(r.stdout+r.stderr)
         raise RuntimeError(label+' relay did not recover; private diagnostics retained')
+    def peer_request(udp):
+        return request('peer',host=peer['addresses'][0],port=peer['port'],token=peer.get('token',''),udp=udp,existingService=peer.get('existingService'))
     def interrupted(signum,frame):raise KeyboardInterrupt()
     signal.signal(signal.SIGTERM,interrupted);signal.signal(signal.SIGINT,interrupted)
     account=pwd.getpwnam('jay')
@@ -311,15 +370,17 @@ def run(direct_only=False,features=False,power=False,relay=None):
     try:
         # Wait for core XPC readiness after deployment, not a stale gate.state file.
         wait_for(active('direct'),'production-core-ready-before-mode-change')
-        # Verify the actual production qualification boundary before swapping helpers.
-        client('mode','rule');wait_for(lambda v:blocked(v.get('routing',{})) and 'not qualified' in json.dumps(v.get('status',{})),
-            'production-build-keeps-Rule-blocked',whole=True)
-        record('production-build-explains-qualification-boundary')
-        client('mode','direct');wait_for(active('direct'),'production-Direct-recovers')
+        if not installed:
+            # Historical helper tests only; the normal Release no longer has this gate.
+            client('mode','rule');wait_for(lambda v:blocked(v.get('routing',{})) and 'not qualified' in json.dumps(v.get('status',{})),
+                'production-build-keeps-Rule-blocked',whole=True)
+            record('production-build-explains-qualification-boundary')
+            client('mode','direct');wait_for(active('direct'),'production-Direct-recovers')
         if features:
-            client('mode','global');wait_for(lambda v:blocked(v.get('routing',{})) and 'not qualified' in json.dumps(v.get('status',{})),
-                'production-build-keeps-Global-blocked',whole=True)
-            client('mode','direct');wait_for(active('direct'),'production-Global-to-Direct-recovers')
+            if not installed:
+                client('mode','global');wait_for(lambda v:blocked(v.get('routing',{})) and 'not qualified' in json.dumps(v.get('status',{})),
+                    'production-build-keeps-Global-blocked',whole=True)
+                client('mode','direct');wait_for(active('direct'),'production-Global-to-Direct-recovers')
             command(base/'acceptance-client','check-blocking-profile');record('production-Open-profile-matches-blocking-runtime')
             for service in ['profileHosting','mihomo','core']:
                 supervisor(service,'stop');assert active('direct')(supervisor())
@@ -327,14 +388,16 @@ def run(direct_only=False,features=False,power=False,relay=None):
                 supervisor(service,'start');wait_for(active('direct'),'production-Direct-'+service+'-Start-recovers')
                 supervisor(service,'restart');wait_for(active('direct'),'production-Direct-'+service+'-Restart-recovers')
             provider_cycle('direct')
-        stop_jobs();replace_helper(base/'mimo-core-vm-acceptance')
+        if not installed:
+            stop_jobs();replace_helper(base/'mimo-core-vm-acceptance')
         with (root/'capture.log').open('w') as log:
             capture=subprocess.Popen(['/usr/sbin/tcpdump','-n','-U','-i','pktap,en0','-w',str(root/'traffic.pcap'),f'(tcp dst port 443 or udp dst port 53 or ip6) and not (host {proxy["server"]} and port {proxy["port"]})'],stdout=log,stderr=log)
         (root/'capture.pid').write_text(str(capture.pid))
         deadline=time.monotonic()+5
         while 'listening on' not in (root/'capture.log').read_text():
             assert capture.poll() is None and time.monotonic()<deadline;time.sleep(.1)
-        start_jobs();wait_for(active('direct'),'test-helper-starts-with-Direct')
+        if not installed:start_jobs()
+        wait_for(active('direct'),'installed-Release-ready-in-Direct' if installed else 'test-helper-starts-with-Direct')
         worker=subprocess.Popen([sys.executable,'-u','-c',WORKER],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,preexec_fn=identity)
         with packets('Direct-positive-control','dst host 1.1.1.1 and tcp dst port 443',empty=False):assert request('https')
         record('Direct-ordinary-HTTPS-positive-control')
@@ -354,6 +417,14 @@ def run(direct_only=False,features=False,power=False,relay=None):
             client('refresh');wait_for(direct_without_warning,'Direct-fresh-IP-monitoring-remains-enabled',whole=True)
             assert request('https') and not request('ipv6')
             record('Direct-IPv4-works-with-no-allowlist-approval')
+        elif faults_only:
+            client('mode','global');wait_for(active('global'),'additional-faults-Global-verified')
+            traffic('global')
+            freeze_engine()
+            crash_services([(SUPERVISOR,'supervisor-crash')])
+            assert request('https') and request('udp') and not request('ipv6')
+            record('additional-faults-IPv4-restored-and-IPv6-denied')
+            client('mode','direct');wait_for(active('direct'),'additional-faults-Direct-recovery')
         elif relay:
             status=json.loads(native('status','--json').stdout)
             assert status['BackendState']=='Running'
@@ -377,8 +448,8 @@ def run(direct_only=False,features=False,power=False,relay=None):
                 stable_public(mode,mode+'-native-network-settled-before-provider-controls')
                 client('tailnet','stop')
                 require_public(mode,mode+'-provider-Stop')
-                assert not request('peer',host=peer['addresses'][0],port=peer['port'],token=peer['token'],udp=False),mode+' provider Stop retained peer TCP access'
-                assert not request('peer',host=peer['addresses'][0],port=peer['port'],token=peer['token'],udp=True),mode+' provider Stop retained peer UDP access'
+                assert not peer_request(False),mode+' provider Stop retained peer TCP access'
+                if peer.get('existingService')!='SSH':assert not peer_request(True),mode+' provider Stop retained peer UDP access'
                 record(mode+'-provider-Stop-blocks-peer-without-closing-approved-public-access')
                 for operation in ['start','restart']:
                     # Match the dashboard's Restart: commit Stop, then Start
@@ -451,12 +522,10 @@ def run(direct_only=False,features=False,power=False,relay=None):
                 record('unresponsive-core-closes-gate');deny('unresponsive-core')
             finally:os.kill(core_pid,signal.SIGCONT);(root/'stopped-core.pid').unlink()
             refresh_active('core-resume-reverifies-Global')
-            for label,name in [(CORE,'core-crash'),(ENGINE,'engine-crash')]:
-                offsets=event_offsets();old=pid(label);assert old;os.kill(old,signal.SIGKILL)
-                wait_event(offsets,closed_event,name+'-closes-gate')
-                deadline=time.monotonic()+30
-                while pid(label) in (None,old):assert time.monotonic()<deadline;time.sleep(.25)
-                refresh_active(name+'-fresh-verification-recovers')
+            if installed and features:freeze_engine()
+            crashes=[(CORE,'core-crash'),(ENGINE,'engine-crash')]
+            if installed and features:crashes.append((SUPERVISOR,'supervisor-crash'))
+            crash_services(crashes)
             offsets=event_offsets();command('/usr/bin/curl','--silent','--fail','--max-time','3','--unix-socket',CONTROLLER,'-X','PATCH','http://localhost/configs','--header','Content-Type: application/json','--data-binary','{"mixed-port":0}')
             wait_event(offsets,closed_event,'controller-mismatch-closes-gate');refresh_active('controller-mismatch-recovery-revalidates')
             offsets=event_offsets();(root/'test-route').touch()
@@ -498,7 +567,11 @@ def run(direct_only=False,features=False,power=False,relay=None):
         finally:
             restore(root);record('production-helper-user-configuration-and-password-restored-in-Direct')
         if watcher:watcher.wait(timeout=5)
-        report={'success':success,'passed':completed,'failures':failures,'helperSHA256':build['helperSHA256'],'scope':'Saved user proxy in isolated VM; not release qualification','privateEvidence':True,'focus':'saved-proxy native relay' if relay else 'injected power events (not physical sleep)' if power else 'Direct allowlist regression' if direct_only else 'feature audit' if features else 'full'}
+        report={'success':success,'passed':completed,'failures':failures,'helperSHA256':build['helperSHA256'],'scope':'Saved user proxy in isolated VM; not release qualification','privateEvidence':True,'focus':'engine hang and supervisor crash' if faults_only else 'saved-proxy native relay' if relay else 'injected power events (not physical sleep)' if power else 'Direct allowlist regression' if direct_only else 'feature audit' if features else 'full'}
+        if installed:
+            report.update(scope='Exact installed arm64 Release package in mimo-vm, saved real proxy, ordinary user traffic and physical-interface packet capture', runtimeReplaced=False, syntheticPowerEvents=False, packageSHA256=build['packageSHA256'])
+            if relay and peer.get('existingService')=='SSH':
+                report.update(peerService='Existing SSH service; no peer configuration changed', peerUDPTested=False)
         (root/'report.json').write_text(json.dumps(report,indent=2)+'\n')
         print('RESULT:', 'PASS' if success else 'FAIL',flush=True)
     return 0 if success else 1
@@ -509,6 +582,10 @@ if __name__=='__main__':
     elif len(sys.argv)==1:sys.exit(run())
     elif sys.argv[1:]==['--direct-allowlist']:sys.exit(run(direct_only=True))
     elif sys.argv[1:]==['--features']:sys.exit(run(features=True))
+    elif sys.argv[1:]==['--installed-features']:sys.exit(run(features=True,installed=True))
+    elif sys.argv[1:]==['--installed-faults']:sys.exit(run(faults_only=True,installed=True))
+    elif sys.argv[1:]==['--installed-direct']:sys.exit(run(direct_only=True,installed=True))
+    elif len(sys.argv)==3 and sys.argv[1]=='--installed-relay-existing':sys.exit(run(relay=Path(sys.argv[2]),installed=True))
     elif sys.argv[1:]==['--power']:sys.exit(run(power=True))
     elif len(sys.argv)==3 and sys.argv[1]=='--relay':sys.exit(run(relay=Path(sys.argv[2])))
     else:sys.exit('Usage: saved_proxy_test.py [--direct-allowlist | --features | --power | --relay FIXTURE]')

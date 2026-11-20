@@ -1,0 +1,170 @@
+{
+  "success": false,
+  "passed": [
+    "production-core-ready-before-mode-change",
+    "production-Open-profile-matches-blocking-runtime",
+    "production-Direct-profileHosting-Stop-keeps-traffic-open",
+    "production-Direct-profileHosting-Start-recovers",
+    "production-Direct-profileHosting-Restart-recovers",
+    "production-Direct-mihomo-Stop-keeps-traffic-open",
+    "production-Direct-mihomo-Start-recovers",
+    "production-Direct-mihomo-Restart-recovers",
+    "production-Direct-core-Stop-keeps-traffic-open",
+    "production-Direct-core-Start-recovers",
+    "production-Direct-core-Restart-recovers",
+    "direct-tailnet-start-preserves-public-access",
+    "direct-tailnet-stop-preserves-public-access",
+    "direct-tailnet-start-preserves-public-access",
+    "direct-tailnet-loopback-endpoint-follows-Start-Stop-Restart",
+    "installed-Release-ready-in-Direct",
+    "Direct-ordinary-HTTPS-positive-control",
+    "Rule-empty-allowlist-observes-exit-but-blocks",
+    "real-proxy-exit-matches-user-approved-IPv4",
+    "empty-allowlist-denies-HTTPS-mixed-UDP-and-IPv6",
+    "Rule-opens-after-approved-check",
+    "rule-IPv4-TCP-UDP-HTTPS-and-IPv6-denial",
+    "rule-system-DNS-and-public-domain-routing",
+    "rule-in-memory-profile-matches-saved-credential",
+    "rule-existing-HTTPS-positive-control",
+    "allowlist-revocation-closes-existing-HTTPS",
+    "wrong-allowlist-shows-triggering-IP",
+    "wrong-allowlist-denies-HTTPS-mixed-UDP-and-IPv6",
+    "Rule-recovers-with-original-allowlist",
+    "Global-opens-after-fresh-check",
+    "global-IPv4-TCP-UDP-HTTPS-and-IPv6-denial",
+    "global-system-DNS-and-public-domain-routing",
+    "global-in-memory-profile-matches-saved-credential",
+    "global-existing-HTTPS-positive-control",
+    "Global-empty-allowlist-blocks",
+    "Global-empty-allowlist-denies-HTTPS-mixed-UDP-and-IPv6",
+    "Global-recovers-with-original-allowlist",
+    "bad-username-blocks",
+    "bad-username-denies-HTTPS-mixed-UDP-and-IPv6",
+    "bad-username-recovers-with-saved-proxy",
+    "unavailable-proxy-blocks",
+    "unavailable-proxy-denies-HTTPS-mixed-UDP-and-IPv6",
+    "unavailable-proxy-recovers-with-saved-proxy",
+    "manual-Reload-closes-protected-access",
+    "manual-Reload-reverifies-Global",
+    "reload-regenerates-before-protected-traffic",
+    "profileHosting-Stop-preserves-Global-and-closes-gate",
+    "profileHosting-Stop-denies-HTTPS-mixed-UDP-and-IPv6",
+    "profileHosting-Start-reverifies",
+    "mihomo-Stop-preserves-Global-and-closes-gate",
+    "mihomo-Stop-denies-HTTPS-mixed-UDP-and-IPv6",
+    "mihomo-Start-reverifies",
+    "mihomo-Stop-preserves-Global-and-closes-gate",
+    "mihomo-Stop-denies-HTTPS-mixed-UDP-and-IPv6",
+    "mihomo-Start-reverifies",
+    "core-Stop-preserves-Global-and-closes-gate",
+    "core-Stop-denies-HTTPS-mixed-UDP-and-IPv6",
+    "core-Start-reverifies",
+    "unresponsive-core-closes-gate",
+    "unresponsive-core-denies-HTTPS-mixed-UDP-and-IPv6",
+    "core-resume-reverifies-Global",
+    "production-helper-user-configuration-and-password-restored-in-Direct"
+  ],
+  "failures": [
+    "unresponsive-engine-closes-gate timed out; private VM state retained"
+  ],
+  "scope": "Exact installed arm64 Release package in mimo-vm, saved real proxy, ordinary user traffic and physical-interface packet capture",
+  "focus": "feature audit",
+  "runtimeReplaced": false,
+  "syntheticPowerEvents": false,
+  "packageSHA256": "b25712260cb1304a3bcdd160b5ee8f733b3b66f7d3033e1204ca4b0c253f4be7",
+  "helperSHA256": "e1222bb89fbd963f9c29d3c837c0ebbc6b00f3dcd1212349145e1227734bd85a",
+  "evidence": "mimo-saved-proxy-p99xqduh",
+  "packetAnalysis": [
+    {
+      "phase": "Direct-positive-control",
+      "directPhysicalPackets": 9,
+      "expectedNoDirectPackets": false,
+      "packetExpectationPassed": true
+    },
+    {
+      "phase": "empty-allowlist",
+      "directPhysicalPackets": 0,
+      "expectedNoDirectPackets": true,
+      "packetExpectationPassed": true
+    },
+    {
+      "phase": "rule-application-traffic",
+      "directPhysicalPackets": 0,
+      "expectedNoDirectPackets": true,
+      "packetExpectationPassed": true
+    },
+    {
+      "phase": "rule-public-domain-routing",
+      "directPhysicalPackets": 20,
+      "expectedNoDirectPackets": false,
+      "packetExpectationPassed": true
+    },
+    {
+      "phase": "wrong-allowlist",
+      "directPhysicalPackets": 0,
+      "expectedNoDirectPackets": true,
+      "packetExpectationPassed": true
+    },
+    {
+      "phase": "global-application-traffic",
+      "directPhysicalPackets": 0,
+      "expectedNoDirectPackets": true,
+      "packetExpectationPassed": true
+    },
+    {
+      "phase": "global-public-domain-routing",
+      "directPhysicalPackets": 0,
+      "expectedNoDirectPackets": true,
+      "packetExpectationPassed": true
+    },
+    {
+      "phase": "Global-empty-allowlist",
+      "directPhysicalPackets": 0,
+      "expectedNoDirectPackets": true,
+      "packetExpectationPassed": true
+    },
+    {
+      "phase": "bad-username",
+      "directPhysicalPackets": 0,
+      "expectedNoDirectPackets": true,
+      "packetExpectationPassed": true
+    },
+    {
+      "phase": "unavailable-proxy",
+      "directPhysicalPackets": 0,
+      "expectedNoDirectPackets": true,
+      "packetExpectationPassed": true
+    },
+    {
+      "phase": "profileHosting-Stop",
+      "directPhysicalPackets": 0,
+      "expectedNoDirectPackets": true,
+      "packetExpectationPassed": true
+    },
+    {
+      "phase": "mihomo-Stop",
+      "directPhysicalPackets": 0,
+      "expectedNoDirectPackets": true,
+      "packetExpectationPassed": true
+    },
+    {
+      "phase": "mihomo-Stop",
+      "directPhysicalPackets": 0,
+      "expectedNoDirectPackets": true,
+      "packetExpectationPassed": true
+    },
+    {
+      "phase": "core-Stop",
+      "directPhysicalPackets": 0,
+      "expectedNoDirectPackets": true,
+      "packetExpectationPassed": true
+    },
+    {
+      "phase": "unresponsive-core",
+      "directPhysicalPackets": 0,
+      "expectedNoDirectPackets": true,
+      "packetExpectationPassed": true
+    }
+  ],
+  "finding": "PF close confirmed; controller cleanup timeout correctly withheld a Blocked confirmation and returned unavailable. Driver originally required blocked. Revised suspension check requires blocked PF, no effective mode, actual traffic denial and fresh recovery, accepting the conservative unavailable status."
+}

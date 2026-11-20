@@ -1,5 +1,4 @@
 import AppKit
-import ServiceManagement
 
 /// Keep the same native menu items while status changes, preserving keyboard focus.
 @MainActor
@@ -11,9 +10,6 @@ final class MimoStatusMenu: NSObject, NSMenuDelegate {
     private let addressItem = NSMenuItem(title: "IP unavailable", action: nil, keyEquivalent: "")
     private(set) var modeItems: [ProxyMode: NSMenuItem] = [:]
     private(set) var refreshItem: NSMenuItem!
-    private(set) var loginItem: NSMenuItem!
-    private let loginStatusItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
-    private var loginError: String?
 
     init(monitor: PublicIPMonitor) {
         self.monitor = monitor
@@ -22,22 +18,17 @@ final class MimoStatusMenu: NSObject, NSMenuDelegate {
         menu.delegate = self
         for row in [titleItem, detailItem, addressItem] { row.isEnabled = false; menu.addItem(row) }
         menu.addItem(.separator())
-        for mode in ProxyMode.allCases {
-            let row = add(mode.title, action: #selector(selectMode(_:)))
+        for (mode, key) in [(ProxyMode.direct, "1"), (.rule, "2"), (.global, "3")] {
+            let row = add(mode.title, action: #selector(selectMode(_:)), key: key, modifiers: [.command, .option])
             row.representedObject = mode.rawValue
             modeItems[mode] = row
         }
         menu.addItem(.separator())
         refreshItem = add("Refresh now", action: #selector(refresh(_:)), key: "r")
-        _ = add("Open Dashboard", action: #selector(openDashboard(_:)))
+        _ = add("Open Dashboard", action: #selector(openDashboard(_:)), key: "1")
         _ = add("Settings…", action: #selector(openSettings(_:)), key: ",")
         menu.addItem(.separator())
-        loginItem = add("Open Mimo at login", action: #selector(toggleLogin(_:)))
-        loginStatusItem.isEnabled = false
-        menu.addItem(loginStatusItem)
-        _ = add("Login Items Settings…", action: #selector(openLoginSettings(_:)))
-        menu.addItem(.separator())
-        _ = add("Quit GUI", action: #selector(quit(_:)))
+        _ = add("Quit GUI", action: #selector(quit(_:)), key: "q", modifiers: [.command, .option])
         update()
     }
 
@@ -57,10 +48,6 @@ final class MimoStatusMenu: NSObject, NSMenuDelegate {
             row.isEnabled = ready
         }
         refreshItem.isEnabled = monitor.canRefresh
-        loginItem.state = LoginItemSync.status == .enabled ? .on : .off
-        let message = loginError ?? (LoginItemSync.status == .requiresApproval ? "Approve Mimo in Login Items Settings." : nil)
-        loginStatusItem.title = message ?? ""
-        loginStatusItem.isHidden = message == nil
     }
 
     func menuWillOpen(_ menu: NSMenu) {
@@ -68,8 +55,10 @@ final class MimoStatusMenu: NSObject, NSMenuDelegate {
         RuntimeLog.shared.info("status_menu_opened")
     }
 
-    private func add(_ title: String, action: Selector, key: String = "") -> NSMenuItem {
+    private func add(_ title: String, action: Selector, key: String,
+                     modifiers: NSEvent.ModifierFlags = .command) -> NSMenuItem {
         let row = menu.addItem(withTitle: title, action: action, keyEquivalent: key)
+        row.keyEquivalentModifierMask = modifiers
         row.target = self
         row.isEnabled = true
         return row
@@ -82,11 +71,5 @@ final class MimoStatusMenu: NSObject, NSMenuDelegate {
     @objc private func refresh(_ sender: Any?) { Task { await monitor.refresh() } }
     @objc private func openDashboard(_ sender: Any?) { ExitIPAppDelegate.showDashboard() }
     @objc private func openSettings(_ sender: Any?) { ExitIPAppDelegate.showSettings() }
-    @objc private func openLoginSettings(_ sender: Any?) { SMAppService.openSystemSettingsLoginItems() }
     @objc private func quit(_ sender: Any?) { NSApp.terminate(nil) }
-    @objc private func toggleLogin(_ sender: Any?) {
-        do { try LoginItemSync.setEnabled(LoginItemSync.status != .enabled); loginError = nil }
-        catch { loginError = error.localizedDescription }
-        update()
-    }
 }

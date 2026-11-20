@@ -2,6 +2,73 @@ import XCTest
 @testable import ExitIPShared
 
 final class MimoRoutingTests: XCTestCase {
+    func testLostSupervisorDoesNotLeaveServiceProgressClaimingConfirmedBlocking() {
+        var pending = MimoRoutingState(); pending.phase = .blocked
+        pending.supervisorCheckedAt = Date(timeIntervalSince1970: 101)
+        var lost = pending; lost.phase = .unavailable
+        lost.supervisorCheckedAt = Date(timeIntervalSince1970: 100)
+        XCTAssertTrue(MimoServiceProgress.canReplace(pending, with: lost, startedAt: .distantPast, configurationAdvanced: false))
+    }
+
+    func testServiceProgressRejectsOlderSupervisorStateEvenWhenBlocked() {
+        var pending = MimoRoutingState(); pending.phase = .unavailable
+        pending.supervisorCheckedAt = Date(timeIntervalSince1970: 101)
+        var current = pending; current.phase = .blocked
+        current.supervisorCheckedAt = Date(timeIntervalSince1970: 100)
+        XCTAssertFalse(MimoServiceProgress.canReplace(pending, with: current, startedAt: .distantPast, configurationAdvanced: false))
+        current.supervisorCheckedAt = nil
+        XCTAssertFalse(MimoServiceProgress.canReplace(pending, with: current, startedAt: .distantPast, configurationAdvanced: false))
+        current.supervisorCheckedAt = Date(timeIntervalSince1970: 102)
+        XCTAssertTrue(MimoServiceProgress.canReplace(pending, with: current, startedAt: .distantPast, configurationAdvanced: false))
+    }
+
+    func testServiceProgressRejectsCachedApprovalAndAcceptsFreshVerification() {
+        var config = MimoConfiguration(); config.mode = .rule
+        let started = Date(timeIntervalSince1970: 100)
+        var pending = MimoRoutingState(configuration: config); pending.phase = .blocked
+        pending.observedIP = MimoIPObservation(address: "203.0.113.1", checkedAt: started.addingTimeInterval(-1))
+        var current = pending; current.phase = .active; current.effectiveMode = .rule
+        XCTAssertFalse(MimoServiceProgress.canReplace(pending, with: current, startedAt: started, configurationAdvanced: false))
+        current.observedIP = MimoIPObservation(address: "203.0.113.1", checkedAt: started.addingTimeInterval(1))
+        XCTAssertTrue(MimoServiceProgress.canReplace(pending, with: current, startedAt: started, configurationAdvanced: false))
+        current.effectiveMode = .global
+        XCTAssertFalse(MimoServiceProgress.canReplace(pending, with: current, startedAt: started, configurationAdvanced: false))
+    }
+
+    func testServiceProgressKeepsConfirmedBlockingThroughUnconfirmedClosure() {
+        var config = MimoConfiguration(); config.mode = .global
+        var pending = MimoRoutingState(configuration: config); pending.phase = .blocked
+        var current = pending; current.phase = .closing
+        XCTAssertFalse(MimoServiceProgress.canReplace(pending, with: current, startedAt: .now, configurationAdvanced: false))
+        for phase: MimoAccessPhase in [.blocked, .validating, .checking, .unavailable] {
+            current.phase = phase
+            XCTAssertTrue(MimoServiceProgress.canReplace(pending, with: current, startedAt: .now, configurationAdvanced: false))
+        }
+    }
+
+    func testServiceProgressRejectsOldDirectSnapshotButAcceptsExplicitModeChange() {
+        var config = MimoConfiguration(); config.mode = .rule
+        let pending = MimoRoutingState(configuration: config)
+        var direct = MimoRoutingState(); direct.phase = .active; direct.effectiveMode = .direct
+        XCTAssertFalse(MimoServiceProgress.canReplace(pending, with: direct, startedAt: .now, configurationAdvanced: false))
+        XCTAssertTrue(MimoServiceProgress.canReplace(pending, with: direct, startedAt: .now, configurationAdvanced: true))
+    }
+
+    func testInfrastructureHealthExpiresWithoutFreshChecks() throws {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let healthy = MimoInfrastructureStatus(pf: .healthy, launchd: .healthy, checkedAt: now)
+        XCTAssertEqual(healthy.current(at: now.addingTimeInterval(35)).pf, .healthy)
+        XCTAssertEqual(healthy.current(at: now.addingTimeInterval(36)).pf, .stale)
+        XCTAssertEqual(healthy.current(at: now.addingTimeInterval(-6)).launchd, .stale)
+        XCTAssertEqual(MimoInfrastructureStatus().current(at: now).pf, .unknown)
+        let failed = MimoInfrastructureStatus(pf: .healthy, launchd: .failed, checkedAt: now)
+        XCTAssertEqual(failed.current(at: now).launchd, .failed)
+        var state = MimoRoutingState(); state.infrastructure = healthy
+        XCTAssertEqual(try JSONDecoder().decode(MimoRoutingState.self, from: JSONEncoder().encode(state)).infrastructure, healthy)
+        let old = try JSONSerialization.jsonObject(with: JSONEncoder().encode(state)) as! [String: Any]
+        let oldData = try JSONSerialization.data(withJSONObject: old.filter { $0.key != "infrastructure" })
+        XCTAssertNil(try JSONDecoder().decode(MimoRoutingState.self, from: oldData).infrastructure)
+    }
     func testStoppedServiceIntentSurvivesPersistence() throws {
         var preferences = MimoServicePreferences()
         preferences.core = false
@@ -135,6 +202,22 @@ final class MimoRoutingTests: XCTestCase {
         XCTAssertTrue(result.contains("(DST-PORT,443)"))
         XCTAssertTrue(result.hasSuffix("    - MATCH,REJECT\n"))
         XCTAssertFalse(MihomoProfile.blocking().contains("fixture-probe-secret"))
+    }
+
+    func testProtectedPublicDNSUsesProxyWithoutLegacyDirectResolvers() throws {
+        for mode in [ProxyMode.rule, .global] {
+            for stage in [MihomoProfile.Stage.verification, .active] {
+                let result = try MihomoProfile.render(configuration.proxy!.settings(), mode: mode, stage: stage, probePassword: "fixture")
+                XCTAssertTrue(result.contains("  nameserver:\n  - \"https://1.1.1.1/dns-query#Proxy\"\n"))
+                XCTAssertTrue(result.contains("  proxy-server-nameserver:\n  - \"https://1.1.1.1/dns-query\"\n"))
+                XCTAssertTrue(result.contains("\"+.ts.net\":\n      - \"tcp://100.100.100.100:53#TS-DIRECT\""))
+                for legacy in ["119.29.29.29", "180.76.76.76", "120.53.53.53", "223.5.5.5", "223.6.6.6"] {
+                    XCTAssertFalse(result.contains(legacy), "A protected profile must not inherit a legacy public resolver")
+                }
+                XCTAssertFalse(result.contains("direct-nameserver:"))
+                XCTAssertFalse(result.contains("\n  fallback:"))
+            }
+        }
     }
 
     func testStartupGuardDoesNotTrustRuntimeOrNativeTransportBeforeValidation() {

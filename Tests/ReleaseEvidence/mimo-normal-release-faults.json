@@ -1,0 +1,30 @@
+{
+  "success": true,
+  "passed": [
+    "production-core-ready-before-mode-change",
+    "installed-Release-ready-in-Direct",
+    "Direct-ordinary-HTTPS-positive-control",
+    "additional-faults-Global-verified",
+    "global-IPv4-TCP-UDP-HTTPS-and-IPv6-denial",
+    "global-system-DNS-and-public-domain-routing",
+    "global-in-memory-profile-matches-saved-credential",
+    "global-existing-HTTPS-positive-control",
+    "unresponsive-engine-closes-gate",
+    "unresponsive-engine-denies-HTTPS-mixed-UDP-and-IPv6",
+    "engine-resume-reverifies-Global",
+    "supervisor-crash-closes-gate",
+    "supervisor-crash-fresh-verification-recovers",
+    "additional-faults-IPv4-restored-and-IPv6-denied",
+    "additional-faults-Direct-recovery",
+    "continuous-capture-confirms-denied-and-proxied-traffic-boundaries",
+    "production-helper-user-configuration-and-password-restored-in-Direct"
+  ],
+  "failures": [],
+  "scope": "Exact installed arm64 Release package in mimo-vm, saved real proxy, ordinary user traffic and physical-interface packet capture",
+  "focus": "engine hang and supervisor crash",
+  "runtimeReplaced": false,
+  "syntheticPowerEvents": false,
+  "packageSHA256": "b25712260cb1304a3bcdd160b5ee8f733b3b66f7d3033e1204ca4b0c253f4be7",
+  "helperSHA256": "e1222bb89fbd963f9c29d3c837c0ebbc6b00f3dcd1212349145e1227734bd85a",
+  "evidence": "mimo-saved-proxy-_9f_bfm2"
+}

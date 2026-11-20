@@ -4,6 +4,36 @@ import Foundation
 enum InstallationCheck {
     static func main() async throws {
         let arguments = Array(CommandLine.arguments.dropFirst())
+        if arguments == ["installed-app-control"] {
+            for label in [ExitIPService.controlLabel, ExitIPService.supervisorControlLabel] {
+                var request = DaemonRequest(label == ExitIPService.controlLabel ? .state : .supervisor)
+                if request.command == .supervisor { request.supervisor = MimoSupervisorRequest(.state) }
+                do {
+                    _ = try await DaemonRPC.call(request, timeout: 5, serviceLabel: label)
+                    print("unexpected-access")
+                } catch { print("signature-rejected") }
+            }
+            return
+        }
+        if arguments == ["tailnet-start"] || arguments == ["tailnet-start-with-settings"] || arguments == ["tailnet-stop-without-authorization"] {
+            var request = DaemonRequest(arguments == ["tailnet-stop-without-authorization"] ? .configure : .startTailnetProvider)
+            if arguments != ["tailnet-start"] {
+                let current = try await DaemonRPC.call(DaemonRequest(.state))
+                guard let state = current.state else { throw DaemonFailure.unavailable }
+                var settings = state.settings
+                settings.tailscaleProviderEnabled = false
+                settings.allowlist = AllowedIPList()
+                request.settings = settings
+                request.expectedRevision = state.revision
+            }
+            do {
+                let response = try await DaemonRPC.call(request, timeout: 20)
+                print(response.state?.settings.tailscaleProviderEnabled == true ? "provider-enabled" : "provider-disabled")
+            } catch let failure as DaemonFailure {
+                print("failure:" + failure.rawValue)
+            }
+            return
+        }
         if arguments == ["core-state"] {
             let response = try await DaemonRPC.call(DaemonRequest(.state), timeout: 10)
             guard let state = response.state else { throw response.failure ?? DaemonFailure.unavailable }

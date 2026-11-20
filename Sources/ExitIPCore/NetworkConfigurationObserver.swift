@@ -52,8 +52,8 @@ final class NetworkConfigurationObserver {
             return
         }
 
-        // SystemConfiguration delivers the callback on the main queue, where
-        // PublicIPMonitor coalesces it with NWPath and lifecycle notifications.
+        // Deliver on the owning process's main queue. The supervisor closes
+        // protected traffic before notifying core to request a fresh IP check.
         guard SCDynamicStoreSetDispatchQueue(dynamicStore, DispatchQueue.main) else {
             Self.logUnavailable(step: "set_dispatch_queue")
             return

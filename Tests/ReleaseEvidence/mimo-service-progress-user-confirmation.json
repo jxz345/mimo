@@ -1,0 +1,15 @@
+{
+  "source": "User report in this conversation on 2026-11-20",
+  "result": "User confirmed the requested Rule / mihomo Restart visual check and return to Direct as done.",
+  "requestedCheck": "Dashboard and menu: Blocking \u2192 Blocked/Checking \u2192 Allowed; return to Direct.",
+  "followUp": "User requested no intentional blocking when selecting Direct or during events while Direct is selected.",
+  "scope": "User confirmation of the preceding installed candidate; not a packet capture or a test of the subsequent Direct transition change.",
+  "packageSHA256": "74e1f8e02523c88825203537416e6dd7ac058f4f7f40aa918b2cd4cb3086a332",
+  "helperSHA256": "a2f6e2009777826ea5a0ce59167ee175fe05b31d9d690f5362d2014ea403bfa1",
+  "guiSHA256": "a3d9ee76774929b96cd33c55cd5c171ae091e908cf97a9c64682ac29482d98c8",
+  "configuration": "Release",
+  "architecture": "arm64",
+  "inputs": {
+    "Tests/MihomoRuntimeTests/saved_proxy_test.py": "d10754b14b87901cb020d6feebe958b55115817400c8cbbc89ce125a1ba4fabc"
+  }
+}

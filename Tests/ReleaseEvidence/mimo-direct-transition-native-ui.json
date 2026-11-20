@@ -1,0 +1,15 @@
+{
+  "source": "Tart screenshot via computer-use after user reopened installed Mimo",
+  "observed": [
+    "Direct selected",
+    "Current IP visible",
+    "Country flag and white Direct arrow in menu bar",
+    "Dashboard connected directly",
+    "PF and launchd healthy",
+    "Native-off Tailnet provider stopped without warning"
+  ],
+  "limitations": "Final-state observation only; short transition was not recorded. Tart coordinate clicks still report noWindowsAvailable.",
+  "packageSHA256": "1203694706ce854a8f9f9c1ce096b824fc1570686eb9c4b7428946e4afb183b1",
+  "helperSHA256": "4563dde8b0ca85db1586769119154104ecec85e4127a5047e930c1a080d575b2",
+  "guiSHA256": "edd01c9d6cd0134ca443405bb01f4f2b931e1efee5dce9228ec27ee8e6a4280d"
+}

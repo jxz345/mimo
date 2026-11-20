@@ -11,12 +11,14 @@ struct MimoMenuBarLabel: View {
                 if let country = presentation.country { Text(country).lineLimit(1) }
                 directArrow
                 if presentation.kind == .checking { Image(systemName: "clock").foregroundStyle(Color.orange) }
-                if presentation.kind == .directWarning { Image(systemName: "exclamationmark.triangle").foregroundStyle(Color.orange) }
+                if presentation.kind == .directWarning || presentation.kind == .tailnetWarning { Image(systemName: "exclamationmark.triangle").foregroundStyle(Color.orange) }
             } else {
                 switch presentation.kind {
                 case .direct: directArrow
                 case .directWarning: Image(systemName: "exclamationmark.triangle").foregroundStyle(Color.orange)
-                case .checking: Image(systemName: "clock").foregroundStyle(Color.orange)
+                case .checking:
+                    if presentation.trafficIsBlocked { MenuBarCountryLabel.allowlistStop }
+                    Image(systemName: "clock").foregroundStyle(Color.orange)
                 case .unavailable: Image(systemName: "info.circle").foregroundStyle(.secondary)
                 case .blocked:
                     MenuBarCountryLabel.allowlistStop

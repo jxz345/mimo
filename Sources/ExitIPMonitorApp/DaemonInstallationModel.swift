@@ -27,6 +27,28 @@ final class DaemonInstallationModel: ObservableObject {
 
     func install() {
         guard !isInstalling else { return }
+        // An already installed service is recovered through its fixed supervisor
+        // operation. Never fall back to a password dialog during normal use.
+        if serviceInstalled || FileManager.default.fileExists(atPath: ExitIPService.executable) {
+            isInstalling = true
+            hasError = false
+            message = "Restoring the installed background service…"
+            Task {
+                defer { isInstalling = false; reload() }
+                do {
+                    var message = MimoSupervisorRequest(.service)
+                    message.service = .core; message.operation = .start
+                    var request = DaemonRequest(.supervisor); request.supervisor = message
+                    _ = try await DaemonRPC.call(request, timeout: 30, serviceLabel: ExitIPService.supervisorControlLabel)
+                    ExitIPAppDelegate.monitor.applicationDidBecomeActive()
+                    self.message = "Background service restored."
+                } catch {
+                    hasError = true
+                    self.message = "The installed supervisor is unavailable. Automatic recovery will retry. If installation files were removed or replaced, reinstall Mimo."
+                }
+            }
+            return
+        }
         #if arch(arm64)
         let dependency = "/opt/homebrew/opt/mihomo@1.19.34/bin/mihomo"
         #else

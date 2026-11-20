@@ -1,0 +1,62 @@
+{
+  "packageSHA256": "7ed8e0ad1aabfaac7031ebb895ba6e3fbcbb991cc53d117a420b025ce282c603",
+  "helperSHA256": "668e0ff482d6a1b0cef062fa9159719fee3c131d5a1fbc2a6d1675cbee78b95a",
+  "guiSHA256": "68be3a37f53579b82a68e65df315a6338b79b6dd8351aab41eb5310ed5219f7d",
+  "configuration": "Release",
+  "architecture": "arm64",
+  "inputs": {
+    "Tests/MihomoRuntimeTests/saved_proxy_test.py": "d10754b14b87901cb020d6feebe958b55115817400c8cbbc89ce125a1ba4fabc"
+  },
+  "environment": "mimo-vm only",
+  "date": "2026-11-19",
+  "scope": "Actual installed native GUI through Screen Sharing",
+  "passed": [
+    "Observed Blocked \u00b7 Validating profile in the dashboard with red stop plus amber clock in the menu and Dock",
+    "Observed Blocked \u00b7 Checking exit IP in dashboard and popup while the menu remained open",
+    "Observed approved Rule with completed blocked \u2192 approved \u2192 reopened sequence; stopped Tailnet provider warning retained",
+    "Every actionable popup entry displays its assigned shortcut; no login controls remain in popup",
+    "Menu Settings action opens the same Settings tab",
+    "General retains login control OFF, System appearance, transparency OFF, color flag and highlight ON",
+    "Monitoring shows network/VPN/sleep/wake/reboot/login/session/logout/lock event behavior and detection limits",
+    "PF and launchd Healthy bullets align with Running; timer fonts match buttons; small copy icon appears immediately left of profile path"
+  ],
+  "limitations": [
+    "Remote Command-comma input did not activate Settings; native key equivalents are visible but physical shortcut execution is not claimed",
+    "No login/logout or actual sleep was performed in this UI check"
+  ],
+  "followUp": {
+    "packageSHA256": "c5a52f250ab9686b14b608368079f567ff7b3efbdade59cb3b0513109b5e52ac",
+    "helperSHA256": "a8344084fbb637998899ae1db494d9c4e1693134e4e9d10179cf04d23664e3ef",
+    "guiSHA256": "b52e88e6d4806f673cf3b5eddefd9bd405d9a26da7f44fc254e8264aab8268ff",
+    "configuration": "Release",
+    "architecture": "arm64",
+    "inputs": {
+      "Tests/MihomoRuntimeTests/saved_proxy_test.py": "d10754b14b87901cb020d6feebe958b55115817400c8cbbc89ce125a1ba4fabc"
+    },
+    "passed": [
+      "Compact provider table visible in installed GUI with four rows and daily quota, Mimo cap, actual used count and remaining allowance",
+      "ipapi.is displays 30 quota, 24 Mimo limit, 4 used, 20 remaining; unlimited IPinfo Lite is explicit",
+      "Actual ipapi.co lookup updates Used today from 188 to 189 and Remaining from 612 to 611 without table layout movement",
+      "System/network event list is compact, aligned and placed below lookup providers at the bottom of Monitoring",
+      "Final candidate shows protected checking with red stop and amber clock; default dashboard still fits without scrolling"
+    ]
+  },
+  "compactVerificationFollowUp": {
+    "packageSHA256": "ac0f4a58a5629116b6decbe9a07d3d811efb33b5def7ac1693df1cc0c9c15938",
+    "helperSHA256": "a8344084fbb637998899ae1db494d9c4e1693134e4e9d10179cf04d23664e3ef",
+    "guiSHA256": "49959337dffbdd7abeec5d7322c1dd688b11ead769774482ef1bed44cc988e53",
+    "configuration": "Release",
+    "architecture": "arm64",
+    "inputs": {
+      "Tests/MihomoRuntimeTests/saved_proxy_test.py": "d10754b14b87901cb020d6feebe958b55115817400c8cbbc89ce125a1ba4fabc"
+    },
+    "passed": [
+      "Installed normal Release: Verification is four compact aligned rows plus one short note",
+      "Duplicate Check now removed; permanent Refresh now works and restores a fresh Direct country indicator",
+      "Four provider rows retain quota, Mimo cap, used and remaining columns; compact events remain last"
+    ],
+    "limitations": [
+      "Direct showed no observed IP after final service reinstall until manual Refresh now; automatic post-install observation needs follow-up"
+    ]
+  }
+}

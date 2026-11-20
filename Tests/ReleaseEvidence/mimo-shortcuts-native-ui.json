@@ -1,0 +1,19 @@
+{
+  "date": "2026-11-20",
+  "environment": "mimo-vm only",
+  "packageSHA256": "16b78e9d9dc487f275b017f1c4cd09da31a188145e43605f187ccdb604e9448a",
+  "guiSHA256": "eb8b9d5dcd270cfdeb08af6ca847bcaa990dffe476c3e2d5871452ac098b5c2c",
+  "method": "User-operated physical keyboard in Tart with the native Mimo status menu reopened before each shortcut",
+  "confirmedByUser": [
+    "Command-comma opens Settings",
+    "Command-1 opens Dashboard",
+    "Command-R refreshes IP"
+  ],
+  "pending": [
+    "Option-Command-2 selects Rule",
+    "Option-Command-3 selects Global",
+    "Option-Command-1 restores Direct",
+    "Option-Command-Q quits GUI"
+  ],
+  "remoteInputLimitation": "Agent remote Command-key forwarding is not used as a substitute for local execution"
+}

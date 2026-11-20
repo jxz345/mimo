@@ -108,3 +108,12 @@ These are design assets, not a compiled dynamic `.icon` document. The shipping a
 Seventy-one DOM-simulation checks cover the service-port metadata and navigation, checked-IP/unavailable readout, immediate and repeated network changes, General without redundant services, routing, empty-list denial, profile edits, all four services, the permanent Refresh now control, synchronized login preference, all 13 scenarios in the live menu-bar preview, Settings draft/focus preservation, live closed-window status, icon navigation, and the synchronized canonical plan. All static resources are served by Delta on `0.0.0.0:8347`.
 
 Browser visual verification remains pending: the browser host is unavailable and Safari tool access returned “Computer Use was not approved to use Safari” even after user approval. The no-scroll target has been specified in the CSS but has not been measured in a real browser.
+
+
+## PF and launchd health — 2026-11-19
+
+Background services includes separate PF firewall and launchd monitor rows below Internet access. Each uses normal body-size text, a fixed-width health label, and a visible Last check timer matching the IP-check elapsed readout. Both timers use the shared inspection timestamp; missing timestamps show No result. The health labels reserve space for Healthy, Needs repair, Check overdue and Unavailable. Healthy stays greyscale; faults use amber. A one-second presentation timer expires an inspection after 35 seconds even if service updates stop. Hover text supplies the last check time. This strip reports infrastructure checks rather than claiming that the selected routing mode is protected. Start/Stop/Restart remains attached to the existing controllable services.
+
+The default dashboard grows to 1040 × 640, including older saved wide windows when reopened. Light/dark native renders at this size confirm aligned cards and a complete dashboard without scrolling: [light](../Previews/28-mimo-infrastructure-light.png), [dark](../Previews/29-mimo-infrastructure-dark.png), [failure state](../Previews/30-mimo-infrastructure-failed-light.png).
+
+The normal-size rows and timers were installed and observed live in `mimo-vm`; both showed 5 seconds and reset to 1 second after a new inspection. All 164 shared tests, app/render checks and the arm64 build pass. The installed privileged helper is unchanged. [Timer UI acceptance](../Tests/ReleaseEvidence/mimo-infrastructure-ui-timers.json).

@@ -1,0 +1,19 @@
+{
+  "success": true,
+  "passed": [
+    "native-off-provider-off",
+    "global-single-activation-with-native-off-and-no-warning",
+    "global-native-connect-automatically-starts-real-provider",
+    "global-manual-stop-reports-failure-and-preserves-public-access",
+    "global-reconnect-overrides-manual-stop",
+    "global-native-off-stops-provider-and-clears-warning",
+    "real-external-DNS-set-still-blocks-and-verifies",
+    "real-external-DNS-restore-still-blocks-and-verifies",
+    "original-Direct-native-off-proxy-allowlist-password-and-services-restored"
+  ],
+  "scope": "Installed normal Release in mimo-vm; actual native Tailscale connection changes, provider HTTP, GUI state logs, ordinary-user HTTPS and networksetup DNS changes. No simulated events, helper substitution or sleep claim.",
+  "packageSHA256": "a60a88843d2bc14b8cdb3f2b18e14e000ecdd53a0d96df17cfa2d8c63dd11d56",
+  "helperSHA256": "06fe89a1a7611b0d846d27448f53f160d407f80f143b775434887f1c53b07fb2",
+  "error": null,
+  "evidence": "mimo-tailnet-lifecycle-dfj2olf1"
+}

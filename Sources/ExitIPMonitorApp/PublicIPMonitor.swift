@@ -1,7 +1,6 @@
 import AppKit
 import Combine
 import Foundation
-import Security
 import SystemConfiguration
 import WidgetKit
 
@@ -48,13 +47,17 @@ final class PublicIPMonitor: ObservableObject {
     @Published private(set) var isCredentialBusy = false
     @Published private(set) var serviceOperation: MimoServiceID?
     @Published private(set) var supervisorState: MimoRoutingState?
+    @Published private var serviceRoutingProgress: MimoRoutingState?
+    private var serviceOperationID: UUID?
+    private var serviceOperationStartedAt: Date?
+    private var serviceOperationRevision = 0
+    private var serviceRPCFinished = false
     let ipinfoCredentials = AppCredentials.makeSession(account: SecureTokenStore.ipinfoLiteAccount)
     private var subscription: DaemonSubscription?
     private var reconnectTask: Task<Void, Never>?
     private var displayTimer: Timer?
     private var sessionObservers: [NSObjectProtocol] = []
     private var warningPresented: UUID?
-    private var authorization: AuthorizationBox?
     private var heartbeat: Task<Void, Never>?
     private var localPresentationImported = false
     private var started = false
@@ -66,7 +69,7 @@ final class PublicIPMonitor: ObservableObject {
     }
     var nextProvider: ProviderID { daemonState?.nextProvider ?? preferences.provider }
     var isIPinfoTokenUnavailable: Bool { daemonState?.hasIPinfoToken != true }
-    var canChangeSharedSettings: Bool { connected && daemonState?.initialized == true && !isChangingSettings }
+    var canChangeSharedSettings: Bool { connected && daemonState?.initialized == true && !isChangingSettings && serviceOperation == nil }
     var canRefresh: Bool { connected && !isChangingSettings && (daemonState?.initialized == true || routingState.configuration.mode == .direct)
         && status != .refreshing && ![.checking, .validating].contains(routingState.phase) }
     var lookupStatusMessage: String? {
@@ -98,8 +101,12 @@ final class PublicIPMonitor: ObservableObject {
     }
 
     var routingState: MimoRoutingState {
-        var state = (connected ? daemonState?.routing : supervisorState) ?? MimoRoutingState()
-        if !connected {
+        if let serviceRoutingProgress { return serviceRoutingProgress }
+        // A missed supervisor reply does not erase the last saved proxy or mode.
+        // Retain only configuration; live health and access still become unknown.
+        var state = (connected ? daemonState?.routing : supervisorState)
+            ?? MimoRoutingState(configuration: daemonState?.routing?.configuration ?? .init())
+        if !connected && supervisorState?.phase != .blocked {
             state.phase = .unavailable; state.effectiveMode = nil
             state.reason = state.services.first(where: { $0.id == .core })?.health == .stopped
                 ? "mimo-core is stopped. Start it below to restore monitoring."
@@ -111,13 +118,13 @@ final class PublicIPMonitor: ObservableObject {
     func setMode(_ mode: ProxyMode) {
         var request = DaemonRequest(.configureRouting)
         var configuration = routingState.configuration; configuration.mode = mode; request.routing = configuration
-        Task { _ = await privileged(request) }
+        Task { _ = await changeShared(request) }
     }
 
     func saveProxy(_ proxy: MimoProxy, password: String?, expectedRevision: Int) async -> Bool {
         var request = DaemonRequest(.saveProxy); request.proxy = proxy; request.proxyPassword = password
         request.expectedRevision = expectedRevision
-        return await privileged(request)
+        return await changeShared(request)
     }
 
     func importLegacyProxy(expectedRevision: Int) async -> Bool {
@@ -132,38 +139,119 @@ final class PublicIPMonitor: ObservableObject {
     func removeProxy(expectedRevision: Int) async -> Bool {
         var request = DaemonRequest(.removeProxy)
         request.expectedRevision = expectedRevision
-        return await privileged(request)
+        return await changeShared(request)
     }
 
     func changeService(_ service: MimoServiceID, operation: MimoServiceOperation) {
         guard serviceOperation == nil else { return }
+        let operationID = UUID()
+        serviceOperationID = operationID
+        serviceRPCFinished = false
         serviceOperation = service
+        if service != .tailnetProvider, routingState.configuration.mode.requiresVerification {
+            var pending = routingState
+            pending.phase = .closing; pending.effectiveMode = nil
+            pending.reason = "Blocking internet access before changing \(service.title)…"
+            serviceRoutingProgress = pending
+            serviceOperationStartedAt = .now
+            serviceOperationRevision = daemonState?.revision ?? 0
+        }
         Task {
-            defer { serviceOperation = nil }
+            var succeeded = false
+            defer {
+                if serviceOperationID == operationID {
+                    serviceOperationID = nil; serviceOperation = nil
+                    if succeeded, let state = daemonState?.routing { reconcileServiceProgress(state) }
+                }
+            }
             if service == .tailnetProvider {
+                if operation == .start {
+                    await startTailnetProvider()
+                    return
+                }
                 guard var settings = daemonState?.settings else { operationError = DaemonFailure.unavailable.localizedDescription; return }
                 if operation == .restart {
                     settings.tailscaleProviderEnabled = false
                     var stop = DaemonRequest(.configure); stop.settings = settings
-                    guard await privileged(stop) else { return }
+                    guard await changeShared(stop) else { return }
                 }
                 settings.tailscaleProviderEnabled = operation != .stop
                 var request = DaemonRequest(.configure); request.settings = settings
-                _ = await privileged(request)
+                _ = await changeShared(request)
                 return
             }
             do {
                 var message = MimoSupervisorRequest(.service); message.service = service; message.operation = operation
                 var request = DaemonRequest(.supervisor); request.supervisor = message
-                request.authorization = try await authorizationData()
-                let response = try await DaemonRPC.call(request, timeout: 30, serviceLabel: MimoRuntime.supervisorLabel)
-                if let failure = response.failure { throw failure }
+                let response = try await DaemonRPC.call(request, timeout: 30, serviceLabel: ExitIPService.supervisorControlLabel, returningFailures: true) { [weak self] progress in
+                    Task { @MainActor [weak self] in
+                        guard let self, self.serviceOperationID == operationID, !self.serviceRPCFinished, let routing = progress.routing else { return }
+                        self.serviceRoutingProgress = self.serviceProgressState(routing)
+                        RuntimeLog.shared.info("mimo_service_progress_received", fields: ["service": service.rawValue,
+                            "operation": operation.rawValue, "phase": routing.phase.rawValue])
+                    }
+                }
+                serviceRPCFinished = true
                 supervisorState = response.routing
-                if let routing = response.routing { daemonState?.routing = routing }
+                if let routing = response.routing {
+                    if serviceRoutingProgress != nil { serviceRoutingProgress = serviceProgressState(routing) }
+                    else { daemonState?.routing = routing }
+                }
+                if let failure = response.failure { throw failure }
+                succeeded = true
                 operationError = nil
                 if service == .core, operation == .stop { disconnected() }
                 else { applicationDidBecomeActive(); if operation != .stop { await refresh() } }
-            } catch { operationError = error.localizedDescription }
+            } catch {
+                operationError = error.localizedDescription
+                if !serviceRPCFinished, serviceRoutingProgress != nil {
+                    serviceRoutingProgress?.phase = .unavailable
+                    serviceRoutingProgress?.supervisorCheckedAt = .now
+                    serviceRoutingProgress?.reason = "Blocking could not be confirmed. The service operation did not complete."
+                }
+            }
+        }
+    }
+
+    private func reconcileServiceProgress(_ state: MimoRoutingState) {
+        guard serviceOperationID == nil, let progress = serviceRoutingProgress else { return }
+        if MimoServiceProgress.canReplace(progress, with: state, startedAt: serviceOperationStartedAt ?? .distantFuture,
+            configurationAdvanced: (daemonState?.revision ?? 0) > serviceOperationRevision) {
+            serviceRoutingProgress = nil
+            serviceOperationStartedAt = nil
+        }
+    }
+
+    private func serviceProgressState(_ routing: MimoRoutingState) -> MimoRoutingState {
+        var state = routing
+        state.hasProxyPassword = daemonState?.routing?.hasProxyPassword ?? false
+        state.tailnetExpected = daemonState?.routing?.tailnetExpected
+        var provider = daemonState?.routing?.services.first(where: { $0.id == .tailnetProvider })
+            ?? MimoServiceStatus(id: .tailnetProvider, health: .stopped, transport: "Loopback HTTP",
+                                 address: "127.0.0.1", port: TailscaleVergeProvider.port)
+        if state.services.first(where: { $0.id == .core })?.health != .running {
+            provider.health = .stopped; provider.bindingConfirmed = false
+        }
+        state.services.removeAll { $0.id == .tailnetProvider }
+        state.services.append(provider)
+        return state
+    }
+
+    private func startTailnetProvider() async {
+        // Starting restores the machine-wide integration and needs no saved
+        // administrator authorization. Retry a concurrent automatic revision.
+        for attempt in 0..<4 {
+            do {
+                let response = try await DaemonRPC.call(DaemonRequest(.startTailnetProvider), timeout: 15)
+                if let state = response.state { receive(state) }
+                operationError = nil
+                return
+            } catch DaemonFailure.conflict where attempt < 3 {
+                try? await Task.sleep(for: .milliseconds(300))
+            } catch {
+                operationError = error.localizedDescription
+                return
+            }
         }
     }
 
@@ -174,8 +262,7 @@ final class PublicIPMonitor: ObservableObject {
         do {
             var request = DaemonRequest(.supervisor)
             request.supervisor = MimoSupervisorRequest(.profile)
-            request.authorization = try await authorizationData()
-            let response = try await DaemonRPC.call(request, timeout: 15, serviceLabel: MimoRuntime.supervisorLabel)
+            let response = try await DaemonRPC.call(request, timeout: 15, serviceLabel: ExitIPService.supervisorControlLabel)
             if let failure = response.failure { throw failure }
             guard let contents = response.profileContents else { throw DaemonFailure.unavailable }
             operationError = nil
@@ -202,6 +289,10 @@ final class PublicIPMonitor: ObservableObject {
         for name in [NSWorkspace.sessionDidBecomeActiveNotification, NSWorkspace.screensDidWakeNotification] {
             sessionObservers.append(NSWorkspace.shared.notificationCenter.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
                 MainActor.assumeIsolated { self?.applicationDidBecomeActive() }
+                RuntimeLog.shared.info("mimo_session_event", fields: [
+                    "source": name == NSWorkspace.sessionDidBecomeActiveNotification ? "session_active" : "display_wake",
+                    "action": "refresh_shared_status"
+                ])
             })
         }
         RuntimeLog.shared.info("daemon_client_started")
@@ -216,7 +307,7 @@ final class PublicIPMonitor: ObservableObject {
         sessionObservers.removeAll()
         heartbeat?.cancel(); heartbeat = nil
         supervisorState = nil
-        authorization = nil
+        serviceRoutingProgress = nil; serviceOperationID = nil; serviceOperation = nil
         RuntimeLog.shared.info("daemon_client_stopped")
     }
 
@@ -264,6 +355,9 @@ final class PublicIPMonitor: ObservableObject {
         let response = try? await DaemonRPC.call(request, timeout: 2, serviceLabel: MimoRuntime.supervisorLabel)
         guard started, !connected, generation == connectionGeneration else { return }
         supervisorState = response?.failure == nil ? response?.routing : nil
+        if serviceOperationID == nil, serviceRoutingProgress != nil {
+            serviceRoutingProgress = supervisorState.map(serviceProgressState)
+        }
     }
 
     func receive(_ state: DaemonState) {
@@ -273,6 +367,7 @@ final class PublicIPMonitor: ObservableObject {
         let oldSnapshot = snapshot, oldIndicators = indicators
         let oldStatusPresentation = statusPresentation
         daemonState = state
+        if let routing = state.routing { reconcileServiceProgress(routing) }
         connected = true
         reconnectTask?.cancel(); reconnectTask = nil
         serviceMessage = state.storageError ?? (state.initialized ? nil : "Set up shared monitoring using this account’s existing settings.")
@@ -344,9 +439,9 @@ final class PublicIPMonitor: ObservableObject {
     }
 
     @discardableResult
-    private func send(_ request: DaemonRequest) async -> Bool {
+    private func send(_ request: DaemonRequest, serviceLabel: String = ExitIPService.label) async -> Bool {
         do {
-            let response = try await DaemonRPC.call(request, timeout: isCredentialBusy ? 30 : 8)
+            let response = try await DaemonRPC.call(request, timeout: 30, serviceLabel: serviceLabel)
             if let state = response.state { receive(state) }
             if request.command != .state { operationError = nil }
             return true
@@ -399,13 +494,14 @@ final class PublicIPMonitor: ObservableObject {
         settings.diagnostics = preferences; configure(settings)
     }
     func setProviderEnabled(_ enabled: Bool) {
+        if enabled { changeService(.tailnetProvider, operation: .start); return }
         guard var settings = daemonState?.settings else { return }
         settings.tailscaleProviderEnabled = enabled; configure(settings)
     }
     private func configure(_ settings: MachineSettings) {
         var request = DaemonRequest(.configure)
         request.settings = settings
-        Task { _ = await privileged(request) }
+        Task { _ = await changeShared(request) }
     }
 
     func initializeSharedSettings() async {
@@ -421,10 +517,10 @@ final class PublicIPMonitor: ObservableObject {
             attempts: RefreshAttemptStore().lastAttempts(), cooldowns: Dictionary(uniqueKeysWithValues: ProviderID.allCases.compactMap { provider in
                 ProviderCooldownStore(defaults: defaults).retryNotBefore(for: provider).map { (provider, $0) }
             }), snapshot: SnapshotStore().load())
-        _ = await privileged(request)
+        _ = await changeShared(request)
     }
 
-    private func privileged(_ request: DaemonRequest) async -> Bool {
+    private func changeShared(_ request: DaemonRequest) async -> Bool {
         guard connected, let state = daemonState else {
             operationError = DaemonFailure.unavailable.localizedDescription
             return false
@@ -442,33 +538,9 @@ final class PublicIPMonitor: ObservableObject {
             return false
         }
         request.expectedRevision = request.expectedRevision ?? state.revision
-        do {
-            request.authorization = try await authorizationData()
-            return await send(request)
-        } catch { operationError = error.localizedDescription; return false }
-    }
-
-    private func authorizationData() async throws -> Data {
-        // The Security Agent owns all credential UI. No passwords enter this process.
-        if authorization == nil {
-            var value: AuthorizationRef?
-            guard AuthorizationCreate(nil, nil, [], &value) == errAuthorizationSuccess, let value else { throw DaemonFailure.unauthorized }
-            authorization = AuthorizationBox(value)
-        }
-        guard let box = authorization else { throw DaemonFailure.unauthorized }
-        return try await Task.detached(priority: .userInitiated) {
-            try ExitIPService.settingsRight.withCString { name in
-                var item = AuthorizationItem(name: name, valueLength: 0, value: nil, flags: 0)
-                let status = withUnsafeMutablePointer(to: &item) { pointer in
-                    var rights = AuthorizationRights(count: 1, items: pointer)
-                    return AuthorizationCopyRights(box.value, &rights, nil, [.interactionAllowed, .extendRights], nil)
-                }
-                guard status == errAuthorizationSuccess else { throw DaemonFailure.unauthorized }
-                var external = AuthorizationExternalForm()
-                guard AuthorizationMakeExternalForm(box.value, &external) == errAuthorizationSuccess else { throw DaemonFailure.unauthorized }
-                return withUnsafeBytes(of: &external) { Data($0) }
-            }
-        }.value
+        // The installer pins this app's signature. The helper verifies it on
+        // every control message; routine operations never invoke SecurityAgent.
+        return await send(request, serviceLabel: ExitIPService.controlLabel)
     }
 
     func loadIPinfoToken() async -> Bool {
@@ -482,12 +554,12 @@ final class PublicIPMonitor: ObservableObject {
         guard !isCredentialBusy else { return false }
         isCredentialBusy = true; defer { isCredentialBusy = false }
         var request = DaemonRequest(.setToken); request.token = token
-        return await privileged(request)
+        return await changeShared(request)
     }
     func removeIPinfoToken() async -> Bool {
         guard !isCredentialBusy else { return false }
         isCredentialBusy = true; defer { isCredentialBusy = false }
-        return await privileged(DaemonRequest(.removeToken))
+        return await changeShared(DaemonRequest(.removeToken))
     }
     func refresh(force: Bool = false, bypassMinimumInterval: Bool = false, trigger: RefreshTrigger = .manual) async {
         guard canRefresh else { return }
@@ -530,10 +602,4 @@ final class PublicIPMonitor: ObservableObject {
         WidgetCenter.shared.reloadTimelines(ofKind: ExitIPSurfaceID.widget)
         if #available(macOS 26.0, *) { ControlCenter.shared.reloadControls(ofKind: ExitIPSurfaceID.control) }
     }
-}
-
-private final class AuthorizationBox: @unchecked Sendable {
-    let value: AuthorizationRef
-    init(_ value: AuthorizationRef) { self.value = value }
-    deinit { AuthorizationFree(value, [.destroyRights]) }
 }

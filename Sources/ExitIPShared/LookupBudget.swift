@@ -173,7 +173,7 @@ public struct LookupBudget: Codable, Equatable, Sendable {
         case .ipinfoLite: nil
         case .ipapiCo: 1_000
         case .ipWhois: 1_000
-        case .ipapiIs: 100
+        case .ipapiIs: 30
         }
     }
 

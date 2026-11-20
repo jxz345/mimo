@@ -23,7 +23,7 @@ This is a candidate, not a claim that Network Extension automatically guarantees
 5. Direct recovery, repair, upgrade and uninstall, including cancellation.
 6. Actual physical sleep/wake with packet capture and kernel sleep/wake counters.
 
-Delta currently reports no valid code-signing identity, no installed provisioning profiles, and no stored Xcode developer accounts. A Developer ID identity and provisioning for the Network Extension must be available before installation can be tested with normal macOS protections enabled. Do not disable SIP or weaken macOS security to make the experiment pass.
+The user confirmed that no Apple Developer account is available. Delta also reports no valid code-signing identity, no installed provisioning profiles, and no stored Xcode developer accounts. A custom Mimo Network Extension therefore has no current signed deployment path. The publisher-signed Clash Mi experiment reached system-extension activation, but its first connection required Full Disk Access, which the user declined. Runtime evaluation has ended without qualification. ProjectClash was considered and dropped by the user because its app-extension packaging conflicts with Mimo's logout-independent, multi-user requirement. See [the replacement evaluation](MIMO_NETWORK_EXTENSION_EVALUATION.md). Existing controls and boot behavior must be measured for any future candidate; using another publisher's app is not equivalent to being able to modify or repackage its extension. Do not disable SIP or weaken macOS security to make the experiment pass.
 
 ## Separate repairs already in progress
 
@@ -36,3 +36,8 @@ The relay investigation also found different native Tailscale versions: Delta 1.
 - [Apple: Network Extension entitlements](https://developer.apple.com/documentation/BundleResources/Entitlements/com.apple.developer.networking.networkextension) specifies Developer ID provisioning for an independently distributed content-filter system extension.
 - [Apple: packet filter provider identifier](https://developer.apple.com/documentation/networkextension/nefilterproviderconfiguration/filterpacketproviderbundleidentifier) requires a system extension for packet filtering on macOS.
 - [Apple: configuring Network Extensions](https://developer.apple.com/documentation/xcode/configuring-network-extensions/) describes the capability and provisioning setup. These documents establish the supported packaging path; they do not replace measured boot/crash acceptance.
+
+
+## Independent PF loader update — 2026-11-19
+
+Current source installs a saved blocking anchor and two root launchd jobs using only macOS Perl/system tools: an idempotent boot loader and a periodic infrastructure checker. The supervisor also invokes the checker asynchronously. PF can therefore be re-enabled and its policy loaded when the Mimo helper and mihomo cannot execute. This improves independent boot recovery; it does not prove enforcement before the first usable network packet. The [current failure analysis](MIMO_FIREWALL_AND_FAILURE_SCENARIOS.md#3-startup-sequence) describes startup, repair, Direct recovery, dashboard health reporting and remaining failure windows. The initial network-location experiment above remains historical and is not installed.

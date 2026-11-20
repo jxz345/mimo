@@ -267,7 +267,7 @@ public struct IPWhoisProvider: IPLocationProvider {
 }
 
 /// Anonymous HTTPS lookup with a deliberately small response surface. The service documents
-/// a 100-request/day anonymous limit, so it is part of the explicit rotation pool rather than
+/// a 30-request/day anonymous limit, so it is part of the explicit rotation pool rather than
 /// a hidden fallback after another provider is rate-limited.
 public struct IpapiIsProvider: IPLocationProvider {
     public let id: ProviderID = .ipapiIs

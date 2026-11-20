@@ -1,0 +1,22 @@
+{
+  "updated": "2026-11-20",
+  "environment": "mimo-vm only",
+  "packageSHA256": "b9014ec111cbbc6994acb3a60cb00da93aa9417fd324854e7d44745b1e623f2a",
+  "helperSHA256": "680df53bebbc318a496289e5be6b246dc0188455ed8739e7f0b9384130ab7764",
+  "guiSHA256": "86abcb916fb9af290b7d876d1f5304b3842880158f21db23fa1cf2f4f94370af",
+  "method": "Native macOS Notification Center and Control Center through Screen Sharing; installed normal Release, actual shared service state",
+  "observed": [
+    "Canonical /Applications/Mimo.app extension is discoverable in both native galleries",
+    "Medium Notification Center widget displays Direct mode, country flag, checked public IP and increasing check age",
+    "Real lookup refresh updates the visible widget check age",
+    "During real Rule and Global tests, widget updates mode, verification detail and last rejected IP during re-verification",
+    "Added Control Center control through native gallery; clicking it opens the closed dashboard",
+    "Temporary Notification Center widget and Control Center control removed after testing"
+  ],
+  "limitations": [
+    "WidgetKit schedules refreshes; brief widget/dashboard differences were observed during transitions",
+    "Read-only Notification Center widget click dismissed the panel and did not open dashboard; no widget open action is implemented",
+    "Small widget layout and every final routing-state variant were not independently observed in this run"
+  ],
+  "environmentCleanup": "Two obsolete app copies were unregistered from PlugInKit/LaunchServices and reversibly renamed with .inactive suffix. Canonical extension remains registered; no old bundle was deleted."
+}

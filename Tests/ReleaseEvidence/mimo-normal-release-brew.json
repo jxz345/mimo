@@ -1,0 +1,21 @@
+{
+  "success": true,
+  "evidence": "mimo-release-brew-kwzt_oag",
+  "passed": [
+    "uninstalled-retains-saved-configuration-and-Keychain-password",
+    "brew-uninstall-removes-app-runtime-jobs-and-persistent-PF-policy",
+    "brew-uninstall-restores-original-IPv6-enabled-flags",
+    "brew-uninstall-restores-ordinary-user-HTTPS",
+    "installed-retains-saved-configuration-and-Keychain-password",
+    "brew-installed-Release-helper-signature-Direct-and-service-intent-confirmed",
+    "actual-brew-autoremoves-unused-pinned-mihomo",
+    "original-explicit-mihomo-install-intent-restored"
+  ],
+  "packageSHA256": "b25712260cb1304a3bcdd160b5ee8f733b3b66f7d3033e1204ca4b0c253f4be7",
+  "helperSHA256": "e1222bb89fbd963f9c29d3c837c0ebbc6b00f3dcd1212349145e1227734bd85a",
+  "scope": "Real Homebrew commands as jay in mimo-vm; automatic dependency removal; standard bundled service setup as authorized mimotest administrator",
+  "limitations": [
+    "Candidate uses VM-local test tap",
+    "Successful interactive jay password flow not tested; cancelled authentication and standard administrator recovery tested"
+  ]
+}

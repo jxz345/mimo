@@ -41,7 +41,7 @@ adhoc_sign_app() {
         if [[ -d "$widget" ]]; then
             codesign --force --sign - --timestamp=none --entitlements "$widget_entitlements" "$widget" || exit 1
         fi
-        codesign --force --sign - --timestamp=none "$app" || exit 1
+        codesign --force --sign - --options runtime --timestamp=none "$app" || exit 1
     ) || status=1
     rm -rf "$work"
     (( status == 0 )) || { printf 'ERROR Ad-hoc signing failed: %s\n' "$app" >&2; return 1; }

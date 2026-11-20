@@ -1,0 +1,30 @@
+{
+  "date": "2026-11-19",
+  "environment": "mimo-vm only",
+  "packageSHA256": "af39a1f7a9da0ddb793e7de01fbddcea68ecc74eeeadb74b931905f5140d6b81",
+  "helperSHA256": "e1222bb89fbd963f9c29d3c837c0ebbc6b00f3dcd1212349145e1227734bd85a",
+  "scope": "Actual native GUI through Screen Sharing; partial execution record",
+  "passed": [
+    "Refresh now updates IP-check timer, disables duplicate refresh, and updates menu checking icon",
+    "Both services unavailable: saved proxy, approved-address count and Global selection remain visible; live access/health become unavailable",
+    "Recovery from service outage restores Direct display, country flag and white menu arrow",
+    "Open profile completes through native macOS administrator password prompt and displays credential-free Direct snapshot",
+    "Reload completes in Direct and refreshes IP state",
+    "Rule selected through dashboard verifies approved saved exit",
+    "Open menu updates during Rule verification without dismissal",
+    "Global selected through native menu verifies approved exit",
+    "mihomo Stop in Global shows stopped service, red blocked menu/dashboard symbols and last checked IP",
+    "mihomo Start and Restart recover verified Global",
+    "mimo-core Stop shows explicit stopped/unavailable state; Start and Restart reconnect and restore verified Global",
+    "Tailnet Start shows Running/Allowed; Stop restores Stopped and tailnet warning while verified Global stays active"
+  ],
+  "pending": [
+    "Tailnet Restart completion",
+    "protected Reload",
+    "GUI quit/relaunch",
+    "widget and Control Center discovery",
+    "manual sleep last",
+    "final restoration"
+  ],
+  "evidencePrivacy": "No private IP, proxy credentials or screenshots exported into this report."
+}

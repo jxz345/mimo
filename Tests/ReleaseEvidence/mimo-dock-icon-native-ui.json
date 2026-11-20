@@ -1,0 +1,23 @@
+{
+  "date": "2026-11-20",
+  "environment": "mimo-vm only",
+  "configuration": "Release",
+  "packageSHA256": "16b78e9d9dc487f275b017f1c4cd09da31a188145e43605f187ccdb604e9448a",
+  "helperSHA256": "680df53bebbc318a496289e5be6b246dc0188455ed8739e7f0b9384130ab7764",
+  "guiSHA256": "eb8b9d5dcd270cfdeb08af6ca847bcaa990dffe476c3e2d5871452ac098b5c2c",
+  "method": "Native installed /Applications/Mimo.app observed through Screen Sharing; no simulated routing state",
+  "observations": [
+    "Finder Applications shows the bundled graphite Mimo m icon; the running app Dock tile shows the same icon",
+    "Refresh now completed with a newer IP-check age; Dock retained the Mimo icon and menu bar retained the country/Direct presentation",
+    "Dashboard minimized and restored from Dock with the Mimo app icon retained",
+    "Dashboard closed and reopened from Dock; the Mimo icon remained unchanged",
+    "Dashboard and Settings General visibly explain that mimo-core starts at boot and keeps running when the interface quits"
+  ],
+  "limitations": [
+    "Cmd-Tab was not independently exercised because remote Command-key forwarding remains unresolved",
+    "No new Rule/Global failure injection for this icon-only change; all runtime icon overrides were removed",
+    "Shared/native isolated suites not rerun: VM Xcode license approval remains pending"
+  ],
+  "restorationEvidence": "mimo-dock-icon-restoration.json",
+  "finalGUIState": "Dashboard open for user review; login switch remains temporarily ON for pending actual login test. Quit GUI before that test to avoid window-restoration ambiguity."
+}

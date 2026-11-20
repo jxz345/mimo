@@ -13,12 +13,16 @@ service_plist > "$fixture/service.plist"
 /usr/bin/python3 - "$fixture/service.plist" <<'PY'
 import plistlib, sys
 p = plistlib.load(open(sys.argv[1], 'rb'))
-assert p['MachServices'] == {'com.example.exitipmonitor.daemon': True}
+assert p['MachServices'] == {'com.example.exitipmonitor.daemon': True, 'com.example.exitipmonitor.daemon.control': True}
 assert 'UserName' not in p and 'LimitLoadToSessionType' not in p
 assert len(p['ProgramArguments']) == 1
 PY
 for kind in engine supervisor; do
     service_plist "$kind" > "$fixture/$kind.plist"
+    /usr/bin/plutil -lint "$fixture/$kind.plist" >/dev/null
+done
+for kind in boot health; do
+    infrastructure_plist "$kind" > "$fixture/$kind.plist"
     /usr/bin/plutil -lint "$fixture/$kind.plist" >/dev/null
 done
 /usr/bin/python3 - "$fixture" "$PLIST" "$ENGINE_PLIST" "$SUPERVISOR_PLIST" <<'PY'
@@ -32,8 +36,15 @@ for name, argument in [('engine', '--engine'), ('supervisor', '--supervisor')]:
     assert ('MachServices' in p) == (name == 'supervisor')
 assert all('/Application Support/' in p for p in sys.argv[2:4])
 assert sys.argv[4].startswith('/Library/LaunchDaemons/')
+for kind, argument in [('boot', '--boot'), ('health', '--check')]:
+    p = plistlib.loads((root / (kind + '.plist')).read_bytes())
+    assert p['ProgramArguments'] == ['/usr/bin/perl', '/Library/Application Support/Mimo/Guard/pf-guard.pl', argument]
+    assert p['RunAtLoad'] is True and p['KeepAlive'] == {'SuccessfulExit': False}
+    assert ('StartInterval' in p) == (kind == 'health')
+    if kind == 'health': assert p['StartInterval'] == 10
 PY
-echo 'PASS: only the supervisor is registered at boot; it starts independent core/engine jobs with the dedicated runtime group'
+echo 'PASS: independent PF and health jobs start at boot without executing Mimo or mihomo; core/engine retain saved service intent'
+/usr/bin/perl "$REPO/Tests/ExitIPDaemonTests/pf_guard_test.pl" "$REPO/Sources/ExitIPDaemon/pf-guard.pl"
 
 (
     directory_query() { if [ "$2" = /Groups ]; then printf '_mimo 10000\nstaff 20\n'; fi; }
@@ -89,6 +100,7 @@ echo 'PASS: installation requires administrator privileges and rejects symlinked
     mkdir -p "$RUNTIME"
     touch "$RUNTIME/maintenance"
     unload() { echo "unload $1" >> "$fixture/rollback-commands"; }
+    wait_mimo_workers() { :; }
     run() { echo "$*" >> "$fixture/rollback-commands"; }
     restore_installation
     [ "$(cat "$EXECUTABLE")" = old-binary ] && [ "$(cat "$PLIST")" = old-plist ]
@@ -96,6 +108,6 @@ echo 'PASS: installation requires administrator privileges and rejects symlinked
     grep -q "bootstrap system $PLIST" "$fixture/rollback-commands"
     [ ! -e "$RUNTIME/maintenance" ]
     ! grep -q -- '--restore-direct-offline' "$fixture/rollback-commands"
-    [ "$(wc -l < "$fixture/rollback-commands" | tr -d ' ')" = 4 ]
+    [ "$(wc -l < "$fixture/rollback-commands" | tr -d ' ')" = 6 ]
 )
 echo 'PASS: a failed protected upgrade restores the old files and service without implicitly restoring Direct'

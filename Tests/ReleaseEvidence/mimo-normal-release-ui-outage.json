@@ -1,0 +1,13 @@
+{
+  "success": true,
+  "passed": [
+    "saved-Global-baseline-ready",
+    "ordinary-user-HTTPS-denied-during-service-outage",
+    "original-Direct-configuration-password-and-service-intent-restored"
+  ],
+  "scope": "Actual normal-Release service outage in mimo-vm; GUI observations recorded separately",
+  "packageSHA256": "af39a1f7a9da0ddb793e7de01fbddcea68ecc74eeeadb74b931905f5140d6b81",
+  "helperSHA256": "e1222bb89fbd963f9c29d3c837c0ebbc6b00f3dcd1212349145e1227734bd85a",
+  "error": null,
+  "evidence": "mimo-release-ui-outage-u9194vo8"
+}

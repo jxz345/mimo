@@ -13,6 +13,11 @@ struct ServiceTests {
         let reference = MimoPFReference(token: "12345", boot: boot)
         require(try reference.token(forBoot: boot) == "12345", "same-boot PF references remain usable")
         require(try reference.token(forBoot: UUID().uuidString) == nil, "PF references cannot survive kernel reboot")
+        let references = "TOKENS:\nPID Process Name TOKEN TIMESTAMP\n12345 pfctl 67890 0 days\n7 pfctl 12345 0 days\n"
+        require(MimoPFReference.isLive("12345", references: references), "live PF ownership is recognized")
+        require(!MimoPFReference.isLive("12345", references: "TOKENS:\n12345 pfctl 67890 0 days\n"),
+                "a PID or stale same-boot token cannot establish PF ownership")
+        require(!MimoPFReference.isLive("12345", references: "TOKENS:\n"), "PF disable clears ownership within a boot")
         for invalid in ["", "-1", "１２", "123;anything"] {
             do {
                 _ = try MimoPFReference(token: invalid, boot: boot).token(forBoot: boot)
