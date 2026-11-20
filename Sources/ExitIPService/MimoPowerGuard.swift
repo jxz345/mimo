@@ -154,8 +154,14 @@ final class MimoPowerGuard: @unchecked Sendable {
     }
 
     static func closeBarrier(request: MimoGateRequest? = nil) throws {
+        try closeBarrier(request: request, confirm: {})
+    }
+
+    /// Keep priority and mutation through the caller's readback/publication.
+    /// A background scanner cannot slip between denial and its confirmation.
+    static func closeBarrier<Value>(request: MimoGateRequest?, confirm: () throws -> Value) throws -> Value {
         var timing = MimoTransitionTiming("deny")
-        try MimoFirewallLock.mutate(revoking: true) {
+        return try MimoFirewallLock.mutate(revoking: true) {
             timing.record("deny_mutation_wait")
             guard request?.isCancelled != true else { throw CancellationError() }
             // Flush the grant first. Keep the barrier for old/fallback parents.
@@ -166,6 +172,7 @@ final class MimoPowerGuard: @unchecked Sendable {
             try command(["-k", "0.0.0.0/0"])
             try command(["-k", "::/0"])
             timing.record("deny_states")
+            return try confirm()
         }
     }
 

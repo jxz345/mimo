@@ -88,6 +88,11 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
             configurationKnown = true
             directRestorationAllowed = policy.state.configuration.mode == .direct
             policy.block("Startup protection is active. Waiting for mimo-core.")
+            // Core may already be running after a supervisor-only restart.
+            // A healthy infrastructure scan must request fresh verification;
+            // heartbeats alone do not restart the core's completed lookup.
+            verificationRecoveryPending = policy.state.configuration.mode.requiresVerification &&
+                coreEnabled && engineEnabled && profileEnabled
             guard !runtime.maintenanceActive else {
                 policy.block("Service installation is in progress.")
                 return

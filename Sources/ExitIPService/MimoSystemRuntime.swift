@@ -82,7 +82,7 @@ final class MimoSystemRuntime {
         }) else { throw CancellationError() }
         try Task.checkCancellation()
         if result.status == 75 {
-            RuntimeLog.shared.info("mimo_infrastructure_check_deferred", fields: ["reason": "pf_revocation"])
+            RuntimeLog.shared.info("mimo_infrastructure_check_deferred", fields: ["reason": "pf_snapshot_changed_or_revocation"])
             return false
         }
         guard result.status == 0 else {
@@ -344,9 +344,8 @@ final class MimoSystemRuntime {
         // Revocation must not wait behind the independent infrastructure
         // scanner's lifecycle lock. Cancellation is rechecked under the same
         // short PF mutation lock used by Direct's parent replacement.
-        return try { () throws -> Bool in
-            guard !request.isCancelled else { throw CancellationError() }
-            try MimoPowerGuard.closeBarrier(request: request)
+        guard !request.isCancelled else { throw CancellationError() }
+        return try MimoPowerGuard.closeBarrier(request: request) {
             var inspection = MimoTransitionTiming("deny")
             let main = BoundedProcess.run("/sbin/pfctl", ["-sr"])
             let live = BoundedProcess.run("/sbin/pfctl", ["-a", MimoFirewallPolicy.anchor, "-sr"])
@@ -360,12 +359,11 @@ final class MimoSystemRuntime {
                   (try? secureFile(expected)) != nil,
                   live.text == (try? String(contentsOf: expected, encoding: .utf8)) else { return false }
             inspection.record("deny_readback")
-            try MimoFirewallLock.mutate {
-                guard !request.isCancelled else { throw CancellationError() }
-                _ = try writePrivate(Data("blocked".utf8), name: "gate.state")
-            }
+            guard !request.isCancelled else { throw CancellationError() }
+            _ = try writePrivate(Data("blocked".utf8), name: "gate.state")
+            inspection.record("deny_publish")
             return true
-        }()
+        }
     }
 
     func closeStartupGate() throws {

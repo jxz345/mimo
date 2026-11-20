@@ -1,0 +1,14 @@
+{
+  "success": false,
+  "passed": [
+    "original-mode-settings-credential-and-service-intent-restored"
+  ],
+  "errors": [
+    "AssertionError: initial verified mode timed out"
+  ],
+  "trials": [],
+  "packageSHA256": "c2c0ae186584cf89115dabbe0596da38e4513240d0c23c54c480607c35f781a0",
+  "helperSHA256": "0de291b67e58915b07cadf21eddff3a89bc2e4bcc749f695da383fedbc7bbba8",
+  "guiSHA256": "4cba0f14f1a711ae6000c21f3c2e6618d7d3edfafc1cc60cbb6d7b95c66b3bd4",
+  "scope": "Six focused checks in installed normal Release in mimo-vm: warm route timeline overlapping an actual unlocked checker scan with stale-snapshot rejection; PF-lock contention; two native-writer failures/recoveries; actual DNS-entry removal; independent repair of actual child-policy loss while supervisor is briefly SIGSTOPed with timed/finally resume. No broad suite, replacement helper, synthetic notification or sleep claim. Missing-tunnel rejection not independently fault-qualified."
+}

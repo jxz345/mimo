@@ -15,7 +15,10 @@ enum MimoFirewallLock {
             let admission = try acquire(at: priority, timeout: .seconds(60))
             return try withExtendedLifetime(admission) {
                 let lock = try acquire(at: mutation, timeout: .seconds(30))
-                return try withExtendedLifetime(lock, operation)
+                return try withExtendedLifetime(lock) {
+                    try stampMutation()
+                    return try operation()
+                }
             }
         }
         let deadline = ContinuousClock.now.advanced(by: .seconds(5))
@@ -26,10 +29,24 @@ enum MimoFirewallLock {
                 guard let admission = try SingleInstanceLock(url: priority) else { return nil }
                 return try withExtendedLifetime(admission) { try SingleInstanceLock(url: mutation) }
             }()
-            if let lock { return try withExtendedLifetime(lock, operation) }
+            if let lock {
+                return try withExtendedLifetime(lock) {
+                    try stampMutation()
+                    return try operation()
+                }
+            }
             Thread.sleep(forTimeInterval: 0.01)
         } while ContinuousClock.now < deadline
         throw MimoRuntimeError.unavailable("Firewall revocation or another mutation is pending. Retry shortly.")
+    }
+
+    /// Written under mutation before touching PF. The checker reads rules without
+    /// holding the lock, then rejects its snapshot if this token changed. Kernel
+    /// flock plus the token also detects a writer that crashes during its operation.
+    private static func stampMutation() throws {
+        let url = MimoRuntime.directory.appendingPathComponent("pf-mutation.epoch")
+        try Data(UUID().uuidString.utf8).write(to: url, options: .atomic)
+        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
     }
     static func acquire(at url: URL, timeout: Duration = .seconds(5)) throws -> SingleInstanceLock {
         let deadline = ContinuousClock.now.advanced(by: timeout)

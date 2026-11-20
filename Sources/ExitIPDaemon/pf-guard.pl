@@ -165,9 +165,8 @@ sub ensure_reference {
     return 1;
 }
 
-# PF reads which decide repair and actual mutations share Swift's short lock.
-# The broader lifecycle lock still protects jobs/files, without delaying an
-# event's immediate gate revocation while those slower checks run.
+# Only snapshot capture/commit and actual repairs hold mutation. Slow PF reads
+# run outside it; the common mutation token rejects overlapping Mimo writers.
 sub revocation_pending {
     sysopen(my $priority, "$runtime/pf-revocation.lock", O_RDWR | O_CREAT | O_NOFOLLOW, 0600)
         or die "Cannot inspect PF revocation admission\n";
@@ -175,7 +174,8 @@ sub revocation_pending {
 }
 
 sub with_pf_mutation {
-    my ($operation, $revoking) = @_;
+    my ($operation, $revoking, $writing) = @_;
+    $writing = 1 unless defined $writing;
     return $operation->() if $pf_mutation_held;
     sysopen(my $mutation, "$runtime/pf-mutation.lock", O_RDWR | O_CREAT | O_NOFOLLOW, 0600)
         or die "Cannot open PF mutation lock\n";
@@ -206,7 +206,56 @@ sub with_pf_mutation {
     }
     local $pf_mutation_held = 1;
     local $pf_revoking = $revoking // 0;
+    stamp_mutation() if $writing;
     return $operation->();
+}
+
+sub stamp_mutation {
+    open my $random, '<', '/dev/urandom' or die "Cannot create PF mutation token\n";
+    my $bytes;
+    read($random, $bytes, 16) == 16 or die "Cannot read PF mutation token\n";
+    atomic_write("$runtime/pf-mutation.epoch", unpack('H*', $bytes));
+}
+
+sub pf_snapshot_identity {
+    return [map { -e $_ ? read_file($_) : undef }
+        ("$runtime/pf-mutation.epoch", "$runtime/gate.state", "$runtime/guard.expected",
+         "$runtime/probe-policy.expected", "$runtime/open-policy.expected", "$guard/pf-reference.json")];
+}
+
+sub inspect_pf_snapshot {
+    my ($snapshot, $id) = @_;
+    my ($epoch, $state, $expected, $probe, $final, $reference) = @$snapshot;
+    $state //= '';
+    my $main = required('/sbin/pfctl', '-sr');
+    my $live = required('/sbin/pfctl', '-a', $anchor, '-sr');
+    my $info = required('/sbin/pfctl', '-s', 'info');
+    my $children_valid = 1;
+    my $withdrawn = 0;
+    if ($live =~ /^anchor "permission"/m) {
+        for my $child (['probe-policy', $probe], ['open-policy', $final]) {
+            my $actual = required('/sbin/pfctl', '-a', $anchor . '/' . $child->[0], '-sr');
+            $children_valid = 0 unless defined($child->[1]) && $actual eq $child->[1];
+        }
+        if ($state eq 'active') {
+            my $grant = required('/sbin/pfctl', '-a', "$anchor/permission", '-sr');
+            if ($grant =~ /^\s*$/) {
+                $withdrawn = 1;
+                $state = 'blocked';
+            } else {
+                $children_valid = 0 unless $grant =~ /^anchor "(?:[^"\n]*\/)?open-policy" out quick all\s*$/;
+            }
+        }
+    }
+    my $references = required('/sbin/pfctl', '-s', 'References');
+    die "Cannot inspect PF enable references\n" unless $references =~ /TOKENS:/ || $references =~ /^No pf starter references held\s*$/;
+    my $saved = defined($reference) ? decode_json($reference) : {};
+    return {
+        needs_block => $info !~ /Status: Enabled/ || !main_rules_supported($main) ||
+            $state !~ /^(?:blocked|active|direct)$/ || !$children_valid || !defined($expected) || $live ne $expected,
+        withdrawn => $withdrawn,
+        reference_live => ($saved->{boot} // '') eq $id && reference_live($saved->{token}, $references)
+    };
 }
 
 sub close_gate {
@@ -379,48 +428,43 @@ sub run {
     }
     return if $operation eq '--boot' || -e "$runtime/maintenance";
     my $changed = restore_file("$guard/blocking.pf", $rules, 0644) + configure();
+    my $observed_at = time();
+    my $snapshot = with_pf_mutation(sub { pf_snapshot_identity(); }, 0, 0);
+    print STDERR "mimo_pf_scan_started mutation_lock=not_held\n";
+    my $observation = inspect_pf_snapshot($snapshot, $id);
+    print STDERR "mimo_pf_scan_finished mutation_lock=not_held\n";
     with_pf_mutation(sub {
-        my $main = required('/sbin/pfctl', '-sr');
-        my $live = required('/sbin/pfctl', '-a', $anchor, '-sr');
-        my $info = required('/sbin/pfctl', '-s', 'info');
-        my $state = -e "$runtime/gate.state" ? read_file("$runtime/gate.state") : '';
-        my $children_valid = 1;
-        if ($live =~ /^anchor "permission"/m) {
-            for my $child ('probe-policy', 'open-policy') {
-                my $actual = required('/sbin/pfctl', '-a', "$anchor/$child", '-sr');
-                $children_valid = 0 unless -e "$runtime/$child.expected" && $actual eq read_file("$runtime/$child.expected");
-            }
-            if ($state eq 'active') {
-                my $grant = required('/sbin/pfctl', '-a', "$anchor/permission", '-sr');
-                if ($grant =~ /^\s*$/) {
-                    # Revocation intentionally removes the permission reference.
-                    # The verified parent denies by default; do not destroy its
-                    # reusable policies while the supervisor confirms closure.
-                    atomic_write("$runtime/gate.state", 'blocked');
-                    $state = 'blocked';
-                } else {
-                    $children_valid = 0 unless $grant =~ /^anchor "(?:[^"\n]*\/)?open-policy" out quick all\s*$/;
-                }
-            }
-        }
-        if ($info !~ /Status: Enabled/ || !main_rules_supported($main) || $state !~ /^(?:blocked|active|direct)$/ ||
-            !$children_valid || !-e "$runtime/guard.expected" || $live ne read_file("$runtime/guard.expected")) {
-            close_gate($id);
+        # Token + expected-file checks catch an ABA state change or a writer
+        # that died mid-transaction. Never repair/publish a mixed snapshot.
+        die "MIMO_PF_DEFERRED\n" unless encode_json($snapshot) eq encode_json(pf_snapshot_identity());
+        if ($observation->{needs_block}) {
+            stamp_mutation();
+            close_gate_locked($id);
             ++$changed;
             print STDERR "mimo_pf_repaired action=blocked\n";
+        } else {
+            if ($observation->{withdrawn}) {
+                stamp_mutation();
+                atomic_write("$runtime/gate.state", 'blocked');
+            }
+            if (!$observation->{reference_live}) {
+                stamp_mutation();
+                $changed += ensure_reference($id);
+            }
         }
-        $changed += ensure_reference($id);
         $pf_healthy = 1;
-    });
+    }, 0, 0);
     $changed += repair_jobs($id);
     # All job changes have finished under the lifecycle lock. Clear only after
     # a healthy scan; a killed/failed checker leaves opening inhibited until
     # the next successful scan. No routine scan creates this marker.
-    with_pf_mutation(sub {
-        unlink("$runtime/infrastructure-repair") or die "Cannot clear repair marker\n"
-            if -e "$runtime/infrastructure-repair";
-    });
-    atomic_write("$guard/health.json", encode_json({boot => $id, checkedAt => time(), repaired => $changed, status => 'healthy', pf => 'enabled', launchd => 'healthy'}));
+    if (-e "$runtime/infrastructure-repair") {
+        with_pf_mutation(sub {
+            unlink("$runtime/infrastructure-repair") or die "Cannot clear repair marker\n"
+                if -e "$runtime/infrastructure-repair";
+        });
+    }
+    atomic_write("$guard/health.json", encode_json({boot => $id, checkedAt => $observed_at, repaired => $changed, status => 'healthy', pf => 'enabled', launchd => 'healthy'}));
     print "repaired\n" if $changed;
 }
 
@@ -429,7 +473,7 @@ unless (caller) {
     if ($@) {
         my $error = $@;
         if ($error =~ /^MIMO_PF_DEFERRED\b/) {
-            print STDERR "mimo_infrastructure_deferred reason=pf_revocation\n";
+            print STDERR "mimo_infrastructure_deferred reason=pf_snapshot_changed_or_revocation\n";
             exit 75;
         }
         if (($ARGV[0] // '') eq '--check' && defined $current_boot) {

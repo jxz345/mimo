@@ -220,10 +220,10 @@
     ],
     "note": "Historical cumulative checkpoint, superseded by currentCheckpoint and latestCompletedEvidence. Per-session authorization and 165-test counts refer to earlier builds."
   },
-  "packageSHA256": "897ed7bdd43c0d9c34044c8b402a30580238f96ac7f8f42f8621e4d46f8ddb27",
-  "helperSHA256": "08b95a446b0ade19e64a7e7c2e194ec5358c3da581c80027fa766cf419862fa1",
-  "guiSHA256": "189499fdb5e59cdac09792cf1af25e8b0993aa37b1aab119a5642dd0ecdf5d96",
-  "activeRun": "No test running. Five focused N1\u2013N3 checks passed; original Rule/settings/credentials/service intent, installed hashes/signature and cleanup verified.",
+  "packageSHA256": "fcaff59daff60fc7ddfabeb526c1fe31fc88da335cedbd6393da2304daf8fe58",
+  "helperSHA256": "40b4d4c538851d506a4ab75be3105be14840b51f1f3f0e6ab46802b559758006",
+  "guiSHA256": "a8df9b749139a659af5eacc116642e00eafacec39ce8cbefa2f579551cbef05b",
+  "activeRun": "No test running. Seven focused final-build checks passed; original Rule/settings/credentials/service intent, installed hashes/signature and cleanup verified.",
   "limitations": [
     "Current candidate is installed through a VM-local acceptance tap; public v1.0 preview is unchanged.",
     "Boot capture starts with its launchd worker and does not establish first-packet protection.",
@@ -234,13 +234,13 @@
     "Native Tailscale was stopped: live peer transport and current native indicator rendering remain unqualified on this artifact."
   ],
   "sourceCheckpoint": {
-    "baselineCommit": "2708087",
+    "baselineCommit": "d3df76e",
     "branch": "release/current-candidate",
     "published": true,
     "pullRequest": "https://github.com/jxz345/mimo/pull/1",
     "draft": true,
     "publicBinaryUpdated": false,
-    "note": "Revocation priority, separate recovery state and cheap tunnel/DNS checks. Five focused installed VM checks; older broad tests retain their original hashes."
+    "note": "Routine PF reads run outside mutation with token/file revalidation; blocking retains priority through confirmation. N1\u2013N3 retained. Temporary DNS recreation and supervisor-only restart recovery fixed. Seven focused installed VM checks; older broad evidence retains its hashes."
   },
   "manualSleepEvidence": "mimo-protected-dns-manual-sleep.json: unsupported/incomplete, kernel sleep count unchanged; original Rule retained",
   "sessionEvidence": "mimo-session-events-checkpoint.json",
@@ -387,5 +387,23 @@
   "n123Evidence": [
     "mimo-n123.json",
     "mimo-n123-timeline.json"
+  ],
+  "shortLockCandidate": {
+    "packageSHA256": "fcaff59daff60fc7ddfabeb526c1fe31fc88da335cedbd6393da2304daf8fe58",
+    "helperSHA256": "40b4d4c538851d506a4ab75be3105be14840b51f1f3f0e6ab46802b559758006",
+    "guiSHA256": "a8df9b749139a659af5eacc116642e00eafacec39ce8cbefa2f579551cbef05b",
+    "configuration": "Release",
+    "architecture": "arm64",
+    "inputs": {
+      "Tests/MihomoRuntimeTests/saved_proxy_test.py": "d10754b14b87901cb020d6feebe958b55115817400c8cbbc89ce125a1ba4fabc"
+    }
+  },
+  "shortLockEvidence": [
+    "mimo-short-lock.json",
+    "mimo-short-lock-timeline.json"
+  ],
+  "shortLockEarlierAttempts": [
+    "mimo-short-lock-initial-dns.json",
+    "mimo-short-lock-restart-attempt.json"
   ]
 }

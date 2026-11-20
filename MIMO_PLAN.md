@@ -1013,3 +1013,33 @@ N1–N3 are installed in the normal arm64 Release in mimo-vm. Five focused check
 | 5.492–6.767 | Internet open; full background audit finishes |
 
 [Focused evidence](Tests/ReleaseEvidence/mimo-n123.json) · [Timeline](Tests/ReleaseEvidence/mimo-n123-timeline.json). Missing-tunnel rejection and scanner command-boundary yielding are implemented but not independently fault-qualified in this limited run.
+
+## Remove routine scanner contention; retain N1–N3 — 20 November 2026
+
+The N1–N3 trial exposed two remaining waits: routine PF scans still held mutation across several commands, and closure reacquired ordinary mutation just to publish `blocked` after readback. The correction retains revocation priority, native/verification/infrastructure recovery separation and cheap tunnel/DNS checks.
+
+Closure now uses one revocation-priority transaction for permission removal, the barrier, state flushing, parent/enable readback and the `blocked` publication. `deny_publish` records the final file write separately. There is no ordinary-priority lock reacquisition between denial and confirmed status. Cancellation is still checked before PF mutation and before publication; Direct's parent replacement uses the same PF lock.
+
+Routine checker work captures the mutation token and expected files under a brief lock, runs PF read commands without holding mutation, then reacquires a brief lock and compares the token/files before accepting the result. Swift and Perl stamp a fresh token under mutation before each write transaction. A transition back to the same mode still changes the token; a writer dying mid-operation cannot hide overlap. A changed snapshot exits deferred (75), publishes no fresh health and clears no failure. Real repair is still locked; its decision comes only from a validated snapshot. Healthy scans execute no `pfctl` subprocess while holding mutation. Their health timestamp describes the start of observation, not the later end of launchd scanning.
+
+The token coordinates Mimo-owned transactions. External administrator PF changes do not participate; they remain subject to periodic inspection, not instantaneous detection. A continuous stream of mutations can defer scans and make their health observation overdue. Running PF commands and actual repairs can still delay other operations. No zero-delay or three-second guarantee is introduced.
+
+The focused test times a real route change during an actual independent scan, requires that stale scan to be discarded, repeats the N1–N3 failure checks, and verifies independent repair of a real missing child policy while the supervisor is briefly stopped and then resumed. No broad suite.
+
+The first installation attempt exposed a DNS recovery defect from the earlier missing-entry test: `SetValue` recreated a removed key without temporary session ownership, and a later supervisor could not add its temporary resolver. Recovery now uses `AddTemporaryValue` when the key is absent or the new supervisor first acquires it; only the dedicated Mimo key is reclaimed if an older version left it behind. An existing owned entry can still be updated without republishing an identical value. The focused check now includes an actual supervisor restart after DNS-entry recovery, confirming the recreated key disappears when its owner exits and is reacquired successfully. The initial failure remains in `mimo-short-lock-initial-dns.json`.
+
+The subsequent restart check confirmed temporary-key cleanup but exposed a recovery trigger gap: a restarted supervisor stayed blocked while the already-running core had no new lookup to request. Protected startup now marks full verification pending when all required services are enabled. The first healthy infrastructure scan requests it; the flag remains until successful full verification. Saved Stop intent and Direct are excluded. The intermediate result remains in `mimo-short-lock-restart-attempt.json`.
+
+The scanner-contention correction is installed in the normal arm64 Release in mimo-vm, retaining N1–N3. Seven focused checks pass: warm route verification during a real unlocked checker scan with stale-snapshot rejection, PF-lock contention beyond two seconds, two native-writer failures with full recovery, actual DNS-entry removal, temporary DNS ownership across supervisor restart, and independent repair of actual child-policy loss. Original Rule/settings/credentials/service intent, installed hashes/signature and cleanup are verified. No broad suite was rerun. The final-build warm trial opened PF at **3.926 s** and completed its audit at **5.087 s**, versus the previous N1–N3 trial’s **5.492 s** opening. Opening lock acquisition was **0 ms** at log precision; blocked-state publication was **1 ms**. These are individual observations, not a latency guarantee; the final trial did not meet the three-second target.
+
+| Seconds after route request | Work |
+|---|---|
+| 0.003–1.177 | Block/read back/publish and observe confirmation; cleanup/profile work overlaps |
+| 1.177–1.280 | Preparation join and scheduling |
+| 1.280–1.553 | Permit private probe |
+| 1.555–2.951 | Fresh exit-IP lookup |
+| 2.951–3.354 | Core handoff and approval join |
+| 3.354–3.926 | Final identity/DNS/tunnel/policy checks and Open grant; 0 ms acquisition wait |
+| 3.926–5.087 | Internet open; full background audit completes |
+
+[Focused evidence](Tests/ReleaseEvidence/mimo-short-lock.json) · [Timeline](Tests/ReleaseEvidence/mimo-short-lock-timeline.json). The intermediate 2.494 s trial belongs to the earlier restart-failure artifact. Final evidence supersedes it; no average combines these builds.
