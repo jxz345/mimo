@@ -2,6 +2,8 @@
 
 ## Unreleased — current VM candidate
 
+- Detect lock/unlock, login/logout, user switching and display sleep/wake in the root supervisor, independently of the GUI. Revoke old protected approvals and close PF before rechecking; keep Direct open. Re-establish the barrier on wake/cancelled sleep and preserve the sleep hold across session events.
+
 - Enable Rule/Global through real profile validation, private exit-IP verification and the saved allowlist. Empty or mismatched allowlists remain blocked.
 - Load an independent saved PF boot policy and monitor PF, launchd registrations and IPv6 policy; show their health and last-check timers on the dashboard.
 - Permit installed-app controls without administrator prompts after setup, using the installer-pinned app signature. Keep root-only traffic approval separate.

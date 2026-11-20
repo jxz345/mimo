@@ -3,6 +3,7 @@
   "environment": "mimo-vm only",
   "configuration": "Release",
   "pending": [
+    "Real lock/unlock, login/logout and display-event acceptance for new supervisor observer",
     "Two users logged in simultaneously / concurrent GUI sessions (not tested; user reports VM limitation)",
     "Existing peer UDP service coverage if available; no peer/Delta configuration changes",
     "Actual macOS sleep LAST; kernel sleep/wake counters must advance",
@@ -49,10 +50,14 @@
     {
       "evidence": "mimo-dns-privacy-otpm_bhr",
       "result": "Public UDP/TCP/unique-name DNS and HTTPS passed in Rule and Global. MagicDNS query began before native connect/reverification finished and timed out behind the deliberate guard. Test now waits for transaction completion and a fresh approved observation. Original Direct/native-off settings restored."
+    },
+    {
+      "evidence": "User-reported lock/unlock after manual sleep attempt",
+      "result": "Previous GUI callback only refreshed state; no protected recheck. New root observer installed; actual event acceptance pending."
     }
   ],
   "architecture": "arm64",
-  "currentCheckpoint": "2026-11-20: current candidate passes 175 shared, 15 DNS, 88 feature, 7 Brew, 20 real-reboot and 7 restoration assertions",
+  "currentCheckpoint": "2026-11-20: session-event correction passes 181 shared tests, service regressions and installed Rule/configuration/signature/access preflight; human lock/unlock pending",
   "latestCompletedEvidence": [
     "mimo-service-progress.json",
     "mimo-service-progress-user-confirmation.json",
@@ -145,10 +150,10 @@
     ],
     "note": "Historical cumulative checkpoint, superseded by currentCheckpoint and latestCompletedEvidence. Per-session authorization and 165-test counts refer to earlier builds."
   },
-  "packageSHA256": "0e2be8e633927db5fde7e1203e0d7a8f2c2c852e5e44382083c255d60c650065",
-  "helperSHA256": "3c8cfed59222a780f0bbf4bf55f9b4437cb0034fff7dbf1c26ab0d7b0d487d1c",
-  "guiSHA256": "9ae83fead6840b5cfeb1330415aadafa483242a4faf9127ab0401d2d375b33a7",
-  "activeRun": "Read-only manual sleep observer in the user-selected Rule mode; no automated mode/service changes",
+  "packageSHA256": "2e8c6e7c5629591226a41bb21f09b0fed9e6fdddfa20fbb5339c26e9a32cf678",
+  "helperSHA256": "8e23dff0f092a63027fe1a97b4c06041d82cd665fae9742ac96647de59f45fd6",
+  "guiSHA256": "1b7eda42384d42fe32ed56017bfce3d2e27e34a1fb981d01d6506f979eb710d9",
+  "activeRun": "Read-only Rule lock/unlock observer; no automated mode or service changes",
   "limitations": [
     "Current candidate is installed through a VM-local acceptance tap; public v1.0 preview is unchanged.",
     "Boot capture starts with its launchd worker and does not establish first-packet protection.",
@@ -164,6 +169,7 @@
     "draft": true,
     "publicBinaryUpdated": false
   },
-  "awaitingUser": "Rule-mode sleep observer is ready. User must attempt macOS Sleep inside mimo-vm, wake it, and report completion.",
-  "manualSleepEvidence": "/var/tmp/mimo-release-sleep-_0tfxrwm"
+  "awaitingUser": "Lock macOS in mimo-vm for about 10 seconds, then unlock and report dashboard/menu transitions",
+  "manualSleepEvidence": "mimo-protected-dns-manual-sleep.json: unsupported/incomplete, kernel sleep count unchanged; original Rule retained",
+  "sessionEvidence": "mimo-session-events-checkpoint.json"
 }

@@ -4,7 +4,7 @@ import Foundation
 /// share this text so they agree with the system monitoring engine.
 public enum MonitoringRules {
     public static func summary(interval: RefreshInterval) -> String {
-        "Checks \(interval.cadence), and right after a network, route, proxy, DNS, VPN/TUN change, or system wake."
+        "Checks \(interval.cadence), and after network, route, proxy, DNS, VPN/TUN, lock, login, user-switch, display or system-wake changes."
     }
 }
 

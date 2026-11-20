@@ -24,6 +24,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
     private var commandFence = MimoCommandFence()
     private lazy var networkObserver = MimoNetworkObserver { [weak self] reason in self?.networkChanged(reason) }
     private lazy var powerGuard = MimoPowerGuard { [weak self] reason in self?.networkChanged(reason) }
+    private lazy var sessionObserver = MimoSessionObserver(powerGuard: powerGuard) { [weak self] reason in self?.networkChanged(reason) }
     private var verificationPowerEpoch: UInt64?
     private var tailnetEnabled = false
     private lazy var nativeTransportObserver = MimoNativeTransportObserver { [weak self, runtime = self.runtime] transport in
@@ -75,6 +76,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
             RuntimeLog.shared.info("mimo_supervisor_ready", fields: ["mode": policy.state.configuration.mode.rawValue])
         } catch { policy.block(error.localizedDescription, confirmed: runtime.closed) }
         networkObserver.start()
+        sessionObserver.start()
         tailnetEnabled = (try? runtime.savedTailnetEnabled()) ?? false
         nativeTransportObserver.start(tailnetEnabled: tailnetEnabled)
         // Infrastructure commands can wait for launchd or the firewall lock.
@@ -130,7 +132,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 }
                 if self.policy.state.phase == .active, self.policy.state.configuration.mode.requiresVerification {
                     do {
-                        guard self.networkObserver.isRunning, self.powerGuard.isRunning, let profile = self.activeProfile,
+                        guard self.networkObserver.isRunning, self.powerGuard.isRunning, self.sessionObserver.isRunning, let profile = self.activeProfile,
                               try self.runtime.matches(profile, active: true, proxy: self.proxy) else {
                             throw MimoRuntimeError.unavailable("The active runtime or network observer changed. Verification is required.")
                         }
@@ -142,13 +144,13 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
 
     func stop() {
         watchdog?.cancel(); infrastructureMonitor?.cancel()
-        networkObserver.stop(); nativeTransportObserver.stop(); powerGuard.stop()
+        sessionObserver.stop(); networkObserver.stop(); nativeTransportObserver.stop(); powerGuard.stop()
         if policy.state.configuration.mode.requiresVerification { close("The supervisor is restarting.") }
     }
 
     private func networkChanged(_ reason: String) {
         generation &+= 1
-        if policy.state.configuration.mode.requiresVerification { close("Network settings changed. Verification is required.") }
+        if policy.state.configuration.mode.requiresVerification { close("Network or system state changed. Verification is required.") }
         else if !runtime.maintenanceActive {
             do { try runtime.enforceIPv4Policy() }
             catch { close("IPv4-only network settings could not be applied: \(error.localizedDescription)") }
@@ -254,7 +256,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 allowlist = allowed
                 // Verify the installed engine and observers before staging the private probe.
                 try runtime.checkInstallation()
-                guard networkObserver.isRunning, powerGuard.isRunning else { throw MimoRuntimeError.unavailable("Network or power change observation is unavailable. Repair installation.") }
+                guard networkObserver.isRunning, powerGuard.isRunning, sessionObserver.isRunning else { throw MimoRuntimeError.unavailable("Network, session or power change observation is unavailable. Repair installation.") }
                 let secret = try credentials.read(account: MimoRuntime.proxyPasswordAccount) ?? ""
                 var proxy = try metadata.settings(password: secret)
                 let epoch = generation

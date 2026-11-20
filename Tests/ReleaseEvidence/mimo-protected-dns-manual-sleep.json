@@ -1,0 +1,16 @@
+{
+  "success": false,
+  "unsupported": true,
+  "passed": [
+    "original-saved-mode-configuration-credentials-and-service-intent-retained"
+  ],
+  "errors": [
+    "Manual attempt did not increase macOS Sleep Count"
+  ],
+  "packageSHA256": "0e2be8e633927db5fde7e1203e0d7a8f2c2c852e5e44382083c255d60c650065",
+  "helperSHA256": "3c8cfed59222a780f0bbf4bf55f9b4437cb0034fff7dbf1c26ab0d7b0d487d1c",
+  "syntheticPowerEvents": false,
+  "mode": "rule",
+  "readOnlyObserver": true,
+  "scope": "Human macOS Sleep attempt in Apple VirtualMac; executed after other tests; not a continuous packet-boundary proof"
+}

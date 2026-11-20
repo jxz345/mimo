@@ -117,8 +117,8 @@ final class EventLogLineTests: XCTestCase {
 
     func testMonitoringSummaryDescribesTimerAndEvents() {
         XCTAssertEqual(MonitoringRules.summary(interval: .fifteenMinutes),
-                       "Checks every 15 minutes, and right after a network, route, proxy, DNS, VPN/TUN change, or system wake.")
-        XCTAssertTrue(MonitoringRules.summary(interval: .sixtyMinutes).hasPrefix("Checks every hour, and right after"))
+                       "Checks every 15 minutes, and after network, route, proxy, DNS, VPN/TUN, lock, login, user-switch, display or system-wake changes.")
+        XCTAssertTrue(MonitoringRules.summary(interval: .sixtyMinutes).hasPrefix("Checks every hour, and after"))
         for interval in RefreshInterval.allCases {
             XCTAssertFalse(MonitoringRules.summary(interval: interval).contains("recommended"))
         }

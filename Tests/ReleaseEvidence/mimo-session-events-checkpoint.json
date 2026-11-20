@@ -1,0 +1,27 @@
+{
+  "updated": "2026-11-20",
+  "environment": "mimo-vm only",
+  "packageSHA256": "2e8c6e7c5629591226a41bb21f09b0fed9e6fdddfa20fbb5339c26e9a32cf678",
+  "helperSHA256": "8e23dff0f092a63027fe1a97b4c06041d82cd665fae9742ac96647de59f45fd6",
+  "guiSHA256": "1b7eda42384d42fe32ed56017bfce3d2e27e34a1fb981d01d6506f979eb710d9",
+  "implemented": [
+    "Root supervisor lock/unlock, login/logout, console-session and display-state observation every 500 ms",
+    "Independent PF closure and approval invalidation before actor notification; Direct bypass",
+    "Wake/cancelled-sleep re-establishes barrier; session changes cannot release sleep hold"
+  ],
+  "passed": [
+    "181 shared tests in mimo-vm",
+    "Service regression suite in mimo-vm, including session/wake stale approval and Direct bypass checks",
+    "Normal arm64 Release build and strict signature/package checks",
+    "Installed Release hashes/signature and original Rule/proxy/allowlist/credential/service intent retained",
+    "Installed observer reports healthy; saved Rule recovered with approved exit",
+    "Installed-app password-free control/private-profile diagnostic"
+  ],
+  "pending": [
+    "Human lock/unlock on this exact build",
+    "Actual macOS sleep/wake unavailable in prior VM attempt; not replaced by lock test",
+    "Login/logout, fast-user-switch and display-only events on this exact build"
+  ],
+  "scope": "Logic regressions plus installed preflight; no synthetic session/power event is counted as real OS acceptance",
+  "manualEvidenceRoot": "/var/tmp/mimo-session-dncdhqkx"
+}

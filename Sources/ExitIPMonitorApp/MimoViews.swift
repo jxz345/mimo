@@ -532,9 +532,10 @@ struct SettingsView: View {
                     systemEvent("DNS, proxy, routes, interfaces & VPN", action: "Block → Check IP")
                     systemEvent("Sleep → Wake / cancelled sleep", action: "Block → Check before reopening")
                     systemEvent("Reboot / service recovery", action: "Restore protection → Verify")
-                    systemEvent("Login / user switch / display wake", action: "Refresh shared status")
-                    systemEvent("Logout / lock / close Mimo", action: "Shared protection continues")
-                    Text("Blocking applies to Rule / Global. VPN events include connect, disconnect and configuration changes. Login or display wake alone refreshes status. Notifications are asynchronous; remote exit-IP changes need routine or manual checks.")
+                    systemEvent("Lock / unlock / login / logout / user switch", action: "Block → Check IP")
+                    systemEvent("Display sleep / wake", action: "Block → Check IP")
+                    systemEvent("Close / reopen Mimo", action: "Shared protection continues")
+                    Text("Blocking applies to Rule / Global. Direct stays open and refreshes its IP. The system service checks lock, session and display state every 0.5 seconds; system sleep uses a separate pre-sleep firewall barrier. Detection is asynchronous; remote exit-IP changes need routine or manual checks.")
                         .font(.caption).foregroundStyle(.secondary).padding(.top, 3)
                 }
             }.id(ScrollTarget.monitoringEvents)

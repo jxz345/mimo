@@ -515,3 +515,9 @@ Current-candidate completion checkpoint (2026-11-20): the same protected-DNS pac
 
 
 Manual acceptance update (2026-11-20): the user confirms the mode/Quit shortcuts and sequential account/shared-state check. Two users logged in simultaneously remain untested because of the reported VM limitation; do not relabel this as concurrent-session or fast-user-switching coverage. The final sleep observer preserves the user's current Rule selection and changes no mode or service state. Its result is still pending.
+
+## Lock/unlock and system-event correction — 2026-11-20
+
+The user reports that lock/unlock did not block and recheck. Move this responsibility to the root supervisor: sample lock/console/display state every 500 ms, invalidate in-flight approvals and close PF on an independent worker before requesting verification. Cover lock/unlock, login/logout, user switching and display sleep/wake. Direct remains open and gets only an informational IP refresh. App focus/open/close alone remains a shared-status operation. Preserve IOKit pre-sleep closure; explicitly re-establish blocking on wake/cancelled sleep and never let a session event release the sleep hold. Unknown session state prevents protected approval.
+
+Validate policy and approval races in mimo-vm, then deploy preserving the user-selected Rule configuration. Real lock/unlock requires user operation of the VM; actual sleep remains incomplete because the kernel sleep count did not advance. Sequential login checks do not qualify simultaneous logged-in users. New code and old package evidence must remain separately identified.

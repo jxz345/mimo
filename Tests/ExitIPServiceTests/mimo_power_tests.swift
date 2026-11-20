@@ -11,7 +11,7 @@ enum MimoPowerTests {
         try fence.sleep { closes += 1 }
         require(closes == 0, "Direct must not acquire an allowlist or sleep firewall restriction")
         do { _ = try fence.arm(); require(false, "verification cannot start while sleeping") } catch {}
-        fence.wake()
+        try fence.wake()
         let beforeSleep = try fence.arm()
         try fence.activate(epoch: beforeSleep) {}
         try fence.sleep { closes += 1 }
@@ -20,7 +20,7 @@ enum MimoPowerTests {
             try fence.activate(epoch: beforeSleep) { require(false, "late approval must not open during sleep") }
             require(false, "sleep must reject approval")
         } catch {}
-        fence.wake()
+        try fence.wake()
         do {
             try fence.activate(epoch: beforeSleep) { require(false, "pre-sleep approval must not open on wake") }
             require(false, "wake must invalidate all old approvals")
@@ -29,12 +29,39 @@ enum MimoPowerTests {
         try fence.activate(epoch: afterWake) {}
         do { try fence.sleep { throw DaemonFailure.unavailable }; require(false, "guard failure must propagate") } catch {}
         do { _ = try fence.arm(); require(false, "failed sleep guard must still inhibit opening") } catch {}
-        fence.wake()
+        try fence.wake()
         try fence.direct {}
         try fence.sleep { closes += 1 }
         require(closes == 1, "explicit Direct must release protected sleep behavior")
         try concurrentActivation()
+        try sessionInvalidation()
         print("PASS: power fence closes before acknowledgement, rejects late approvals and requires fresh verification after wake")
+    }
+
+    private static func sessionInvalidation() throws {
+        let fence = MimoPowerFence()
+        var closes = 0
+        try fence.invalidate { closes += 1 }
+        try fence.wake { closes += 1 }
+        require(closes == 0, "Direct session and wake events must keep IPv4 open")
+        let old = try fence.arm()
+        try fence.invalidate { closes += 1 }
+        require(closes == 1, "a protected session event must close before it is delivered to the actor")
+        do { try fence.activate(epoch: old) {}; require(false, "a pre-unlock approval must be rejected") } catch {}
+        let fresh = try fence.arm()
+        try fence.activate(epoch: fresh) {}
+        try fence.sleep { closes += 1 }
+        try fence.invalidate { closes += 1 }
+        do { _ = try fence.arm(); require(false, "an unlock must not release the system-sleep hold") } catch {}
+        try fence.wake { closes += 1 }
+        require(closes == 4, "wake must establish a barrier even if the sleep notification was missed")
+        let beforeFailure = try fence.arm()
+        do { try fence.invalidate { throw DaemonFailure.unavailable }; require(false, "closure failure must propagate") } catch {}
+        do { try fence.activate(epoch: beforeFailure) {}; require(false, "failed closure must still revoke stale approval") } catch {}
+        try fence.direct {}
+        try fence.invalidate { closes += 1 }
+        require(closes == 4, "switching to Direct must release session restrictions")
+        print("PASS: session and wake events revoke stale approvals, preserve sleep hold, and bypass Direct")
     }
 
     private static func concurrentActivation() throws {

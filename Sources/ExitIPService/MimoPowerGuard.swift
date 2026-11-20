@@ -1,8 +1,9 @@
 import Foundation
 import IOKit.pwr_mgt
 
-/// Shared by the independent IOKit queue and the supervisor. An approval from
-/// before sleep must never release the sleep barrier, even if its XPC reply is late.
+/// Shared by the independent power/session queues and the supervisor. An
+/// approval from before a system event must never release its barrier, even
+/// if its XPC reply is late. Session invalidation cannot clear the sleep hold.
 final class MimoPowerFence: @unchecked Sendable {
     private let lock = NSLock()
     private var epoch: UInt64 = 0
@@ -27,12 +28,29 @@ final class MimoPowerFence: @unchecked Sendable {
         }
     }
 
-    func wake() { lock.withLock { sleeping = false; epoch &+= 1 } }
+    @discardableResult
+    func wake(close: () throws -> Void = {}) throws -> Bool {
+        try lock.withLock {
+            sleeping = false
+            epoch &+= 1
+            if protected { try close() }
+            return protected
+        }
+    }
+
+    @discardableResult
+    func invalidate(close: () throws -> Void) throws -> Bool {
+        try lock.withLock {
+            epoch &+= 1
+            if protected { try close() }
+            return protected
+        }
+    }
 
     func activate(epoch candidate: UInt64, operation: () throws -> Void) throws {
         try lock.withLock {
             guard protected, !sleeping, candidate == epoch else {
-                throw MimoRuntimeError.unavailable("Power state changed. A fresh IP verification is required.")
+                throw MimoRuntimeError.unavailable("System state changed. A fresh IP verification is required.")
             }
             try operation()
         }
@@ -107,9 +125,7 @@ final class MimoPowerGuard: @unchecked Sendable {
         case 0xe0000280: // SystemWillSleep: close first, acknowledge second.
             do {
                 let guarded = try fence.sleep {
-                    try Self.command(["-a", Self.anchor, "-f", "-"], input: Data(MimoFirewallPolicy.startupBlocking.utf8))
-                    try Self.command(["-k", "0.0.0.0/0"])
-                    try Self.command(["-k", "::/0"])
+                    try Self.closeBarrier()
                 }
                 RuntimeLog.shared.info(guarded ? "mimo_sleep_guard_closed" : "mimo_direct_sleep_prepared")
                 acknowledge()
@@ -121,13 +137,25 @@ final class MimoPowerGuard: @unchecked Sendable {
                 Task { @MainActor in changed("sleep_guard_failed") }
             }
         case 0xe0000300, 0xe0000290: // HasPoweredOn / WillNotSleep
-            fence.wake()
-            Task { @MainActor in changed("wake") }
+            do {
+                let guarded = try fence.wake { try Self.closeBarrier() }
+                RuntimeLog.shared.info(guarded ? "mimo_wake_guard_closed" : "mimo_direct_wake_prepared")
+                Task { @MainActor in changed("wake") }
+            } catch {
+                RuntimeLog.shared.error("mimo_wake_guard_failed", fields: ["error": error.localizedDescription])
+                Task { @MainActor in changed("wake_guard_failed") }
+            }
         default: break
         }
     }
 
     static func clear() throws { try command(["-a", anchor, "-F", "rules"]) }
+
+    static func closeBarrier() throws {
+        try command(["-a", anchor, "-f", "-"], input: Data(MimoFirewallPolicy.startupBlocking.utf8))
+        try command(["-k", "0.0.0.0/0"])
+        try command(["-k", "::/0"])
+    }
 
     private static func command(_ arguments: [String], input: Data? = nil) throws {
         guard BoundedProcess.run("/sbin/pfctl", arguments, timeout: 2, input: input).status == 0 else {
