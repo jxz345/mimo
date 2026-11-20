@@ -1,0 +1,42 @@
+{
+  "success": true,
+  "passed": [
+    "rule-screen_locked-observed-and-handled",
+    "rule-screen_unlocked-observed-and-handled",
+    "protected-unlock-blocked-checking-fresh-probe-before-open",
+    "saved-mode-configuration-credential-and-service-intent-preserved"
+  ],
+  "errors": [],
+  "mode": "rule",
+  "timings": [
+    {
+      "source": "screen_locked",
+      "detectedAtUTC": "2026-11-20T13:48:03Z",
+      "openedAtUTC": "2026-11-20T13:48:06Z",
+      "secondsToOpen": 3.0
+    },
+    {
+      "source": "display_sleep",
+      "detectedAtUTC": "2026-11-20T13:48:32Z",
+      "openedAtUTC": "2026-11-20T13:48:36Z",
+      "secondsToOpen": 4.0
+    },
+    {
+      "source": "display_wake",
+      "detectedAtUTC": "2026-11-20T13:48:37Z",
+      "openedAtUTC": "2026-11-20T13:48:40Z",
+      "secondsToOpen": 3.0
+    },
+    {
+      "source": "screen_unlocked",
+      "detectedAtUTC": "2026-11-20T13:48:51Z",
+      "openedAtUTC": "2026-11-20T13:48:53Z",
+      "secondsToOpen": 2.0
+    }
+  ],
+  "packageSHA256": "036b680a9d5e395e6c3ba303c0367d3370994922caaee58a5b6168531b1a80e4",
+  "helperSHA256": "df548d9a92665906584de4375dc9d685942879754f9afcbf42f0b62b399d3eec",
+  "readOnlyObserver": true,
+  "realSleepTest": false,
+  "scope": "Human lock/unlock in the installed Release VM; state and ordered event evidence, not continuous packet proof"
+}

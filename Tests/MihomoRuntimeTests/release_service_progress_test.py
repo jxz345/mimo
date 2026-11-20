@@ -132,8 +132,18 @@ def main():
                         assert closures and closures[-1]['fields']['confirmed'] == 'true'
                         record(mode + '-' + service + '-' + operation + '-confirmed-blocking-before-operation-and-reply')
                         if operation == 'stop':
-                            assert state()['phase'] == 'blocked'
+                            # Engine teardown emits real route/configuration
+                            # events after the confirmed Stop receipt. Their
+                            # asynchronous reconfirmation may briefly show
+                            # Closing while PF still denies traffic. Verify the
+                            # actual grant and traffic, then require settlement.
+                            stopped_state = state()
+                            assert stopped_state['phase'] in ('blocked', 'closing')
+                            assert stopped_state.get('effectiveMode') is None
+                            assert (RUNTIME / 'gate.state').read_text() == 'blocked'
+                            assert not command('/sbin/pfctl', '-a', 'com.apple/000.mimo/permission', '-sr').stdout.strip()
                             https(False)
+                            wait(lambda: state()['phase'] == 'blocked', mode + '-' + service + '-Stop-settled')
                             record(mode + '-' + service + '-stopped-denies-real-HTTPS')
                     else:
                         assert result['progressBeforeReply'] == [], result
@@ -163,10 +173,12 @@ def main():
                 record('missing-controller-does-not-prevent-safe-engine-restart')
                 client('refresh'); wait(lambda: active('rule'), 'controller recovery verification')
                 https(True)
-                # Actual kernel lock contention: the existing engine must not be
-                # stopped/restarted if closing PF cannot acquire its transition lock.
+                # Hold the actual PF mutation lock. The administrative lifecycle
+                # lock no longer prevents initial revocation, so holding that
+                # lock would test later job serialization instead of this gate.
+                # The existing engine must not restart when denial times out.
                 pid, flags, before = engine_pid(), FLAGS.read_bytes(), offsets(LOGS)
-                with (RUNTIME / 'firewall.lock').open('a') as lock:
+                with (RUNTIME / 'pf-mutation.lock').open('a') as lock:
                     fcntl.flock(lock, fcntl.LOCK_EX)
                     try:
                         result = action('mihomo', 'restart')

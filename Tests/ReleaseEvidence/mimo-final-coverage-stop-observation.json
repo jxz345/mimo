@@ -1,0 +1,32 @@
+{
+  "receipt": {
+    "failure": "",
+    "finalPhase": "blocked",
+    "progressBeforeReply": [
+      "blocked"
+    ]
+  },
+  "observations": [
+    {
+      "seconds": 0.24,
+      "phase": "closing",
+      "effectiveMode": null
+    },
+    {
+      "seconds": 4.932,
+      "phase": "blocked",
+      "effectiveMode": null
+    },
+    {
+      "seconds": 7.414,
+      "phase": "blocked",
+      "effectiveMode": null
+    }
+  ],
+  "success": true,
+  "evidence": "/var/tmp/mimo-stop-observation-zr8mqua5",
+  "scope": "Real mihomo Stop in Rule. Three serial XPC samples over five seconds observed Blocked/Closing with no effective mode. Empty PF permission and denied ordinary HTTPS were asserted; Start and Rule recovery passed. This is not continuous packet capture.",
+  "packageSHA256": "fcaff59daff60fc7ddfabeb526c1fe31fc88da335cedbd6393da2304daf8fe58",
+  "helperSHA256": "40b4d4c538851d506a4ab75be3105be14840b51f1f3f0e6ab46802b559758006",
+  "guiSHA256": "a8df9b749139a659af5eacc116642e00eafacec39ce8cbefa2f579551cbef05b"
+}

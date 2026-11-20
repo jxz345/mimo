@@ -1,0 +1,29 @@
+{
+  "success": false,
+  "unsupported": true,
+  "passed": [
+    "original-Direct-configuration-and-credentials-restored"
+  ],
+  "errors": [
+    "macOS refused real sleep with exit 71"
+  ],
+  "packageSHA256": "036b680a9d5e395e6c3ba303c0367d3370994922caaee58a5b6168531b1a80e4",
+  "helperSHA256": "df548d9a92665906584de4375dc9d685942879754f9afcbf42f0b62b399d3eec",
+  "syntheticPowerEvents": false,
+  "mode": "direct-rule-global",
+  "readOnlyObserver": false,
+  "scope": "Actual pmset sleep request in Apple VirtualMac; executed after other tests; not a continuous packet-boundary proof",
+  "kernelCounts": {
+    "before": {
+      "Sleep Count": 0,
+      "Dark Wake Count": 0,
+      "User Wake Count": 0
+    },
+    "after": {
+      "Sleep Count": 0,
+      "Dark Wake Count": 0,
+      "User Wake Count": 0
+    },
+    "exit": 71
+  }
+}

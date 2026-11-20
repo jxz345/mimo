@@ -1,0 +1,18 @@
+{
+  "success": true,
+  "group": "services",
+  "passed": [
+    "original-mode-native-state-settings-credentials-and-service-intent-restored"
+  ],
+  "errors": [],
+  "children": [
+    {
+      "script": "release_service_progress_test.py",
+      "exit": 0
+    }
+  ],
+  "packageSHA256": "fcaff59daff60fc7ddfabeb526c1fe31fc88da335cedbd6393da2304daf8fe58",
+  "helperSHA256": "40b4d4c538851d506a4ab75be3105be14840b51f1f3f0e6ab46802b559758006",
+  "scope": "Installed tests execute exclusively in mimo-vm. Relay probes use an existing peer SSH service; no remote commands, new peer listeners, or Delta runtime changes.",
+  "evidence": "/var/tmp/mimo-coverage-services-9_t6846j"
+}

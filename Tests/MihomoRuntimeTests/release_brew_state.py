@@ -8,14 +8,12 @@ import hashlib,json,os
 from pathlib import Path
 import plistlib,shutil,subprocess,sys,tempfile
 from installed_acceptance_test import command
+from release_final_state import configuration_values
 from upgrade_test import HELPER,STORAGE,FLAGS,RUNTIME,read_settings
 
 BASE=Path(__file__).resolve().parent
 APP=Path('/Applications/Mimo.app')
 LABELS=('com.example.exitipmonitor.daemon','com.example.exitipmonitor.supervisor','com.example.exitipmonitor.mihomo','com.mimo.pf-boot','com.mimo.infrastructure')
-
-
-def selected(value):return {k:v for k,v in value.items() if k.startswith('service.')}
 
 
 def run():
@@ -33,7 +31,10 @@ def run():
     assert root.parent==Path('/var/tmp') and root.stat().st_uid==0 and root.stat().st_mode & 0o077==0
     passed=json.loads((root/'checks.json').read_text())
     def record(name):passed.append(name);print('PASS:',name,flush=True)
-    assert selected(read_settings())==selected(plistlib.loads((root/'state.plist').read_bytes()))
+    original = plistlib.loads((root/'state.plist').read_bytes())
+    current = read_settings()
+    assert configuration_values(current) == configuration_values(original)
+    assert current['service.revision'] >= original['service.revision']
     assert command(BASE/'acceptance-client','credential-digest').stdout.strip()==(root/'credential.digest').read_text()
     record(op+'-retains-saved-configuration-and-Keychain-password')
     if op=='uninstalled':

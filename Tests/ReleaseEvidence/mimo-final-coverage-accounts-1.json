@@ -1,0 +1,23 @@
+{
+  "success": true,
+  "passed": [
+    "exact-Release-app-hardened-and-root-owned-identity-pinned",
+    "jay-installed-app-endpoints-profile-and-relaunch-without-authorization",
+    "jay-same-identifier-different-code-rejected-by-both-endpoints",
+    "jay-public-endpoint-still-denies-service-mutation",
+    "mimotest-installed-app-endpoints-profile-and-relaunch-without-authorization",
+    "mimotest-same-identifier-different-code-rejected-by-both-endpoints",
+    "mimotest-public-endpoint-still-denies-service-mutation",
+    "standard-installed-app-endpoints-profile-and-relaunch-without-authorization",
+    "standard-same-identifier-different-code-rejected-by-both-endpoints",
+    "standard-public-endpoint-still-denies-service-mutation",
+    "shared-settings-service-intent-and-private-credential-unchanged",
+    "trusted-app-cannot-send-root-only-approval-or-network-invalidation",
+    "temporary-standard-account-removed"
+  ],
+  "error": null,
+  "helperSHA256": "40b4d4c538851d506a4ab75be3105be14840b51f1f3f0e6ab46802b559758006",
+  "packageSHA256": "fcaff59daff60fc7ddfabeb526c1fe31fc88da335cedbd6393da2304daf8fe58",
+  "scope": "Exact installed Release GUI read-only access diagnostic, two administrators and a real standard UID. Fresh process each time, no Authorization Services form. Root-only commands and unrelated clients denied. No physical dashboard interaction claimed.",
+  "evidence": "/var/tmp/mimo-password-free-3_uyk7hj"
+}

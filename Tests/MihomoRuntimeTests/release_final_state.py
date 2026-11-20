@@ -35,10 +35,16 @@ def configuration_values(value):
 def main():
     assert os.geteuid() == 0
     assert command('/usr/sbin/sysctl', '-n', 'hw.model').stdout.startswith('VirtualMac')
-    original = Path(sys.argv[1]) / 'private-backup'
+    evidence = Path(sys.argv[1])
+    original = evidence / 'private-backup'
+    if not original.exists():
+        # The read-only session observer stores the same three baseline files
+        # directly in its root-private evidence directory.
+        original = evidence
     expected_native = sys.argv[2] if len(sys.argv) > 2 else 'Running'
     assert expected_native in ('Running', 'Stopped')
-    assert original.parent.parent == Path('/var/tmp') and original.stat().st_uid == 0
+    assert evidence.parent == Path('/var/tmp') and original.stat().st_uid == 0
+    assert original.stat().st_mode & 0o077 == 0
     os.umask(0o077)
     root = Path(tempfile.mkdtemp(prefix='mimo-release-final-', dir='/var/tmp'))
     checks = []
@@ -55,6 +61,7 @@ def main():
     record('normal-Release-app-helper-and-signature-match-tested-package')
 
     saved = plistlib.loads((original / 'state.plist').read_bytes())
+    expected_mode = json.loads(saved['service.routing'])['mode']
     current = read_settings()
     assert configuration_values(current) == configuration_values(saved)
     assert current['service.revision'] >= saved['service.revision']
@@ -65,10 +72,16 @@ def main():
     state = json.loads(command(BASE / 'installation-check', 'core-state').stdout)
     supervisor = json.loads(command(BASE / 'installation-check').stdout)
     for value in (state['routing'], supervisor):
-        assert value['phase'] == 'active' and value['effectiveMode'] == 'direct'
-    assert (RUNTIME / 'gate.state').read_text() == 'direct'
-    assert not state.get('allowlistEventID') and 'notAllowed' not in state.get('authorizationState', {})
-    record('both-live-services-confirm-Direct-without-allowlist-rejection')
+        assert value['phase'] == 'active' and value['effectiveMode'] == expected_mode
+        assert not value.get('backgroundVerification')
+    assert (RUNTIME / 'gate.state').read_text() == ('direct' if expected_mode == 'direct' else 'active')
+    if expected_mode == 'direct':
+        assert not state.get('allowlistEventID') and 'notAllowed' not in state.get('authorizationState', {})
+        record('both-live-services-confirm-Direct-without-allowlist-rejection')
+    else:
+        approved = json.loads(saved['service.settings'])['allowlist']['addresses']
+        assert state['routing']['observedIP']['address'] in approved
+        record('both-live-services-confirm-original-' + expected_mode + '-with-approved-IP-and-completed-audit')
     assert supervisor['infrastructure']['pf'] == 'healthy'
     assert supervisor['infrastructure']['launchd'] == 'healthy'
     for label in (CORE, SUPERVISOR, ENGINE, 'com.mimo.pf-boot', 'com.mimo.infrastructure'):
@@ -90,7 +103,7 @@ def main():
                               'info', '--json=v2', 'jxz345/tap/mihomo@1.19.34').stdout)
     assert info['formulae'][0]['installed'][0]['installed_on_request']
     record('original-explicit-mihomo-install-intent-restored')
-    for marker in ('maintenance', 'qualification.json'):
+    for marker in ('maintenance', 'infrastructure-repair', 'qualification.json'):
         assert not (RUNTIME / marker).exists()
     for label in ('com.mimo.release-boot-test', 'com.mimo.infrastructure-acceptance'):
         assert not (Path('/Library/LaunchDaemons') / (label + '.plist')).exists()

@@ -1,0 +1,13 @@
+{
+  "success": true,
+  "passed": [
+    "rule-existing-peer-native-and-ordinary-IPv4-reachable",
+    "global-existing-peer-native-and-ordinary-IPv4-reachable",
+    "original-mode-settings-credential-and-service-intent-restored"
+  ],
+  "errors": [],
+  "packageSHA256": "fcaff59daff60fc7ddfabeb526c1fe31fc88da335cedbd6393da2304daf8fe58",
+  "helperSHA256": "40b4d4c538851d506a4ab75be3105be14840b51f1f3f0e6ab46802b559758006",
+  "scope": "mimo-vm originates native TSMP and ordinary-user IPv4 ICMP to one existing online peer. No Delta/peer settings or processes changed. Not forced-DERP reconnect or UDP echo qualification.",
+  "evidence": "/var/tmp/mimo-optimistic-tailnet-l_og5pzz"
+}
