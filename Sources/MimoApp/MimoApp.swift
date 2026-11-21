@@ -26,7 +26,7 @@ final class MimoAppDelegate: NSObject, NSApplicationDelegate {
         // Schedule after the launch callback so readiness proves the main queue is servicing work.
         DispatchQueue.main.async {
             LaunchDiagnostics.markReady()
-            // After readiness, so a slow Background Task Management reply can't delay startup.
+            // The controller dispatches slow Background Task Management calls off the UI thread.
             DispatchQueue.main.async { LoginItemSync.syncAtLaunch() }
         }
     }
@@ -144,7 +144,7 @@ final class DashboardWindowController: NSObject, NSWindowDelegate {
             forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main
         ) { [weak self] _ in
             MainActor.assumeIsolated {
-                if let window = self?.window { keepWindowOnScreen(window) }
+                if MimoAppDelegate.monitor.isSessionActive, let window = self?.window { keepWindowOnScreen(window) }
             }
         }
     }
@@ -163,7 +163,7 @@ final class DashboardWindowController: NSObject, NSWindowDelegate {
         // Dock/activation changes finish asynchronously. Request focus again after that turn,
         // when the normal window is already ordered on the active Space.
         DispatchQueue.main.async { [weak self, weak window] in
-            guard self?.isOpen == true, let window else { return }
+            guard self?.isOpen == true, MimoAppDelegate.monitor.isSessionActive, let window else { return }
             NSApp.activate()
             window.makeKeyAndOrderFront(nil)
             window.orderFrontRegardless()

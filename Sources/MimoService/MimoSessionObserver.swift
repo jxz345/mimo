@@ -15,6 +15,7 @@ final class MimoSessionObserver: @unchecked Sendable {
     private var unavailable = false
     private var pending: Set<String> = []
     private let powerGuard: MimoPowerGuard
+    private let displayObserver = MimoSessionDisplayObserver()
     private let changed: @MainActor @Sendable (String) -> Void
 
     init(powerGuard: MimoPowerGuard, changed: @escaping @MainActor @Sendable (String) -> Void) {
@@ -42,12 +43,13 @@ final class MimoSessionObserver: @unchecked Sendable {
         queue.sync {
             timer?.cancel(); timer = nil
             previous = nil; pending.removeAll(); unavailable = false
+            displayObserver.invalidate()
             statusLock.withLock { healthy = false; enabled = false }
         }
     }
 
     private func sample() {
-        let snapshot = Self.read()
+        let snapshot = Self.read().map { $0.withDisplaysAsleep(displayObserver.value(for: $0)) }
         if let snapshot {
             if unavailable { pending.insert("session_observation_restored") }
             if let previous { pending.formUnion(snapshot.changes(from: previous)) }
@@ -89,13 +91,70 @@ final class MimoSessionObserver: @unchecked Sendable {
         var properties: Unmanaged<CFMutableDictionary>?
         guard IORegistryEntryCreateCFProperties(root, &properties, kCFAllocatorDefault, 0) == KERN_SUCCESS,
               let registry = properties?.takeRetainedValue() as? [String: Any] else { return nil }
+        return MimoSessionSnapshot(registry: registry, displaysAsleep: nil)
+    }
+}
+
+/// WindowServer may stop replying during fast user switching. Its optional
+/// display sample must never hold the session observer or delay lock/login
+/// detection. At most one query can be outstanding; old-session replies expire.
+final class MimoSessionDisplayObserver: @unchecked Sendable {
+    private let lock = NSLock()
+    private let queue = DispatchQueue(label: "app.mimo.display-observer", qos: .utility)
+    private let read: @Sendable () -> Bool?
+    private var console: Set<MimoSessionSnapshot.Session> = []
+    private var generation = 0
+    private var stableAt = Date.now
+    private var sampledAt: Date?
+    private var asleep: Bool?
+    private var inFlight = false
+
+    init(read: @escaping @Sendable () -> Bool? = MimoSessionDisplayObserver.readDisplay) { self.read = read }
+
+    func invalidate() {
+        lock.withLock { generation += 1; console = []; asleep = nil; sampledAt = nil; stableAt = .now }
+    }
+
+    func value(for snapshot: MimoSessionSnapshot, at date: Date = .now) -> Bool? {
+        lock.withLock {
+            guard !snapshot.locked, !snapshot.console.isEmpty else {
+                generation += 1; console = []; asleep = nil; sampledAt = nil; stableAt = date
+                return nil
+            }
+            if console != snapshot.console {
+                generation += 1; console = snapshot.console; stableAt = date; sampledAt = nil; asleep = nil
+            }
+            // Do not contact WindowServer while the login session is settling.
+            guard date.timeIntervalSince(stableAt) >= 2 else { return nil }
+            if !inFlight, sampledAt.map({ date.timeIntervalSince($0) >= 1 }) ?? true {
+                inFlight = true
+                let requestedGeneration = generation
+                queue.async { [weak self] in
+                    guard let self else { return }
+                    // The account may have changed while this work was queued.
+                    guard self.lock.withLock({ self.generation == requestedGeneration }) else {
+                        self.lock.withLock { self.inFlight = false }; return
+                    }
+                    let value = self.read()
+                    self.lock.withLock {
+                        self.inFlight = false
+                        guard self.generation == requestedGeneration else { return }
+                        self.asleep = value; self.sampledAt = .now
+                    }
+                }
+            }
+            guard let sampledAt, date.timeIntervalSince(sampledAt) < 5 else { return nil }
+            return asleep
+        }
+    }
+
+    private static func readDisplay() -> Bool? {
         var displays = [CGDirectDisplayID](repeating: 0, count: 32)
         var count: UInt32 = 0
         let result = CGGetOnlineDisplayList(UInt32(displays.count), &displays, &count)
         // Headless/early-boot systems need not expose a display. Session and
         // system-power observation remain mandatory and independent of this.
-        let asleep: Bool? = result == .success && count > 0
+        return result == .success && count > 0
             ? displays.prefix(Int(count)).allSatisfy { CGDisplayIsAsleep($0) != 0 } : nil
-        return MimoSessionSnapshot(registry: registry, displaysAsleep: asleep)
     }
 }

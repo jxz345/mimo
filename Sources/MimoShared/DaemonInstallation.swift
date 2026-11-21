@@ -28,7 +28,7 @@ public enum DaemonInstallation {
             return monitorLoaded && responderLoaded ? .succeeded : .failed
         }
         // osascript normally exits 1 and prints the Apple event cancellation code (-128).
-        if output.contains("(-128)") { return .cancelled }
+        if output.contains("(-128)") || output.contains("[MIMO_INSTALL_CANCELLED]") { return .cancelled }
         return .failed
     }
 

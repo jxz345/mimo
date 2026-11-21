@@ -5,15 +5,6 @@ import ServiceManagement
 /// registration macOS dropped (for example when a reinstall replaced the bundle) comes back.
 @MainActor
 enum LoginItemSync {
-    static let changed = Notification.Name("MimoLoginItemChanged")
-
-    static func setEnabled(_ enabled: Bool) throws {
-        store(enabled)
-        defer { NotificationCenter.default.post(name: changed, object: nil) }
-        if enabled { try SMAppService.mainApp.register() }
-        else { try SMAppService.mainApp.unregister() }
-    }
-
     static var storedChoice: Bool? {
         MimoAppGroup.defaults.object(forKey: MimoPreferenceKey.launchAtLogin) as? Bool
     }
@@ -48,6 +39,8 @@ enum LoginItemSync {
         }
     }
 
+    /// Synchronous access is reserved for the non-GUI cleanup/status commands.
+    /// Views and app startup use LoginItemController's background worker.
     static var status: LoginItemStatus {
         switch SMAppService.mainApp.status {
         case .enabled: .enabled
@@ -59,23 +52,6 @@ enum LoginItemSync {
     }
 
     static func syncAtLaunch() {
-        let before = status
-        let action = LoginItemPolicy.action(stored: storedChoice, status: before)
-        var fields = ["action": action.rawValue, "status": before.rawValue]
-        do {
-            switch action {
-            case .register: try SMAppService.mainApp.register()
-            case .unregister: try SMAppService.mainApp.unregister()
-            case .adopt: store(true)
-            case .none: break
-            }
-            fields["result"] = "ok"
-            fields["status_after"] = status.rawValue
-            RuntimeLog.shared.info("login_item_synced", fields: fields)
-        } catch {
-            fields["result"] = "failed"
-            fields["error"] = error.localizedDescription
-            RuntimeLog.shared.error("login_item_synced", fields: fields)
-        }
+        LoginItemController.shared.synchronize(stored: storedChoice)
     }
 }

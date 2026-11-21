@@ -28,7 +28,7 @@ def run():
     jobs = {label: command('/bin/launchctl', 'print', 'system/' + label).stdout for label in (CORE, ENGINE, SUPERVISOR)}
 
     def rejected(app, name, message):
-        result = command('/usr/bin/env', 'SUDO_USER=jay', '/bin/bash', app / 'Contents/Resources/daemon.sh', 'install', check=False)
+        result = command('/usr/bin/env', 'SUDO_USER=jay', '/bin/bash', app / 'Contents/Resources/daemon.sh', 'install', '--non-interactive', check=False)
         (root / (name + '.log')).write_text(result.stdout + result.stderr)
         assert result.returncode != 0 and message in result.stdout + result.stderr
         assert read_settings() == original

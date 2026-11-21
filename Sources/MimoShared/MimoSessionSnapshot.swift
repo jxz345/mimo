@@ -13,6 +13,14 @@ public struct MimoSessionSnapshot: Equatable, Sendable {
     public let console: Set<Session>
     public let displaysAsleep: Bool?
 
+    public func withDisplaysAsleep(_ asleep: Bool?) -> Self {
+        Self(locked: locked, sessions: sessions, console: console, displaysAsleep: asleep)
+    }
+
+    private init(locked: Bool, sessions: Set<Session>, console: Set<Session>, displaysAsleep: Bool?) {
+        self.locked = locked; self.sessions = sessions; self.console = console; self.displaysAsleep = displaysAsleep
+    }
+
     /// These registry keys are macOS implementation details. An unknown schema
     /// is observation failure, never an unlocked/unchanged default.
     public init?(registry: [String: Any], displaysAsleep: Bool?) {

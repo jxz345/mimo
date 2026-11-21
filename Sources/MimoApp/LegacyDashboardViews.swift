@@ -532,8 +532,7 @@ struct LaunchAtLoginControl: View {
     /// The dashboard's one-row form: toggle and Login Items button side by side, explanation as help.
     var compact = false
     var dashboardStyle = false
-    @State private var serviceStatus = SMAppService.mainApp.status
-    @State private var errorMessage: String?
+    @ObservedObject private var loginItem = LoginItemController.shared
 
     private static let label = "Show menu-bar app at login"
     private static let serviceExplanation = "mimo-core starts at boot and keeps running when you quit Mimo’s interface."
@@ -580,37 +579,23 @@ struct LaunchAtLoginControl: View {
                 }
             }
         }
-        .onAppear { serviceStatus = SMAppService.mainApp.status }
+        .onAppear { loginItem.refresh() }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-            serviceStatus = SMAppService.mainApp.status
-        }
-        .onReceive(NotificationCenter.default.publisher(for: LoginItemSync.changed)) { _ in
-            serviceStatus = SMAppService.mainApp.status
-            errorMessage = nil
+            loginItem.refresh()
         }
     }
 
     private var toggle: some View {
         Toggle(Self.label, isOn: Binding(
-            get: { serviceStatus == .enabled },
-            set: { setEnabled($0) }
-        ))
+            get: { loginItem.status.map { $0 == .enabled } ?? LoginItemSync.storedChoice ?? false },
+            set: { loginItem.setEnabled($0) }
+        )).disabled(loginItem.isBusy || loginItem.status == nil)
     }
 
     private var statusMessage: String? {
-        if let errorMessage { return errorMessage }
-        return serviceStatus == .requiresApproval ? "macOS requires approval in Login Items Settings." : nil
-    }
-
-    private func setEnabled(_ enabled: Bool) {
-        // Remembered, so the next launch restores a registration macOS dropped.
-        do {
-            try LoginItemSync.setEnabled(enabled)
-            errorMessage = nil
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-        serviceStatus = SMAppService.mainApp.status
+        if let errorMessage = loginItem.errorMessage { return errorMessage }
+        if loginItem.isBusy || loginItem.status == nil { return "Checking login-item setting…" }
+        return loginItem.status == .requiresApproval ? "macOS requires approval in Login Items Settings." : nil
     }
 }
 
@@ -672,14 +657,17 @@ struct BackgroundServiceSection: View {
     @ObservedObject var installer: DaemonInstallationModel
     var body: some View {
         DashboardGroup("Shared background monitoring") {
-            Label(monitor.connected ? "Service connected" : "Service unavailable", systemImage: monitor.connected ? "checkmark.circle" : "exclamationmark.triangle")
+            Label(monitor.connection.title, systemImage: monitor.connected ? "checkmark.circle" : "exclamationmark.triangle")
             Text("Monitoring runs for all users, even after you quit this app. Shared settings apply to all users without another administrator password; appearance and dismissals are personal.")
                 .font(.footnote).foregroundStyle(.secondary)
             if let message = monitor.serviceMessage { Text(message).foregroundStyle(.orange) }
             if let error = monitor.operationError { Text(error).foregroundStyle(.orange) }
             if installer.isInstalling { ProgressView("Installing background service…") }
             else if !monitor.connected {
-                Button(installer.serviceInstalled ? "Repair Service" : "Install Service") { installer.install() }
+                Button("Reconnect") { monitor.reconnect() }
+                if !installer.serviceInstalled || monitor.connection.phase == .incompatible {
+                    Button(installer.serviceInstalled ? "Repair Service" : "Install Service") { installer.install() }
+                }
             } else if monitor.daemonState?.initialized == false {
                 Button("Use This Account’s Settings") { Task { await monitor.initializeSharedSettings() } }
                     .disabled(monitor.isChangingSettings)

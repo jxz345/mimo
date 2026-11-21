@@ -5,6 +5,7 @@ import Security
 struct ServiceTests {
     @MainActor
     static func main() async throws {
+        try MimoSessionDisplayTests.run()
         if CommandLine.arguments.contains("--cycle-regression") {
             try await MimoCycleTests.run()
             try MimoPowerTests.run()
@@ -125,6 +126,9 @@ struct ServiceTests {
         require(!service.state(for: 502).authorizationState.isNotAllowed && service.state(for: 502).allowlistEventID == nil,
                 "Direct must monitor its IP without comparing it to the shared allowlist or publishing a warning")
 
+        // Configuration commits schedule their own asynchronous refresh. Let that
+        // finish before measuring the separate pair of user refresh requests.
+        try await Task.sleep(for: .milliseconds(350))
         let count = await client.count
         async let first = service.handle(DaemonRequest(.refresh), uid: 501)
         async let second = service.handle(DaemonRequest(.refresh), uid: 502)

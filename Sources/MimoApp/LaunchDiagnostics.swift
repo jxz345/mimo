@@ -43,6 +43,7 @@ enum LaunchDiagnostics {
     }
 
     private static func writeHeartbeat() {
+        let activeSession = MimoAppDelegate.monitor.isSessionActive
         let record: [String: Any] = [
             "pid": Int(ProcessInfo.processInfo.processIdentifier),
             "launch_id": launchID,
@@ -54,11 +55,12 @@ enum LaunchDiagnostics {
             "version": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown",
             "build": Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "unknown",
             "dashboard_open": DashboardWindowController.shared.isOpen,
-            "dashboard_visible": DashboardWindowController.shared.window?.isVisible == true,
-            "dashboard_minimized": DashboardWindowController.shared.window?.isMiniaturized == true,
-            "dashboard_key": DashboardWindowController.shared.window?.isKeyWindow == true,
-            "dashboard_on_active_space": DashboardWindowController.shared.window?.isOnActiveSpace == true,
-            "app_active": NSApp?.isActive == true,
+            "session_active": activeSession,
+            "dashboard_visible": activeSession && DashboardWindowController.shared.window?.isVisible == true,
+            "dashboard_minimized": activeSession && DashboardWindowController.shared.window?.isMiniaturized == true,
+            "dashboard_key": activeSession && DashboardWindowController.shared.window?.isKeyWindow == true,
+            "dashboard_on_active_space": activeSession && DashboardWindowController.shared.window?.isOnActiveSpace == true,
+            "app_active": activeSession && NSApp?.isActive == true,
             "dock_visible": NSApp?.activationPolicy() == .regular,
             "status_item_visible": (NSApp?.delegate as? MimoAppDelegate)?.statusItemIsVisible == true
         ]

@@ -33,6 +33,13 @@ BOOT_PLIST="/Library/LaunchDaemons/$BOOT_GUARD.plist"
 HEALTH_PLIST="/Library/LaunchDaemons/$INFRASTRUCTURE.plist"
 BOOT_RULES=/etc/pf.anchors/com.mimo.boot
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# A downloaded installer can repair an existing sealed app without modifying its bundle.
+# Parse this before loading the app's command support; all installation checks still apply.
+if [[ "${BASH_SOURCE[0]}" = "$0" ]] && [ "${1:-}" = install ] && [ "${2:-}" = --app ]; then
+    [ "$#" = 3 ] || { echo 'Usage: daemon.sh install --app /Applications/Mimo.app' >&2; exit 2; }
+    SCRIPT_DIR=$(cd "$3/Contents/Resources" && pwd -P) || exit 1
+    set -- install
+fi
 if [ -f "$SCRIPT_DIR/command-support.sh" ]; then
     source "$SCRIPT_DIR/command-support.sh"
 elif [ -f "$SCRIPT_DIR/../MimoDiagnostics/command-support.sh" ]; then
@@ -172,17 +179,172 @@ runtime_group_id_available() {
 
 directory_query() { /usr/bin/dscl /Search "$@"; }
 
+is_competing_engine() {
+    case "$1" in
+        "$RUNTIME/mihomo"|"$EXECUTABLE") return 1 ;;
+        */mihomo|*/clash|*/clash-meta|*/verge-mihomo|*/clash-verge-service) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+# Read executable names, never full arguments (which may include proxy credentials).
+engine_conflict_snapshot() {
+    run /bin/ps -axo pid=,uid=,comm=
+}
+
+engine_process_identity() {
+    /bin/ps -p "$1" -o uid=,lstart=,comm=
+}
+
+# Explicit domains matter: a root installer launched from a GUI can still have
+# that user's bootstrap context, so an unqualified `launchctl list` is insufficient.
+engine_job_rows() {
+    local output result=0
+    output=$(run /bin/launchctl print "$1" 2>&1) || result=$?
+    if [ "$result" = 112 ] && [[ "$output" == *'Could not find domain'* ]]; then return 1; fi
+    [ "$result" = 0 ] || return 2
+    /usr/bin/awk '
+        /^\tservices = \{/ { found=1; inside=1; next }
+        inside && /^\t}/ { exit }
+        inside { print }
+        END { if (!found) exit 2 }
+    ' <<< "$output"
+}
+
+# Only remove a job whose live PID is this exact competing engine/service. Do not
+# guess labels from file names or unload a shell/Terminal that launched an engine.
+engine_job_target() {
+    local pid=$1 uid=$2 table job_pid status label extra target output domain result
+    local domains=(system)
+    [ "$uid" = 0 ] || domains+=("gui/$uid" "user/$uid")
+    for domain in "${domains[@]}"; do
+        result=0; table=$(engine_job_rows "$domain") || result=$?
+        [ "$result" != 1 ] || continue
+        [ "$result" = 0 ] || return 2
+        while read -r job_pid status label extra; do
+            [ "$job_pid" = "$pid" ] || continue
+            case "$label" in *'.anonymous.'*) continue ;; esac
+            [[ "$label" =~ ^[A-Za-z0-9._-]+$ ]] && [ -z "$extra" ] || return 2
+            case "$label" in com.apple.*|com.mimo.*) return 2 ;; esac
+            target="$domain/$label"
+            output=$(run /bin/launchctl print "$target") || return 2
+            [ "$(/usr/bin/awk '$1 == "pid" && $2 == "=" { print $3; exit }' <<< "$output")" = "$pid" ] || return 2
+            printf '%s\n' "$target"
+            return 0
+        done <<< "$table"
+    done
+    return 0
+}
+
+confirm_engine_stop() {
+    local message=$1 groups foreground current answer console_user console_uid
+    # Homebrew and Installer may pipe stdin or run in a background process group.
+    # Never consume a sudo password, piped input or a background terminal's input.
+    groups=$(/bin/ps -p $$ -o pgid=,tpgid=) || return 1
+    read -r current foreground <<< "$groups"
+    if [ -t 0 ] && [ -t 2 ] && [ "$current" = "$foreground" ]; then
+        printf '\nStop these engines and continue installing Mimo? [y/N] ' >&2
+        IFS= read -r -t 60 answer || return 1
+        case "$answer" in [Yy]|[Yy][Ee][Ss]) return 0 ;; *) return 1 ;; esac
+    fi
+    console_user=$(/usr/bin/stat -f %Su /dev/console) || return 1
+    case "$console_user" in ''|root|loginwindow|_*) return 1 ;; esac
+    [ -z "${SUDO_USER:-}" ] || [ "$SUDO_USER" = root ] || [ "$SUDO_USER" = "$console_user" ] || {
+        echo 'Confirmation requires the installing account at the Mac, or an interactive terminal.' >&2
+        return 1
+    }
+    console_uid=$(/usr/bin/id -u "$console_user") || return 1
+    [[ "$console_uid" =~ ^[0-9]+$ ]] && [ "$console_uid" -ge 500 ] || return 1
+    echo 'Waiting for Stop and Continue confirmation on the Mac (60 seconds)...' >&2
+    answer=$(bounded_command 70 confirm-engine-stop /bin/launchctl asuser "$console_uid" \
+        /usr/bin/sudo -n -H -u "$console_user" -- /usr/bin/osascript -e '
+on run argv
+    set choice to display dialog (item 1 of argv) with title "Install Mimo" buttons {"Cancel", "Stop and Continue"} default button "Cancel" cancel button "Cancel" with icon caution giving up after 60
+    if gave up of choice then return "Cancel"
+    return button returned of choice
+end run' "$message") || return 1
+    [ "$answer" = 'Stop and Continue' ]
+}
+
 check_engine_conflicts() {
-    local table pid command
-    table=$(run /bin/ps -axo pid=,comm=) || return 1
-    while read -r pid command; do
-        case "$command" in
-            "$RUNTIME/mihomo"|"$EXECUTABLE") ;;
-            */mihomo|*/clash|*/clash-meta|*/verge-mihomo|*/clash-verge-service)
-                echo "Another Clash/mihomo engine is running (PID $pid). Stop it explicitly before installing Mimo services." >&2
-                return 1 ;;
-        esac
+    local table pid uid command identity target output index started remaining message
+    local pids=() identities=() targets=() descriptions=()
+    table=$(engine_conflict_snapshot) || return 1
+    [ -n "$table" ] || return 1
+    while read -r pid uid command; do
+        is_competing_engine "$command" || continue
+        [[ "$pid" =~ ^[0-9]+$ ]] && [ "$pid" -gt 1 ] && [[ "$uid" =~ ^[0-9]+$ ]] || return 1
+        identity=$(engine_process_identity "$pid") || continue # exited during inspection
+        # Do not approve a PID whose executable/owner changed since the scan.
+        [[ "$identity" == *" $command" ]] && [ "$(/usr/bin/awk '{print $1}' <<< "$identity")" = "$uid" ] || return 1
+        target=$(engine_job_target "$pid" "$uid") || {
+            echo "Could not identify the service for $command (PID $pid). Quit its owning proxy app/service, then retry installation." >&2
+            return 1
+        }
+        pids+=("$pid"); identities+=("$identity"); targets+=("$target")
+        descriptions+=("$command (PID $pid)${target:+ — $target}")
     done <<< "$table"
+    [ "${#pids[@]}" != 0 ] || return 0
+    message=$(printf '%s\n' 'Another Clash/mihomo engine is running:' "${descriptions[@]}" '' \
+        'Mimo needs these engines stopped. This will disconnect their proxy/VPN connections.' \
+        'Mimo will replace these running engines. Listed launchd services will be disabled and unloaded so they do not restart at login or reboot. Their apps and settings are kept.' \
+        'If installation fails and you want the old proxy back, re-enable it in its app or service manager.')
+    printf '%s\n' "$message" >&2
+    if [ "${installation_interactive:-1}" != 1 ] || ! confirm_engine_stop "$message"; then
+        echo '[MIMO_INSTALL_CANCELLED] Installation cancelled; no competing engines were stopped. Retry installation when ready.' >&2
+        return 130
+    fi
+    # Validate the entire approved set again before stopping anything.
+    for ((index=0; index<${#pids[@]}; index++)); do
+        pid=${pids[index]}
+        identity=$(engine_process_identity "$pid") || continue
+        [ "$identity" = "${identities[index]}" ] || {
+            echo 'A competing process changed while confirmation was open. Retry installation.' >&2
+            return 1
+        }
+        target=${targets[index]}
+        if [ -n "$target" ]; then
+            output=$(run /bin/launchctl print "$target") || return 1
+            [ "$(/usr/bin/awk '$1 == "pid" && $2 == "=" {print $3; exit}' <<< "$output")" = "$pid" ] || return 1
+        fi
+    done
+    for ((index=0; index<${#pids[@]}; index++)); do
+        pid=${pids[index]}; target=${targets[index]}
+        identity=$(engine_process_identity "$pid") || continue
+        [ "$identity" = "${identities[index]}" ] || return 1
+        echo "Stopping ${descriptions[index]}" >&2
+        stopped_engine_conflicts="${stopped_engine_conflicts:-}${descriptions[index]}
+"
+        if [ -n "$target" ]; then
+            # Recheck immediately before disabling/removing the approved service.
+            output=$(run /bin/launchctl print "$target") || return 1
+            [ "$(/usr/bin/awk '$1 == "pid" && $2 == "=" {print $3; exit}' <<< "$output")" = "$pid" ] || return 1
+            run /bin/launchctl disable "$target" || return 1
+            run /bin/launchctl bootout "$target" || return 1
+        else
+            run /bin/kill -TERM "$pid" || return 1
+        fi
+    done
+    # Include replacements/new engines in the rescan, without extending consent to them.
+    started=$SECONDS
+    while :; do
+        table=$(engine_conflict_snapshot) || return 1
+        [ -n "$table" ] || return 1
+        remaining=''
+        while read -r pid uid command; do
+            is_competing_engine "$command" || continue
+            remaining="$remaining$command (PID $pid)
+"
+        done <<< "$table"
+        if [ -z "$remaining" ]; then
+            echo 'Competing engines stopped. Continuing Mimo service installation.' >&2
+            return 0
+        fi
+        [ "$((SECONDS - started))" -lt 10 ] || break
+        /bin/sleep 0.2
+    done
+    printf 'An engine is still running or restarted:\n%sQuit its owning proxy app/service, then retry. Mimo services were not replaced.\n' "$remaining" >&2
+    return 1
 }
 
 job_state() {
@@ -307,6 +469,9 @@ restore_installation() {
 
 finish_installation() {
     local result=$1
+    if [ "$result" != 0 ] && [ -n "${stopped_engine_conflicts:-}" ]; then
+        printf 'Installation did not finish. These competitors may have been stopped or disabled:\n%sTo restore the old proxy, re-enable it in its app or service manager.\n' "$stopped_engine_conflicts" >&2
+    fi
     if [ "$result" != 0 ] && [ "$mutation_started" = 1 ]; then
         if restore_installation; then
             echo 'Service installation failed; previous files and loaded services were restored.' >&2
@@ -326,7 +491,7 @@ install_service() (
     local mutation_started=0 old_loaded=0 supervisor_loaded=0 legacy_loaded=0 legacy_http_loaded=0 old_mode=direct old_ipv4_policy=0 index=0
     local boot_loaded=0 health_loaded=0 guard_was_installed=0
     local login_installed=0 login_backup=0
-    local legacy_removal_bridge=0
+    local legacy_removal_bridge=0 stopped_engine_conflicts=""
     local dependency expected_hash actual_hash manager_mode
     local installed_files=("$EXECUTABLE" "$PLIST" "$ENGINE_PLIST" "$SUPERVISOR_PLIST" "$LEGACY_CORE_PLIST" "$MANAGER" "$DIR/command-support.sh" "$DIR/cleanup-installation.sh" "$DIR/installed-app" "$GRANT" "$RUNTIME/mihomo" "$RUNTIME/engine.sha256" "$RUNTIME/blocking.yaml" "$LEGACY_EXECUTABLE" "$PROFILES/blocking.yaml")
     installed_files+=("$APP_IDENTITY" "$OLD_MANAGER" "$OLD_GRANT")
@@ -364,7 +529,6 @@ install_service() (
             return 1
         fi
     done
-    check_engine_conflicts || return 1
     secure_directory /Library/PrivilegedHelperTools && secure_directory /Library/LaunchDaemons &&
         secure_directory /etc/sudoers.d && secure_directory "$DIR" && secure_directory "$JOBS" &&
         secure_directory "$RUNTIME" 0700 && secure_directory /Library/Logs/Mimo &&
@@ -419,6 +583,8 @@ install_service() (
         fi
     done
     if [ -f "/Library/LaunchDaemons/$LEGACY.plist" ]; then /usr/bin/touch "$DIR/legacy-provider-enabled" || return 1; fi
+    # Complete signature/hash/staging checks before asking to disconnect another proxy.
+    check_engine_conflicts || return $?
     ensure_runtime_group || return 1
     if [ -f "$RUNTIME/ipv6-original.plist" ]; then old_ipv4_policy=1; fi
     mutation_started=1
@@ -618,12 +784,17 @@ uninstall_service() (
 )
 
 main() {
+    local installation_interactive=1
+    if [ "$#" = 2 ] && [ "$1" = install ] && [ "$2" = --non-interactive ]; then
+        installation_interactive=0
+        set -- install
+    fi
     [ "$#" = 1 ] || return 2
     case "$1" in
         install) install_service ;;
         remove|uninstall) uninstall_service ;;
         status) /bin/launchctl print "system/$SUPERVISOR" ;;
-        *) echo 'Usage: daemon.sh install | status | uninstall' >&2; return 2 ;;
+        *) echo 'Usage: daemon.sh install [--app APP | --non-interactive] | status | uninstall' >&2; return 2 ;;
     esac
 }
 if [[ "${BASH_SOURCE[0]}" = "$0" ]]; then main "$@"; fi

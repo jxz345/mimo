@@ -111,3 +111,5 @@ echo 'PASS: installation requires administrator privileges and rejects symlinked
     [ "$(wc -l < "$fixture/rollback-commands" | tr -d ' ')" = 6 ]
 )
 echo 'PASS: a failed protected upgrade restores the old files and service without implicitly restoring Direct'
+
+/bin/bash "$REPO/Tests/MimoDaemonTests/engine_conflicts_test.sh"

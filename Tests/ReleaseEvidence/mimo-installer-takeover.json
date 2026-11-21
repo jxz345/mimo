@@ -1,0 +1,32 @@
+{
+  "change": "Unreleased installer takeover of competing Clash/mihomo engines",
+  "date": "2026-11-22",
+  "environment": "mimo-vm only",
+  "installerSHA256": "1f68cf1ff7a092aa6f7a1f1d4dcafbef0f4a4dbda0ed67606e7161a18cb7f285",
+  "appBuild": "Existing signed Mimo 1.0 build 3; no new app build",
+  "passed": [
+    "220 shared tests, including installer cancellation outcome",
+    "Daemon contracts and PF guard tests",
+    "10 mocked engine-conflict checks: approval, cancellation, noninteractive refusal, process replacement, standalone TERM, inspection failure, respawn, user/system job ownership, PID mismatch, disable failure",
+    "Terminal cancellation preserves competitor PID and existing Mimo jobs",
+    "System KeepAlive job disabled and unloaded; executable/startup file retained",
+    "Per-user KeepAlive agent disabled and unloaded",
+    "Root installer in GUI bootstrap context still finds system launchd job",
+    "Standalone process terminated only after consent",
+    "Real staged installation cancellation preserves app/helper bytes and service PIDs",
+    "Approved standalone install --app completes repair; original sealed app/helper hashes and signature preserved",
+    "Nonterminal macOS dialog returned Cancel on timeout (fixture shortened only the dialog timeout to one second)",
+    "Post-repair gate active and installed engine controller responsive"
+  ],
+  "commands": [
+    "xcrun swift test",
+    "bash Tests/MimoDaemonTests/daemon_test.sh",
+    "bash Tests/MimoDaemonTests/engine_conflicts_test.sh",
+    "sudo python3 Tests/MihomoRuntimeTests/installer_conflicts_test.py --install"
+  ],
+  "limits": [
+    "Physical Homebrew installation on the affected Mac remains to be tested with the standalone installer.",
+    "Disabled launchd state was verified by print-disabled; no login/reboot cycle was performed.",
+    "Legacy Tests/MimoInstallTests/run.sh is not counted as passing: its heartbeat fixtures use the obsolete Contents/MacOS/Mimo executable; its cleanup fixtures also encounter the real installed manager on an installed VM. No cleanup implementation changes were made for that unrelated harness."
+  ]
+}

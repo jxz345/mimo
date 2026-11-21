@@ -186,7 +186,7 @@ struct DashboardView: View {
     }
 
     private var services: some View {
-        dashboardCard("Background services", detail: "Health & configured endpoints") {
+        dashboardCard("Background services", detail: monitor.connected ? "Health & configured endpoints" : monitor.connection.rowTitle) {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .top, spacing: 10) {
                     Image(systemName: presentation.symbol).font(.system(size: primaryIconSize))
@@ -208,13 +208,15 @@ struct DashboardView: View {
                         Divider()
                         VStack(spacing: 0) { ForEach(MimoServiceID.allCases) { service in serviceRow(service, at: context.date) } }
                             .padding(.horizontal, 14)
+                        Divider()
+                        Label(monitor.operationError ?? installer.message ?? (monitor.connected
+                            ? monitor.lookupStatusMessage ?? "Shared across this Mac · Services continue when Mimo closes."
+                            : monitor.connectionSummary(at: context.date)), systemImage: "info.circle")
+                            .font(.caption2).foregroundStyle(.secondary).lineLimit(2, reservesSpace: true)
+                            .help(monitor.connected ? monitor.lookupStatusMessage ?? "" : monitor.connectionSummary(at: context.date))
+                            .padding(.horizontal, 14).frame(height: 30, alignment: .leading)
                     }
                 }
-                Divider()
-                Label(monitor.operationError ?? installer.message ?? monitor.lookupStatusMessage ?? "Shared across this Mac · Services continue when Mimo closes.", systemImage: "info.circle")
-                    .font(.caption2).foregroundStyle(.secondary).lineLimit(2, reservesSpace: true)
-                    .help(monitor.operationError ?? installer.message ?? monitor.lookupStatusMessage ?? "")
-                    .padding(.horizontal, 14).frame(height: 30, alignment: .leading)
             }
         }
     }
@@ -231,22 +233,31 @@ struct DashboardView: View {
     }
 
     private func infrastructureIndicator(_ title: String, symbol: String, health: MimoInfrastructureHealth, checkedAt: Date?, at date: Date) -> some View {
-        HStack(spacing: 6) {
+        let hasReport = monitor.connected || monitor.hasSupervisorReply(at: date)
+        let color = hasReport && health == .healthy ? Color.secondary : Color.orange
+        return HStack(spacing: 6) {
             Image(systemName: symbol).foregroundStyle(.secondary).frame(width: 20)
             Text(title).font(serviceTitleFont).lineLimit(1).frame(maxWidth: .infinity, alignment: .leading)
             HStack(spacing: 4) {
-                Circle().fill(health == .healthy ? Color.secondary : Color.orange).frame(width: 5, height: 5)
-                Text(MimoHealthLabel.text(health == .stale ? "Stale" : health.title, checkedAt: checkedAt, at: date)).lineLimit(1)
-            }.font(serviceStatusFont).monospacedDigit().foregroundStyle(health == .healthy ? Color.secondary : Color.orange)
+                Circle().fill(color).frame(width: 5, height: 5)
+                Text(hasReport ? MimoHealthLabel.text(health == .stale ? "Stale" : health.title, checkedAt: checkedAt, at: date) : monitor.connection.rowTitle).lineLimit(1)
+            }.font(serviceStatusFont).monospacedDigit().foregroundStyle(color)
                 .frame(width: serviceStatusWidth, alignment: .leading)
+                .help(hasReport ? "The latest reported inspection result." : monitor.connection.detail + " " + monitor.connection.lastReplyText(at: date))
             Color.clear.frame(width: serviceAccessoryWidth, height: 1).accessibilityHidden(true)
         }.font(serviceStatusFont).frame(maxWidth: .infinity).frame(height: serviceRowHeight)
             .accessibilityElement(children: .combine)
     }
 
     @ViewBuilder private var accessActions: some View {
-        if !monitor.connected && routing.services.first(where: { $0.id == .core })?.health != .stopped {
-            Button(installer.serviceInstalled ? "Repair installation" : "Set up services") { installer.install() }.disabled(installer.isInstalling)
+        if !monitor.connected {
+            HStack {
+                Button("Reconnect") { monitor.reconnect() }
+                    .help("Reconnect this app to the background service without restarting it or changing routing.")
+                if !installer.serviceInstalled || monitor.connection.phase == .incompatible {
+                    Button(installer.serviceInstalled ? "Repair installation" : "Set up services") { installer.install() }.disabled(installer.isInstalling)
+                }
+            }.controlSize(.small)
         } else if monitor.connected && monitor.daemonState?.initialized != true {
             Button("Initialize shared settings") { Task { await monitor.initializeSharedSettings() } }.disabled(monitor.isChangingSettings)
         } else if routing.configuration.mode.requiresVerification && !routing.allowsTraffic {
@@ -260,22 +271,23 @@ struct DashboardView: View {
     private func serviceRow(_ id: MimoServiceID, at date: Date) -> some View {
         let status = routing.services.first { $0.id == id }
         let health = status?.health ?? .unavailable
-        let tailnetFailure = id == .tailnetProvider && (health == .unavailable || health == .notInstalled
+        let hasReport = monitor.hasServiceReport(id, at: date)
+        let tailnetFailure = hasReport && id == .tailnetProvider && (health == .unavailable || health == .notInstalled
             || (health == .stopped && routing.tailnetExpected == true))
         let title = monitor.serviceOperation == id ? "Working…" : status?.healthTitle(at: date) ?? "Unavailable"
         let stale = health == .running && title != "Healthy" && monitor.serviceOperation != id
-        let color = tailnetFailure ? Color.red : stale ? Color.orange : Color.secondary
+        let color = tailnetFailure ? Color.red : !hasReport || stale ? Color.orange : Color.secondary
         return VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 6) {
                 Image(systemName: serviceSymbol(id)).foregroundStyle(tailnetFailure ? Color.red : Color.secondary).frame(width: 20)
                 Text(id.title).font(serviceTitleFont).lineLimit(1).frame(maxWidth: .infinity, alignment: .leading)
                 HStack(spacing: 4) {
                     Circle().fill(color).frame(width: 5, height: 5)
-                    Text(MimoHealthLabel.text(title, checkedAt: status?.checkedAt, at: date)).lineLimit(1)
+                    Text(monitor.serviceHealthLabel(id, at: date)).lineLimit(1)
                 }
                     .font(serviceStatusFont).monospacedDigit().foregroundStyle(color).frame(width: serviceStatusWidth, alignment: .leading)
-                    .help(status?.checkedAt.map { "Last checked: \($0.formatted(date: .omitted, time: .standard)). Age is retained when status is cached." } ?? "No service inspection time is available.")
-                serviceButtons(id, health: health).frame(width: serviceAccessoryWidth, alignment: .trailing)
+                    .help((hasReport ? "" : monitor.connection.detail + " ") + (status?.checkedAt.map { "Last checked: \($0.formatted(date: .omitted, time: .standard))." } ?? "No service inspection time is available."))
+                serviceButtons(id, health: health).disabled(!hasReport).frame(width: serviceAccessoryWidth, alignment: .trailing)
             }
             HStack(spacing: 8) {
                 Text(serviceEndpoint(id, status: status)).font(.system(size: 10, design: .monospaced))
@@ -327,7 +339,8 @@ struct DashboardView: View {
         case .profileHosting: "In memory · Unix socket · No TCP port"
         case .mihomo: "127.0.0.1 · Proxy \(String(status?.port ?? 7890)) · DNS \(String(MimoRuntime.dnsPort))"
         case .tailnetProvider:
-            if let port = status?.port, status?.bindingConfirmed == true {
+            if !monitor.connected { "Listener status unconfirmed" }
+            else if let port = status?.port, status?.bindingConfirmed == true {
                 "127.0.0.1:\(port) · HTTP"
             } else { "Not listening · HTTP" }
         }
@@ -353,7 +366,7 @@ struct DashboardView: View {
                 : "Checking your exit IP…"
         case .directWarning: "Direct · IP check unavailable."
         case .tailnetWarning: "Connected · Tailnet unavailable."
-        case .unavailable: "Status is unavailable."
+        case .unavailable: monitor.connected ? "Status is unavailable." : monitor.connection.phase == .connecting ? "Connecting to background service…" : "Service communication interrupted."
         }
     }
     private var accessColor: Color {
@@ -372,6 +385,7 @@ struct DashboardView: View {
         return routing.configuration.mode == .rule ? "Profile rules" : "Proxy public internet"
     }
     private var tailnetNote: String {
+        if !monitor.connected { return "Tailnet status unconfirmed" }
         if routing.services.first(where: { $0.id == .tailnetProvider })?.health == .running { return "LAN & Tailscale stay local" }
         return presentation.isDirect ? "Direct routing · Tailnet provider stopped" : "LAN stays local · Tailnet access blocked"
     }

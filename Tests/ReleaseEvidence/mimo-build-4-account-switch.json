@@ -1,0 +1,60 @@
+{
+  "date": "2026-11-22",
+  "version": "1.0",
+  "build": "4",
+  "status": "packaged and installed VM validation passed",
+  "sha256": {
+    "Mimo-1.0.pkg": "58b862f015c6e239f5c86f1a92989ecf3fcf81eedc4fce46a2901a1abe156725",
+    "Mimo-1.0.zip": "cdd080cc8dee57d70fc26675fe21497b521444218879c97a2299cea918c148d2",
+    "mimo-core": "8685a8ec571fe1a57f3c728a29d7202885b2fcc68ebed1e74aea138fb6bf1750",
+    "mimo-gui": "75cb35dd846dee26fd293859c217fd69c4e747f706c5b8c7f2624818d5bf399d"
+  },
+  "changes": [
+    "GUI login-item system calls execute on a serialized utility queue; SwiftUI renders cached state and coalesces refresh requests.",
+    "Inactive account GUIs cancel subscriptions/polls/retries; active account immediately reconnects with generation-fenced callbacks.",
+    "Read-only core probes use three seconds, separate from 75-second mutations; independent supervisor fallback uses two seconds and expires after ten seconds.",
+    "GUI reports communication loss and last reply age separately from inspection health, with Reconnect and independent supervisor process/PF reports.",
+    "Optional WindowServer display sampling runs independently of kernel session polling, with one outstanding query, stable-console delay, expiry and old-session rejection.",
+    "Installer confirms competing-engine takeover, disables/unloads only approved launchd jobs, stops approved standalone processes and verifies exit before continuing."
+  ],
+  "validation": {
+    "shared": "220 tests passed in mimo-vm",
+    "app": "Full native app harness passed, including cached communication presentation, coalesced short probes, obsolete callbacks, independent supervisor freshness, protocol mismatch, account deactivation/reactivation, blocked login-item backend and existing credential/UI regressions.",
+    "service": "Full service harness passed, including real XPC, per-user presentation, concurrent refresh, revision fencing, credentials, blocked display-query isolation, cycle coalescing, power/session fence and Direct protection semantics.",
+    "testFixtureCorrection": "The concurrent-refresh test now allows the preceding configuration-triggered refresh to settle before counting the independent two-user request pair; no production lookup code changed.",
+    "ui": [
+      "Previews/mimo-dashboard-disconnected-light.png",
+      "Previews/mimo-dashboard-supervisor-only-dark.png"
+    ],
+    "installation": "Exact release PKG installed in mimo-vm; sealed signatures, app/helper identity, original mode, settings, credentials and service intent preserved.",
+    "installedGUI": "Build 4 main-thread heartbeat fresh (0 seconds at check) and ready.",
+    "multiUserAccess": "Installed signed GUI --check-service-access passed concurrently for the two VM accounts. This tests service access, not graphical fast user switching.",
+    "installedMagicDNS": [
+      "installed root TCP Quad100 call precedes DNS group guard; no test wrapper",
+      "root group-0 TCP DNS succeeds through installed native policy",
+      "ordinary direct TCP/UDP DNS and root group-0 UDP remain blocked",
+      "three fresh installed-engine full-name answers without temporary PF rules",
+      "provider Stop revokes root TCP exception while public Rule approval remains active",
+      "provider Start restores root TCP DNS and preserves active Rule approval",
+      "all four service and two infrastructure rows carry current inspection times",
+      "original mode, settings, service intent and credentials preserved"
+    ],
+    "installer": "Bundled daemon.sh SHA256 is 1f68cf1ff7a092aa6f7a1f1d4dcafbef0f4a4dbda0ed67606e7161a18cb7f285, identical to the confirmed-takeover script qualified in mimo-installer-takeover.json.",
+    "packaging": "Apple silicon Release app, inside-out ad-hoc signatures, consistent bundle build 4, sealed ZIP, PKG and release-build.json checksums."
+  },
+  "limits": [
+    "The physical login-screen freeze was not reproduced and its cause is not proven. These changes remove identified blocking paths; they are not proof the physical freeze is resolved.",
+    "No new physical fast-user-switch, sleep/wake or simultaneous graphical-user-session acceptance.",
+    "Display samples are optional and expire; locked/no-console transitions rely on kernel session/lock detection and IOKit power protection without initiating WindowServer queries.",
+    "Physical Homebrew takeover confirmation remains pending; VM takeover and exact packaged script identity are verified.",
+    "Existing MagicDNS short-name peer, custom split-DNS, boot first-packet and signing/notarization limitations remain documented."
+  ],
+  "publication": {
+    "releaseURL": "https://github.com/jxz345/mimo/releases/tag/v1.0",
+    "sourceRef": "refs/tags/v1.0",
+    "immutableSourceRef": "refs/tags/v1.0-build4",
+    "branch": "main",
+    "manifest": "release-build.json",
+    "cask": "jxz345/tap/mimo"
+  }
+}

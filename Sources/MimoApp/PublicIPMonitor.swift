@@ -40,21 +40,30 @@ final class PublicIPMonitor: ObservableObject {
     @Published private(set) var simulationMessage: String?
     @Published private(set) var displayDate = Date.now
     @Published private(set) var daemonState: DaemonState?
-    @Published private(set) var connected = false
+    @Published private(set) var connection = MimoClientConnectionStatus()
+    var connected: Bool { connection.phase == .connected }
     @Published private(set) var serviceMessage: String? = "Connecting to background service…"
     @Published private(set) var operationError: String?
     @Published private(set) var isChangingSettings = false
     @Published private(set) var isCredentialBusy = false
     @Published private(set) var serviceOperation: MimoServiceID?
     @Published private(set) var supervisorState: MimoRoutingState?
+    @Published private(set) var supervisorReplyAt: Date?
     @Published private var serviceRoutingProgress: MimoRoutingState?
     private var serviceOperationID: UUID?
     private var serviceOperationStartedAt: Date?
     private var serviceOperationRevision = 0
     private var serviceRPCFinished = false
     let ipinfoCredentials = AppCredentials.makeSession(account: SecureTokenStore.ipinfoLiteAccount)
-    private var subscription: DaemonSubscription?
+    typealias SubscriptionFactory = (@escaping @Sendable (DaemonConnectionEvent) -> Void) -> (() -> Void)
+    typealias StatusReader = (DaemonRequest, TimeInterval, String) async throws -> DaemonResponse
+    private let subscribe: SubscriptionFactory
+    private let readStatus: StatusReader
+    private let reconnectDelay: Duration
+    private var cancelSubscription: (() -> Void)?
     private var reconnectTask: Task<Void, Never>?
+    private var statusTask: Task<Void, Never>?
+    private var connectionStartedAt = Date.now
     private var displayTimer: Timer?
     private var sessionObservers: [NSObjectProtocol] = []
     private var warningPresented: UUID?
@@ -62,6 +71,42 @@ final class PublicIPMonitor: ObservableObject {
     private var localPresentationImported = false
     private var started = false
     private var connectionGeneration = 0
+    private var subscriptionReplied = false
+    private var sessionActive = true
+    var isSessionActive: Bool { sessionActive }
+
+    init(subscribe: @escaping SubscriptionFactory = { receive in
+        let subscription = DaemonSubscription(receive: receive)
+        return { subscription.invalidate() }
+    }, readStatus: @escaping StatusReader = { request, timeout, label in
+        try await DaemonRPC.call(request, timeout: timeout, serviceLabel: label)
+    }, reconnectDelay: Duration = .seconds(3)) {
+        self.subscribe = subscribe
+        self.readStatus = readStatus
+        self.reconnectDelay = reconnectDelay
+    }
+
+    func hasSupervisorReply(at date: Date = .now) -> Bool {
+        guard let age = MimoHealthLabel.age(checkedAt: supervisorReplyAt, at: date) else { return false }
+        return age < 10
+    }
+
+    func hasServiceReport(_ id: MimoServiceID, at date: Date = .now) -> Bool {
+        connected || (id != .tailnetProvider && hasSupervisorReply(at: date))
+    }
+
+    func serviceHealthLabel(_ id: MimoServiceID, at date: Date) -> String {
+        guard hasServiceReport(id, at: date) else { return connection.rowTitle }
+        let service = routingState.services.first { $0.id == id }
+        var title = serviceOperation == id ? "Working…" : service?.healthTitle(at: date) ?? "Unavailable"
+        // A supervisor process inspection does not establish a working core connection.
+        if !connected, id == .core, title == "Healthy" { title = "Running" }
+        return MimoHealthLabel.text(title, checkedAt: service?.checkedAt, at: date)
+    }
+
+    func connectionSummary(at date: Date) -> String {
+        connection.lastReplyText(at: date) + (hasSupervisorReply(at: date) ? " Supervisor is responding." : " Reconnecting automatically.")
+    }
 
     var isCoolingDown: Bool { if case .coolingDown = status { true } else { false } }
     var isRefreshDeferred: Bool {
@@ -101,16 +146,16 @@ final class PublicIPMonitor: ObservableObject {
     }
 
     var routingState: MimoRoutingState {
-        if let serviceRoutingProgress { return serviceRoutingProgress }
+        if let serviceRoutingProgress, connected || hasSupervisorReply() { return serviceRoutingProgress }
         // A missed supervisor reply does not erase the last saved proxy or mode.
         // Retain only configuration; live health and access still become unknown.
-        var state = (connected ? daemonState?.routing : supervisorState)
+        var state = (connected ? daemonState?.routing : supervisorState ?? daemonState?.routing)
             ?? MimoRoutingState(configuration: daemonState?.routing?.configuration ?? .init())
-        if !connected && supervisorState?.phase != .blocked {
+        if !connected && !(hasSupervisorReply() && supervisorState?.phase == .blocked) {
             state.phase = .unavailable; state.effectiveMode = nil
-            state.reason = state.services.first(where: { $0.id == .core })?.health == .stopped
+            state.reason = hasSupervisorReply() && state.services.first(where: { $0.id == .core })?.health == .stopped
                 ? "mimo-core is stopped. Start it below to restore monitoring."
-                : serviceMessage ?? "The background service is unavailable."
+                : connection.detail
         }
         return state
     }
@@ -193,6 +238,7 @@ final class PublicIPMonitor: ObservableObject {
                 }
                 serviceRPCFinished = true
                 supervisorState = response.routing
+                if response.routing != nil { supervisorReplyAt = .now }
                 if let routing = response.routing {
                     if serviceRoutingProgress != nil { serviceRoutingProgress = serviceProgressState(routing) }
                     else { daemonState?.routing = routing }
@@ -278,7 +324,7 @@ final class PublicIPMonitor: ObservableObject {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(15))
                 guard !Task.isCancelled, let self else { return }
-                if self.connected { _ = await self.send(DaemonRequest(.state)) }
+                if self.connected { self.requestStatus() }
             }
         }
         let timer = Timer(timeInterval: 60, repeats: true) { [weak self] _ in
@@ -286,12 +332,16 @@ final class PublicIPMonitor: ObservableObject {
         }
         RunLoop.main.add(timer, forMode: .common)
         displayTimer = timer
-        for name in [NSWorkspace.sessionDidBecomeActiveNotification, NSWorkspace.screensDidWakeNotification] {
+        for name in [NSWorkspace.sessionDidBecomeActiveNotification, NSWorkspace.sessionDidResignActiveNotification, NSWorkspace.screensDidWakeNotification] {
             sessionObservers.append(NSWorkspace.shared.notificationCenter.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
-                MainActor.assumeIsolated { self?.applicationDidBecomeActive() }
+                MainActor.assumeIsolated {
+                    if name == NSWorkspace.sessionDidResignActiveNotification { self?.sessionDidResignActive() }
+                    else if name == NSWorkspace.sessionDidBecomeActiveNotification { self?.sessionDidBecomeActive() }
+                    else if self?.sessionActive == true { self?.reconnect() }
+                }
                 RuntimeLog.shared.info("mimo_session_event", fields: [
-                    "source": name == NSWorkspace.sessionDidBecomeActiveNotification ? "session_active" : "display_wake",
-                    "action": "refresh_shared_status"
+                    "source": name == NSWorkspace.sessionDidResignActiveNotification ? "session_inactive" : name == NSWorkspace.sessionDidBecomeActiveNotification ? "session_active" : "display_wake",
+                    "action": name == NSWorkspace.sessionDidResignActiveNotification ? "pause_gui_updates" : "reconnect_shared_status"
                 ])
             })
         }
@@ -300,48 +350,66 @@ final class PublicIPMonitor: ObservableObject {
 
     func stop() {
         started = false
-        subscription?.invalidate(); subscription = nil
+        connectionGeneration += 1
+        cancelSubscription?(); cancelSubscription = nil
+        statusTask?.cancel(); statusTask = nil
         reconnectTask?.cancel(); reconnectTask = nil
         displayTimer?.invalidate(); displayTimer = nil
         sessionObservers.forEach { NSWorkspace.shared.notificationCenter.removeObserver($0) }
         sessionObservers.removeAll()
         heartbeat?.cancel(); heartbeat = nil
         supervisorState = nil
+        supervisorReplyAt = nil
+        connection.phase = .interrupted
         serviceRoutingProgress = nil; serviceOperationID = nil; serviceOperation = nil
         RuntimeLog.shared.info("daemon_client_stopped")
     }
 
     private func connect() {
-        guard started else { return }
+        guard started, sessionActive else { return }
         connectionGeneration += 1
         let generation = connectionGeneration
-        subscription?.invalidate()
-        subscription = DaemonSubscription { [weak self] event in
+        connectionStartedAt = .now
+        subscriptionReplied = false
+        cancelSubscription?()
+        statusTask?.cancel(); statusTask = nil
+        if connection.phase != .incompatible {
+            connection.phase = connection.lastReplyAt == nil ? .connecting : .interrupted
+        }
+        serviceMessage = connection.detail
+        RuntimeLog.shared.info("daemon_client_connecting", fields: ["generation": String(generation)])
+        cancelSubscription = subscribe { [weak self] event in
             Task { @MainActor [weak self] in
                 guard let self, self.started, self.connectionGeneration == generation else { return }
                 switch event {
-                case .state(let state): self.receive(state)
-                case .failed(let failure): self.disconnected(); self.serviceMessage = failure.localizedDescription
+                case .state(let state): self.subscriptionReplied = true; self.receive(state)
+                case .failed(let failure): self.disconnected(failure: failure)
                 }
             }
         }
+        requestStatus()
         DispatchQueue.main.asyncAfter(deadline: .now() + 8) { [weak self] in
-            guard let self, self.started, self.connectionGeneration == generation, !self.connected else { return }
-            self.disconnected()
+            guard let self, self.started, self.connectionGeneration == generation, !self.subscriptionReplied else { return }
+            self.disconnected(source: "subscription_timeout")
         }
     }
 
-    private func disconnected() {
-        guard started else { return }
-        connected = false
-        serviceMessage = DaemonFailure.unavailable.localizedDescription
-        indicators = MonitorIndicatorState(errorMessage: "Background service unavailable; cached data is stale", suppressLocation: true)
+    private func disconnected(failure: DaemonFailure = .unavailable, source: String = "subscription") {
+        guard started, sessionActive else { return }
+        connectionGeneration += 1
+        cancelSubscription?(); cancelSubscription = nil
+        statusTask?.cancel(); statusTask = nil
+        connection.phase = failure == .incompatible ? .incompatible : .interrupted
+        serviceMessage = connection.detail
+        indicators = MonitorIndicatorState(errorMessage: connection.title, suppressLocation: true)
         status = .failed(serviceMessage!)
+        RuntimeLog.shared.info("daemon_client_disconnected", fields: ["source": source,
+            "generation": String(connectionGeneration), "reason": failure.localizedDescription])
         showWarningIfNeeded()
         guard reconnectTask == nil else { return }
         reconnectTask = Task { [weak self] in
             await self?.readSupervisorState()
-            try? await Task.sleep(for: .seconds(3))
+            try? await Task.sleep(for: self?.reconnectDelay ?? .seconds(3))
             guard !Task.isCancelled, let self else { return }
             self.reconnectTask = nil
             self.connect()
@@ -352,23 +420,32 @@ final class PublicIPMonitor: ObservableObject {
         let generation = connectionGeneration
         var request = DaemonRequest(.supervisor)
         request.supervisor = MimoSupervisorRequest(.state)
-        let response = try? await DaemonRPC.call(request, timeout: 2, serviceLabel: MimoRuntime.supervisorLabel)
+        let response = try? await readStatus(request, 2, MimoRuntime.supervisorLabel)
         guard started, !connected, generation == connectionGeneration else { return }
-        supervisorState = response?.failure == nil ? response?.routing : nil
+        if let response, response.failure == nil, let routing = response.routing {
+            supervisorState = routing
+            supervisorReplyAt = .now
+        }
         if serviceOperationID == nil, serviceRoutingProgress != nil {
             serviceRoutingProgress = supervisorState.map(serviceProgressState)
         }
     }
 
     func receive(_ state: DaemonState) {
+        guard sessionActive else { return }
         guard state.protocolVersion == MimoService.protocolVersion else {
-            disconnected(); serviceMessage = DaemonFailure.incompatible.localizedDescription; return
+            disconnected(failure: .incompatible); return
         }
         let oldSnapshot = snapshot, oldIndicators = indicators
         let oldStatusPresentation = statusPresentation
         daemonState = state
         if let routing = state.routing { reconcileServiceProgress(routing) }
-        connected = true
+        if !connected {
+            RuntimeLog.shared.info("daemon_client_connected", fields: ["generation": String(connectionGeneration),
+                "duration_ms": String(Int(max(0, Date.now.timeIntervalSince(connectionStartedAt)) * 1_000))])
+        }
+        connection.phase = .connected
+        connection.lastReplyAt = .now
         reconnectTask?.cancel(); reconnectTask = nil
         serviceMessage = state.storageError ?? (state.initialized ? nil : "Set up shared monitoring using this account’s existing settings.")
         preferences = state.preferences
@@ -431,10 +508,56 @@ final class PublicIPMonitor: ObservableObject {
     }
 
     func applicationDidBecomeActive() {
+        guard started, sessionActive else { return }
+        if !connected { reconnect() }
+        else { requestStatus() }
+    }
+
+    /// Re-establish this GUI's subscription; never restart services or change routing.
+    func reconnect() {
+        guard started, sessionActive else { return }
+        reconnectTask?.cancel(); reconnectTask = nil
+        connect()
+    }
+
+    func sessionDidResignActive() {
         guard started else { return }
-        Task {
-            _ = await send(DaemonRequest(.state))
-            showWarningIfNeeded()
+        sessionActive = false
+        connectionGeneration += 1
+        cancelSubscription?(); cancelSubscription = nil
+        reconnectTask?.cancel(); reconnectTask = nil
+        statusTask?.cancel(); statusTask = nil
+        supervisorReplyAt = nil
+        connection.phase = .inactive
+        serviceMessage = connection.detail
+        showWarningIfNeeded()
+    }
+
+    func sessionDidBecomeActive() {
+        sessionActive = true
+        reconnect()
+    }
+
+    /// Read-only probes have their own short deadline and are coalesced per connection.
+    func requestStatus() {
+        guard started, sessionActive, statusTask == nil else { return }
+        let generation = connectionGeneration
+        let requestedAt = Date.now
+        statusTask = Task { [weak self] in
+            guard let self else { return }
+            defer { if generation == self.connectionGeneration { self.statusTask = nil } }
+            do {
+                let response = try await self.readStatus(DaemonRequest(.state), 3, MimoService.label)
+                guard self.started, !Task.isCancelled, generation == self.connectionGeneration else { return }
+                if let failure = response.failure { throw failure }
+                guard let state = response.state else { throw DaemonFailure.unavailable }
+                self.receive(state)
+            } catch {
+                guard self.started, !Task.isCancelled, generation == self.connectionGeneration else { return }
+                // A subscription reply arriving during a failed probe still proves communication.
+                guard self.connection.lastReplyAt.map({ $0 >= requestedAt }) != true else { return }
+                self.disconnected(failure: error as? DaemonFailure ?? .unavailable, source: "status_probe")
+            }
         }
     }
 
@@ -449,7 +572,7 @@ final class PublicIPMonitor: ObservableObject {
             operationError = error.localizedDescription
             if let failure = error as? DaemonFailure, failure == .unavailable { disconnected() }
             // A stale editor must see the winning revision before retrying.
-            if let response = try? await DaemonRPC.call(DaemonRequest(.state)), let state = response.state { receive(state) }
+            requestStatus()
             return false
         }
     }

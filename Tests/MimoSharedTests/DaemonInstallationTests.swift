@@ -21,6 +21,16 @@ final class DaemonInstallationTests: XCTestCase {
                                                 monitorLoaded: false, responderLoaded: false), .failed)
     }
 
+    func testDecliningEngineStopIsCancellationEvenWhenWrappedByAppleScript() {
+        for status: Int32 in [1, 130] {
+            XCTAssertEqual(DaemonInstallation.outcome(exitStatus: status,
+                                                    output: "[MIMO_INSTALL_CANCELLED] Installation cancelled.",
+                                                    monitorLoaded: false, responderLoaded: false), .cancelled)
+        }
+        XCTAssertEqual(DaemonInstallation.outcome(exitStatus: 1, output: "An engine is still running or restarted.",
+                                                monitorLoaded: false, responderLoaded: false), .failed)
+    }
+
     func testScriptPathAndUserNameCannotInjectShellCommands() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

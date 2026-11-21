@@ -34,6 +34,11 @@ enum CredentialAppTests {
             try MimoDashboardTests.run(output: output)
             return
         }
+        if CommandLine.arguments.contains("--connection-only") {
+            try await ClientConnectionTests.run(output: output)
+            try await LoginItemControllerTests.run()
+            return
+        }
         if CommandLine.arguments.contains("--copy-feedback-only") {
             try await CopyFeedbackTests.run()
             return
@@ -107,6 +112,8 @@ enum CredentialAppTests {
         try await MimoMenuTests.run(output: output)
         try MimoDraftTests.run()
         try MimoDashboardTests.run(output: output)
+        try await ClientConnectionTests.run(output: output)
+        try await LoginItemControllerTests.run()
 
         let pausedUntil = Date().addingTimeInterval(300)
         ProviderCooldownStore().save(retryNotBefore: pausedUntil, for: .ipinfoLite)

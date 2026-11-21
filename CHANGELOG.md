@@ -1,5 +1,16 @@
 # Mimo changelog
 
+## 1.0 (build 4) — 2026-11-22
+
+- Keep login-item status/registration calls off the GUI thread, cache their results and serialize/coalesce requests. Pause inactive-account GUI subscriptions and reconnect immediately on return; suppress inactive-window repositioning and deferred activation.
+- Isolate optional WindowServer display queries from kernel session sampling, with one outstanding query, a stable-console delay and rejection of old-session replies. Lock/account observation and firewall protection remain in the background supervisor.
+- Distinguish GUI communication loss from service failure or overdue inspections. Show the last reply age and Reconnect; preserve independently received supervisor health without treating a running process as a working core connection. Read-only probes use 3 seconds instead of the 75-second service-operation deadline.
+- The reported physical login-screen freeze is not reproduced; this release hardens identified blocking paths and does not claim a proven root cause.
+
+- Ask before stopping a competing Clash/mihomo engine during service installation. Identify matching launchd jobs, disable and unload only approved jobs to prevent KeepAlive and login/reboot restart, and verify exit before continuing. Cancel or unavailable confirmation leaves those engines running; changed/restarted processes require a new attempt.
+- Allow a downloaded installer to repair an existing sealed app with `install --app`, without building or replacing the app. Finish signature/checksum/staging checks before requesting the interruption; retain the other proxy's app, settings and startup files. Report stopped competitors if later installation fails.
+- Treat declining the stop prompt as cancellation in the GUI and allow the package deadline to include confirmation time.
+
 ## 1.0 (build 3) — 2026-11-21
 
 - Permit root TCP DNS to Quad100 through the verified native Tailscale policy before the generic DNS group block. Both the root-only and integrated-candidate tests restored full-name answers on the affected physical Mac, including repeated fresh queries and macOS resolution; clearing the native policy revokes the exception. Ordinary direct DNS remains blocked.

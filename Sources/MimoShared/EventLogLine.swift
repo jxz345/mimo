@@ -22,7 +22,12 @@ public enum EventLogLine {
         case "daemon_stopped": return "Background service stopped"
         case "daemon_client_started": return "Menu-bar app opened"
         case "daemon_client_stopped": return "Menu-bar app quit"
-        case "mimo_session_event": return "\(fields["source"] == "display_wake" ? "Display woke" : "User session became active") · shared status refreshed"
+        case "daemon_client_connecting": return "Service communication · connecting"
+        case "daemon_client_connected": return "Service communication · connected · \(fields["duration_ms"] ?? "?") ms"
+        case "daemon_client_disconnected": return "Service communication · interrupted · \(fields["source"] ?? "unknown source")"
+        case "mimo_session_event":
+            if fields["source"] == "session_inactive" { return "User session became inactive · GUI updates paused" }
+            return "\(fields["source"] == "display_wake" ? "Display woke" : "User session became active") · service connection refreshed"
         case "mimo_access_presentation_changed":
             let mode = fields["selectedMode"].map { " · selected \($0)" } ?? ""
             return "Access display\(mode) · \(fields["validating"] == "true" ? "validating profile" : fields["kind"] ?? "unavailable") · \(fields["blocked"] == "true" ? "traffic blocked" : "see routing state")"
