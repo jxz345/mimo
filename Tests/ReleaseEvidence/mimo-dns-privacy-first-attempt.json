@@ -1,0 +1,11 @@
+{
+  "success": false,
+  "passed": [
+    "rule-delivered-profile-uses-proxied-DoH-and-encrypted-bootstrap",
+    "original-Direct-native-off-settings-and-credentials-restored"
+  ],
+  "error": "AssertionError: see private VM evidence",
+  "packageSHA256": "0e2be8e633927db5fde7e1203e0d7a8f2c2c852e5e44382083c255d60c650065",
+  "helperSHA256": "3c8cfed59222a780f0bbf4bf55f9b4437cb0034fff7dbf1c26ab0d7b0d487d1c",
+  "scope": "Exact installed Release and pinned mihomo in mimo-vm; actual UDP/TCP/uncached DNS queries, native MagicDNS, ordinary HTTPS and physical-interface process-attributed packet capture. Direct bootstrap remains an explicit encrypted exception."
+}

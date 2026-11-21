@@ -1,0 +1,16 @@
+{
+  "success": false,
+  "passed": [
+    "real-firewall-lock-contention-triggers-infrastructure-failure",
+    "firewall-busy-real-repair-restores-healthy-Direct",
+    "firewall-busy-ordinary-user-HTTPS-remains-available",
+    "original-Direct-proxy-allowlist-password-and-service-intent-restored"
+  ],
+  "failures": [
+    "firewall-busy-healthy-Direct-lost-observed-IP"
+  ],
+  "scope": "Installed Release in mimo-vm. Real PF disable/anchor loss, supervisor restart, competing kernel firewall lock and bundled service reinstall. No injected status or mocked network.",
+  "packageSHA256": "cfb5d294541cabde3eaccc0e4d25f70227486a3b3871d2dc19469d205ad17d0e",
+  "helperSHA256": "a8344084fbb637998899ae1db494d9c4e1693134e4e9d10179cf04d23664e3ef",
+  "evidence": "mimo-direct-observation-sg15wn_d"
+}

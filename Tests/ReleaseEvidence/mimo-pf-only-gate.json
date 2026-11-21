@@ -1,0 +1,212 @@
+{
+  "success": true,
+  "passed": [
+    "optimistic-opening-and-full-audit-finish-while-lifecycle-lock-is-held",
+    "actual-launchd-repair-inhibits-opening-and-recovers-through-full-verification",
+    "original-mode-configuration-credential-and-service-intent-restored"
+  ],
+  "errors": [],
+  "trials": [
+    {
+      "event": "route-added-with-lifecycle-lock-held",
+      "eventRequestedUptimeMS": 5336548,
+      "firewallOpenSeconds": 4.505,
+      "verifiedSeconds": 5.561,
+      "verifiedObservedSeconds": 6.226,
+      "stages": [
+        {
+          "stage": "deny_mutation_wait",
+          "operation": "deny",
+          "start_uptime_ms": "5337009",
+          "duration_ms": "152",
+          "end_uptime_ms": "5337162"
+        },
+        {
+          "start_uptime_ms": "5337162",
+          "end_uptime_ms": "5337162",
+          "stage": "rule_reuse",
+          "duration_ms": "0",
+          "operation": "firewall_preparation"
+        },
+        {
+          "stage": "credentials_and_render",
+          "operation": "preparation",
+          "start_uptime_ms": "5337163",
+          "duration_ms": "1",
+          "end_uptime_ms": "5337165"
+        },
+        {
+          "start_uptime_ms": "5337162",
+          "end_uptime_ms": "5337269",
+          "stage": "deny_permission",
+          "duration_ms": "106",
+          "operation": "deny"
+        },
+        {
+          "start_uptime_ms": "5337165",
+          "end_uptime_ms": "5337441",
+          "stage": "profile_preflight",
+          "duration_ms": "276",
+          "operation": "profile"
+        },
+        {
+          "operation": "deny",
+          "duration_ms": "191",
+          "start_uptime_ms": "5337269",
+          "stage": "deny_barrier",
+          "end_uptime_ms": "5337460"
+        },
+        {
+          "stage": "connection_cleanup",
+          "operation": "cleanup",
+          "start_uptime_ms": "5337163",
+          "duration_ms": "394",
+          "end_uptime_ms": "5337557"
+        },
+        {
+          "operation": "deny",
+          "duration_ms": "252",
+          "start_uptime_ms": "5337460",
+          "stage": "deny_states",
+          "end_uptime_ms": "5337712"
+        },
+        {
+          "stage": "deny_readback",
+          "operation": "deny",
+          "start_uptime_ms": "5337713",
+          "duration_ms": "439",
+          "end_uptime_ms": "5338152"
+        },
+        {
+          "stage": "barrier_and_confirmation",
+          "operation": "blocking",
+          "start_uptime_ms": "5337009",
+          "duration_ms": "1143",
+          "end_uptime_ms": "5338153"
+        },
+        {
+          "operation": "prepare",
+          "start_uptime_ms": "5337162",
+          "stage": "confirmed_close",
+          "end_uptime_ms": "5338221",
+          "duration_ms": "1058"
+        },
+        {
+          "operation": "prepare",
+          "start_uptime_ms": "5338221",
+          "stage": "rule_validation_join",
+          "end_uptime_ms": "5338221",
+          "duration_ms": "0"
+        },
+        {
+          "operation": "firewall",
+          "start_uptime_ms": "5338221",
+          "stage": "install_probe_policy",
+          "end_uptime_ms": "5338221",
+          "duration_ms": "0"
+        },
+        {
+          "operation": "prepare",
+          "start_uptime_ms": "5338221",
+          "stage": "probe_policy",
+          "end_uptime_ms": "5338222",
+          "duration_ms": "0"
+        },
+        {
+          "operation": "prepare",
+          "start_uptime_ms": "5338222",
+          "stage": "preparation_join",
+          "end_uptime_ms": "5338222",
+          "duration_ms": "0"
+        },
+        {
+          "operation": "permission",
+          "start_uptime_ms": "5338223",
+          "stage": "permit_private_probe",
+          "end_uptime_ms": "5338625",
+          "duration_ms": "402"
+        },
+        {
+          "operation": "prepare",
+          "start_uptime_ms": "5338222",
+          "stage": "private_probe_join",
+          "end_uptime_ms": "5338626",
+          "duration_ms": "403"
+        },
+        {
+          "operation": "approve",
+          "end_uptime_ms": "5340597",
+          "stage": "opening_join",
+          "duration_ms": "54",
+          "start_uptime_ms": "5340543"
+        },
+        {
+          "operation": "grant",
+          "end_uptime_ms": "5340598",
+          "stage": "grant_mutation_lock",
+          "duration_ms": "0",
+          "start_uptime_ms": "5340598"
+        },
+        {
+          "operation": "grant",
+          "end_uptime_ms": "5340742",
+          "stage": "grant_identity",
+          "duration_ms": "143",
+          "start_uptime_ms": "5340598"
+        },
+        {
+          "operation": "grant",
+          "end_uptime_ms": "5340877",
+          "stage": "grant_parent_identity",
+          "duration_ms": "134",
+          "start_uptime_ms": "5340742"
+        },
+        {
+          "operation": "grant",
+          "end_uptime_ms": "5341052",
+          "stage": "grant_permission",
+          "duration_ms": "175",
+          "start_uptime_ms": "5340877"
+        },
+        {
+          "operation": "approve",
+          "stage": "open_gate",
+          "duration_ms": "455",
+          "start_uptime_ms": "5340597",
+          "end_uptime_ms": "5341053"
+        },
+        {
+          "stage": "installation_inspection",
+          "start_uptime_ms": "5341055",
+          "duration_ms": "579",
+          "end_uptime_ms": "5341634",
+          "operation": "installation"
+        },
+        {
+          "operation": "readiness",
+          "stage": "critical_checks",
+          "duration_ms": "527",
+          "start_uptime_ms": "5341180",
+          "end_uptime_ms": "5341707"
+        },
+        {
+          "operation": "background_audit",
+          "start_uptime_ms": "5341180",
+          "stage": "background_audit",
+          "end_uptime_ms": "5342109",
+          "duration_ms": "928"
+        },
+        {
+          "duration_ms": "1807",
+          "operation": "lookup",
+          "end_uptime_ms": "5340435",
+          "start_uptime_ms": "5338627",
+          "stage": "exit_ip"
+        }
+      ]
+    }
+  ],
+  "packageSHA256": "d139769e95217bfdf860673fc68b4eb2fa12bfab259b23fe7d4f0bcedba1b63a",
+  "helperSHA256": "2e8d91e1224a3a979754aca0e38affa659152152c3db6eea0c6be8657e4c0ff7",
+  "scope": "Two focused installed Release cases in mimo-vm: real cross-process lock contention and launchd override repair; no replacement helper, synthetic events or broad suite."
+}

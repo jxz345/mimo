@@ -1,0 +1,29 @@
+{
+  "success": false,
+  "passed": [
+    "verified-Global-saved-before-reboot",
+    "protected-startup-without-GUI",
+    "saved-Global-restores-after-fresh-allowlisted-check",
+    "current-boot-firewall-reference-and-IPv6-denial",
+    "startup-log-confirms-private-verification-before-opening",
+    "boot-capture-positive-control-confirms-ordinary-attribution",
+    "production-helper-original-Direct-and-empty-credential-restored"
+  ],
+  "errors": [
+    "AssertionError: Ordinary boot probe escaped directly onto the uplink"
+  ],
+  "helperSHA256": "7e445bae78f7f758a18a2b231eadb20c4a7ea689e5d56245ad915bf5a499b8be",
+  "driverSHA256": "d4676254e93b60e3efdab96c552cbab3b4a527ccadaadf47debe2187a0f3d83c",
+  "scope": "Saved Global resumed after a fresh private check without GUI. Full-boot protection failed: traffic preceded the first confirmed startup guard. Separate offline analysis found no ordinary probe packets after that guard. The required boot guarantee remains a user decision.",
+  "evidenceID": "mimo-installed-boot-t__vgnbe",
+  "releaseQualification": false,
+  "platform": "Apple silicon macOS 27.2.1 (Tart VM)",
+  "offlinePacketAnalysis": {
+    "guardClosedAt": 1795004379.004391,
+    "ordinaryPacketsBeforeGuard": 118,
+    "ordinaryPacketsAfterGuard": 0,
+    "protectedIntervalPassed": true,
+    "secondsFromFirstCapturedOrdinaryPacketToGuard": 4.892,
+    "captureSHA256": "24f19c72e8845863bec9673e08409d72fa7d056c5f665f41d3af5bd209f356c9"
+  }
+}

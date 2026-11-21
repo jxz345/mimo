@@ -1,0 +1,214 @@
+{
+  "success": false,
+  "passed": [
+    "optimistic-opening-and-full-audit-finish-while-lifecycle-lock-is-held",
+    "original-mode-configuration-credential-and-service-intent-restored"
+  ],
+  "errors": [
+    "AssertionError: independent job repair marker timed out"
+  ],
+  "trials": [
+    {
+      "event": "route-added-with-lifecycle-lock-held",
+      "eventRequestedUptimeMS": 5137358,
+      "firewallOpenSeconds": 4.124,
+      "verifiedSeconds": 5.613,
+      "verifiedObservedSeconds": 5.865,
+      "stages": [
+        {
+          "duration_ms": "0",
+          "end_uptime_ms": "5137427",
+          "start_uptime_ms": "5137427",
+          "stage": "deny_mutation_wait",
+          "operation": "deny"
+        },
+        {
+          "stage": "deny_permission",
+          "start_uptime_ms": "5137427",
+          "end_uptime_ms": "5137463",
+          "operation": "deny",
+          "duration_ms": "35"
+        },
+        {
+          "stage": "rule_reuse",
+          "start_uptime_ms": "5137619",
+          "end_uptime_ms": "5137619",
+          "operation": "firewall_preparation",
+          "duration_ms": "0"
+        },
+        {
+          "stage": "credentials_and_render",
+          "operation": "preparation",
+          "end_uptime_ms": "5137622",
+          "start_uptime_ms": "5137620",
+          "duration_ms": "2"
+        },
+        {
+          "end_uptime_ms": "5137641",
+          "operation": "deny",
+          "stage": "deny_barrier",
+          "duration_ms": "178",
+          "start_uptime_ms": "5137463"
+        },
+        {
+          "end_uptime_ms": "5137906",
+          "operation": "cleanup",
+          "stage": "connection_cleanup",
+          "duration_ms": "286",
+          "start_uptime_ms": "5137620"
+        },
+        {
+          "end_uptime_ms": "5137937",
+          "operation": "profile",
+          "stage": "profile_preflight",
+          "duration_ms": "315",
+          "start_uptime_ms": "5137622"
+        },
+        {
+          "end_uptime_ms": "5138014",
+          "stage": "deny_states",
+          "start_uptime_ms": "5137641",
+          "operation": "deny",
+          "duration_ms": "372"
+        },
+        {
+          "start_uptime_ms": "5138014",
+          "stage": "deny_readback",
+          "end_uptime_ms": "5138435",
+          "operation": "deny",
+          "duration_ms": "420"
+        },
+        {
+          "start_uptime_ms": "5137427",
+          "stage": "barrier_and_confirmation",
+          "end_uptime_ms": "5138436",
+          "operation": "blocking",
+          "duration_ms": "1009"
+        },
+        {
+          "duration_ms": "1148",
+          "operation": "prepare",
+          "stage": "confirmed_close",
+          "end_uptime_ms": "5138768",
+          "start_uptime_ms": "5137619"
+        },
+        {
+          "duration_ms": "0",
+          "operation": "prepare",
+          "stage": "rule_validation_join",
+          "end_uptime_ms": "5138768",
+          "start_uptime_ms": "5138768"
+        },
+        {
+          "duration_ms": "0",
+          "operation": "firewall",
+          "stage": "install_probe_policy",
+          "end_uptime_ms": "5138769",
+          "start_uptime_ms": "5138769"
+        },
+        {
+          "duration_ms": "0",
+          "operation": "prepare",
+          "stage": "probe_policy",
+          "end_uptime_ms": "5138769",
+          "start_uptime_ms": "5138768"
+        },
+        {
+          "duration_ms": "0",
+          "operation": "prepare",
+          "stage": "preparation_join",
+          "end_uptime_ms": "5138770",
+          "start_uptime_ms": "5138769"
+        },
+        {
+          "duration_ms": "245",
+          "operation": "permission",
+          "stage": "permit_private_probe",
+          "end_uptime_ms": "5139016",
+          "start_uptime_ms": "5138770"
+        },
+        {
+          "duration_ms": "246",
+          "operation": "prepare",
+          "stage": "private_probe_join",
+          "end_uptime_ms": "5139017",
+          "start_uptime_ms": "5138770"
+        },
+        {
+          "end_uptime_ms": "5141033",
+          "operation": "approve",
+          "stage": "opening_join",
+          "duration_ms": "154",
+          "start_uptime_ms": "5140878"
+        },
+        {
+          "end_uptime_ms": "5141034",
+          "operation": "grant",
+          "stage": "grant_mutation_lock",
+          "duration_ms": "0",
+          "start_uptime_ms": "5141034"
+        },
+        {
+          "end_uptime_ms": "5141141",
+          "operation": "grant",
+          "stage": "grant_identity",
+          "duration_ms": "106",
+          "start_uptime_ms": "5141034"
+        },
+        {
+          "end_uptime_ms": "5141361",
+          "operation": "grant",
+          "stage": "grant_parent_identity",
+          "duration_ms": "220",
+          "start_uptime_ms": "5141141"
+        },
+        {
+          "end_uptime_ms": "5141480",
+          "operation": "grant",
+          "stage": "grant_permission",
+          "duration_ms": "119",
+          "start_uptime_ms": "5141361"
+        },
+        {
+          "start_uptime_ms": "5141033",
+          "end_uptime_ms": "5141482",
+          "duration_ms": "448",
+          "operation": "approve",
+          "stage": "open_gate"
+        },
+        {
+          "end_uptime_ms": "5142098",
+          "stage": "installation_inspection",
+          "start_uptime_ms": "5141483",
+          "operation": "installation",
+          "duration_ms": "615"
+        },
+        {
+          "duration_ms": "273",
+          "end_uptime_ms": "5142373",
+          "start_uptime_ms": "5142099",
+          "stage": "critical_checks",
+          "operation": "readiness"
+        },
+        {
+          "operation": "background_audit",
+          "stage": "background_audit",
+          "duration_ms": "873",
+          "end_uptime_ms": "5142971",
+          "start_uptime_ms": "5142098"
+        },
+        {
+          "end_uptime_ms": "5140792",
+          "stage": "exit_ip",
+          "duration_ms": "1774",
+          "operation": "lookup",
+          "start_uptime_ms": "5139018"
+        }
+      ]
+    }
+  ],
+  "packageSHA256": "8fc0fdae4922a264b89a35e2f633c1bd5b26fe8e4f8522f2298cd4909f1e5504",
+  "helperSHA256": "2e8d91e1224a3a979754aca0e38affa659152152c3db6eea0c6be8657e4c0ff7",
+  "scope": "Two focused installed Release cases in mimo-vm: real cross-process lock contention and launchd override repair; no replacement helper, synthetic events or broad suite.",
+  "finding": "Opening and full audit succeeded while the lifecycle lock was held. The launchd-repair precondition did not occur because macOS prints disabled rather than true; the checker parser now accepts both spellings."
+}

@@ -1,0 +1,59 @@
+{
+  "updated": "2026-11-21",
+  "version": "1.0",
+  "basedOnPublishedSource": "cbb4f25d89575a2e4159e17b397453c90e932a8d",
+  "changes": [
+    "Early callbacks register pending classification during a protected cycle; owned notifications clear only their own ticket, while unresolved or external notifications still prevent opening",
+    "Allowed dashboard/menu presentation stays stable during routine background audits; failures remain blocking and visible",
+    "Move uninstall command and deletion note into a separate block below proxy details",
+    "Confirm all copy controls with a two-second checkmark or Copied label; reserve label width and renew feedback after repeated clicks"
+  ],
+  "artifacts": {
+    "Mimo-1.0.zip": "02b7dafd8cc5614fa91e44a1b291bcedc7671962e54d35de87d32512ab262ec5",
+    "Mimo-1.0.pkg": "3016fc5bfe48077539744302fa1a7f5cfffd3a0331e08fc82efda3c9e8b6e3a8",
+    "mimo-gui": "52566c7a25c5b11cd2950410bf62a6e1484bf6c3f40ad064b881739b356b263c",
+    "mimo-core": "e5e6b4bb1d99ebdcc1810dec58ae94eb99346f072404bfc0be978978e02104e2"
+  },
+  "validation": {
+    "environment": "mimo-vm",
+    "sharedTests": {
+      "count": 202,
+      "failures": 0
+    },
+    "before": {
+      "environment": "mimo-vm",
+      "phase": "before",
+      "checks": [
+        "previous published Direct-to-Rule transition reproduces an unattributed follow-up",
+        "original mode, proxy, allowlist, credentials and service intent restored; temporary route removed"
+      ]
+    },
+    "after": {
+      "environment": "mimo-vm",
+      "phase": "after",
+      "checks": [
+        "Direct-to-Rule transition 1 ignores owned setup notifications and opens after one IP pass",
+        "Direct-to-Rule transition 2 ignores owned setup notifications and opens after one IP pass",
+        "real route change still blocks and verifies once",
+        "external route change during verification keeps PF blocked for one attributed follow-up; stale pass never opens",
+        "original mode, proxy, allowlist, credentials and service intent restored; temporary route removed"
+      ]
+    },
+    "fence": [
+      "PASS: pending classification holds approval; owned events add no follow-up; external and late callbacks remain safe",
+      "PASS: cycle events coalesce, stale opening is rejected, Direct stays open and controls wait in order",
+      "PASS: session and wake events revoke stale approvals, preserve sleep hold, and bypass Direct",
+      "PASS: power fence closes before acknowledgement, rejects late approvals and requires fresh verification after wake"
+    ],
+    "clipboard": [
+      "PASS: copy writes exact clipboard text; feedback is per control, renews on click and resets without clearing clipboard"
+    ],
+    "visual": "Native dashboard scenarios and populated Settings rendered in light/dark; Direct light and active-audit Rule dark inspected at 1040x690 points, including uninstall block and version/build",
+    "artifactIdentity": "Installed GUI/core/helper match packaged bytes; prior installed core matches previous public evidence"
+  },
+  "limits": [
+    "Runtime and native UI checks ran only in mimo-vm; physical-Mac acceptance remains user-driven",
+    "No broad reboot, sleep, fault, multi-user or uninstall campaign repeated",
+    "Unresolved early callbacks conservatively require a follow-up if classification has not completed before approval"
+  ]
+}

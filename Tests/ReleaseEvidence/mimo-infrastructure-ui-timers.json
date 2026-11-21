@@ -1,0 +1,31 @@
+{
+  "date": "2026-11-19",
+  "scope": "Native PF/launchd dashboard elapsed timers and normal-size text; GUI-only update in mimo-vm.",
+  "checks": {
+    "sharedTests": 164,
+    "sharedFailures": 0,
+    "appAndRenderSuite": "passed",
+    "arm64DebugBuild": "passed",
+    "strictAdhocSignature": "passed",
+    "defaultWindowPoints": [
+      1040,
+      640
+    ],
+    "lightDarkAndFailedStaleRenders": "passed",
+    "liveVM": "PF and launchd Healthy; both Last check values observed at 5 seconds and then 1 second after a new inspection; all controls and footer visible without scrolling."
+  },
+  "sourceSHA256": {
+    "Sources/ExitIPMonitorApp/MimoViews.swift": "4ecc65ecc416f6c58520ee05d61b8a400043be0ca83a2f50afb3731e47a6501e",
+    "Sources/ExitIPMonitorApp/ExitIPMonitorApp.swift": "d6636befd4b88c80b9e1684db27c4222e28ac2f247a3188f3a226167e3f8d21b"
+  },
+  "guiSHA256": "2f96dcfa3407a7294f9bc102b69658dfde2a713747db264c527b4f511c8bcf4a",
+  "helperUnchanged": true,
+  "networkPolicyChanged": false,
+  "installedApp": "/Users/jay/Applications/Mimo.app",
+  "rollbackApp": "/Users/jay/mimo-tests/ui-pf-timer/Mimo.previous.app",
+  "previews": [
+    "Previews/28-mimo-infrastructure-light.png",
+    "Previews/29-mimo-infrastructure-dark.png",
+    "Previews/30-mimo-infrastructure-failed-light.png"
+  ]
+}

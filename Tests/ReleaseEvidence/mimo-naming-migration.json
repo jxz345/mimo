@@ -1,0 +1,104 @@
+{
+  "success": true,
+  "updated": "2026-11-21",
+  "version": "1.0",
+  "buildNumber": "1",
+  "environment": "mimo-vm only",
+  "build": {
+    "configuration": "Release",
+    "architecture": "arm64",
+    "packageSHA256": "7782f91ebb5249712ef02c742dc7db4d70449cb6c5846cfcb3123877534f1f76",
+    "helperSHA256": "c859541199732406174ac37f4a80dbc1e994dd07be32b7719341a614c01a2d48",
+    "guiSHA256": "1711981aca041f13b06718fe39a56af52fd4b2494f4bedf6bc13e9f67830d5a1"
+  },
+  "tapTestedCommit": "d5cb465ab111e777af78c8eda486696f61ce034a",
+  "installedCaskTap": "jxz345/tap",
+  "sourceRef": "refs/tags/v1.0",
+  "sourcePublicationPolicy": "One parentless latest-source snapshot on main and v1.0.",
+  "scope": "Focused naming/migration, actual saved-proxy Rule/Direct, XPC, login, native rendering and Homebrew lifecycle checks. No broad network fault suite rerun.",
+  "sharedTests": {
+    "passed": 190,
+    "failed": 0,
+    "execution": "mimo-vm",
+    "compilation": "Delta (not executed there)",
+    "note": "VM Command Line Tools lack XCTest. The built test bundle and its Xcode XCTest runner/framework dependencies were copied to the VM. The source-reading test fixture was also staged at its compiled path."
+  },
+  "legacyPackageSHA256": "8d55815e9fa3684b09b5404c8867d173e45c647d192967b15044f16c4331d7a8",
+  "legacyLoginProbeSHA256": "f49b18d899bb9c7c9b0731ba7f63f0f86d468340cf62f61131e4a4ad7ccca4ef",
+  "noSeparateTapStep": {
+    "passed": true,
+    "initialState": "jxz345/tap untapped and pinned engine absent",
+    "commands": [
+      "brew trust --formula jxz345/tap/mihomo@1.19.34",
+      "brew install --cask jxz345/tap/mimo"
+    ],
+    "observed": "Homebrew automatically cloned the tap, trusted the fully qualified cask, verified the new ZIP checksum and installed pinned mihomo with installed_on_request=false."
+  },
+  "dependencyCleanup": {
+    "passed": true,
+    "observed": "Public cask uninstall automatically removed the unused pinned mihomo formula. Original explicit installation was then restored with installed_on_request=true."
+  },
+  "deletedBundle": {
+    "passed": true,
+    "observed": "Enabled the new login identity, stopped the GUI and actually removed /Applications/Mimo.app. Public brew uninstall then cleaned services/PF/login/runtime via the sealed root-owned removal copy without prompting."
+  },
+  "loginCoverage": "Actual old and new enabled login items for jay; logged-out never-enabled registrations for mimotest and test. All three report no registration and saved choice unset after removal. Simultaneous GUI sessions and logged-out enabled registrations remain unqualified.",
+  "ui": {
+    "passed": true,
+    "method": "Native SwiftUI offscreen renders executed in mimo-vm from the real app views, using example data. Direct, long-message blocked, dark/light and populated Settings renders completed. The uninstall note fits at 1040x690.",
+    "previews": [
+      "Previews/mimo-clean-uninstall-light.png",
+      "Previews/mimo-clean-uninstall-dark.png"
+    ],
+    "limitation": "Installed-app visual interaction was unavailable: CUA returned noWindowsAvailable/cgWindowNotFound. No live copy-button click is claimed."
+  },
+  "privilege": "Brew ran as jay. Noninteractive postflight deferred service setup, which ran through the authorized VM administrator using the bundled installer. Public uninstall used SUDO_ASKPASS=/usr/bin/false and needed no prompt. Interactive installation authentication UI was not newly exercised.",
+  "resolvedFindings": [
+    "Updated the controller parent-directory check for the new shared support layout; its own directory stays root-only.",
+    "Removed the obsolete Authorization Services right after successful migration.",
+    "Persisted the cached-hook compatibility requirement across interrupted migration retries."
+  ],
+  "harnessNotes": [
+    "A compiled source-reading shared test initially lacked its script fixture in the VM; staging that source file produced 190/190 passes.",
+    "The manually staged direct-upgrade app was initially root-owned. The old cached hook successfully removed services but Homebrew could not delete the app files. Restoring normal Homebrew app ownership and moving its interrupted backup aside allowed file removal. The later public install/deleted-bundle uninstall needed no such correction."
+  ],
+  "finalState": "Mimo uninstalled; original explicit mihomo restored; saved configuration, System Keychain credentials and logs retained. Temporary test app copies archived privately in the VM.",
+  "failures": [],
+  "migrationChecks": [
+    "installed-retains-proxy-allowlist-credentials-and-service-intent",
+    "old-storage-jobs-right-and-enabled-login-registration-retired",
+    "new-app-service-identities-signature-PF-launchd-and-IPv4-policy-healthy",
+    "cached-Homebrew-hook-has-fixed-uninstall-only-bridge",
+    "Rule-approves-real-saved-proxy-and-private-profile-after-migration",
+    "Direct-recovered-after-protected-check"
+  ],
+  "cachedRemovalChecks": [
+    "uninstalled-retains-proxy-allowlist-credentials-and-service-intent",
+    "old-storage-jobs-right-and-enabled-login-registration-retired",
+    "uninstall-removes-app-owned-jobs-helpers-PF-runtime-and-compatibility-bridge",
+    "uninstall-restores-original-IPv6-flags-and-ordinary-user-HTTPS",
+    "app-processes-private-group-and-installer-authorization-right-removed",
+    "runtime-secrets-caches-cleanup-copy-and-installer-staging-removed",
+    "login-items-unregistered-and-preferences-cleared-for-3-accounts"
+  ],
+  "publicInstallChecks": [
+    "fresh-retains-proxy-allowlist-credentials-and-service-intent",
+    "old-storage-jobs-right-and-enabled-login-registration-retired",
+    "new-app-service-identities-signature-PF-launchd-and-IPv4-policy-healthy",
+    "fresh-install-has-no-legacy-manager-or-removal-grant",
+    "installed-app controls and private profile access; root-only operations remain restricted",
+    "installed-app controls and private profile access; root-only operations remain restricted"
+  ],
+  "publicRemovalChecks": [
+    "uninstalled-retains-proxy-allowlist-credentials-and-service-intent",
+    "old-storage-jobs-right-and-enabled-login-registration-retired",
+    "uninstall-removes-app-owned-jobs-helpers-PF-runtime-and-compatibility-bridge",
+    "uninstall-restores-original-IPv6-flags-and-ordinary-user-HTTPS",
+    "app-processes-private-group-and-installer-authorization-right-removed",
+    "runtime-secrets-caches-cleanup-copy-and-installer-staging-removed",
+    "login-items-unregistered-and-preferences-cleared-for-3-accounts"
+  ],
+  "finalStateChecks": [
+    "original-explicit-mihomo-restored-and-Mimo-uninstalled"
+  ]
+}

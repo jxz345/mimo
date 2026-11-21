@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" fill="none">
+  <title>Mimo</title><desc>Two frosted routing arches form a lowercase m above a graphite glass tile.</desc>
+  <defs>
+    <linearGradient id="graphite" x1="158" y1="94" x2="858" y2="950" gradientUnits="userSpaceOnUse"><stop stop-color="#9a9a9a"/><stop offset=".38" stop-color="#545454"/><stop offset="1" stop-color="#2a2a2a"/></linearGradient>
+    <linearGradient id="rim" x1="183" y1="75" x2="838" y2="938" gradientUnits="userSpaceOnUse"><stop stop-color="#ffffff" stop-opacity=".72"/><stop offset=".4" stop-color="#e6e6e6" stop-opacity=".1"/><stop offset="1" stop-color="#b9b9b9" stop-opacity=".42"/></linearGradient>
+    <linearGradient id="frost" x1="360" y1="310" x2="665" y2="728" gradientUnits="userSpaceOnUse"><stop stop-color="#ffffff"/><stop offset=".44" stop-color="#f3f3f3" stop-opacity=".96"/><stop offset="1" stop-color="#d4d4d4" stop-opacity=".86"/></linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="translate(294 190) rotate(55) scale(640 670)" gradientUnits="userSpaceOnUse"><stop stop-color="#dfdfdf" stop-opacity=".35"/><stop offset="1" stop-color="#d3d3d3" stop-opacity="0"/></radialGradient>
+    <filter id="shadow" x="0" y="0" width="1024" height="1024" filterUnits="userSpaceOnUse"><feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#1f1f1f" flood-opacity=".18"/></filter>
+    <filter id="lift" x="140" y="180" width="760" height="680" filterUnits="userSpaceOnUse"><feDropShadow dx="0" dy="16" stdDeviation="12" flood-color="#181818" flood-opacity=".28"/></filter>
+  </defs>
+  <g><rect x="64" y="64" width="896" height="896" rx="204" fill="url(#graphite)"/><rect x="64" y="64" width="896" height="896" rx="204" fill="url(#glow)"/><rect x="67" y="67" width="890" height="890" rx="201" stroke="url(#rim)" stroke-width="6"/></g>
+  <g filter="url(#lift)"><path d="M280 676V447C280 292 512 292 512 447V636M512 447C512 292 744 292 744 447V676" stroke="url(#frost)" stroke-width="104" stroke-linecap="round" stroke-linejoin="round"/></g>
+  <path d="M235 660V447C235 349 303 290 396 290C464 290 512 326 534 368M557 447C557 349 625 315 676 333C700 341 716 358 723 380" stroke="#ffffff" stroke-opacity=".35" stroke-width="5" stroke-linecap="round"/>
+  <path d="M123 785C257 885 674 956 901 783" stroke="#c2c2c2" stroke-opacity=".12" stroke-width="3" stroke-linecap="round"/>
+</svg>

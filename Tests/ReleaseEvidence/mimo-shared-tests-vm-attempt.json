@@ -1,0 +1,10 @@
+{
+  "date": "2026-11-19",
+  "environment": "mimo-vm only",
+  "command": "xcrun swift test",
+  "result": "not run: compiler toolchain dependency failure",
+  "firstActionableError": "unable to resolve module dependency: XCTest",
+  "toolchain": "/Library/Developer/CommandLineTools",
+  "guestLog": "/Users/jay/mimo-tests/release/shared-tests.log",
+  "scope": "Shared tests include corrected ipapi.is 24-call limit and confirmed-block presentation assertions. No passing test count claimed. Actual installed-service acceptance is separate."
+}

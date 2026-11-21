@@ -1,0 +1,8 @@
+{
+  "success": false,
+  "packageSHA256": "036b680a9d5e395e6c3ba303c0367d3370994922caaee58a5b6168531b1a80e4",
+  "helperSHA256": "df548d9a92665906584de4375dc9d685942879754f9afcbf42f0b62b399d3eec",
+  "failure": "Lifecycle checker compared raw persisted JSON and required an unchanged conflict revision after selecting Direct again. Only service.revision and JSON encoding of service.routing changed.",
+  "configurationValuesUnchanged": true,
+  "resolution": "Compare decoded configuration values, require a nondecreasing conflict revision, and continue to independently compare credential digest and service intent. Re-run the installed checkpoint and remaining real lifecycle."
+}

@@ -1,0 +1,32 @@
+{
+  "success": true,
+  "passed": [
+    "Mimo-uninstall-preserves-explicitly-installed-mihomo",
+    "Mimo-install-automatically-installs-pinned-mihomo-as-dependency",
+    "Mimo-uninstall-automatically-removes-unused-mihomo-dependency",
+    "original-explicit-engine-intent-and-user-Rule-configuration-restored"
+  ],
+  "packageSHA256": "036b680a9d5e395e6c3ba303c0367d3370994922caaee58a5b6168531b1a80e4",
+  "helperSHA256": "df548d9a92665906584de4375dc9d685942879754f9afcbf42f0b62b399d3eec",
+  "guiSHA256": "71c84e6d3feba21eb3084c0ac04b103d2157bca615802e828d79f73ca2229f4a",
+  "scope": "Actual Homebrew commands as jay in mimo-vm using the exact VM-local candidate cask. Both explicit and automatic mihomo dependency lifecycle exercised. Standard bundled privileged installer executed through the authorized VM administrator after noninteractive Homebrew installation. Interactive password UI is not claimed. Public tap unchanged.",
+  "lifecycleChecks": [
+    "uninstalled-retains-saved-configuration-and-Keychain-password",
+    "brew-uninstall-removes-app-runtime-jobs-and-persistent-PF-policy",
+    "brew-uninstall-restores-original-IPv6-enabled-flags",
+    "brew-uninstall-restores-ordinary-user-HTTPS",
+    "installed-retains-saved-configuration-and-Keychain-password",
+    "brew-installed-Release-helper-signature-Direct-and-service-intent-confirmed",
+    "uninstalled-retains-saved-configuration-and-Keychain-password",
+    "brew-uninstall-removes-app-runtime-jobs-and-persistent-PF-policy",
+    "brew-uninstall-restores-original-IPv6-enabled-flags",
+    "brew-uninstall-restores-ordinary-user-HTTPS",
+    "installed-retains-saved-configuration-and-Keychain-password",
+    "brew-installed-Release-helper-signature-Direct-and-service-intent-confirmed"
+  ],
+  "formulaTrust": "Explicit trust for jxz345/tap/mihomo@1.19.34 only, after matching the VM tap formula SHA256 to the repository. Homebrew trust enforcement retained.",
+  "earlierAttempts": [
+    "mimo-final-coverage-brew-trust-attempt.json",
+    "mimo-final-coverage-brew-checker-attempt.json"
+  ]
+}

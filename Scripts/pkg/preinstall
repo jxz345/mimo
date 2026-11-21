@@ -1,0 +1,11 @@
+#!/bin/bash
+# The package contains these current helpers beside this script, not in the old app.
+# Abort before replacing the bundle if a hung app or provider cannot be removed.
+set -uo pipefail
+script_dir="$(cd "$(dirname "$0")" && pwd)"
+# System launchd cleanup is meaningful only on the running startup volume.
+[ "${3:-/}" = / ] || { echo 'Install on the running startup volume.' >&2; exit 1; }
+# Clean both identities before replacing either app. Retain the legacy bundle for rollback.
+for name in Mimo.app ExitIPMonitor.app; do
+    /bin/bash "$script_dir/cleanup-installation.sh" --app "${2:-/Applications}/$name" || exit $?
+done

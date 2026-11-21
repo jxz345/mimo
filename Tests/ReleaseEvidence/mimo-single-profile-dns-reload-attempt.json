@@ -1,0 +1,256 @@
+{
+  "success": false,
+  "passed": [
+    "rule-final-profile-and-private-proxied-DNS-loaded-while-blocked",
+    "rule-empty-allowlist-denies-existing-and-new-ordinary-traffic",
+    "rule-mismatched-allowlist-denies-ordinary-traffic",
+    "rule-original-allowlist-restores-ordinary-HTTPS",
+    "rule-route-added-single-profile-concurrent-checks-before-open",
+    "rule-route-removed-single-profile-concurrent-checks-before-open",
+    "global-final-profile-and-private-proxied-DNS-loaded-while-blocked",
+    "global-empty-allowlist-denies-existing-and-new-ordinary-traffic",
+    "global-mismatched-allowlist-denies-ordinary-traffic",
+    "global-original-allowlist-restores-ordinary-HTTPS",
+    "global-route-added-single-profile-concurrent-checks-before-open",
+    "global-route-removed-single-profile-concurrent-checks-before-open",
+    "foreign-DNS-listener-denies-ordinary-traffic",
+    "foreign-DNS-owner-fails-concurrent-readiness-without-opening"
+  ],
+  "errors": [
+    "AssertionError: DNS conflict recovered timed out",
+    "Restoration: AssertionError: "
+  ],
+  "trials": [
+    {
+      "name": "rule-route-added",
+      "seconds": 9.776,
+      "finalProfileLoads": 1,
+      "parentPolicyWrites": [
+        "probe",
+        "active"
+      ],
+      "criticalChecksBeforeOpen": true,
+      "stages": [
+        {
+          "duration_ms": "773",
+          "stage": "confirmed_close",
+          "operation": "prepare"
+        },
+        {
+          "duration_ms": "269",
+          "stage": "connection_cleanup",
+          "operation": "prepare"
+        },
+        {
+          "duration_ms": "0",
+          "stage": "endpoint_resolution",
+          "operation": "prepare"
+        },
+        {
+          "duration_ms": "1237",
+          "stage": "probe_gate",
+          "operation": "prepare"
+        },
+        {
+          "duration_ms": "954",
+          "stage": "final_profile",
+          "operation": "prepare"
+        },
+        {
+          "duration_ms": "860",
+          "operation": "readiness",
+          "stage": "critical_checks"
+        },
+        {
+          "stage": "readiness_join",
+          "duration_ms": "1224",
+          "operation": "approve"
+        },
+        {
+          "duration_ms": "1381",
+          "stage": "open_gate",
+          "operation": "approve"
+        },
+        {
+          "duration_ms": "1217",
+          "stage": "exit_ip",
+          "operation": "lookup"
+        }
+      ]
+    },
+    {
+      "name": "rule-route-removed",
+      "seconds": 11.448,
+      "finalProfileLoads": 1,
+      "parentPolicyWrites": [
+        "probe",
+        "active"
+      ],
+      "criticalChecksBeforeOpen": true,
+      "stages": [
+        {
+          "stage": "confirmed_close",
+          "operation": "prepare",
+          "duration_ms": "1378"
+        },
+        {
+          "stage": "connection_cleanup",
+          "operation": "prepare",
+          "duration_ms": "241"
+        },
+        {
+          "stage": "endpoint_resolution",
+          "operation": "prepare",
+          "duration_ms": "0"
+        },
+        {
+          "duration_ms": "1109",
+          "stage": "probe_gate",
+          "operation": "prepare"
+        },
+        {
+          "duration_ms": "803",
+          "stage": "final_profile",
+          "operation": "prepare"
+        },
+        {
+          "stage": "critical_checks",
+          "operation": "readiness",
+          "duration_ms": "1619"
+        },
+        {
+          "duration_ms": "1357",
+          "operation": "approve",
+          "stage": "readiness_join"
+        },
+        {
+          "duration_ms": "2268",
+          "operation": "approve",
+          "stage": "open_gate"
+        },
+        {
+          "duration_ms": "1279",
+          "stage": "exit_ip",
+          "operation": "lookup"
+        }
+      ]
+    },
+    {
+      "name": "global-route-added",
+      "seconds": 9.699,
+      "finalProfileLoads": 1,
+      "parentPolicyWrites": [
+        "probe",
+        "active"
+      ],
+      "criticalChecksBeforeOpen": true,
+      "stages": [
+        {
+          "operation": "prepare",
+          "stage": "confirmed_close",
+          "duration_ms": "1227"
+        },
+        {
+          "operation": "prepare",
+          "stage": "connection_cleanup",
+          "duration_ms": "182"
+        },
+        {
+          "operation": "prepare",
+          "stage": "endpoint_resolution",
+          "duration_ms": "0"
+        },
+        {
+          "duration_ms": "1190",
+          "operation": "prepare",
+          "stage": "probe_gate"
+        },
+        {
+          "duration_ms": "976",
+          "operation": "prepare",
+          "stage": "final_profile"
+        },
+        {
+          "stage": "critical_checks",
+          "duration_ms": "490",
+          "operation": "readiness"
+        },
+        {
+          "duration_ms": "423",
+          "stage": "readiness_join",
+          "operation": "approve"
+        },
+        {
+          "stage": "open_gate",
+          "duration_ms": "1461",
+          "operation": "approve"
+        },
+        {
+          "stage": "exit_ip",
+          "duration_ms": "1305",
+          "operation": "lookup"
+        }
+      ]
+    },
+    {
+      "name": "global-route-removed",
+      "seconds": 8.842,
+      "finalProfileLoads": 1,
+      "parentPolicyWrites": [
+        "probe",
+        "active"
+      ],
+      "criticalChecksBeforeOpen": true,
+      "stages": [
+        {
+          "stage": "confirmed_close",
+          "duration_ms": "1503",
+          "operation": "prepare"
+        },
+        {
+          "stage": "connection_cleanup",
+          "duration_ms": "259",
+          "operation": "prepare"
+        },
+        {
+          "stage": "endpoint_resolution",
+          "duration_ms": "0",
+          "operation": "prepare"
+        },
+        {
+          "stage": "probe_gate",
+          "duration_ms": "1277",
+          "operation": "prepare"
+        },
+        {
+          "stage": "final_profile",
+          "duration_ms": "970",
+          "operation": "prepare"
+        },
+        {
+          "duration_ms": "856",
+          "stage": "critical_checks",
+          "operation": "readiness"
+        },
+        {
+          "duration_ms": "1080",
+          "stage": "readiness_join",
+          "operation": "approve"
+        },
+        {
+          "duration_ms": "1120",
+          "stage": "open_gate",
+          "operation": "approve"
+        },
+        {
+          "stage": "exit_ip",
+          "duration_ms": "1338",
+          "operation": "lookup"
+        }
+      ]
+    }
+  ],
+  "packageSHA256": "c72bcdaa90031a3f890d2ac2a223e004213de4363eda40669901bb1a78194f0a",
+  "helperSHA256": "6c1ecf28c670be26136f9b0ee14b9ef2bc46530782962980a9bd50e79f174259",
+  "scope": "Exact installed Release in mimo-vm, saved real proxy, Rule/Global/Direct, real route events, foreign DNS owner, engine crash, ordinary-user connections and physical-interface captures. No physical sleep/unlock or simultaneous-login claim."
+}

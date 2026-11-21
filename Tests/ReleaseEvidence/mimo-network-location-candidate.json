@@ -1,0 +1,26 @@
+{
+  "date": "2026-11-21",
+  "environment": "mimo-vm",
+  "status": "local candidate; not published; physical-Mac MagicDNS remains unresolved",
+  "artifacts": {
+    "packageSHA256": "954e8848eefb74cfc40091c2a085761a7ddbe1dbb8e14540d34e48f381615ec5",
+    "zipSHA256": "832878e063b96c64f7a328003241ce4081ffb6cba43aff1c943b36e351859f01",
+    "helperSHA256": "c3357012f8fb9ff7899fed77e218b54bd3a46adca89a309c158939a40721b0cc"
+  },
+  "checks": [
+    "207 shared tests pass, including unchanged preference timestamps, genuine location/unknown field changes, and missing data",
+    "All service sources compile; focused cycle and power fence regressions pass",
+    "A real SCPreferencesApplyChanges call reaches the production observer and ignores Setup metadata without editing preferences",
+    "Normal candidate installer preserves settings and restores the original mode",
+    "Two installed Direct-to-Rule transitions with real preference applies during preparation perform exactly one private probe and one opening each",
+    "A real route change still blocks and verifies once",
+    "An external route change during verification retains one attributed follow-up; stale verification never opens traffic",
+    "Original mode, proxy, allowlist, credentials and service intent restored; temporary route removed"
+  ],
+  "limits": [
+    "The physical-Mac Setup notification did not include field values, so a timestamp-only change there is inferred, not captured",
+    "Physical-Mac Quad100 TCP connections succeed using the runtime group with and without native-interface binding, but mihomo DNS still reports ENETDOWN",
+    "No DNS-routing or firewall-policy change is included; physical-Mac MagicDNS is not claimed fixed",
+    "The installed VM candidate is not the public GitHub release"
+  ]
+}

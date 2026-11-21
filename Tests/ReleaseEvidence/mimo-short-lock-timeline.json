@@ -1,0 +1,188 @@
+{
+  "date": "2026-11-20",
+  "environment": "mimo-vm",
+  "mode": "rule",
+  "trials": 1,
+  "firewallOpenSeconds": 3.926,
+  "auditFinishedSeconds": 5.087,
+  "previousN123TrialSeconds": 5.492,
+  "stages": [
+    {
+      "stage": "deny_mutation_wait",
+      "startSeconds": 0.003,
+      "endSeconds": 0.023,
+      "durationMS": 19
+    },
+    {
+      "stage": "route_actor_delivery",
+      "startSeconds": 0.003,
+      "endSeconds": 0.059,
+      "durationMS": 55
+    },
+    {
+      "stage": "deny_permission",
+      "startSeconds": 0.023,
+      "endSeconds": 0.136,
+      "durationMS": 113
+    },
+    {
+      "stage": "rule_reuse",
+      "startSeconds": 0.136,
+      "endSeconds": 0.136,
+      "durationMS": 0
+    },
+    {
+      "stage": "credentials_and_render",
+      "startSeconds": 0.137,
+      "endSeconds": 0.139,
+      "durationMS": 1
+    },
+    {
+      "stage": "deny_barrier",
+      "startSeconds": 0.136,
+      "endSeconds": 0.294,
+      "durationMS": 157
+    },
+    {
+      "stage": "profile_preflight",
+      "startSeconds": 0.139,
+      "endSeconds": 0.34,
+      "durationMS": 200
+    },
+    {
+      "stage": "connection_cleanup",
+      "startSeconds": 0.137,
+      "endSeconds": 0.465,
+      "durationMS": 328
+    },
+    {
+      "stage": "deny_states",
+      "startSeconds": 0.294,
+      "endSeconds": 0.662,
+      "durationMS": 368
+    },
+    {
+      "stage": "deny_readback",
+      "startSeconds": 0.663,
+      "endSeconds": 1.159,
+      "durationMS": 495
+    },
+    {
+      "stage": "deny_publish",
+      "startSeconds": 1.159,
+      "endSeconds": 1.16,
+      "durationMS": 1
+    },
+    {
+      "stage": "barrier_and_confirmation",
+      "startSeconds": 0.003,
+      "endSeconds": 1.16,
+      "durationMS": 1156
+    },
+    {
+      "stage": "confirmed_close",
+      "startSeconds": 0.136,
+      "endSeconds": 1.177,
+      "durationMS": 1041
+    },
+    {
+      "stage": "rule_validation_join",
+      "startSeconds": 1.177,
+      "endSeconds": 1.194,
+      "durationMS": 16
+    },
+    {
+      "stage": "install_probe_policy",
+      "startSeconds": 1.21,
+      "endSeconds": 1.21,
+      "durationMS": 0
+    },
+    {
+      "stage": "probe_policy",
+      "startSeconds": 1.194,
+      "endSeconds": 1.227,
+      "durationMS": 33
+    },
+    {
+      "stage": "preparation_join",
+      "startSeconds": 1.227,
+      "endSeconds": 1.262,
+      "durationMS": 35
+    },
+    {
+      "stage": "permit_private_probe",
+      "startSeconds": 1.28,
+      "endSeconds": 1.553,
+      "durationMS": 273
+    },
+    {
+      "stage": "private_probe_join",
+      "startSeconds": 1.262,
+      "endSeconds": 1.554,
+      "durationMS": 291
+    },
+    {
+      "stage": "opening_join",
+      "startSeconds": 3.17,
+      "endSeconds": 3.354,
+      "durationMS": 183
+    },
+    {
+      "stage": "grant_mutation_lock",
+      "startSeconds": 3.355,
+      "endSeconds": 3.355,
+      "durationMS": 0
+    },
+    {
+      "stage": "grant_identity",
+      "startSeconds": 3.355,
+      "endSeconds": 3.477,
+      "durationMS": 121
+    },
+    {
+      "stage": "grant_parent_identity",
+      "startSeconds": 3.477,
+      "endSeconds": 3.76,
+      "durationMS": 282
+    },
+    {
+      "stage": "grant_permission",
+      "startSeconds": 3.76,
+      "endSeconds": 3.925,
+      "durationMS": 165
+    },
+    {
+      "stage": "open_gate",
+      "startSeconds": 3.354,
+      "endSeconds": 3.926,
+      "durationMS": 572
+    },
+    {
+      "stage": "installation_inspection",
+      "startSeconds": 3.927,
+      "endSeconds": 4.387,
+      "durationMS": 459
+    },
+    {
+      "stage": "critical_checks",
+      "startSeconds": 4.038,
+      "endSeconds": 4.534,
+      "durationMS": 495
+    },
+    {
+      "stage": "background_audit",
+      "startSeconds": 4.037,
+      "endSeconds": 5.087,
+      "durationMS": 1049
+    },
+    {
+      "stage": "exit_ip",
+      "startSeconds": 1.555,
+      "endSeconds": 2.951,
+      "durationMS": 1395
+    }
+  ],
+  "scope": "One final-build warm route trial deliberately overlapping a real independent checker scan. The scanner rejected its stale snapshot. Grant acquisition 0 ms at log precision; blocked publication 1 ms. Intermediate build observed 2.494 s before supervisor-startup recovery was fixed; do not combine builds into a latency benchmark.",
+  "packageSHA256": "fcaff59daff60fc7ddfabeb526c1fe31fc88da335cedbd6393da2304daf8fe58",
+  "helperSHA256": "40b4d4c538851d506a4ab75be3105be14840b51f1f3f0e6ab46802b559758006"
+}

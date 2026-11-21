@@ -1,0 +1,11 @@
+{
+  "date": "2026-11-20",
+  "environment": "mimo-vm only",
+  "packageSHA256": "ff4a6cfd1b02f843b33f7df27420374626b5ee81cff0ac9c951669468be97369",
+  "helperSHA256": "b1d82f101d74db5ab5702103ac2a3ef33a1f281959d1b36ae00051f06c340a95",
+  "scope": "Read back and concurrently reapply the installed Direct parent policy plus an empty unreferenced native child policy. Original Rule restored. Diagnostic of PF-write contention, not qualification of protected traffic.",
+  "writes": 48,
+  "failures": 0,
+  "conclusion": "The observed native PF apply failure was not reproduced; its exact cause remains unestablished. The confirmed product defect was failure to request fresh verification after native updates recovered.",
+  "initialHarnessAttempt": "An incorrect assertion expected an explicit IPv4 pass rule in Direct. It failed before any diagnostic PF write, and restored Rule. The corrected assertion checks the real Direct policy: IPv6 deny with no protected sub-anchor."
+}

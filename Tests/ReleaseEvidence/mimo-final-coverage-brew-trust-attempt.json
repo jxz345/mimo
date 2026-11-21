@@ -1,0 +1,13 @@
+{
+  "success": false,
+  "resolved": false,
+  "packageSHA256": "036b680a9d5e395e6c3ba303c0367d3370994922caaee58a5b6168531b1a80e4",
+  "helperSHA256": "df548d9a92665906584de4375dc9d685942879754f9afcbf42f0b62b399d3eec",
+  "passed": [
+    "Mimo-uninstall-restores-network-retains-settings-and-explicit-mihomo",
+    "explicit-mihomo-removal"
+  ],
+  "failure": "Homebrew 6 refused to load the untrusted pinned dependency after removal. Explicit fully qualified Mimo installation trusted only the cask. No app code failure; formula trust must precede fresh dependency install.",
+  "formulaSHA256": "c6b9eb6878d8f8e63b39b8d23022199338164ab045d771d540d0a369a521e1a6",
+  "resolution": "Verify the installed tap formula against Packaging/Formula, trust only jxz345/tap/mihomo@1.19.34, and rerun remaining real Homebrew lifecycle. Never disable trust enforcement."
+}

@@ -1,0 +1,13 @@
+{
+  "success": true,
+  "passed": [
+    "actual-stalled-controller-cannot-prepare-probe-or-open",
+    "controller-resume-automatically-rechecks-and-recovers-without-manual-Refresh",
+    "original-protected-mode-configuration-credentials-and-service-intent-restored"
+  ],
+  "errors": [],
+  "mode": "rule",
+  "packageSHA256": "3e47e3bb07251bebcb52a95769ca5abf894f3877f961b7f15ab4466bc8dfd1f1",
+  "helperSHA256": "eccfdf1f6dc234d5fd4b54ed56683bfb1e90f957baaed28141a36be7a369b10f",
+  "scope": "Installed normal Release in mimo-vm; real allowlist rejection, suspended/resumed mihomo controller, ordinary-user HTTPS and restoration. No synthetic events or helper replacement."
+}

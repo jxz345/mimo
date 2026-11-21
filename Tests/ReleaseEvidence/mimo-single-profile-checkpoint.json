@@ -1,0 +1,40 @@
+{
+  "date": "2026-11-20",
+  "environment": "mimo-vm only",
+  "configuration": "Release",
+  "architecture": "arm64",
+  "packageSHA256": "c72bcdaa90031a3f890d2ac2a223e004213de4363eda40669901bb1a78194f0a",
+  "helperSHA256": "6c1ecf28c670be26136f9b0ee14b9ef2bc46530782962980a9bd50e79f174259",
+  "guiSHA256": "6d0d64c283b98d8945566182d42f729c45c52373d56631ea77f0193b67574ccd",
+  "sharedTests": {
+    "passed": 183,
+    "failed": 0,
+    "command": "DEVELOPER_DIR=/Users/jay/mimo-tests/toolchains/Xcode.app/Contents/Developer xcrun swift test"
+  },
+  "serviceRegression": {
+    "passed": true,
+    "command": "DEVELOPER_DIR=/Users/jay/mimo-tests/toolchains/Xcode.app/Contents/Developer bash Tests/ExitIPServiceTests/run.sh"
+  },
+  "runtime": {
+    "packetAndFaultAssertions": 19,
+    "raceAssertions": 3,
+    "stalledControllerAssertions": 3,
+    "reports": [
+      "mimo-single-profile-runtime.json",
+      "mimo-single-profile-races.json",
+      "mimo-single-profile-stalled-controller.json"
+    ]
+  },
+  "restoration": {
+    "passed": true,
+    "mode": "rule",
+    "originalProxyAllowlistCredentialAndServiceIntent": true,
+    "installedSignatureAndHashesMatch": true,
+    "testProcessesRemaining": false
+  },
+  "nativeVisualVerification": {
+    "passed": false,
+    "reason": "Tart displays the VM but clicking returns noWindowsAvailable; GUI closed by reinstall. Shared presentation/progress tests pass."
+  },
+  "scope": "Real installed normal Release and saved proxy; actual routes, faults, user traffic and physical-interface capture. No actual sleep/unlock timing, peer UDP, simultaneous-login or first-boot-packet qualification."
+}

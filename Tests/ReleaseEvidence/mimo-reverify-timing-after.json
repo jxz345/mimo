@@ -1,0 +1,148 @@
+{
+  "success": true,
+  "mode": "rule",
+  "trials": [
+    {
+      "event": "route-added",
+      "seconds": 17.004,
+      "confirmedCloseBeforeProbeBeforeOpen": true,
+      "fullCloseCount": 2,
+      "privateProbeCount": 1,
+      "stages": [
+        {
+          "operation": "prepare",
+          "stage": "confirmed_close",
+          "duration_ms": "3173"
+        },
+        {
+          "operation": "prepare",
+          "stage": "installation_validation",
+          "duration_ms": "520"
+        },
+        {
+          "operation": "prepare",
+          "stage": "connection_cleanup",
+          "duration_ms": "281"
+        },
+        {
+          "operation": "prepare",
+          "stage": "endpoint_resolution",
+          "duration_ms": "0"
+        },
+        {
+          "operation": "prepare",
+          "stage": "probe_gate",
+          "duration_ms": "1324"
+        },
+        {
+          "operation": "prepare",
+          "stage": "verification_profile",
+          "duration_ms": "1135"
+        },
+        {
+          "operation": "prepare",
+          "stage": "verification_inspection",
+          "duration_ms": "269"
+        },
+        {
+          "stage": "active_profile",
+          "duration_ms": "999",
+          "operation": "approve"
+        },
+        {
+          "stage": "protected_dns",
+          "duration_ms": "368",
+          "operation": "approve"
+        },
+        {
+          "operation": "approve",
+          "stage": "active_inspection",
+          "duration_ms": "2003"
+        },
+        {
+          "operation": "approve",
+          "stage": "open_gate",
+          "duration_ms": "1750"
+        },
+        {
+          "operation": "lookup",
+          "stage": "exit_ip",
+          "duration_ms": "1544"
+        }
+      ]
+    },
+    {
+      "event": "route-removed",
+      "seconds": 18.138,
+      "confirmedCloseBeforeProbeBeforeOpen": true,
+      "fullCloseCount": 2,
+      "privateProbeCount": 1,
+      "stages": [
+        {
+          "stage": "confirmed_close",
+          "duration_ms": "1635",
+          "operation": "prepare"
+        },
+        {
+          "stage": "installation_validation",
+          "duration_ms": "512",
+          "operation": "prepare"
+        },
+        {
+          "stage": "connection_cleanup",
+          "duration_ms": "133",
+          "operation": "prepare"
+        },
+        {
+          "stage": "endpoint_resolution",
+          "duration_ms": "0",
+          "operation": "prepare"
+        },
+        {
+          "stage": "probe_gate",
+          "duration_ms": "2475",
+          "operation": "prepare"
+        },
+        {
+          "stage": "verification_profile",
+          "duration_ms": "931",
+          "operation": "prepare"
+        },
+        {
+          "stage": "verification_inspection",
+          "duration_ms": "611",
+          "operation": "prepare"
+        },
+        {
+          "operation": "approve",
+          "stage": "active_profile",
+          "duration_ms": "1166"
+        },
+        {
+          "operation": "approve",
+          "stage": "protected_dns",
+          "duration_ms": "329"
+        },
+        {
+          "stage": "active_inspection",
+          "operation": "approve",
+          "duration_ms": "1816"
+        },
+        {
+          "stage": "open_gate",
+          "operation": "approve",
+          "duration_ms": "3037"
+        },
+        {
+          "operation": "lookup",
+          "stage": "exit_ip",
+          "duration_ms": "1629"
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "packageSHA256": "8f89d246eac6485afbc0d3682710408e79b3f1ca8f360bfe6ba1e0b280b83166",
+  "helperSHA256": "53b998ad7d571a9299d644d99cbdcb0e67dff74a6afef4c59fc1201c3884845f",
+  "scope": "Actual kernel host-route add/remove, saved proxy and ordinary-user HTTPS in mimo-vm; not a physical sleep/unlock or continuous packet test"
+}

@@ -1,0 +1,25 @@
+{
+  "success": true,
+  "passed": [
+    "production-core-ready-before-mode-change",
+    "installed-Release-ready-in-Direct",
+    "Direct-ordinary-HTTPS-positive-control",
+    "Direct-refresh-skips-allowlist-and-warning",
+    "Direct-mismatching-list-remains-allowed-without-warning",
+    "Rule-mismatch-still-publishes-rejected-IP-and-warning",
+    "Rule-mismatch-regression-denies-HTTPS-mixed-UDP-and-IPv6",
+    "Direct-selection-clears-Rule-warning-immediately",
+    "Direct-fresh-IP-monitoring-remains-enabled",
+    "Direct-IPv4-works-with-no-allowlist-approval",
+    "continuous-capture-confirms-denied-and-proxied-traffic-boundaries",
+    "production-helper-user-configuration-and-password-restored-in-Direct"
+  ],
+  "failures": [],
+  "scope": "Exact installed arm64 Release package in mimo-vm, saved real proxy, ordinary user traffic and physical-interface packet capture",
+  "focus": "Direct allowlist regression",
+  "runtimeReplaced": false,
+  "syntheticPowerEvents": false,
+  "packageSHA256": "b25712260cb1304a3bcdd160b5ee8f733b3b66f7d3033e1204ca4b0c253f4be7",
+  "helperSHA256": "e1222bb89fbd963f9c29d3c837c0ebbc6b00f3dcd1212349145e1227734bd85a",
+  "evidence": "mimo-saved-proxy-17a5dzyz"
+}

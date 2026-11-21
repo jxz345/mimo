@@ -1,0 +1,37 @@
+{
+  "date": "2026-11-19",
+  "scope": "Development dashboard and menu refinements; not release qualification",
+  "nativeOffscreenChecks": [
+    "1040x570 dashboard fits with aligned connection and service cards",
+    "Country flag remains in Current connection; Background services contains an access-status symbol only",
+    "Direct menu pairs the country flag with a white arrow",
+    "Blocked menu uses a red stop sign and retains the triggering IPv4",
+    "Ten dashboard states and four Settings sections render in light and dark appearances"
+  ],
+  "liveObserved": [
+    "Updated VM menu shows a country flag plus white Direct arrow",
+    "Safari preview shows country flag in Current connection and access-status symbol in Background services"
+  ],
+  "automatedValidation": {
+    "sharedTests": 159,
+    "previewDOMChecks": 74,
+    "nativeAppSuite": "pass",
+    "serviceSuite": "pass",
+    "arm64ReleaseBuildAndSignature": "pass",
+    "savedProxyVMChecks": 60,
+    "directAllowlistVMChecks": 13
+  },
+  "installedVMVerification": [
+    "GUI and production helper match",
+    "Original saved proxy, allowlist, password and service intent preserved",
+    "Direct active with a current IP and no allowlist rejection event",
+    "Test capture and temporary route cleaned up",
+    "No qualification manifest installed"
+  ],
+  "developmentGUIArchiveSHA256": "58a4809a07ba8fa7f55472d167c38401c78f8295172167bcfc57544acbccb593",
+  "limitations": [
+    "Tart input returned noWindowsAvailable during the final native dashboard reopening; final dashboard appearance was checked with offscreen native renders.",
+    "Existing protected boot gap, relay repeatability, real sleep and copied-app setup acceptance remain unresolved."
+  ],
+  "evidencePrivacy": "Published screenshots use fixture addresses only; live configuration and credential fingerprints remain private in the VM."
+}

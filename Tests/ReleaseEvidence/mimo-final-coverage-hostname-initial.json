@@ -1,0 +1,12 @@
+{
+  "success": false,
+  "passed": [
+    "original-proxy-mode-settings-credentials-and-service-intent-restored"
+  ],
+  "errors": [
+    "AssertionError: invalid hostname rejected by the real bootstrap resolver timed out"
+  ],
+  "packageSHA256": "fcaff59daff60fc7ddfabeb526c1fe31fc88da335cedbd6393da2304daf8fe58",
+  "helperSHA256": "40b4d4c538851d506a4ab75be3105be14840b51f1f3f0e6ab46802b559758006",
+  "scope": "Actual saved-proxy metadata changed to a reserved .invalid hostname in mimo-vm. No replacement resolver or helper; fresh restricted bootstrap and ordinary-user HTTPS checked. This tests hostname failure only. Successful hostname startup still requires a user-approved hostname for the actual proxy."
+}

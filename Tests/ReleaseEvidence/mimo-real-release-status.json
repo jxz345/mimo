@@ -1,0 +1,501 @@
+{
+  "updated": "2026-11-21",
+  "environment": "mimo-vm only",
+  "configuration": "Release",
+  "pending": [
+    "Successful hostname-proxy connection needs a user-approved DNS name for the actual existing server",
+    "Actual macOS sleep/wake: VM refused the real last request (exit 71), counters unchanged",
+    "Simultaneous GUI sessions and existing peer UDP echo: environment limitations",
+    "First-packet traffic before independent PF initialization remains outside the guarantee",
+    "Tailnet toggle end-to-end latency: 6.547/8.252 s in the focused run, above the 3\u20134 second target"
+  ],
+  "failures": [],
+  "architecture": "arm64",
+  "currentCheckpoint": "2026-11-21: MagicDNS full/absolute/uppercase names and UDP/TCP resolution pass under Rule and Global in the installed VM release. The provider now uses a root-owned file; occupied diagnostic port 18766 falls back without contacting the other application, survives core restart, and recovers the preferred port. Native tailnet stop/reconnect and protected resolver-loss recovery pass. All 19 focused checks and 204 shared tests pass; original settings restored. Refresh interval moved beside IP-check details. Physical-Mac full-name confirmation remains pending.",
+  "latestCompletedEvidence": [
+    "mimo-magicdns-recovery.json",
+    "mimo-cycle-classification.json",
+    "mimo-airport-timestamp.json",
+    "mimo-airport-dashboard.json",
+    "mimo-event-log.json",
+    "mimo-country-events.json",
+    "mimo-naming-migration.json",
+    "mimo-clean-uninstall.json",
+    "mimo-final-coverage-accounts-0.json",
+    "mimo-final-coverage-accounts-1.json",
+    "mimo-final-coverage-accounts-2.json",
+    "mimo-final-coverage-audit.json",
+    "mimo-final-coverage-boot-global.json",
+    "mimo-final-coverage-boot-rule.json",
+    "mimo-final-coverage-brew.json",
+    "mimo-final-coverage-cleanup.json",
+    "mimo-final-coverage-controller.json",
+    "mimo-final-coverage-dns-0.json",
+    "mimo-final-coverage-dns-1.json",
+    "mimo-final-coverage-early.json",
+    "mimo-final-coverage-events.json",
+    "mimo-final-coverage-fallback.json",
+    "mimo-final-coverage-infrastructure.json",
+    "mimo-final-coverage-races.json",
+    "mimo-final-coverage-relay-0.json",
+    "mimo-final-coverage-relay-1.json",
+    "mimo-final-coverage-relay-2.json",
+    "mimo-final-coverage-restoration.json",
+    "mimo-final-coverage-runtime.json",
+    "mimo-final-coverage-services-0.json",
+    "mimo-final-coverage-services-1.json",
+    "mimo-final-coverage-session.json",
+    "mimo-final-coverage-stop-observation.json",
+    "mimo-final-hostname-events.json",
+    "mimo-final-hostname-fixed.json",
+    "mimo-final-hostname-runtime.json"
+  ],
+  "historicalCheckpoint": {
+    "packageSHA256": "16b78e9d9dc487f275b017f1c4cd09da31a188145e43605f187ccdb604e9448a",
+    "helperSHA256": "680df53bebbc318a496289e5be6b246dc0188455ed8739e7f0b9384130ab7764",
+    "guiSHA256": "eb8b9d5dcd270cfdeb08af6ca847bcaa990dffe476c3e2d5871452ac098b5c2c",
+    "runtimeTestedPackageSHA256": "b25712260cb1304a3bcdd160b5ee8f733b3b66f7d3033e1204ca4b0c253f4be7",
+    "inputs": {
+      "Tests/MihomoRuntimeTests/saved_proxy_test.py": "d10754b14b87901cb020d6feebe958b55115817400c8cbbc89ce125a1ba4fabc"
+    },
+    "fixUnderTest": "Direct observation repair passed 18 recovery and 20 network-transition checks; latest GUI-only descriptions/Dock change verified separately with identical helper bytes.",
+    "activeRun": "Shared tests passed (165/165). Observing user-operated mode and Quit GUI shortcuts; sleep remains last.",
+    "completed": [
+      "Normal Release package built and signature/arm64/package checks completed",
+      "Existing saved Direct configuration and credential fingerprint preserved privately in VM",
+      "Actual VM reboot completed during removal verification",
+      "Clash Mi app, Homebrew receipt and VPN service removed; extension remains loaded",
+      "Existing Tailscale peer SSH reachable from VM without peer changes",
+      "Homebrew fetched and checksum-verified candidate archive",
+      "Homebrew cancelled-authentication install leaves app and setup recovery screen available",
+      "Standard service installer restores saved Direct using existing authorized VM administrator",
+      "Real Brew uninstall removes app, staged engine, services and PF policy, restores IPv6 flags and ordinary HTTPS, retains saved settings and password",
+      "Explicitly installed mihomo formula survives Mimo uninstall",
+      "Brew installs pinned mihomo automatically when absent and records it as a dependency",
+      "Both jay and mimotest read shared state and cannot change services without explicit authorization",
+      "Native dashboard visually shows PF/launchd normal-size timers, Direct country flag and white menu arrow",
+      "Direct mode mismatching-allowlist regression passed on normal candidate: no Direct warning, rejected Rule IP retained, HTTPS/mixed/UDP/IPv6 denied while blocked, immediate Direct recovery and packet positive controls",
+      "Actual standard-account XPC read/authentication boundary passed alongside jay and mimotest; temporary login-disabled account removed",
+      "Queue repair recovers three consecutive cycles of the actual provider/mihomo Restart reproducer; original configuration/password restored",
+      "Same normal Release passes real engine suspension and supervisor termination, denial/recovery and continuous packet attribution; original Direct/password restored",
+      "Normal Release passes 35 actual PF/launchd/IPv6 repair checks, including real reboot with main helper unavailable and original settings restoration",
+      "Saved Rule recovers after real reboot with GUI executable unavailable, fresh private check before open, physical-interface packet negative/positive controls, and GUI/signature restoration",
+      "Saved Global passes the same actual reboot, GUI-unavailable, fresh verification, packet-capture and restoration checks",
+      "Existing-peer relay audit passes 41 checks on current normal Release: 10 forced DERP reconnects, native down/up, provider Stop/Start/Restart, existing peer SSH and packet attribution",
+      "Current-package Homebrew uninstall automatically removes unused mihomo; explicit mihomo installation and exact Mimo package restored; eight lifecycle assertions passed",
+      "Current-package Direct allowlist regression passes 12 checks with packet attribution",
+      "Current-package three-account XPC authorization audit passes eight checks; temporary standard account removed",
+      "Full normal Release feature audit passes all 88 checks, including engine hang, three process crashes, repeated final restarts and all packet phases",
+      "Native VM Settings: all four sections opened; login on/off, System/Dark/System appearance, transparency on/off, and Event Log exercised through Screen Sharing; original preferences restored",
+      "GUI cached-configuration fallback corrected and updated package installed through real Homebrew in VM; installed helper bytes identical to runtime-tested helper",
+      "Updated GUI process verified at /Applications/Mimo.app/Contents/MacOS/mimo-gui inside mimo-vm (VirtualMac2,1)",
+      "Actual dual-service outage GUI observation passed: saved Global/proxy/allowlist remain visible, live access unavailable, Direct recovers",
+      "Native Refresh, Open profile, Direct Reload, Rule/Global selection, core/mihomo lifecycle and Tailnet Start/Stop observed",
+      "Current candidate strict signature and GUI/helper hashes verified inside VM",
+      "Updated Direct status icon/message and consistent six service-title fonts observed without scrolling",
+      "Updated authorization right keeps private non-shared credentials; three-account unauthenticated changes still denied",
+      "Session authorization reused after more than seven minutes, window close/reopen, protected Reload and service restarts; quitting requires fresh approval and cancellation preserves Direct",
+      "Actual large status icons/messages and consistent six service titles reviewed in light/dark; original appearance and provider intent restored",
+      "Native main-window Settings tabs, all sections, draft retention across tabs and close/reopen, service fonts/alignment/timers and copy-path positioning observed (artifact-scoped evidence retained)",
+      "Installed protected verification progress passes 20 real checks with saved proxy: route add/remove in Rule and Global, confirmed block before probe before open, GUI transitions, empty/wrong allowlist denial, Direct stays open and original settings restoration",
+      "Final native Monitoring uses compact Verification rows, quota table and bottom event list; popup login controls removed and remaining actions show shortcuts",
+      "Current installed-state checkpoint passes seven assertions, including original configuration/password/service intent, Direct, PF/launchd, HTTPS/Tailscale, explicit mihomo and cleanup",
+      "Native View rules link beside Rule / Global scrolls to the complete System & network events card in Monitoring; installed signature and hashes verified",
+      "Reproduced Direct observation loss with actual firewall-lock contention; fixed core-owned observation survives temporary supervisor repair and clears on mode changes",
+      "Current package passes 18 Direct recovery assertions: PF disable, anchor loss, supervisor restart, real lock contention, bundled service reinstall with fresh startup IP, HTTPS and configuration restoration",
+      "Current package passes all 20 real Rule/Global/Direct network-transition checks after observation fix",
+      "Native medium Notification Center widget displays actual Direct state and protected verification updates; Control Center control opens dashboard; temporary placements removed",
+      "Current package passes seven read-only restoration assertions before interactive login/sleep tests",
+      "Dashboard and Settings visibly explain boot startup and continued core operation after GUI quit",
+      "Finder and Dock icon match in installed VM Release after refresh, minimize/restore and dashboard close/reopen; live menu-bar indicators retained",
+      "Latest Dock-icon GUI package passes seven read-only installation/settings/service/network restoration assertions; helper identical to Direct-recovery tested helper",
+      "Actual jay logout/login automatically launched canonical Mimo with ready visible menu-bar icon and dashboard closed; original personal login OFF restored",
+      "User confirms local keyboard execution of menu Settings, Open Dashboard and Refresh now shortcuts in Tart",
+      "Explicit user approval received; Xcode/SDK license accepted in mimo-vm only",
+      "All 165 shared Swift tests pass inside mimo-vm using full Xcode after user-approved license acceptance; 48 staged inputs hash-verified"
+    ],
+    "limitations": [
+      "Candidate download uses a VM-local test tap; public release and tap unchanged",
+      "Boot packet capture begins with its launchd worker and cannot prove first-packet protection",
+      "No existing peer UDP echo service is configured; no peer or Delta changes authorized",
+      "Clash Mi system extension remains listed active after app removal and reboot",
+      "Successful interactive Homebrew password flow not claimed; cancelled-authentication and standard administrator setup passed",
+      "Network notification handling is asynchronous; 20 transition checks do not prove zero pre-detection leakage"
+    ],
+    "note": "Historical cumulative checkpoint, superseded by currentCheckpoint and latestCompletedEvidence. Per-session authorization and 165-test counts refer to earlier builds."
+  },
+  "packageSHA256": "7782f91ebb5249712ef02c742dc7db4d70449cb6c5846cfcb3123877534f1f76",
+  "helperSHA256": "c859541199732406174ac37f4a80dbc1e994dd07be32b7719341a614c01a2d48",
+  "guiSHA256": "1711981aca041f13b06718fe39a56af52fd4b2494f4bedf6bc13e9f67830d5a1",
+  "activeRun": "None. Build 2 is installed in mimo-vm with original settings, credentials, service intent and Rule mode restored. Physical-Mac validation is pending.",
+  "limitations": [
+    "Current candidate uses a VM-local acceptance cask; public release and tap binaries are unchanged.",
+    "Results identify their artifacts: broad run on e958b4e; changed-path/runtime/event/Homebrew/reboot/session/restoration checks on 30c295c.",
+    "Boot capture starts with the launchd worker; it does not establish first-packet protection.",
+    "Network/session detection is asynchronous. Optimistic opening permits traffic before the full audit; the deadline is not a guaranteed effective-block bound.",
+    "Actual sleep, successful hostname proxy, simultaneous GUI sessions and peer UDP remain unqualified. Native visual rendering is not newly qualified by automated state checks."
+  ],
+  "sourceCheckpoint": {
+    "sourceRef": "refs/tags/v1.0",
+    "branch": "main",
+    "history": "One parentless latest-source snapshot",
+    "publicBinaryUpdated": true,
+    "note": "Version 1.0 build 2; native firewall/provider ordering, live Tailnet updates, network-location filtering, dashboard layout, workflow documentation and focused VM evidence."
+  },
+  "manualSleepEvidence": "mimo-final-coverage-sleep.json",
+  "sessionEvidence": "mimo-final-coverage-session.json",
+  "sessionLogAudit": "mimo-session-events-rule-log-audit.json",
+  "singleProfileCandidate": {
+    "packageSHA256": "c72bcdaa90031a3f890d2ac2a223e004213de4363eda40669901bb1a78194f0a",
+    "helperSHA256": "6c1ecf28c670be26136f9b0ee14b9ef2bc46530782962980a9bd50e79f174259",
+    "guiSHA256": "6d0d64c283b98d8945566182d42f729c45c52373d56631ea77f0193b67574ccd",
+    "configuration": "Release",
+    "architecture": "arm64",
+    "inputs": {
+      "Tests/MihomoRuntimeTests/saved_proxy_test.py": "d10754b14b87901cb020d6feebe958b55115817400c8cbbc89ce125a1ba4fabc"
+    }
+  },
+  "singleProfileEvidence": "mimo-single-profile-checkpoint.json",
+  "singleProfileTimeline": "mimo-single-profile-timeline.json",
+  "concurrentCandidate": {
+    "packageSHA256": "823f5fc0152995d00b58c69d280b2cf1797aee57f4ffe555b8c0b1e427f4ca21",
+    "helperSHA256": "c48d77ecc804d44ca43f82a17fa8b2dca793277b749b4edc4d082d697bf892dd",
+    "guiSHA256": "459e94dcd4b1a798c7542dd607c4cf7f97b0dd8a008486a07d79f32b3e480c30",
+    "configuration": "Release",
+    "architecture": "arm64",
+    "inputs": {
+      "Tests/MihomoRuntimeTests/saved_proxy_test.py": "d10754b14b87901cb020d6feebe958b55115817400c8cbbc89ce125a1ba4fabc"
+    }
+  },
+  "concurrentEvidence": [
+    "mimo-concurrent-runtime.json",
+    "mimo-concurrent-races.json",
+    "mimo-concurrent-pf-fallback.json",
+    "mimo-concurrent-stalled-controller.json",
+    "mimo-concurrent-timing.json",
+    "mimo-concurrent-checkpoint.json",
+    "mimo-concurrent-timeline.json"
+  ],
+  "parallelCandidate": {
+    "packageSHA256": "d5062e8a7c1a29329da70b59e6bd2e5c00a3bca1afad6901dc2ebdfb24552783",
+    "helperSHA256": "7f6056df68706725bdd9fe502dd08f95c5c59918d2ebb22b48a51f96a9726533",
+    "guiSHA256": "98fe0f8fbb90fb32ab7c311f5ee9fc3a82c016eb72fce6da0c0973b117591b76",
+    "configuration": "Release",
+    "architecture": "arm64",
+    "inputs": {
+      "Tests/MihomoRuntimeTests/saved_proxy_test.py": "d10754b14b87901cb020d6feebe958b55115817400c8cbbc89ce125a1ba4fabc"
+    }
+  },
+  "parallelEvidence": [
+    "mimo-parallel-runtime.json",
+    "mimo-parallel-races.json",
+    "mimo-parallel-pf-fallback.json",
+    "mimo-parallel-stalled-controller.json",
+    "mimo-parallel-timing.json",
+    "mimo-parallel-joins.json",
+    "mimo-parallel-checkpoint.json",
+    "mimo-parallel-timeline.json"
+  ],
+  "stagedCandidate": {
+    "packageSHA256": "e8885bd45d9a6d6e71bb1ae6841af534afa6fb3caeade15a9f300a2cdc61914b",
+    "helperSHA256": "1bbd976063f53aea4a012eb890f1f67d1af115e110e3cf0e20f2a7099d0a61a5",
+    "guiSHA256": "ebb4ad81195f5cc9b48e1cf7b09cdaa26b94cbce32e475a26aa000d93a4fbf04",
+    "configuration": "Release",
+    "architecture": "arm64",
+    "inputs": {
+      "Tests/MihomoRuntimeTests/saved_proxy_test.py": "d10754b14b87901cb020d6feebe958b55115817400c8cbbc89ce125a1ba4fabc"
+    }
+  },
+  "stagedEvidence": [
+    "mimo-staged-runtime.json",
+    "mimo-staged-races.json",
+    "mimo-staged-pf-fallback.json",
+    "mimo-staged-stalled-controller.json",
+    "mimo-staged-timing.json",
+    "mimo-staged-native-recovery.json",
+    "mimo-staged-joins.json",
+    "mimo-staged-checkpoint.json",
+    "mimo-staged-timeline.json"
+  ],
+  "workflowReview": "MIMO_WORKFLOW_SECOND_OPINION.md",
+  "reviewFollowUp": [
+    "Direct optional native-cleanup failure is fixed and exercised in the installed audit test.",
+    "Mimo-owned PF reads/repairs/writes share a short mutation lock; this does not establish the cause of the original PF apply error.",
+    "Hostname bootstrap, active native transport reconnect and other limitations remain separately qualified."
+  ],
+  "workflowReviewCompleted": true,
+  "optimisticCandidate": {
+    "packageSHA256": "3e47e3bb07251bebcb52a95769ca5abf894f3877f961b7f15ab4466bc8dfd1f1",
+    "helperSHA256": "eccfdf1f6dc234d5fd4b54ed56683bfb1e90f957baaed28141a36be7a369b10f",
+    "guiSHA256": "4594123518d10cfaf6f977eb978b0a649d14f368d179b269f8ca37df647ce7ad",
+    "configuration": "Release",
+    "architecture": "arm64",
+    "inputs": {
+      "Tests/MihomoRuntimeTests/saved_proxy_test.py": "d10754b14b87901cb020d6feebe958b55115817400c8cbbc89ce125a1ba4fabc"
+    }
+  },
+  "optimisticEvidence": [
+    "mimo-optimistic-restart.json",
+    "mimo-optimistic-audit.json",
+    "mimo-optimistic-runtime.json",
+    "mimo-optimistic-races.json",
+    "mimo-optimistic-pf-fallback.json",
+    "mimo-optimistic-stalled-controller.json",
+    "mimo-optimistic-native-recovery.json",
+    "mimo-optimistic-timing.json",
+    "mimo-optimistic-timeline.json",
+    "mimo-optimistic-checkpoint.json"
+  ],
+  "pfOnlyCandidate": {
+    "packageSHA256": "d139769e95217bfdf860673fc68b4eb2fa12bfab259b23fe7d4f0bcedba1b63a",
+    "helperSHA256": "2e8d91e1224a3a979754aca0e38affa659152152c3db6eea0c6be8657e4c0ff7",
+    "guiSHA256": "c3ef134de9907b4952d3a9adba9aeb79b29c93ab0bc459e500b1c3cd4fe41675",
+    "configuration": "Release",
+    "architecture": "arm64",
+    "inputs": {
+      "Tests/MihomoRuntimeTests/saved_proxy_test.py": "d10754b14b87901cb020d6feebe958b55115817400c8cbbc89ce125a1ba4fabc"
+    }
+  },
+  "pfOnlyEvidence": [
+    "mimo-pf-only-gate.json",
+    "mimo-pf-only-timeline.json"
+  ],
+  "earlyGateCandidate": {
+    "packageSHA256": "2f85429a2359428623af6f85ddcc65c9e1b95781e48ceaaf1d059a0d0ff46a53",
+    "helperSHA256": "2f7b6f246f5406dc941a70670e11f4d918713cd854c0a2f07e8eef2caf5111c3",
+    "guiSHA256": "a311c2d0ed81395feef83e8b2e7db9a06dfd6bc5cf513eb378ef86466bcc4512",
+    "configuration": "Release",
+    "architecture": "arm64",
+    "inputs": {
+      "Tests/MihomoRuntimeTests/saved_proxy_test.py": "d10754b14b87901cb020d6feebe958b55115817400c8cbbc89ce125a1ba4fabc"
+    }
+  },
+  "earlyGateEvidence": [
+    "mimo-early-gate.json",
+    "mimo-early-gate-timeline.json"
+  ],
+  "n123Candidate": {
+    "packageSHA256": "897ed7bdd43c0d9c34044c8b402a30580238f96ac7f8f42f8621e4d46f8ddb27",
+    "helperSHA256": "08b95a446b0ade19e64a7e7c2e194ec5358c3da581c80027fa766cf419862fa1",
+    "guiSHA256": "189499fdb5e59cdac09792cf1af25e8b0993aa37b1aab119a5642dd0ecdf5d96",
+    "configuration": "Release",
+    "architecture": "arm64",
+    "inputs": {
+      "Tests/MihomoRuntimeTests/saved_proxy_test.py": "d10754b14b87901cb020d6feebe958b55115817400c8cbbc89ce125a1ba4fabc"
+    }
+  },
+  "n123Evidence": [
+    "mimo-n123.json",
+    "mimo-n123-timeline.json"
+  ],
+  "shortLockCandidate": {
+    "packageSHA256": "fcaff59daff60fc7ddfabeb526c1fe31fc88da335cedbd6393da2304daf8fe58",
+    "helperSHA256": "40b4d4c538851d506a4ab75be3105be14840b51f1f3f0e6ab46802b559758006",
+    "guiSHA256": "a8df9b749139a659af5eacc116642e00eafacec39ce8cbefa2f579551cbef05b",
+    "configuration": "Release",
+    "architecture": "arm64",
+    "inputs": {
+      "Tests/MihomoRuntimeTests/saved_proxy_test.py": "d10754b14b87901cb020d6feebe958b55115817400c8cbbc89ce125a1ba4fabc"
+    }
+  },
+  "shortLockEvidence": [
+    "mimo-short-lock.json",
+    "mimo-short-lock-timeline.json"
+  ],
+  "shortLockEarlierAttempts": [
+    "mimo-short-lock-initial-dns.json",
+    "mimo-short-lock-restart-attempt.json"
+  ],
+  "coverageReport": "MIMO_FINAL_COVERAGE.md",
+  "historicalFailures": [
+    {
+      "evidence": "mimo-saved-proxy-huqwro19",
+      "result": "Rule opened after approved check; ordinary HTTPS passed; local proxy HTTPS failed after gate closed. Original Direct/settings/password restored. Intermittent closure under investigation."
+    },
+    {
+      "evidence": "mimo-saved-proxy-w36fxrfc",
+      "result": "Core heartbeat expired after 6.53 seconds while engine and active gate remained available; UDP and subsequent DNS/HTTPS failed. Original settings restored."
+    },
+    {
+      "evidence": "mimo-saved-proxy-nhr_5tha, mimo-saved-proxy-a48l2bpe, mimo-saved-proxy-274k6ws9",
+      "result": "Dedicated-heartbeat candidate introduced an XPC callback actor-isolation trap, confirmed in macOS crash stacks. Repaired with explicitly Sendable callbacks in current candidate; repeat acceptance pending."
+    },
+    {
+      "evidence": "mimo-saved-proxy-7z0u4s79",
+      "result": "Sendable callback repair prevented the crash, but heartbeat transport still returned 4099 and empty-allowlist verification timed out. Saved configuration restored. Subsequent same-behavior candidate with additional transport diagnostics is under test."
+    },
+    {
+      "evidence": "mimo-saved-proxy-60msoyx8",
+      "result": "75 checkpoints passed before final mihomo Restart recovery timed out. All 15 completed capture phases met their packet expectations. Saved configuration restored."
+    },
+    {
+      "evidence": "mimo-saved-proxy-p99xqduh",
+      "result": "PF close confirmed; controller cleanup timeout correctly withheld a Blocked confirmation and returned unavailable. Driver originally required blocked. Revised suspension check requires blocked PF, no effective mode, actual traffic denial and fresh recovery, accepting the conservative unavailable status."
+    },
+    {
+      "evidence": "mimo-release-boot-plksey0b",
+      "result": "Initial reboot could not establish GUI absence because macOS relaunched it; restored Direct. Revised harness temporarily holds GUI executable and restores it without changing login preference."
+    },
+    {
+      "evidence": "mimo-direct-observation-sg15wn_d",
+      "result": "Healthy Direct lost its checked IP after actual firewall-lock contention. Same scenario passes on current helper; original failed report retained."
+    },
+    {
+      "evidence": "mimo-dns-privacy-9wz2pqq2; mimo-dns-privacy-4l871_4q",
+      "result": "Valid NOERROR/NODATA response was rejected by an overly strict NXDOMAIN-only test. Test now checks an authoritative negative answer; reports retained."
+    },
+    {
+      "evidence": "mimo-dns-privacy-otpm_bhr",
+      "result": "Public UDP/TCP/unique-name DNS and HTTPS passed in Rule and Global. MagicDNS query began before native connect/reverification finished and timed out behind the deliberate guard. Test now waits for transaction completion and a fresh approved observation. Original Direct/native-off settings restored."
+    },
+    {
+      "evidence": "User-reported lock/unlock after manual sleep attempt",
+      "result": "Previous GUI callback only refreshed state; no protected recheck. New root observer installed; actual event acceptance pending."
+    },
+    {
+      "evidence": "mimo-single-profile-initial-attempt.json",
+      "result": "Starting pktap created a real interface and triggered protection before the baseline connection. Corrected driver waits for that event; full rerun passes."
+    },
+    {
+      "evidence": "mimo-single-profile-dns-reload-attempt.json",
+      "result": "Foreign DNS owner correctly blocked traffic. Same-profile reload did not recreate the failed mihomo listener after port release; supported Restart restored it. Full corrected run and final restoration pass."
+    },
+    {
+      "evidence": "mimo-concurrent-initial-attempt.json",
+      "result": "19 checks passed, but a serialization-sensitive restoration assertion failed. Independent semantic configuration/credential/service checks passed. The revised driver compares decoded service preferences."
+    },
+    {
+      "evidence": "mimo-concurrent-clock-attempt.json",
+      "result": "The timing assertion rejected subtracting Python 3.9 process-relative monotonic time from Swift system uptime. Switched the driver to the macOS kernel uptime clock. Saved configuration restored."
+    },
+    {
+      "evidence": "mimo-concurrent-engine-race-attempt.json",
+      "result": "A replacement launchd PID appeared before the controller was ready. An early cleanup failed closed, with no timely automatic retry. Current helper schedules fresh verification after a healthy infrastructure pass; automatic stalled-controller and crash recovery pass."
+    },
+    {
+      "evidence": "mimo-parallel-initial-attempt.json",
+      "result": "The DNS fault stayed blocked, but the driver timed out waiting for a transient dashboard reason after background inspection moved earlier. The revised assertion requires a recorded critical DNS failure, blocked state and traffic denial. The completed route timings are retained; the final complete rerun qualifies packet/fault behavior."
+    },
+    {
+      "evidence": "mimo-staged-initial-races.json",
+      "result": "A native Tailscale PF apply failure left the initial candidate blocked after its packet suite passed. Native update health now gates opening and automatic fresh verification. The final candidate is requalified; the initial package\u2019s packet and timing data remain separate. A 48-write Direct-mode diagnostic did not reproduce the PF apply error, so its precise cause is not established."
+    }
+  ],
+  "resolvedDuringThisCampaign": [
+    "mimo-final-coverage-hostname-initial.json",
+    "mimo-final-coverage-services-initial.json",
+    "mimo-final-coverage-services-lock-attempt.json",
+    "mimo-final-coverage-brew-trust-attempt.json",
+    "mimo-final-coverage-brew-checker-attempt.json"
+  ],
+  "historicalCompletedEvidence": [
+    "mimo-service-progress.json",
+    "mimo-service-progress-user-confirmation.json",
+    "mimo-password-free-accounts.json",
+    "mimo-direct-transition.json",
+    "mimo-direct-transition-restoration.json",
+    "mimo-login-launch-native-ui.json",
+    "mimo-native-extensions.json",
+    "mimo-shared-tests-protected-dns.json",
+    "mimo-protected-dns.json",
+    "mimo-protected-dns-features.json",
+    "mimo-protected-dns-brew.json",
+    "mimo-protected-dns-boot-rule.json",
+    "mimo-protected-dns-boot-global.json",
+    "mimo-protected-dns-restoration.json",
+    "mimo-protected-dns-app-access.json",
+    "mimo-protected-dns-manual-ui.json",
+    "mimo-single-profile-runtime.json",
+    "mimo-single-profile-races.json",
+    "mimo-single-profile-stalled-controller.json",
+    "mimo-single-profile-checkpoint.json",
+    "mimo-concurrent-runtime.json",
+    "mimo-concurrent-races.json",
+    "mimo-concurrent-pf-fallback.json",
+    "mimo-concurrent-stalled-controller.json",
+    "mimo-concurrent-timing.json",
+    "mimo-concurrent-checkpoint.json",
+    "mimo-concurrent-timeline.json",
+    "mimo-parallel-runtime.json",
+    "mimo-parallel-races.json",
+    "mimo-parallel-pf-fallback.json",
+    "mimo-parallel-stalled-controller.json",
+    "mimo-parallel-timing.json",
+    "mimo-parallel-joins.json",
+    "mimo-parallel-checkpoint.json",
+    "mimo-parallel-timeline.json",
+    "mimo-staged-runtime.json",
+    "mimo-staged-races.json",
+    "mimo-staged-pf-fallback.json",
+    "mimo-staged-stalled-controller.json",
+    "mimo-staged-timing.json",
+    "mimo-staged-native-recovery.json",
+    "mimo-staged-joins.json",
+    "mimo-staged-checkpoint.json",
+    "mimo-staged-timeline.json",
+    "MIMO_WORKFLOW_SECOND_OPINION.md",
+    "mimo-optimistic-restart.json",
+    "mimo-optimistic-audit.json",
+    "mimo-optimistic-runtime.json",
+    "mimo-optimistic-races.json",
+    "mimo-optimistic-pf-fallback.json",
+    "mimo-optimistic-stalled-controller.json",
+    "mimo-optimistic-native-recovery.json",
+    "mimo-optimistic-timing.json",
+    "mimo-optimistic-timeline.json",
+    "mimo-optimistic-checkpoint.json",
+    "mimo-pf-only-gate.json",
+    "mimo-pf-only-timeline.json"
+  ],
+  "currentTimeline": "mimo-final-coverage-timeline.json",
+  "beforeEventSchedulingCheckpoint": "The remaining installed-VM regression campaign is complete, apart from environment-dependent limits. The broad pre-fix build passed 206 checks covering packets, DNS privacy, live Tailscale/DERP, cross-account access, service controls and PF/launchd repair. Testing found and fixed a hostname-bootstrap deadlock: Mimo now removes the previous TUN under closed PF before permitting restricted DNS. The corrected build passes 4 hostname checks, 20 packet/fault checks, 5 real network-event checks, 12 detailed Homebrew checks, 10 real reboot checks per protected mode, 4 human lock/unlock checks and 7 final restoration checks. N1\u2013N3 are retained. The human unlock opened PF about 2 seconds after detection (whole-second logs). Four warm route trials opened PF in 2.865\u20133.573 seconds; this is not a latency guarantee. Actual system sleep was refused by the VM (exit 71; unchanged counters). A working hostname for the actual proxy, simultaneous GUI sessions, peer UDP echo and protection before the independent boot loader remain outside this qualification. Original Rule/settings/password/service intent and Tailscale Stopped are restored; all test jobs/processes are removed. Public release/tap binaries are unchanged.",
+  "eventSchedulingEvidence": "mimo-event-scheduling.json",
+  "closure": {
+    "status": "accepted_closed",
+    "date": "2026-11-20",
+    "acceptedSourceCommit": "5a6eb775059ac286bc90af4492f6bb286c271ceb",
+    "followUpWorkPlanned": false,
+    "acceptanceEvidence": "mimo-event-scheduling.json",
+    "remainingQualificationItems": "Retained in pending as documented limits; not reported as passed.",
+    "publicReleaseAndTap": "Same v1.0 republished with Mimo identities and clean uninstall; public install without a separate tap step and dependency lifecycle verified in mimo-vm."
+  },
+  "publication": {
+    "status": "published",
+    "version": "1.0",
+    "releaseURL": "https://github.com/jxz345/mimo/releases/tag/v1.0",
+    "cask": "jxz345/tap/mimo",
+    "evidence": "mimo-build-2-workflows.json",
+    "packageSHA256": "344a42c052c842139e20244d44e5ee180fb6d91d07050a03b579bd8381331e2c",
+    "sourceRef": "refs/tags/v1.0",
+    "history": "One latest-source snapshot commit; no development history on main.",
+    "archive": "Mimo-1.0.zip",
+    "tapSource": "jxz345/homebrew-tap Casks/mimo.rb; ordinary checksum-update commit",
+    "build": "2",
+    "installerSHA256": "c07f3d0ebcd2b57098b44622dcb7220b786b836605c81bf9c6e89a2388dde92d",
+    "note": "Build 2 is published for physical-Mac validation. The MagicDNS failure on the reported physical Mac is not yet confirmed fixed; current evidence and limits are in mimo-build-2-workflows.json."
+  },
+  "cleanupReleaseBuild": {
+    "configuration": "Release",
+    "architecture": "arm64",
+    "packageSHA256": "f49b18d899bb9c7c9b0731ba7f63f0f86d468340cf62f61131e4a4ad7ccca4ef",
+    "helperSHA256": "9a7e01dba2c19c6aad1bb01ea1f43a6abee3cce1288109760e8ce36ec60f62d0",
+    "guiSHA256": "0cd351d5a78de044f8f09adc4c9727c395961cc19a47db85c80f404b7b0f4312"
+  },
+  "namingReleaseBuild": {
+    "configuration": "Release",
+    "architecture": "arm64",
+    "packageSHA256": "7782f91ebb5249712ef02c742dc7db4d70449cb6c5846cfcb3123877534f1f76",
+    "helperSHA256": "c859541199732406174ac37f4a80dbc1e994dd07be32b7719341a614c01a2d48",
+    "guiSHA256": "1711981aca041f13b06718fe39a56af52fd4b2494f4bedf6bc13e9f67830d5a1"
+  },
+  "historicalSourceCheckpoint": {
+    "baselineCommit": "e958b4e",
+    "branch": "release/current-candidate",
+    "published": true,
+    "pullRequest": "https://github.com/jxz345/mimo/pull/1",
+    "draft": true,
+    "publicBinaryUpdated": false,
+    "note": "Hostname-only correction after broad real VM regression. Corrected candidate passes changed-path, packet/event, Homebrew, reboot, human session and restoration checks. Source/evidence published to the existing draft branch; public binaries unchanged.",
+    "implementationCommit": "30c295c"
+  }
+}

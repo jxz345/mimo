@@ -1,0 +1,15 @@
+{
+  "success": false,
+  "passed": [
+    "rule-core-stop-confirmed-blocking-before-operation-and-reply",
+    "rule-core-stopped-denies-real-HTTPS",
+    "rule-core-start-confirmed-blocking-before-operation-and-reply",
+    "rule-core-restart-confirmed-blocking-before-operation-and-reply",
+    "rule-mihomo-stop-confirmed-blocking-before-operation-and-reply"
+  ],
+  "error": "AssertionError: ",
+  "helperSHA256": "40b4d4c538851d506a4ab75be3105be14840b51f1f3f0e6ab46802b559758006",
+  "packageSHA256": "fcaff59daff60fc7ddfabeb526c1fe31fc88da335cedbd6393da2304daf8fe58",
+  "scope": "Full Rule/Global/Direct lifecycle and Tailnet matrix. Installed normal Release in mimo-vm; real XPC, launchd and ordinary-user HTTPS. No physical GUI click ordering claimed.",
+  "evidence": "/var/tmp/mimo-service-progress-x9fqu345"
+}

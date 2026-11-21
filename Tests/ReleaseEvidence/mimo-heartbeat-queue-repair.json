@@ -1,0 +1,13 @@
+{
+  "success": true,
+  "scope": "Actual normal Release in mimo-vm, saved real proxy, repeated provider toggles and actual mihomo Restart; process sampling, not packet qualification",
+  "packageSHA256": "b25712260cb1304a3bcdd160b5ee8f733b3b66f7d3033e1204ca4b0c253f4be7",
+  "helperSHA256": "e1222bb89fbd963f9c29d3c837c0ebbc6b00f3dcd1212349145e1227734bd85a",
+  "beforeEvidence": "mimo-heartbeat-restart-8g6uq27c",
+  "afterEvidence": "mimo-heartbeat-restart-5kjl1apw",
+  "recoveredCycles": 3,
+  "configurationAndPasswordRestored": true,
+  "observedCause": "Three discovery waits and one Security signature check occupied cooperative worker threads throughout most of the 45-second failing sample.",
+  "change": "Blocking native work uses persistent serial dispatch queues; cancelled queued work is skipped. Five-second heartbeat expiry, trust checks and traffic policy are unchanged.",
+  "afterSample": "Blocking discovery/socket/PF work appears on dedicated com.mimo queues; no long cooperative-thread blocking stacks matched the same sample filter."
+}

@@ -1,0 +1,13 @@
+{
+  "success": false,
+  "passed": [
+    "original-mode-proxy-allowlist-credentials-and-service-intent-restored"
+  ],
+  "errors": [
+    "AssertionError: "
+  ],
+  "trials": [],
+  "packageSHA256": "c72bcdaa90031a3f890d2ac2a223e004213de4363eda40669901bb1a78194f0a",
+  "helperSHA256": "6c1ecf28c670be26136f9b0ee14b9ef2bc46530782962980a9bd50e79f174259",
+  "scope": "Exact installed Release in mimo-vm, saved real proxy, Rule/Global/Direct, real route events, foreign DNS owner, engine crash, ordinary-user connections and physical-interface captures. No physical sleep/unlock or simultaneous-login claim."
+}

@@ -1,0 +1,49 @@
+{
+  "updated": "2026-11-21",
+  "version": "1.0",
+  "basedOnPublishedSource": "7c89e03312383052c4d106161920643cf596f039",
+  "changes": [
+    "Filter unchanged and known AirPort telemetry before early PF revocation and before marking a cycle dirty",
+    "Keep power, association, unknown fields, missing/unreadable state and non-AirPort changes conservative",
+    "Log key/field names only, not Wi-Fi identifiers",
+    "Dashboard navigation, refresh and modes share one top row; uninstall command and deletion note share one bottom row"
+  ],
+  "artifacts": {
+    "Mimo-1.0.zip": "7bb6026ae096fae7f047ca39c29d295f377e880d8da7fbd2138be81f35e23aef",
+    "Mimo-1.0.pkg": "9a00fef94ba3fc01b1fe4868a64d96d8df4fba721e6c2f911d5ff901df2bddd7",
+    "mimo-gui": "333c1514d8475758165fe0e3261d57f725ad115afcae67530a6ba5eb3ae4ae6a",
+    "mimo-core": "04dfc9fd67136236f1a3574ed85345fc6ff7f2208cffdd70b9ba6f5d75131c1f"
+  },
+  "validation": {
+    "environment": "mimo-vm",
+    "sharedTests": {
+      "count": 201,
+      "failures": 0
+    },
+    "before": {
+      "environment": "mimo-vm",
+      "phase": "before",
+      "checks": [
+        "old published build reproduces block/check/open for AirPort telemetry",
+        "original mode, proxy, allowlist, credential and service intent restored; fixture removed"
+      ]
+    },
+    "after": {
+      "environment": "mimo-vm",
+      "phase": "after",
+      "checks": [
+        "ten AirPort scan/radio updates cause no block, recheck or deferred cycle",
+        "real route change blocks and verifies once; concurrent AirPort telemetry adds no follow-up",
+        "association metadata still triggers protection without logging Wi-Fi identifiers",
+        "power metadata still triggers protection without logging Wi-Fi identifiers",
+        "original mode, proxy, allowlist, credential and service intent restored; fixture removed"
+      ]
+    },
+    "visual": "Native dashboard scenarios and populated Settings rendered in both appearances; light Direct and dark Rule inspected at 1040x690 points"
+  },
+  "limits": [
+    "The VM has no Wi-Fi radio. AirPort values were replayed through the real configd notification path against the normal installed release; a real host-route change checked protection",
+    "Physical Wi-Fi scan/roaming acceptance on the reported Mac remains pending; its pasted log names the AirPort key but not the changed values",
+    "No broad fault, reboot, sleep, simultaneous-user or Homebrew uninstall campaign rerun"
+  ]
+}

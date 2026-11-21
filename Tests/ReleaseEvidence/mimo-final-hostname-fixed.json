@@ -1,0 +1,13 @@
+{
+  "success": true,
+  "passed": [
+    "unresolvable-hostname-never-reaches-private-IP-probe-or-open-and-denies-ordinary-HTTPS",
+    "previous-TUN-removed-under-closed-PF-before-restricted-bootstrap-DNS",
+    "hostname-failure-does-not-change-saved-proxy-password",
+    "original-proxy-mode-settings-credentials-and-service-intent-restored"
+  ],
+  "errors": [],
+  "packageSHA256": "036b680a9d5e395e6c3ba303c0367d3370994922caaee58a5b6168531b1a80e4",
+  "helperSHA256": "df548d9a92665906584de4375dc9d685942879754f9afcbf42f0b62b399d3eec",
+  "scope": "Actual saved-proxy metadata changed to a reserved .invalid hostname in mimo-vm. No replacement resolver or helper; fresh restricted bootstrap and ordinary-user HTTPS checked. This tests hostname failure only. Successful hostname startup still requires a user-approved hostname for the actual proxy."
+}

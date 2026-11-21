@@ -1,0 +1,16 @@
+{
+  "success": false,
+  "passed": [
+    "actual-macOS-reboot-confirmed",
+    "original-Direct-settings-service-intent-and-password-restored"
+  ],
+  "scope": "Normal installed Release; actual saved proxy; real reboot; capture starts at launchd worker",
+  "packageSHA256": "b25712260cb1304a3bcdd160b5ee8f733b3b66f7d3033e1204ca4b0c253f4be7",
+  "helperSHA256": "e1222bb89fbd963f9c29d3c837c0ebbc6b00f3dcd1212349145e1227734bd85a",
+  "errors": [
+    "AssertionError: "
+  ],
+  "mode": "rule",
+  "firstPacketBootProtectionProven": false,
+  "evidence": "mimo-release-boot-plksey0b"
+}

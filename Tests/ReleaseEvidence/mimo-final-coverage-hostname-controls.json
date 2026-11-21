@@ -1,0 +1,34 @@
+[
+  {
+    "mode": "rule",
+    "resolver": "1.1.1.1",
+    "returncode": 0,
+    "dnsStatus": 3,
+    "seconds": 0.976,
+    "error": ""
+  },
+  {
+    "mode": "rule",
+    "resolver": "1.0.0.1",
+    "returncode": 0,
+    "dnsStatus": 3,
+    "seconds": 0.946,
+    "error": ""
+  },
+  {
+    "mode": "direct",
+    "resolver": "1.1.1.1",
+    "returncode": 0,
+    "dnsStatus": 3,
+    "seconds": 0.922,
+    "error": ""
+  },
+  {
+    "mode": "direct",
+    "resolver": "1.0.0.1",
+    "returncode": 0,
+    "dnsStatus": 3,
+    "seconds": 1.086,
+    "error": ""
+  }
+]

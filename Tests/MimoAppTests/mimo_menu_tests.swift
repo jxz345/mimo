@@ -1,0 +1,182 @@
+import AppKit
+import SwiftUI
+
+@MainActor
+enum MimoMenuTests {
+    static func run(output: URL) async throws {
+        let now = Date()
+        let snapshot = MimoSnapshot(ipAddress: "192.0.2.10", countryCode: "SG", countryName: "Singapore",
+                                      provider: .ipWhois, checkedAt: now)
+        let preferences = MonitoringPreferences()
+        func presentation(_ state: MimoRoutingState) -> MimoMenuPresentation {
+            MimoMenuPresentation(routing: state, snapshot: snapshot, preferences: preferences, date: now)
+        }
+        var policy = MimoAccessPolicy()
+        policy.directRestored(configuration: MimoConfiguration())
+        let direct = presentation(policy.state)
+        require(direct.kind == .direct && direct.country == nil, "Direct without a current lookup must use the fallback arrow")
+        var locatedDirect = policy.state
+        locatedDirect.observedIP = MimoIPObservation(address: snapshot.ipAddress, checkedAt: now)
+        require(presentation(locatedDirect).country == snapshot.countryFlag, "Direct must display its current public IP country")
+        var protected = MimoConfiguration(); protected.mode = .rule
+        protected.proxy = MimoProxy(ClashProxySettings(name: "Fixture", type: .http, server: "192.0.2.20", port: 443))
+        let proof = policy.begin(configuration: protected, revision: 1, networkGeneration: 1)
+        let startup = presentation(policy.state)
+        require(startup.kind == .checking && startup.country == nil, "startup validation must display a clock")
+        policy.checking(proof)
+        require(presentation(policy.state).kind == .checking, "private verification must remain a checking state")
+        _ = policy.approve(address: snapshot.ipAddress, at: now, allowlist: AllowedIPList(addresses: [snapshot.ipAddress]),
+                           verification: proof, runtimeMatches: true)
+        let verified = presentation(policy.state)
+        require(verified.kind == .verified && verified.country == snapshot.countryFlag, "approved Rule must show the matching exit country")
+        let unknownSnapshot = MimoSnapshot(ipAddress: snapshot.ipAddress, countryCode: "--", countryName: "Unknown", provider: .ipWhois)
+        let unknownVerified = MimoMenuPresentation(routing: policy.state, snapshot: unknownSnapshot, preferences: preferences, date: now)
+        let unknownDirect = MimoMenuPresentation(routing: locatedDirect, snapshot: unknownSnapshot, preferences: preferences, date: now)
+        require(unknownVerified.kind == .verified && unknownVerified.country == nil && !unknownVerified.countryChanged,
+                "unknown geography must keep approved access and select the globe fallback")
+        require(unknownDirect.isDirect && unknownDirect.country == nil, "Direct must use the same globe fallback")
+        var global = policy.state; global.configuration.mode = .global; global.effectiveMode = .global
+        require(presentation(global).kind == .verified, "approved Global uses the same location semantics")
+        var mismatch = policy.state
+        mismatch.observedIP = MimoIPObservation(address: "198.51.100.23", checkedAt: now)
+        require(presentation(mismatch).country == nil, "a cached country for another IP cannot represent the approved exit")
+        var tailnet = policy.state
+        tailnet.services = [.init(id: .tailnetProvider, health: .stopped, transport: "HTTP")]
+        require(presentation(tailnet).kind == .verified,
+                "an intentionally stopped optional provider must not warn about approved public access")
+        tailnet.services = [.init(id: .tailnetProvider, health: .unavailable, transport: "HTTP")]
+        let warning = presentation(tailnet)
+        require(warning.kind == .tailnetWarning && warning.country == snapshot.countryFlag,
+                "a failed enabled provider must warn without calling approved public access blocked")
+        var blocked = policy.state
+        blocked.phase = .blocked; blocked.effectiveMode = nil
+        blocked.blockingIP = MimoIPObservation(address: "198.51.100.77", checkedAt: now)
+        blocked.reason = "The exit IP is not on the allowed list."
+        let rejected = presentation(blocked)
+        require(rejected.kind == .blocked && rejected.country == snapshot.countryFlag, "blocked state retains the last known country beside its stop icon")
+        require(rejected.address == "198.51.100.77" && rejected.accessibilityText.contains("198.51.100.77"),
+                "the exact triggering IPv4 address must be accessible")
+        blocked.phase = .checking
+        require(presentation(blocked).kind == .checking && presentation(blocked).address == "198.51.100.77",
+                "retry must retain the blocking IP while displaying the checking clock")
+        blocked.phase = .unavailable
+        blocked.reason = "The background service is unavailable."
+        let unavailable = presentation(blocked)
+        require(unavailable.kind == .unavailable && unavailable.country == nil && unavailable.address == nil,
+                "unconfirmed status must use neutral information without a stale IP")
+        var inconsistent = policy.state; inconsistent.effectiveMode = .direct
+        require(presentation(inconsistent).kind == .unavailable && presentation(inconsistent).address == nil
+                && !presentation(inconsistent).detail.contains("approved"), "inconsistent mode/approval must not claim allowed access")
+
+        let native = MimoStatusMenu(monitor: PublicIPMonitor())
+        let identities = native.menu.items.map(ObjectIdentifier.init)
+        for _ in 0..<5 { native.update() }
+        require(native.menu.items.map(ObjectIdentifier.init) == identities, "status updates must preserve native menu item identity and focus")
+        require(native.modeItems.count == 3 && native.modeItems.values.allSatisfy { !$0.isEnabled },
+                "all modes must exist and be disabled while core is unavailable")
+        require(native.menu.items.contains(where: { $0.title == "Open Dashboard" }) &&
+                native.menu.items.contains(where: { $0.title == "Settings…" }) &&
+                native.refreshItem.title == "Refresh now",
+                "dashboard, settings and refresh actions must stay present")
+        require(!native.menu.items.contains(where: { $0.title.contains("login") || $0.title.contains("Login Items") }),
+                "login controls belong in the dashboard and Settings")
+        let actions = native.menu.items.filter { $0.action != nil }
+        require(actions.allSatisfy { !$0.keyEquivalent.isEmpty }, "every popup action must have a shortcut")
+        require(Set(actions.map { "\($0.keyEquivalentModifierMask.rawValue):\($0.keyEquivalent)" }).count == actions.count,
+                "popup shortcuts must be distinct")
+
+        let setupMonitor = PublicIPMonitor()
+        var setupState = DaemonState(instanceID: UUID(), build: "UI setup fixture", initialized: false, revision: 0,
+            settings: MachineSettings(), presentation: UserPresentationPreferences(), snapshot: nil,
+            status: .idle, indicators: MonitorIndicatorState(), authorizationState: .unavailable,
+            providerHealth: [:], budget: LookupBudget(), nextProvider: .ipWhois, cooldowns: [:], hasIPinfoToken: false)
+        // This fixture must not launch the real service's one-time presentation
+        // import and let its asynchronous reply overwrite the fixture state.
+        setupState.presentation.imported = true
+        setupState.routing = locatedDirect
+        setupMonitor.receive(setupState)
+        let setupMenu = MimoStatusMenu(monitor: setupMonitor)
+        require(!setupMonitor.canChangeSharedSettings && setupMonitor.canRefresh && setupMenu.refreshItem.isEnabled,
+                "an uninitialized Direct service permits refresh while shared edits remain disabled")
+        setupState.initialized = true
+        setupMonitor.receive(setupState); setupMenu.update()
+        require(setupMonitor.canChangeSharedSettings && setupMonitor.canRefresh && setupMenu.refreshItem.isEnabled,
+                "initialization must enable the same refresh state in Settings, dashboard and menu")
+        setupState.presentation.imported = true
+        setupState.snapshot = snapshot
+        setupState.authorizationState = .notAllowed(snapshot.ipAddress)
+        setupState.allowlistEventID = UUID()
+        setupMonitor.receive(setupState)
+        require(!AllowlistWarningWindowController.shared.isPresented && setupMonitor.statusPresentation.isDirect,
+                "a stale legacy allowlist event must never open a warning or change Direct status")
+        setupState.authorizationState = .allowed; setupState.allowlistEventID = nil
+        setupState.routing?.phase = .checking
+        setupMonitor.receive(setupState); setupMenu.update()
+        require(!setupMonitor.canRefresh && !setupMenu.refreshItem.isEnabled,
+                "an in-flight required check must disable duplicate refresh actions")
+        setupState.routing = policy.state
+        setupState.status = .refreshing
+        setupMonitor.receive(setupState); setupMenu.update()
+        require(!setupMonitor.canRefresh && !setupMenu.refreshItem.isEnabled,
+                "a Direct lookup or preparation must also disable duplicate refresh actions")
+        setupState.status = .failed("Save a proxy in Settings.")
+        setupMonitor.receive(setupState)
+        require(setupMonitor.lookupStatusMessage == "Save a proxy in Settings.",
+                "the dashboard must expose the actionable lookup failure beside the last check")
+        setupState.status = .ready
+        setupMonitor.receive(setupState)
+        require(setupMonitor.lookupStatusMessage == nil, "a successful check must clear the previous failure")
+
+        // Exercise the retained native status item, rather than manually refreshing the menu.
+        let controller = StatusItemController(monitor: setupMonitor)
+        var directRouting = MimoRoutingState()
+        directRouting.phase = .active; directRouting.effectiveMode = .direct
+        for (lookup, expected) in [(MonitoringStatus.ready, MimoStatusPresentation.Kind.direct),
+                                   (.refreshing, .checking), (.failed("Offline"), .directWarning), (.ready, .direct)] {
+            setupState.routing = directRouting; setupState.status = lookup
+            setupMonitor.receive(setupState)
+            // Wait for the queued native redraw, rather than assuming a loaded
+            // VM always presents the next state within one 30 ms sleep.
+            for _ in 0..<50 {
+                if controller.displayedPresentation?.kind == expected { break }
+                try await Task.sleep(for: .milliseconds(20))
+            }
+            require(controller.displayedPresentation?.kind == expected,
+                    "published state must redraw the retained menu icon: expected \(expected), got \(String(describing: controller.displayedPresentation?.kind))")
+            require(controller.displayedPresentation == setupMonitor.statusPresentation,
+                    "menu and dashboard must consume the same completed status snapshot")
+        }
+
+        let directChecking = MimoMenuPresentation(routing: locatedDirect, snapshot: snapshot, preferences: preferences, date: now, monitoringStatus: .refreshing)
+        let directFailed = MimoMenuPresentation(routing: locatedDirect, snapshot: snapshot, preferences: preferences, date: now, monitoringStatus: .failed("Offline"))
+        let scenarios = [presentation(locatedDirect), unknownDirect, directChecking, directFailed, startup, verified, unknownVerified, rejected, warning, unavailable]
+        for dark in [false, true] {
+            for scenario in scenarios {
+                let label = MimoMenuBarLabel(presentation: scenario)
+                let host = NSHostingView(rootView: label)
+                require(host.fittingSize.height <= 24 && host.fittingSize.width <= 100,
+                        "default routing symbols must fit the native menu bar")
+            }
+            let gallery = VStack(alignment: .leading, spacing: 20) {
+                Text("Mimo · Native menu-bar states").font(.title2.weight(.semibold))
+                ForEach(Array(scenarios.enumerated()), id: \.offset) { _, value in
+                    HStack(alignment: .center, spacing: 20) {
+                        MimoMenuBarLabel(presentation: value).frame(width: 90, height: 28)
+                            .background(.bar, in: RoundedRectangle(cornerRadius: 6))
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(value.title).font(.headline)
+                            Text(value.detail).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+            }
+            try CredentialAppTests.render(gallery, size: NSSize(width: 700, height: 800), dark: dark,
+                                          to: output.appendingPathComponent("mimo-menu-states-\(dark ? "dark" : "light").png"))
+        }
+        print("PASS: native routing icons, exact blocked IP, country/proof matching and stable menu actions")
+    }
+
+    private static func require(_ value: Bool, _ message: String) {
+        if !value { fatalError(message) }
+    }
+}

@@ -1,0 +1,15 @@
+{
+  "success": true,
+  "passed": [
+    "normal-Release-app-helper-and-signature-match-tested-package",
+    "original-saved-proxy-allowlist-password-and-service-intent-retained",
+    "both-live-services-confirm-Direct-without-allowlist-rejection",
+    "PF-launchd-and-IPv4-only-policy-healthy",
+    "ordinary-user-HTTPS-and-original-Tailscale-Stopped-state-restored",
+    "original-explicit-mihomo-install-intent-restored",
+    "temporary-test-jobs-routes-captures-account-and-wake-alarm-removed"
+  ],
+  "packageSHA256": "1203694706ce854a8f9f9c1ce096b824fc1570686eb9c4b7428946e4afb183b1",
+  "helperSHA256": "4563dde8b0ca85db1586769119154104ecec85e4127a5047e930c1a080d575b2",
+  "scope": "Read-only final installed Release and restoration checks in mimo-vm"
+}

@@ -1,0 +1,52 @@
+{
+  "updated": "2026-11-21",
+  "version": "1.0",
+  "basedOnPublishedSource": "662ea2407847ff5ac24b6262ffac33eda530d606",
+  "changes": [
+    "Treat AutoJoinTimestamp as metadata before early PF revocation; timestamp-only and timestamp-plus-Busy changes cannot schedule verification or a follow-up",
+    "Retain protection for actual association/power changes, unknown fields, missing/unreadable state and other network notifications",
+    "Move the routing summary and LAN/Tailscale note below proxy details; remove their separate bottom row and retain the uninstall footer",
+    "Show bundled app version and build beside Event Log"
+  ],
+  "artifacts": {
+    "Mimo-1.0.zip": "c8e31d060934b6ce5f9bb46bb876b9a794873ca8985b6e617f9aa695573518ce",
+    "Mimo-1.0.pkg": "0f6731142795c16b5fb65ee58a68b787a72e3f2cb63a73fb0161e6950fe67ec4",
+    "mimo-gui": "177e522215e4b03fa916ad6211d30e313c674737ef858715dd3495063790f659",
+    "mimo-core": "e5263c782dcb2a2b2822aa72bf7509b0f7af6e9cf37fb2ea5c6a80610a34f734"
+  },
+  "validation": {
+    "environment": "mimo-vm",
+    "sharedTests": {
+      "count": 202,
+      "failures": 0
+    },
+    "before": {
+      "environment": "mimo-vm",
+      "phase": "before",
+      "checks": [
+        "previous published build reproduces block/check/open for AutoJoinTimestamp alone",
+        "original mode, proxy, allowlist, credential and service intent restored; fixture removed"
+      ]
+    },
+    "after": {
+      "environment": "mimo-vm",
+      "phase": "after",
+      "checks": [
+        "ten timestamp updates cause no block, recheck or deferred cycle",
+        "ten timestamp-busy updates cause no block, recheck or deferred cycle",
+        "ten telemetry updates cause no block, recheck or deferred cycle",
+        "real route change blocks and verifies once; concurrent timestamp/Busy changes add no follow-up",
+        "association metadata still triggers protection without logging Wi-Fi identifiers",
+        "power metadata still triggers protection without logging Wi-Fi identifiers",
+        "original mode, proxy, allowlist, credential and service intent restored; fixture removed"
+      ]
+    },
+    "artifactIdentity": "Installed GUI/core/helper hashes match the packaged release; the prior installed core matches the previous public evidence; final version-label build has byte-identical core, and its installed GUI/core/helper match the final package",
+    "visual": "Native dashboard scenarios and populated Settings rendered in both appearances; Direct light, Rule dark and long-text blocked layouts inspected at 1040x690 points; version/build label rendered with final package Info.plist and inspected as Version 1.0 \u00b7 Build 1"
+  },
+  "limits": [
+    "The VM has no Wi-Fi radio. AirPort values were replayed through real configd notifications against the normal installed release; an actual host-route change checked protection",
+    "The reported Mac log names AutoJoinTimestamp alone or with Busy; physical Wi-Fi acceptance after this correction remains pending",
+    "No broad fault, reboot, sleep, simultaneous-user or Homebrew uninstall campaign rerun; installer/removal behavior is unchanged"
+  ]
+}

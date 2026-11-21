@@ -1,0 +1,13 @@
+{
+  "success": false,
+  "passed": [],
+  "errors": [
+    "No real unlock followed by fresh active verification within the handoff window"
+  ],
+  "mode": "rule",
+  "packageSHA256": "2e8c6e7c5629591226a41bb21f09b0fed9e6fdddfa20fbb5339c26e9a32cf678",
+  "helperSHA256": "8e23dff0f092a63027fe1a97b4c06041d82cd665fae9742ac96647de59f45fd6",
+  "readOnlyObserver": true,
+  "realSleepTest": false,
+  "scope": "Human lock/unlock in the installed Release VM; state and ordered event evidence, not continuous packet proof"
+}

@@ -1,0 +1,25 @@
+{
+  "success": true,
+  "passed": [
+    "rule-delivered-profile-uses-proxied-DoH-and-encrypted-bootstrap",
+    "rule-UDP-public-DNS-query-succeeds",
+    "rule-TCP-public-DNS-query-succeeds",
+    "rule-real-UDP-TCP-and-uncached-DNS-queries-succeed",
+    "rule-ordinary-system-DNS-and-HTTPS-work",
+    "global-delivered-profile-uses-proxied-DoH-and-encrypted-bootstrap",
+    "global-UDP-public-DNS-query-succeeds",
+    "global-TCP-public-DNS-query-succeeds",
+    "global-real-UDP-TCP-and-uncached-DNS-queries-succeed",
+    "global-ordinary-system-DNS-and-HTTPS-work",
+    "direct-capture-positive-control",
+    "rule-no-direct-public-DNS",
+    "global-no-direct-public-DNS",
+    "private-MagicDNS-A-still-resolves-through-native-Tailscale",
+    "original-Direct-native-off-settings-and-credentials-restored"
+  ],
+  "error": null,
+  "packageSHA256": "fcaff59daff60fc7ddfabeb526c1fe31fc88da335cedbd6393da2304daf8fe58",
+  "helperSHA256": "40b4d4c538851d506a4ab75be3105be14840b51f1f3f0e6ab46802b559758006",
+  "scope": "Exact installed Release and pinned mihomo in mimo-vm; actual UDP/TCP/uncached DNS queries, native MagicDNS, ordinary HTTPS and physical-interface process-attributed packet capture. Direct bootstrap remains an explicit encrypted exception.",
+  "evidence": "/var/tmp/mimo-dns-privacy-9z993f5_"
+}

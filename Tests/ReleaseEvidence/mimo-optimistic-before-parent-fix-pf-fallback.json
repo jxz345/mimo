@@ -1,0 +1,11 @@
+{
+  "success": true,
+  "passed": [
+    "PF-readback-mismatch-takes-full-blocking-fallback-and-fresh-verification-before-opening",
+    "original-Rule-settings-credential-and-service-intent-restored"
+  ],
+  "errors": [],
+  "packageSHA256": "8448da040044e86623605a5ba533677d89465d581dfa7d11dc0da1e6f12e38ea",
+  "helperSHA256": "882df284617255332dcd157c745fc8c5ca016a8815058292e2841646d470c8f9",
+  "scope": "Normal installed Release in mimo-vm. Deliberately mismatched root-owned PF readback plus actual route change; no live PF rules were weakened. Saved settings retained."
+}

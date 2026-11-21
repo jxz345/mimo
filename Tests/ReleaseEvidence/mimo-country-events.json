@@ -1,0 +1,61 @@
+{
+  "updated": "2026-11-21",
+  "version": "1.0",
+  "configuration": "normal arm64 Release",
+  "basedOnPublishedSource": "3e4e92a54f1bd5bd405b3d2adbefbf4ea2f94fff",
+  "changes": [
+    "Valid IP with unknown country succeeds; country-only changes do not request confirmation or retries",
+    "Menu uses a globe for unknown country and a white Allowed shield",
+    "Event Log includes supervisor causes, network details and audit failure reasons",
+    "Protected cycles defer external events and reject stale opening; one fresh follow-up remains blocked",
+    "Human controls wait for the current cycle; ordinary Direct network/session/wake events do not check IP",
+    "Failed lookup provider pauses for eight hours (longer Retry-After honored), rotates, and shows reason/time in Monitoring"
+  ],
+  "artifacts": {
+    "Mimo-1.0.zip": "bfd0cd42c06809e563f1a17d6c3bff0d5b9c9d735f09f47a1b0165a77a856a77",
+    "Mimo-1.0.pkg": "cc9b5c22367928688039ec772d3c033da23965723249b4a9d1e2e03c94c8416f",
+    "mimo-gui": "a6adeeea1e03faa40ed88c7ae9ffbd34cfdf7d665f6261e451113371c3ed8ff3",
+    "mimo-core": "e617bd561c93bec23600742cbc83921d016c3b72ae55f5481584e2bfd801cb82"
+  },
+  "validation": {
+    "sharedTests": {
+      "count": 194,
+      "failures": 0,
+      "environment": "mimo-vm"
+    },
+    "focusedChecks": [
+      "PASS: cycle events coalesce, stale opening is rejected, Direct stays open and controls wait in order",
+      "PASS: session and wake events revoke stale approvals, preserve sleep hold, and bypass Direct",
+      "PASS: power fence closes before acknowledgement, rejects late approvals and requires fresh verification after wake",
+      "PASS: constant IP with unknown/changing countries; zero confirmations or automatic retries over 12 seconds",
+      "PASS: Direct ignores system events, human refresh remains available and queued checks resume",
+      "PASS: failed provider rotates immediately, persists its eight-hour pause/reason and is skipped on manual refresh",
+      "PASS: native routing icons, exact blocked IP, country/proof matching and stable menu actions"
+    ],
+    "installedChecks": [
+      "installed-package-signature-helper-and-saved-configuration-match",
+      "Rule-verifies-saved-proxy-and-allowlist",
+      "Rule-stays-open-without-self-triggered-cycle-for-20-seconds",
+      "real-route-block-check-open-settles-without-feedback-cycle",
+      "ordinary-account-event-log-exposes-specific-supervisor-trigger",
+      "external-change-during-cycle-holds-PF-for-one-fresh-follow-up",
+      "human-Direct-selection-waits-for-protected-cycle-to-finish",
+      "Direct-route-event-causes-neither-blocking-nor-IP-check",
+      "original-mode-proxy-allowlist-credential-and-service-intent-restored"
+    ],
+    "visual": [
+      "Native menu dark/light renders include unknown-country Direct/Rule and white Allowed shield",
+      "Monitoring pause fixture shows reason, retry time and policy"
+    ]
+  },
+  "limits": [
+    "The reported physical Mac was not accessible; acceptance there is still pending",
+    "Provider failure/country response cases use controlled response/client fixtures in the VM; real route tests use the installed release and saved proxy",
+    "No broad fault, reboot, sleep, simultaneous-session or Homebrew uninstall campaign rerun for this update",
+    "Earlier UI timing experiment was not included; this update starts from published v1.0"
+  ],
+  "testCorrections": [
+    "VM Command Line Tools lacked XCTest/SwiftUI macros; tests were rerun with its installed full Xcode toolchain",
+    "The native icon fixture previously triggered real one-time presentation import; it now marks its fixture imported and waits for the asynchronous redraw"
+  ]
+}

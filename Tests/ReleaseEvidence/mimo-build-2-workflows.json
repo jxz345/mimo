@@ -1,0 +1,75 @@
+{
+  "date": "2026-11-21",
+  "status": "published for physical-Mac validation; VM qualification complete",
+  "version": "1.0",
+  "build": "2",
+  "environment": "mimo-vm; normal installed Release app and services; saved real proxy",
+  "sha256": {
+    "Mimo-1.0.pkg": "c07f3d0ebcd2b57098b44622dcb7220b786b836605c81bf9c6e89a2388dde92d",
+    "Mimo-1.0.zip": "344a42c052c842139e20244d44e5ee180fb6d91d07050a03b579bd8381331e2c",
+    "mimo-core": "2d9e0ac87faec58306b97e3f49640225322182db18233c66301d6a1492aafde6",
+    "mimo-gui": "41de98aa49df39a01bfb0154411347d787e32860f03e980edab36aabdfd371e6"
+  },
+  "installedIdentity": "App and privileged helper hashes match the locally packaged binaries; installed bundle reports version 1.0 build 2",
+  "validation": {
+    "shared": "210 tests, zero failures on mimo-vm",
+    "focusedService": [
+      "Tailnet notification and route classification",
+      "Native enforcement progresses while main actor is blocked; Stop fences late updates and interface leases expire",
+      "Profile preparation joins fresh native firewall/provider publication and fences stopped or stale observations",
+      "Stale supervisor replies, interrupted preparation/probes, credential mutation fencing and Direct failure isolation",
+      "Pending classification holds approval; owned events add no follow-up; external and late callbacks remain safe",
+      "Cycle events coalesce, stale opening is rejected, Direct stays open and controls wait in order",
+      "Session and wake events revoke stale approvals, preserve sleep hold, and bypass Direct",
+      "Power fence closes before acknowledgement, rejects late approvals and requires fresh verification after wake"
+    ],
+    "installedTailnetRule": [
+      "Mimo provider Stop and Start each preserve public DNS with no gate closure, IP lookup or profile reload",
+      "Native Tailscale Disconnect and Connect each preserve public DNS with no gate closure, IP lookup or profile reload",
+      "Online peer full-name MagicDNS resolves over UDP and TCP after both switch types",
+      "Occupied diagnostic port selects a fallback without affecting the private File provider, MagicDNS or public approval",
+      "Original settings, credentials, service intent and native connection restored"
+    ],
+    "installedTransitions": [
+      "Two Direct-to-Rule transitions each open after one IP pass while unchanged SCPreferencesApply notifications are filtered",
+      "Native firewall/provider prerequisites precede final profile preparation for both attempts",
+      "A real route change still blocks and verifies once",
+      "A real route change during verification retains one attributed follow-up; the stale pass never opens",
+      "Original mode, proxy, allowlist, credentials and service intent restored; temporary route removed"
+    ],
+    "ui": {
+      "rendered": "14 dashboard scenarios and four populated Settings tabs in light and dark appearances",
+      "inspected": "Rule light/dark and long blocked-message layouts at 1040 x 660 points; consistent service rows, no action/divider overlap or clipped bottom border",
+      "previewIdentity": "Native fixture render executable wrapped in a test bundle using installed version/build metadata; example network data, not a live connection screenshot",
+      "previews": [
+        "Previews/mimo-dashboard-compact-light.png",
+        "Previews/mimo-dashboard-compact-dark.png",
+        "Previews/mimo-dashboard-long-message.png"
+      ]
+    },
+    "documentation": "Workflow local file/section links resolve; documented diagnostic event names exist in source; git diff --check passes"
+  },
+  "testSources": [
+    "Tests/MihomoRuntimeTests/release_tailnet_live_update_test.py",
+    "Tests/MihomoRuntimeTests/release_cycle_classification_test.py",
+    "Tests/MimoServiceTests/mimo_tailnet_network_tests.swift",
+    "Tests/MimoServiceTests/mimo_native_observer_tests.swift",
+    "Tests/MimoServiceTests/mimo_cycle_tests.swift",
+    "Tests/MimoServiceTests/mimo_power_tests.swift",
+    "Tests/MimoAppTests/mimo_dashboard_tests.swift"
+  ],
+  "limits": [
+    "Physical-Mac full-name MagicDNS failure with connect: network is down remains unconfirmed; VM success is not physical-Mac qualification",
+    "Live-update checks in this candidate were performed in Rule; do not infer new installed Global coverage from this record",
+    "No new physical sleep/wake, first-packet boot, simultaneous-user or peer UDP-echo qualification",
+    "The workflow reference describes current source behavior; historical release evidence has its own scope",
+    "An initial final-cycle run passed behavior/restoration checks but could not write its report because the directory was absent; the test now creates the directory and the full rerun passed"
+  ],
+  "publication": {
+    "releaseURL": "https://github.com/jxz345/mimo/releases/tag/v1.0",
+    "sourceRef": "refs/tags/v1.0",
+    "branch": "main",
+    "manifest": "release-build.json",
+    "cask": "jxz345/tap/mimo"
+  }
+}

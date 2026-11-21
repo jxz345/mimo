@@ -1,0 +1,25 @@
+{
+  "date": "2026-11-19",
+  "scope": "Isolated Apple VirtualMac; experimental network-location barrier, not release qualification",
+  "savedLocationBeforeBoot": "Empty test location, committed without applying to the running system",
+  "afterColdStart": {
+    "configuredServices": 0,
+    "liveIPv4PrimaryInterface": false,
+    "publicTCPAttempts": 89,
+    "successfulPublicTCPConnections": 0,
+    "observationSeconds": 25
+  },
+  "cleanup": "Original Automatic location restored and applied; temporary launch job removed",
+  "limitations": [
+    "The guest stalled during shutdown; Tart stop/start was needed for the cold start.",
+    "This is not packet attribution from the first instant of boot.",
+    "Apple InterfaceNamer may add default configuration for newly discovered interfaces.",
+    "Committing and applying the normal location before re-arming isolation would leave a persistence window.",
+    "This experiment is not installed as production boot protection."
+  ],
+  "references": [
+    "https://developer.apple.com/documentation/systemconfiguration/scpreferencescommitchanges(_:)",
+    "https://github.com/apple-oss-distributions/configd/blob/585b7f2fca293f4642d21d15c5daf187f63c4796/Plugins/InterfaceNamer/ifnamer.c",
+    "https://github.com/apple-oss-distributions/configd/blob/585b7f2fca293f4642d21d15c5daf187f63c4796/SystemConfiguration.fproj/SCPApply.c"
+  ]
+}

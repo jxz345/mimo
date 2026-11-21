@@ -1,0 +1,25 @@
+{
+  "success": true,
+  "passed": [
+    "published-tap-version-checksum-and-GitHub-download-verified",
+    "brew-install-with-dependency-restores-Direct",
+    "brew-pinned-formula-test",
+    "brew-reinstall-retains-stopped-core",
+    "brew-uninstall-removes-services-restores-network-retains-settings",
+    "brew-cask-uninstall-autoremoves-unneeded-mihomo",
+    "brew-reinstall-after-full-removal-restores-Direct",
+    "brew-second-uninstall-restores-network",
+    "brew-cask-uninstall-retains-explicit-mihomo",
+    "brew-second-dependency-uninstall-removes-binary",
+    "original-manual-installation-and-Direct-restored"
+  ],
+  "failure": null,
+  "cleanupErrors": [],
+  "tapCommit": "db2cc4d3c81b5ea764f5a232024ea634f3477df5",
+  "version": "1.0",
+  "sha256": "1bc8b1437c4c27b2d035020348a1712f842478a2638b491401ea173001547706",
+  "scope": "Published jxz345/tap/mimo cask and GitHub release download; protected packet qualification is separate.",
+  "platform": "Apple silicon macOS 27.2.1 (Tart VM)",
+  "release": "https://github.com/jxz345/mimo/releases/tag/v1.0",
+  "releaseCommit": "173c8cc10a7c4e074ee099cd0ac26aa69afb6a87"
+}

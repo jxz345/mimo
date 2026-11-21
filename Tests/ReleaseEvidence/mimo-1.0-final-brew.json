@@ -1,0 +1,60 @@
+{
+  "success": true,
+  "version": "1.0",
+  "cask": "jxz345/tap/mimo",
+  "release": "https://github.com/jxz345/mimo/releases/tag/v1.0",
+  "passed": [
+    "public-GitHub-release-download-passes-new-cask-checksum",
+    "uninstall-retains-explicit-mihomo",
+    "public-brew-install-automatically-installs-pinned-mihomo",
+    "public-brew-uninstall-removes-unused-mihomo-dependency",
+    "original-Direct-configuration-credential-service-intent-and-explicit-engine-restored"
+  ],
+  "build": {
+    "packageSHA256": "8d55815e9fa3684b09b5404c8867d173e45c647d192967b15044f16c4331d7a8",
+    "helperSHA256": "354593d007cb2f8be5c691013c0a9fe9a8a08a704a9a0c7d161f3a5aa2c2052f",
+    "guiSHA256": "c6ca221aafca76f64cd4c4ffc352f4c186f6bca0b2a4a796400e6d1d2af92eea",
+    "configuration": "Release",
+    "architecture": "arm64",
+    "inputs": {
+      "Tests/MihomoRuntimeTests/saved_proxy_test.py": "d10754b14b87901cb020d6feebe958b55115817400c8cbbc89ce125a1ba4fabc"
+    }
+  },
+  "environment": "mimo-vm only; actual public tap and GitHub release download; Homebrew runs as its existing owner jay",
+  "privilege": "Noninteractive Homebrew leaves cancelled service setup recoverable. The unchanged bundled installer is then invoked through the previously authorized VM administrator. No interactive password UI is claimed.",
+  "scope": "Focused public install/uninstall/dependency/restoration checks. No broad runtime suite rerun.",
+  "provenance": {
+    "checks": [
+      "uninstalled-retains-saved-configuration-and-Keychain-password",
+      "brew-uninstall-removes-app-runtime-jobs-and-persistent-PF-policy",
+      "brew-uninstall-restores-original-IPv6-enabled-flags",
+      "brew-uninstall-restores-ordinary-user-HTTPS",
+      "installed-retains-saved-configuration-and-Keychain-password",
+      "brew-installed-Release-helper-signature-Direct-and-service-intent-confirmed",
+      "uninstalled-retains-saved-configuration-and-Keychain-password",
+      "brew-uninstall-removes-app-runtime-jobs-and-persistent-PF-policy",
+      "brew-uninstall-restores-original-IPv6-enabled-flags",
+      "brew-uninstall-restores-ordinary-user-HTTPS",
+      "installed-retains-saved-configuration-and-Keychain-password",
+      "brew-installed-Release-helper-signature-Direct-and-service-intent-confirmed"
+    ],
+    "version": "1.0",
+    "build": "1",
+    "installedCaskTap": "jxz345/tap",
+    "guiRunning": true,
+    "downloadSHA256": "8d55815e9fa3684b09b5404c8867d173e45c647d192967b15044f16c4331d7a8",
+    "brewVersion": "Homebrew 7.0.15",
+    "tapTestedCommit": "b8aa644b66faf96c9bf44fc71d0bf334c118f818",
+    "installedReceipt": ".metadata/INSTALL_RECEIPT.json",
+    "downloadURL": "https://github.com/jxz345/mimo/releases/download/v1.0/ExitIPMonitor-1.0.zip"
+  },
+  "acceptedRuntimeSourceCommit": "5a6eb775059ac286bc90af4492f6bb286c271ceb",
+  "harnessNotes": [
+    "Homebrew 7 removed formula-specific trust when the explicitly installed formula was uninstalled. The test reapplied the documented formula trust before the fresh dependency installation."
+  ],
+  "failures": [],
+  "temporaryAcceptanceTapRemoved": true,
+  "testedSourceCommit": "0948c6de21bf7f89f95120f13adf820c791c1073",
+  "publishedSourceRef": "refs/tags/v1.0",
+  "sourcePublicationPolicy": "Single latest-source snapshot; accepted app binaries unchanged."
+}

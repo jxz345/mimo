@@ -1,0 +1,60 @@
+{
+  "scope": "Actual kernel host-route changes in mimo-vm with the saved proxy; elapsed includes final core-state observation. Not manual unlock or physical sleep.",
+  "packageSHA256": "c72bcdaa90031a3f890d2ac2a223e004213de4363eda40669901bb1a78194f0a",
+  "helperSHA256": "6c1ecf28c670be26136f9b0ee14b9ef2bc46530782962980a9bd50e79f174259",
+  "trials": [
+    {
+      "run": "first",
+      "event": "rule-route-added",
+      "seconds": 9.776
+    },
+    {
+      "run": "first",
+      "event": "rule-route-removed",
+      "seconds": 11.448
+    },
+    {
+      "run": "first",
+      "event": "global-route-added",
+      "seconds": 9.699
+    },
+    {
+      "run": "first",
+      "event": "global-route-removed",
+      "seconds": 8.842
+    },
+    {
+      "run": "repeat",
+      "event": "rule-route-added",
+      "seconds": 8.428
+    },
+    {
+      "run": "repeat",
+      "event": "rule-route-removed",
+      "seconds": 9.548
+    },
+    {
+      "run": "repeat",
+      "event": "global-route-added",
+      "seconds": 11.19
+    },
+    {
+      "run": "repeat",
+      "event": "global-route-removed",
+      "seconds": 11.796
+    }
+  ],
+  "representativeTrial": {
+    "run": "repeat",
+    "event": "rule-route-removed",
+    "seconds": 9.548,
+    "combinedPreparation": 3.11,
+    "loadFinalProfile": 0.888,
+    "exitIPLookup": 1.266,
+    "concurrentCriticalInspection": 0.238,
+    "approvalAndJoin": 0.298,
+    "openGate": 1.022,
+    "unseparated": 2.964,
+    "note": "Concurrent inspection overlaps the lookup/approval period and is not added again. Installation validation overlaps preparation but has no separate stage timer. Unseparated time includes the initial event barrier, XPC/dispatch, DNS setup and final observer/polling time; these components are not individually attributed."
+  }
+}

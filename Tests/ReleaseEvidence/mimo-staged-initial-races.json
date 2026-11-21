@@ -1,0 +1,12 @@
+{
+  "success": false,
+  "passed": [
+    "original-mode-settings-password-and-service-intent-restored"
+  ],
+  "errors": [
+    "AssertionError: original mode timed out"
+  ],
+  "packageSHA256": "ff4a6cfd1b02f843b33f7df27420374626b5ee81cff0ac9c951669468be97369",
+  "helperSHA256": "b1d82f101d74db5ab5702103ac2a3ef33a1f281959d1b36ae00051f06c340a95",
+  "scope": "Normal installed Release in mimo-vm; actual kernel route and mode changes during private probing, ordinary-user HTTPS and exact restoration. No synthetic events."
+}

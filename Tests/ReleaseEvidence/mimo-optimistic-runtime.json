@@ -1,0 +1,871 @@
+{
+  "success": true,
+  "passed": [
+    "rule-final-profile-and-private-proxied-DNS-loaded-while-blocked",
+    "rule-empty-allowlist-denies-existing-and-new-ordinary-traffic",
+    "rule-mismatched-allowlist-denies-ordinary-traffic",
+    "rule-original-allowlist-restores-ordinary-HTTPS",
+    "rule-route-added-optimistically-opens-then-passes-full-audit",
+    "rule-route-removed-optimistically-opens-then-passes-full-audit",
+    "global-final-profile-and-private-proxied-DNS-loaded-while-blocked",
+    "global-empty-allowlist-denies-existing-and-new-ordinary-traffic",
+    "global-mismatched-allowlist-denies-ordinary-traffic",
+    "global-original-allowlist-restores-ordinary-HTTPS",
+    "global-route-added-optimistically-opens-then-passes-full-audit",
+    "global-route-removed-optimistically-opens-then-passes-full-audit",
+    "foreign-DNS-listener-denies-ordinary-traffic",
+    "foreign-DNS-owner-fails-concurrent-readiness-without-opening",
+    "DNS-conflict-removal-plus-mihomo-Restart-recovers-after-fresh-verification",
+    "manual-Reload-forces-final-profile-load-and-fresh-verification",
+    "engine-crash-closes-launchd-restarts-and-fresh-refresh-recovers",
+    "Direct-with-empty-allowlist-refreshes-without-protected-blocking",
+    "physical-interface-capture-confirms-blocked-paths-and-Direct-positive-control",
+    "original-mode-proxy-allowlist-credentials-and-service-intent-restored"
+  ],
+  "errors": [],
+  "trials": [
+    {
+      "name": "rule-route-added",
+      "seconds": 7.029,
+      "firewallOpenSeconds": 6.638,
+      "eventRequestedUptimeMS": 3669633,
+      "finalProfileLoads": 0,
+      "finalProfileReuses": 1,
+      "parentPolicyWrites": [],
+      "criticalChecksBeforeOpen": false,
+      "backgroundAuditPassed": true,
+      "verifiedSeconds": 7.965,
+      "stages": [
+        {
+          "operation": "deny",
+          "duration_ms": "0",
+          "end_uptime_ms": "3670223",
+          "stage": "deny_mutation_wait",
+          "start_uptime_ms": "3670223"
+        },
+        {
+          "operation": "deny",
+          "duration_ms": "133",
+          "start_uptime_ms": "3670223",
+          "stage": "deny_permission",
+          "end_uptime_ms": "3670357"
+        },
+        {
+          "operation": "firewall_preparation",
+          "duration_ms": "0",
+          "start_uptime_ms": "3670425",
+          "stage": "rule_reuse",
+          "end_uptime_ms": "3670425"
+        },
+        {
+          "duration_ms": "3",
+          "start_uptime_ms": "3670426",
+          "end_uptime_ms": "3670430",
+          "stage": "credentials_and_render",
+          "operation": "preparation"
+        },
+        {
+          "operation": "deny",
+          "duration_ms": "85",
+          "start_uptime_ms": "3670357",
+          "stage": "deny_barrier",
+          "end_uptime_ms": "3670443"
+        },
+        {
+          "operation": "profile",
+          "duration_ms": "366",
+          "start_uptime_ms": "3670431",
+          "stage": "profile_preflight",
+          "end_uptime_ms": "3670798"
+        },
+        {
+          "operation": "cleanup",
+          "duration_ms": "418",
+          "end_uptime_ms": "3670845",
+          "stage": "connection_cleanup",
+          "start_uptime_ms": "3670426"
+        },
+        {
+          "duration_ms": "401",
+          "start_uptime_ms": "3670443",
+          "end_uptime_ms": "3670845",
+          "stage": "deny_states",
+          "operation": "deny"
+        },
+        {
+          "operation": "deny",
+          "duration_ms": "372",
+          "start_uptime_ms": "3670846",
+          "stage": "deny_readback",
+          "end_uptime_ms": "3671219"
+        },
+        {
+          "duration_ms": "998",
+          "start_uptime_ms": "3670223",
+          "end_uptime_ms": "3671221",
+          "stage": "barrier_and_confirmation",
+          "operation": "blocking"
+        },
+        {
+          "operation": "prepare",
+          "duration_ms": "797",
+          "start_uptime_ms": "3670424",
+          "stage": "confirmed_close",
+          "end_uptime_ms": "3671222"
+        },
+        {
+          "operation": "prepare",
+          "duration_ms": "0",
+          "start_uptime_ms": "3671222",
+          "stage": "rule_validation_join",
+          "end_uptime_ms": "3671223"
+        },
+        {
+          "operation": "firewall",
+          "duration_ms": "0",
+          "start_uptime_ms": "3671223",
+          "stage": "install_probe_policy",
+          "end_uptime_ms": "3671223"
+        },
+        {
+          "operation": "prepare",
+          "duration_ms": "0",
+          "start_uptime_ms": "3671223",
+          "stage": "probe_policy",
+          "end_uptime_ms": "3671223"
+        },
+        {
+          "operation": "prepare",
+          "duration_ms": "1",
+          "start_uptime_ms": "3671223",
+          "stage": "preparation_join",
+          "end_uptime_ms": "3671225"
+        },
+        {
+          "operation": "permission",
+          "duration_ms": "282",
+          "start_uptime_ms": "3671226",
+          "stage": "permit_private_probe",
+          "end_uptime_ms": "3671508"
+        },
+        {
+          "operation": "prepare",
+          "duration_ms": "284",
+          "start_uptime_ms": "3671225",
+          "stage": "private_probe_join",
+          "end_uptime_ms": "3671509"
+        },
+        {
+          "operation": "approve",
+          "duration_ms": "135",
+          "start_uptime_ms": "3673083",
+          "end_uptime_ms": "3673219",
+          "stage": "opening_join"
+        },
+        {
+          "operation": "grant",
+          "duration_ms": "2261",
+          "start_uptime_ms": "3673220",
+          "end_uptime_ms": "3675481",
+          "stage": "grant_lifecycle_lock"
+        },
+        {
+          "operation": "grant",
+          "duration_ms": "224",
+          "start_uptime_ms": "3675481",
+          "end_uptime_ms": "3675705",
+          "stage": "grant_identity"
+        },
+        {
+          "operation": "grant",
+          "duration_ms": "0",
+          "start_uptime_ms": "3675705",
+          "end_uptime_ms": "3675706",
+          "stage": "grant_mutation_lock"
+        },
+        {
+          "operation": "grant",
+          "duration_ms": "423",
+          "start_uptime_ms": "3675706",
+          "end_uptime_ms": "3676130",
+          "stage": "grant_parent_identity"
+        },
+        {
+          "operation": "grant",
+          "duration_ms": "139",
+          "start_uptime_ms": "3676130",
+          "end_uptime_ms": "3676269",
+          "stage": "grant_permission"
+        },
+        {
+          "end_uptime_ms": "3676271",
+          "stage": "open_gate",
+          "start_uptime_ms": "3673219",
+          "duration_ms": "3052",
+          "operation": "approve"
+        },
+        {
+          "operation": "installation",
+          "duration_ms": "529",
+          "start_uptime_ms": "3676273",
+          "stage": "installation_inspection",
+          "end_uptime_ms": "3676803"
+        },
+        {
+          "operation": "readiness",
+          "duration_ms": "455",
+          "start_uptime_ms": "3676644",
+          "end_uptime_ms": "3677100",
+          "stage": "critical_checks"
+        },
+        {
+          "operation": "background_audit",
+          "duration_ms": "954",
+          "start_uptime_ms": "3676644",
+          "stage": "background_audit",
+          "end_uptime_ms": "3677598"
+        },
+        {
+          "stage": "exit_ip",
+          "duration_ms": "1462",
+          "end_uptime_ms": "3672973",
+          "operation": "lookup",
+          "start_uptime_ms": "3671511"
+        }
+      ]
+    },
+    {
+      "name": "rule-route-removed",
+      "seconds": 5.561,
+      "firewallOpenSeconds": 5.119,
+      "eventRequestedUptimeMS": 3680696,
+      "finalProfileLoads": 0,
+      "finalProfileReuses": 1,
+      "parentPolicyWrites": [],
+      "criticalChecksBeforeOpen": false,
+      "backgroundAuditPassed": true,
+      "verifiedSeconds": 6.91,
+      "stages": [
+        {
+          "operation": "deny",
+          "duration_ms": "0",
+          "start_uptime_ms": "3681090",
+          "stage": "deny_mutation_wait",
+          "end_uptime_ms": "3681090"
+        },
+        {
+          "operation": "deny",
+          "duration_ms": "104",
+          "start_uptime_ms": "3681090",
+          "end_uptime_ms": "3681195",
+          "stage": "deny_permission"
+        },
+        {
+          "duration_ms": "0",
+          "start_uptime_ms": "3681233",
+          "end_uptime_ms": "3681233",
+          "stage": "rule_reuse",
+          "operation": "firewall_preparation"
+        },
+        {
+          "operation": "preparation",
+          "duration_ms": "1",
+          "end_uptime_ms": "3681235",
+          "stage": "credentials_and_render",
+          "start_uptime_ms": "3681233"
+        },
+        {
+          "operation": "deny",
+          "duration_ms": "212",
+          "start_uptime_ms": "3681195",
+          "stage": "deny_barrier",
+          "end_uptime_ms": "3681408"
+        },
+        {
+          "operation": "cleanup",
+          "duration_ms": "327",
+          "start_uptime_ms": "3681233",
+          "stage": "connection_cleanup",
+          "end_uptime_ms": "3681560"
+        },
+        {
+          "operation": "deny",
+          "duration_ms": "152",
+          "end_uptime_ms": "3681560",
+          "stage": "deny_states",
+          "start_uptime_ms": "3681408"
+        },
+        {
+          "operation": "profile",
+          "duration_ms": "328",
+          "end_uptime_ms": "3681564",
+          "stage": "profile_preflight",
+          "start_uptime_ms": "3681235"
+        },
+        {
+          "operation": "deny",
+          "duration_ms": "312",
+          "start_uptime_ms": "3681562",
+          "stage": "deny_readback",
+          "end_uptime_ms": "3681874"
+        },
+        {
+          "end_uptime_ms": "3682438",
+          "stage": "barrier_and_confirmation",
+          "start_uptime_ms": "3681090",
+          "operation": "blocking",
+          "duration_ms": "1347"
+        },
+        {
+          "operation": "prepare",
+          "duration_ms": "1594",
+          "start_uptime_ms": "3681232",
+          "stage": "confirmed_close",
+          "end_uptime_ms": "3682827"
+        },
+        {
+          "operation": "prepare",
+          "duration_ms": "0",
+          "start_uptime_ms": "3682827",
+          "stage": "rule_validation_join",
+          "end_uptime_ms": "3682828"
+        },
+        {
+          "operation": "firewall",
+          "duration_ms": "0",
+          "start_uptime_ms": "3682829",
+          "stage": "install_probe_policy",
+          "end_uptime_ms": "3682829"
+        },
+        {
+          "operation": "prepare",
+          "duration_ms": "1",
+          "start_uptime_ms": "3682828",
+          "stage": "probe_policy",
+          "end_uptime_ms": "3682829"
+        },
+        {
+          "operation": "prepare",
+          "duration_ms": "1",
+          "start_uptime_ms": "3682829",
+          "stage": "preparation_join",
+          "end_uptime_ms": "3682831"
+        },
+        {
+          "operation": "permission",
+          "duration_ms": "262",
+          "start_uptime_ms": "3682832",
+          "stage": "permit_private_probe",
+          "end_uptime_ms": "3683094"
+        },
+        {
+          "operation": "prepare",
+          "duration_ms": "263",
+          "start_uptime_ms": "3682831",
+          "stage": "private_probe_join",
+          "end_uptime_ms": "3683094"
+        },
+        {
+          "end_uptime_ms": "3685260",
+          "stage": "opening_join",
+          "start_uptime_ms": "3685053",
+          "duration_ms": "206",
+          "operation": "approve"
+        },
+        {
+          "end_uptime_ms": "3685262",
+          "stage": "grant_lifecycle_lock",
+          "start_uptime_ms": "3685262",
+          "duration_ms": "0",
+          "operation": "grant"
+        },
+        {
+          "end_uptime_ms": "3685353",
+          "stage": "grant_identity",
+          "start_uptime_ms": "3685262",
+          "duration_ms": "90",
+          "operation": "grant"
+        },
+        {
+          "end_uptime_ms": "3685353",
+          "stage": "grant_mutation_lock",
+          "start_uptime_ms": "3685353",
+          "duration_ms": "0",
+          "operation": "grant"
+        },
+        {
+          "end_uptime_ms": "3685701",
+          "stage": "grant_parent_identity",
+          "start_uptime_ms": "3685353",
+          "duration_ms": "347",
+          "operation": "grant"
+        },
+        {
+          "end_uptime_ms": "3685813",
+          "stage": "grant_permission",
+          "start_uptime_ms": "3685701",
+          "duration_ms": "112",
+          "operation": "grant"
+        },
+        {
+          "duration_ms": "555",
+          "operation": "approve",
+          "end_uptime_ms": "3685815",
+          "start_uptime_ms": "3685260",
+          "stage": "open_gate"
+        },
+        {
+          "duration_ms": "457",
+          "operation": "installation",
+          "end_uptime_ms": "3686274",
+          "start_uptime_ms": "3685817",
+          "stage": "installation_inspection"
+        },
+        {
+          "start_uptime_ms": "3686465",
+          "end_uptime_ms": "3686939",
+          "duration_ms": "474",
+          "operation": "readiness",
+          "stage": "critical_checks"
+        },
+        {
+          "operation": "background_audit",
+          "duration_ms": "1142",
+          "start_uptime_ms": "3686464",
+          "stage": "background_audit",
+          "end_uptime_ms": "3687606"
+        },
+        {
+          "stage": "exit_ip",
+          "duration_ms": "1805",
+          "end_uptime_ms": "3684901",
+          "operation": "lookup",
+          "start_uptime_ms": "3683095"
+        }
+      ]
+    },
+    {
+      "name": "global-route-added",
+      "seconds": 5.98,
+      "firewallOpenSeconds": 5.819,
+      "eventRequestedUptimeMS": 3761279,
+      "finalProfileLoads": 0,
+      "finalProfileReuses": 1,
+      "parentPolicyWrites": [],
+      "criticalChecksBeforeOpen": false,
+      "backgroundAuditPassed": true,
+      "verifiedSeconds": 6.622,
+      "stages": [
+        {
+          "operation": "deny",
+          "duration_ms": "0",
+          "start_uptime_ms": "3761512",
+          "stage": "deny_mutation_wait",
+          "end_uptime_ms": "3761512"
+        },
+        {
+          "end_uptime_ms": "3761548",
+          "stage": "deny_permission",
+          "start_uptime_ms": "3761512",
+          "operation": "deny",
+          "duration_ms": "35"
+        },
+        {
+          "end_uptime_ms": "3761623",
+          "stage": "deny_barrier",
+          "start_uptime_ms": "3761548",
+          "operation": "deny",
+          "duration_ms": "75"
+        },
+        {
+          "end_uptime_ms": "3761682",
+          "stage": "rule_reuse",
+          "start_uptime_ms": "3761682",
+          "operation": "firewall_preparation",
+          "duration_ms": "0"
+        },
+        {
+          "end_uptime_ms": "3761687",
+          "stage": "credentials_and_render",
+          "start_uptime_ms": "3761684",
+          "duration_ms": "3",
+          "operation": "preparation"
+        },
+        {
+          "end_uptime_ms": "3761974",
+          "stage": "connection_cleanup",
+          "start_uptime_ms": "3761684",
+          "operation": "cleanup",
+          "duration_ms": "289"
+        },
+        {
+          "end_uptime_ms": "3762004",
+          "stage": "profile_preflight",
+          "start_uptime_ms": "3761688",
+          "operation": "profile",
+          "duration_ms": "316"
+        },
+        {
+          "operation": "deny",
+          "duration_ms": "396",
+          "end_uptime_ms": "3762020",
+          "stage": "deny_states",
+          "start_uptime_ms": "3761623"
+        },
+        {
+          "end_uptime_ms": "3762488",
+          "stage": "deny_readback",
+          "start_uptime_ms": "3762020",
+          "operation": "deny",
+          "duration_ms": "468"
+        },
+        {
+          "end_uptime_ms": "3762489",
+          "stage": "barrier_and_confirmation",
+          "start_uptime_ms": "3761512",
+          "operation": "blocking",
+          "duration_ms": "977"
+        },
+        {
+          "operation": "prepare",
+          "duration_ms": "1170",
+          "end_uptime_ms": "3762853",
+          "stage": "confirmed_close",
+          "start_uptime_ms": "3761682"
+        },
+        {
+          "operation": "prepare",
+          "duration_ms": "0",
+          "end_uptime_ms": "3762854",
+          "stage": "rule_validation_join",
+          "start_uptime_ms": "3762853"
+        },
+        {
+          "operation": "firewall",
+          "duration_ms": "0",
+          "end_uptime_ms": "3762855",
+          "stage": "install_probe_policy",
+          "start_uptime_ms": "3762855"
+        },
+        {
+          "operation": "prepare",
+          "duration_ms": "1",
+          "end_uptime_ms": "3762855",
+          "stage": "probe_policy",
+          "start_uptime_ms": "3762854"
+        },
+        {
+          "operation": "prepare",
+          "duration_ms": "1",
+          "end_uptime_ms": "3762857",
+          "stage": "preparation_join",
+          "start_uptime_ms": "3762855"
+        },
+        {
+          "operation": "permission",
+          "duration_ms": "1381",
+          "end_uptime_ms": "3764239",
+          "stage": "permit_private_probe",
+          "start_uptime_ms": "3762858"
+        },
+        {
+          "operation": "prepare",
+          "duration_ms": "1383",
+          "end_uptime_ms": "3764240",
+          "stage": "private_probe_join",
+          "start_uptime_ms": "3762857"
+        },
+        {
+          "duration_ms": "83",
+          "start_uptime_ms": "3765770",
+          "end_uptime_ms": "3765853",
+          "stage": "opening_join",
+          "operation": "approve"
+        },
+        {
+          "duration_ms": "635",
+          "start_uptime_ms": "3765854",
+          "end_uptime_ms": "3766490",
+          "stage": "grant_lifecycle_lock",
+          "operation": "grant"
+        },
+        {
+          "duration_ms": "230",
+          "start_uptime_ms": "3766490",
+          "end_uptime_ms": "3766720",
+          "stage": "grant_identity",
+          "operation": "grant"
+        },
+        {
+          "duration_ms": "0",
+          "start_uptime_ms": "3766720",
+          "end_uptime_ms": "3766721",
+          "stage": "grant_mutation_lock",
+          "operation": "grant"
+        },
+        {
+          "duration_ms": "288",
+          "start_uptime_ms": "3766721",
+          "end_uptime_ms": "3767010",
+          "stage": "grant_parent_identity",
+          "operation": "grant"
+        },
+        {
+          "duration_ms": "86",
+          "start_uptime_ms": "3767010",
+          "end_uptime_ms": "3767096",
+          "stage": "grant_permission",
+          "operation": "grant"
+        },
+        {
+          "start_uptime_ms": "3765853",
+          "end_uptime_ms": "3767098",
+          "duration_ms": "1244",
+          "operation": "approve",
+          "stage": "open_gate"
+        },
+        {
+          "operation": "installation",
+          "duration_ms": "517",
+          "end_uptime_ms": "3767616",
+          "stage": "installation_inspection",
+          "start_uptime_ms": "3767099"
+        },
+        {
+          "duration_ms": "378",
+          "start_uptime_ms": "3767300",
+          "end_uptime_ms": "3767679",
+          "stage": "critical_checks",
+          "operation": "readiness"
+        },
+        {
+          "operation": "background_audit",
+          "duration_ms": "601",
+          "end_uptime_ms": "3767901",
+          "stage": "background_audit",
+          "start_uptime_ms": "3767300"
+        },
+        {
+          "stage": "exit_ip",
+          "duration_ms": "1204",
+          "end_uptime_ms": "3765447",
+          "operation": "lookup",
+          "start_uptime_ms": "3764242"
+        }
+      ]
+    },
+    {
+      "name": "global-route-removed",
+      "seconds": 4.174,
+      "firewallOpenSeconds": 3.755,
+      "eventRequestedUptimeMS": 3771103,
+      "finalProfileLoads": 0,
+      "finalProfileReuses": 1,
+      "parentPolicyWrites": [],
+      "criticalChecksBeforeOpen": false,
+      "backgroundAuditPassed": true,
+      "verifiedSeconds": 5.398,
+      "stages": [
+        {
+          "duration_ms": "0",
+          "start_uptime_ms": "3771249",
+          "end_uptime_ms": "3771249",
+          "stage": "deny_mutation_wait",
+          "operation": "deny"
+        },
+        {
+          "operation": "firewall_preparation",
+          "duration_ms": "0",
+          "end_uptime_ms": "3771346",
+          "stage": "rule_reuse",
+          "start_uptime_ms": "3771346"
+        },
+        {
+          "duration_ms": "1",
+          "start_uptime_ms": "3771347",
+          "end_uptime_ms": "3771348",
+          "stage": "credentials_and_render",
+          "operation": "preparation"
+        },
+        {
+          "operation": "deny",
+          "duration_ms": "205",
+          "end_uptime_ms": "3771455",
+          "stage": "deny_permission",
+          "start_uptime_ms": "3771249"
+        },
+        {
+          "operation": "deny",
+          "duration_ms": "182",
+          "end_uptime_ms": "3771638",
+          "stage": "deny_barrier",
+          "start_uptime_ms": "3771455"
+        },
+        {
+          "operation": "profile",
+          "duration_ms": "302",
+          "end_uptime_ms": "3771651",
+          "stage": "profile_preflight",
+          "start_uptime_ms": "3771349"
+        },
+        {
+          "operation": "cleanup",
+          "duration_ms": "390",
+          "end_uptime_ms": "3771737",
+          "stage": "connection_cleanup",
+          "start_uptime_ms": "3771347"
+        },
+        {
+          "operation": "deny",
+          "duration_ms": "155",
+          "end_uptime_ms": "3771793",
+          "stage": "deny_states",
+          "start_uptime_ms": "3771638"
+        },
+        {
+          "operation": "deny",
+          "duration_ms": "480",
+          "start_uptime_ms": "3771794",
+          "stage": "deny_readback",
+          "end_uptime_ms": "3772274"
+        },
+        {
+          "duration_ms": "1026",
+          "operation": "blocking",
+          "end_uptime_ms": "3772275",
+          "start_uptime_ms": "3771249",
+          "stage": "barrier_and_confirmation"
+        },
+        {
+          "operation": "prepare",
+          "duration_ms": "929",
+          "start_uptime_ms": "3771346",
+          "stage": "confirmed_close",
+          "end_uptime_ms": "3772276"
+        },
+        {
+          "operation": "prepare",
+          "duration_ms": "0",
+          "start_uptime_ms": "3772276",
+          "stage": "rule_validation_join",
+          "end_uptime_ms": "3772276"
+        },
+        {
+          "operation": "firewall",
+          "duration_ms": "0",
+          "start_uptime_ms": "3772276",
+          "stage": "install_probe_policy",
+          "end_uptime_ms": "3772276"
+        },
+        {
+          "operation": "prepare",
+          "duration_ms": "0",
+          "start_uptime_ms": "3772276",
+          "stage": "probe_policy",
+          "end_uptime_ms": "3772276"
+        },
+        {
+          "operation": "prepare",
+          "duration_ms": "0",
+          "start_uptime_ms": "3772276",
+          "stage": "preparation_join",
+          "end_uptime_ms": "3772277"
+        },
+        {
+          "operation": "permission",
+          "duration_ms": "124",
+          "start_uptime_ms": "3772278",
+          "stage": "permit_private_probe",
+          "end_uptime_ms": "3772403"
+        },
+        {
+          "operation": "prepare",
+          "duration_ms": "126",
+          "start_uptime_ms": "3772277",
+          "stage": "private_probe_join",
+          "end_uptime_ms": "3772403"
+        },
+        {
+          "start_uptime_ms": "3774039",
+          "end_uptime_ms": "3774233",
+          "duration_ms": "193",
+          "operation": "approve",
+          "stage": "opening_join"
+        },
+        {
+          "start_uptime_ms": "3774233",
+          "end_uptime_ms": "3774234",
+          "duration_ms": "0",
+          "operation": "grant",
+          "stage": "grant_lifecycle_lock"
+        },
+        {
+          "start_uptime_ms": "3774234",
+          "end_uptime_ms": "3774389",
+          "duration_ms": "155",
+          "operation": "grant",
+          "stage": "grant_identity"
+        },
+        {
+          "start_uptime_ms": "3774389",
+          "end_uptime_ms": "3774390",
+          "duration_ms": "0",
+          "operation": "grant",
+          "stage": "grant_mutation_lock"
+        },
+        {
+          "start_uptime_ms": "3774390",
+          "end_uptime_ms": "3774723",
+          "duration_ms": "333",
+          "operation": "grant",
+          "stage": "grant_parent_identity"
+        },
+        {
+          "start_uptime_ms": "3774723",
+          "end_uptime_ms": "3774856",
+          "duration_ms": "133",
+          "operation": "grant",
+          "stage": "grant_permission"
+        },
+        {
+          "end_uptime_ms": "3774858",
+          "stage": "open_gate",
+          "start_uptime_ms": "3774233",
+          "duration_ms": "625",
+          "operation": "approve"
+        },
+        {
+          "operation": "installation",
+          "duration_ms": "620",
+          "end_uptime_ms": "3775480",
+          "stage": "installation_inspection",
+          "start_uptime_ms": "3774859"
+        },
+        {
+          "operation": "readiness",
+          "start_uptime_ms": "3775569",
+          "end_uptime_ms": "3775854",
+          "duration_ms": "284",
+          "stage": "critical_checks"
+        },
+        {
+          "operation": "background_audit",
+          "duration_ms": "932",
+          "start_uptime_ms": "3775569",
+          "stage": "background_audit",
+          "end_uptime_ms": "3776501"
+        },
+        {
+          "stage": "exit_ip",
+          "duration_ms": "1428",
+          "end_uptime_ms": "3773834",
+          "operation": "lookup",
+          "start_uptime_ms": "3772406"
+        }
+      ]
+    }
+  ],
+  "packageSHA256": "3e47e3bb07251bebcb52a95769ca5abf894f3877f961b7f15ab4466bc8dfd1f1",
+  "helperSHA256": "eccfdf1f6dc234d5fd4b54ed56683bfb1e90f957baaed28141a36be7a369b10f",
+  "scope": "Exact installed Release in mimo-vm, saved real proxy, Rule/Global/Direct, real route events, foreign DNS owner, engine crash, ordinary-user connections and physical-interface captures. No physical sleep/unlock or simultaneous-login claim."
+}

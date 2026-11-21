@@ -1,0 +1,48 @@
+{
+  "updated": "2026-11-21",
+  "version": "1.0",
+  "basedOnPublishedSource": "511041ca65bbfeabb2eeeebbf945028471f0bc38",
+  "changes": [
+    "Native multiline Event Log selection and Command-A/Command-C",
+    "Selection and scroll position survive incoming updates; explicit Pause/Resume",
+    "Copy All and Copy Diagnostics include readable events and full already-redacted GUI/core/supervisor records",
+    "GUI state records include selected mode, effective mode, phase and reason"
+  ],
+  "artifacts": {
+    "Mimo-1.0.zip": "8b2bf147a98d0146e51ab228b89f8550010c78062df3131838980cbe5dad55ac",
+    "Mimo-1.0.pkg": "4a9246d48419de5934e7e7929255fbc99ca5e7595f081f9550bc72391a9a5460",
+    "mimo-gui": "b6c341bded0f6f5fa6002410eb4b49828bebbc524d04a3076d2b1aca44514f78",
+    "mimo-core": "2f4c05970567b80c6d0d7a559daa9303011e2b17381c95f41777fffc25ae6ac7"
+  },
+  "validation": {
+    "environment": "mimo-vm",
+    "sharedTests": {
+      "count": 197,
+      "failures": 0
+    },
+    "nativeCopy": "PASS: native multiline copy, Unicode, Command-A, stable selection during live updates, paused history and diagnostic export",
+    "ordinaryAccountExport": "PASS: ordinary-account GUI model copies installed core/supervisor JSON records and Pause freezes the report",
+    "installedRuleObservation": {
+      "environment": "mimo-vm",
+      "durationSeconds": 120,
+      "checks": [
+        "Rule stayed active for 120 seconds with no new cycle in this VM",
+        "Original mode, proxy, allowlist, credential and service intent restored"
+      ],
+      "triggerCounts": {
+        "mimo_network_changed": 0,
+        "mimo_gate_closed": 0,
+        "mimo_verification_audit_failed": 0,
+        "mimo_liveness_lost": 0
+      },
+      "sources": []
+    },
+    "visual": "Native Event Log fixture rendered and inspected"
+  },
+  "limits": [
+    "The physical Mac Rule loop is not reproduced or fixed by this diagnostic update; supplied GUI records do not identify its cause",
+    "Firewall, verification and event-handling policy are unchanged",
+    "No broad fault, sleep, reboot, simultaneous-user or Homebrew uninstall campaign rerun"
+  ],
+  "fixtureCorrection": "Native NSTextView advertises NSStringPboardType for plain-text copy on this VM; the copy test now uses its advertised writable types, as the native Copy action does."
+}

@@ -1,0 +1,40 @@
+{
+  "date": "2026-11-20",
+  "environment": "mimo-vm only",
+  "success": true,
+  "packageSHA256": "16b78e9d9dc487f275b017f1c4cd09da31a188145e43605f187ccdb604e9448a",
+  "guiSHA256": "eb8b9d5dcd270cfdeb08af6ca847bcaa990dffe476c3e2d5871452ac098b5c2c",
+  "helperSHA256": "680df53bebbc318a496289e5be6b246dc0188455ed8739e7f0b9384130ab7764",
+  "scope": "Actual jay logout/login using personal SMAppService login item in the installed normal Release",
+  "passed": [
+    "GUI explicitly quit before logout, avoiding restoration of a running app",
+    "New console login session observed after user sign-out/sign-in",
+    "Canonical /Applications/Mimo.app automatically reached app_ready with visible menu-bar icon and dashboard closed",
+    "User confirmed logged back in after instructions not to open Mimo manually",
+    "Country and Direct-mode symbols visibly present after login",
+    "Original personal login preference OFF restored through Settings and confirmed in Dashboard and persisted defaults"
+  ],
+  "before": {
+    "preparedAt": 1795105956,
+    "previousGUIPID": 59459,
+    "loginwindowPIDs": [
+      "173"
+    ],
+    "consoleAccount": "jay",
+    "guiExplicitlyQuit": true,
+    "originalLoginChoice": false
+  },
+  "after": {
+    "pid": 70484,
+    "started": 1795106067,
+    "ready": true,
+    "stage": "app_ready",
+    "bundle_path": "/Applications/Mimo.app",
+    "status_item_visible": true,
+    "dashboard_open": false
+  },
+  "limitations": [
+    "One actual login cycle; this is not a reboot or sleep/wake test",
+    "No second logout/login with preference OFF; unregister UI and saved OFF choice verified"
+  ]
+}

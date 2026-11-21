@@ -1,0 +1,15 @@
+{
+  "success": true,
+  "passed": [
+    "rule-real-search-domain-change-starts-early-block-and-fresh-verification",
+    "global-real-search-domain-change-starts-early-block-and-fresh-verification",
+    "Direct-real-search-domain-change-stays-open",
+    "actual-tunnel-loss-rejects-optimistic-opening-and-recovers-through-full-verification",
+    "original-network-preferences-mode-settings-credentials-and-service-intent-restored"
+  ],
+  "errors": [],
+  "packageSHA256": "fcaff59daff60fc7ddfabeb526c1fe31fc88da335cedbd6393da2304daf8fe58",
+  "helperSHA256": "40b4d4c538851d506a4ab75be3105be14840b51f1f3f0e6ab46802b559758006",
+  "scope": "Installed normal Release in mimo-vm; real Ethernet search-domain preferences across Rule/Global/Direct, actual engine TUN disable and observed interface disappearance, ordinary-user HTTPS. Not synthetic notifications, packet-boundary proof, or sleep.",
+  "evidence": "/var/tmp/mimo-remaining-events-pl4xm1bo"
+}

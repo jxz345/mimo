@@ -1,0 +1,82 @@
+{
+  "success": true,
+  "version": "1.0",
+  "environment": "mimo-vm only",
+  "build": {
+    "configuration": "Release",
+    "architecture": "arm64",
+    "packageSHA256": "f49b18d899bb9c7c9b0731ba7f63f0f86d468340cf62f61131e4a4ad7ccca4ef",
+    "helperSHA256": "9a7e01dba2c19c6aad1bb01ea1f43a6abee3cce1288109760e8ce36ec60f62d0",
+    "guiSHA256": "0cd351d5a78de044f8f09adc4c9727c395961cc19a47db85c80f404b7b0f4312"
+  },
+  "installedCaskTap": "jxz345/tap",
+  "tapTestedCommit": "c7ddc77422fa2deaed08523a856f1ff2b3ba358d",
+  "passed": [
+    "deleted-bundle-uninstall-retained-explicit-mihomo",
+    "remove-original-explicit-formula-for-dependency-test",
+    "refresh-public-tap",
+    "trust-public-cask",
+    "trust-pinned-formula",
+    "public-checksum-download",
+    "public-fresh-install",
+    "public-install-automatically-installs-pinned-mihomo",
+    "public-service-setup",
+    "public-installed-check",
+    "reinstalled-login-remains-off",
+    "public-clean-uninstall",
+    "public-uninstall-automatically-removes-unused-mihomo",
+    "public-extended-removal-check",
+    "public-network-settings-credential-check",
+    "restore-original-explicit-mihomo"
+  ],
+  "finalState": "Mimo uninstalled; original explicit mihomo restored; configuration and Keychain credentials retained",
+  "updated": "2026-11-21",
+  "scope": "Focused real-VM installation/removal checks only; routing and verification logic unchanged. No broad suite rerun.",
+  "privilege": "Homebrew runs as jay. Its noninteractive postflight can defer root setup; the bundled installer was then run through the authorized VM test administrator. Both uninstall paths ran with SUDO_ASKPASS=/usr/bin/false and needed no prompt. No interactive installation password UI is claimed.",
+  "loginCoverage": "jay had a real enabled SMAppService login item; mimotest and test were logged out with no enabled login registration. All three report notRegistered/notFound with saved choice unset afterward. Simultaneous GUI sessions and logged-out enabled registrations are not newly qualified.",
+  "removed": [
+    "Mimo GUI/core/owned mihomo processes",
+    "owned launchd jobs and plists",
+    "Mimo PF rules and independent boot policy",
+    "per-user login registration and saved choice",
+    "private _mimo group and installer authorization right",
+    "generated profiles, probe secret, caches and sockets",
+    "sealed cleanup copy and abandoned installation staging",
+    "fixed uninstall sudo grant and root manager"
+  ],
+  "retained": [
+    "machine proxy settings and allowlist",
+    "System Keychain credentials",
+    "service preferences",
+    "logs",
+    "explicitly installed or otherwise needed Homebrew mihomo"
+  ],
+  "candidateChecks": [
+    "PASS: app-processes-private-group-and-installer-authorization-right-removed",
+    "PASS: runtime-secrets-caches-cleanup-copy-and-installer-staging-removed",
+    "PASS: login-items-unregistered-and-preferences-cleared-for-3-accounts",
+    "PASS: uninstalled-retains-saved-configuration-and-Keychain-password",
+    "PASS: brew-uninstall-removes-app-runtime-jobs-and-persistent-PF-policy",
+    "PASS: brew-uninstall-restores-original-IPv6-enabled-flags",
+    "PASS: brew-uninstall-restores-ordinary-user-HTTPS"
+  ],
+  "publicChecks": [
+    "PASS: app-processes-private-group-and-installer-authorization-right-removed",
+    "PASS: runtime-secrets-caches-cleanup-copy-and-installer-staging-removed",
+    "PASS: login-items-unregistered-and-preferences-cleared-for-3-accounts",
+    "PASS: uninstalled-retains-saved-configuration-and-Keychain-password",
+    "PASS: brew-uninstall-removes-app-runtime-jobs-and-persistent-PF-policy",
+    "PASS: brew-uninstall-restores-original-IPv6-enabled-flags",
+    "PASS: brew-uninstall-restores-ordinary-user-HTTPS"
+  ],
+  "deletedBundle": "The public app was actually removed from /Applications after enabling login launch. Supervisor and boot guard remained installed. Normal brew uninstall then succeeded through the root-owned cleanup copy.",
+  "resolvedFinding": "An intermediate candidate tried to unregister never-enabled login items in logged-out accounts and received EPERM. The final build skips that unnecessary request only when macOS reports no registration and no saved enabled choice. An enabled saved choice still requires explicit removal.",
+  "harnessNotes": [
+    "The first installed check used the previous release hash manifest; it was replaced with the actual candidate hashes before qualification.",
+    "Homebrew revokes item-specific trust on uninstall; each fresh install used the documented explicit cask/formula trust."
+  ],
+  "cleanup": "Temporary acceptance tap and login-status probe removed. Historical VM test fixtures retained under a private /var/tmp evidence directory. Mimo remains uninstalled.",
+  "publishedSourceRef": "refs/tags/v1.0",
+  "sourcePublicationPolicy": "Single latest-source snapshot; no parent commits.",
+  "failures": []
+}

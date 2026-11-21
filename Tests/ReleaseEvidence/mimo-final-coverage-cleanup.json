@@ -1,0 +1,11 @@
+{
+  "success": true,
+  "passed": [
+    "no acceptance driver, safety guard or tcpdump remains",
+    "no maintenance marker or disabled Mimo launchd job remains"
+  ],
+  "packageSHA256": "036b680a9d5e395e6c3ba303c0367d3370994922caaee58a5b6168531b1a80e4",
+  "helperSHA256": "df548d9a92665906584de4375dc9d685942879754f9afcbf42f0b62b399d3eec",
+  "guiRunning": true,
+  "scope": "Final read-only process, temporary-marker and launchd-override inspection in mimo-vm after all test drivers exited."
+}

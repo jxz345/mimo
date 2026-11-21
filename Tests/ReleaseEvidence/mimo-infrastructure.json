@@ -1,0 +1,136 @@
+{
+  "date": "2026-11-19",
+  "scope": "Independent macOS PF boot loader, persistent policy, active PF/launchd repair and dashboard health; Apple VirtualMac only. Delta host networking unchanged.",
+  "success": true,
+  "evidenceID": "mimo-infrastructure-test-c6m8gigk",
+  "checks": 33,
+  "passed": [
+    "candidate-install-restores-Direct",
+    "PF-and-launchd-health-published-over-XPC",
+    "independent-boot-and-health-jobs-registered",
+    "persistent-policy-matches-startup-firewall",
+    "disabled-PF-is-reenabled",
+    "Direct-recovers-after-PF-repair",
+    "deleted-PF-anchor-is-restored",
+    "Direct-recovers-after-anchor-repair",
+    "deleted-persistent-PF-policy-is-repaired",
+    "missing-job-restored-com.example.exitipmonitor.mihomo",
+    "Direct-recovers-com.example.exitipmonitor.mihomo",
+    "missing-job-restored-com.example.exitipmonitor.daemon",
+    "Direct-recovers-com.example.exitipmonitor.daemon",
+    "missing-job-restored-com.example.exitipmonitor.supervisor",
+    "Direct-recovers-com.example.exitipmonitor.supervisor",
+    "missing-job-restored-com.mimo.infrastructure",
+    "Direct-recovers-com.mimo.infrastructure",
+    "missing-job-restored-com.mimo.pf-boot",
+    "Direct-recovers-com.mimo.pf-boot",
+    "damaged-engine-startup-plist-repaired",
+    "Direct-recovers-after-plist-repair",
+    "saved-Stop-choices-survive-health-repairs",
+    "explicit-Start-recovers",
+    "uninstall-preserves-unrelated-PF-configuration-and-owner",
+    "uninstall-removes-independent-policy-and-restores-network",
+    "reinstall-restores-original-Direct",
+    "independent-guard-ran-after-real-reboot",
+    "core-supervisor-and-mihomo-unavailable",
+    "PF-enabled-with-blocking-anchor-without-main-helper",
+    "public-IPv4-blocked-without-Mimo-or-mihomo",
+    "missing-helper-is-reported-by-independent-monitor",
+    "original-Direct-restored-after-boot-test",
+    "original-settings-and-service-intent-retained"
+  ],
+  "rebootTested": true,
+  "bootProtectionFromFirstPacket": false,
+  "releaseQualificationGranted": false,
+  "trafficProbeScope": "After independent guard confirmation, three numeric-public-IPv4 TCP connection attempts failed while the Mimo helper was absent and core/supervisor/mihomo could not run. Not a first-packet capture or exhaustive TCP/UDP/IPv6 qualification.",
+  "helperSHA256": "05733dbce01a64baf248e759599f1cce3c9da541e47bf7831b656eeb4420ddbf",
+  "sourceSHA256": {
+    "Sources/ExitIPDaemon/pf-guard.pl": "be4956777c440a32ecd5b46bd531671216bd6cae9eb992094ea56739a48674ff",
+    "Sources/ExitIPDaemon/daemon.sh": "062024506e2ddbc09d39d1461cae40040bcde2dc3eb36b1427365778657a173f",
+    "Sources/ExitIPService/MimoSystemRuntime.swift": "0c834457d122297374a2860b73ba3e79f9d0d5782237c1ea8bded640ddf42fea",
+    "Sources/ExitIPService/MimoSupervisor.swift": "469114d868026da6a8dff2f568ce2e0909e8f75e3c5c11571ce28d94b4e1fcef",
+    "Sources/ExitIPService/DaemonMain.swift": "75d36c11c8d0f812355d9a81408df25093ea99a66a8604899e33b907dfa45e4d",
+    "Sources/ExitIPMonitorApp/MimoViews.swift": "365d18ef79149a49a3bcf4beaf0741634ef0321c1e6c2d6a20c7dbe3ca94327e",
+    "Sources/ExitIPShared/MimoRouting.swift": "44af687c0b3cab56ebe44952d946cb97da72f859296ba68de8d5116883fa4ef2"
+  },
+  "localValidation": {
+    "sharedTests": 164,
+    "serviceSuite": "passed",
+    "daemonScriptAndGuardTests": "passed",
+    "appAndRenderSuite": "passed",
+    "arm64DebugAppBuild": "passed",
+    "appSignature": "ad-hoc; installer deep/strict verification passed",
+    "environmentPreflight": "Reports incomplete Xcode first-launch components; actual Swift tests and full Xcode build passed."
+  },
+  "earlierAttempts": [
+    {
+      "evidenceID": "mimo-infrastructure-test-qghu1aqq",
+      "success": false,
+      "passedChecks": 0,
+      "error": "Command failed: /usr/bin/env (see private commands.log)",
+      "recoveryError": "failure-cleanup-restores-original-Direct timed out",
+      "resolution": "Fixed secure atomic writes through macOS /etc -> /private/etc."
+    },
+    {
+      "evidenceID": "mimo-infrastructure-test-9fb8j38n",
+      "success": false,
+      "passedChecks": 20,
+      "error": "Command failed: /bin/bash (see private commands.log)",
+      "recoveryError": null,
+      "resolution": "Fixed stale PF enable-reference handling after pfctl -d."
+    },
+    {
+      "evidenceID": "mimo-infrastructure-test-oiwsxeoi",
+      "success": false,
+      "passedChecks": 1,
+      "error": "Command failed: /usr/bin/env (see private commands.log)",
+      "recoveryError": null,
+      "resolution": "Extended bounded installation readiness for startup and repair work; handled duplicate repair-job bootstrap during rollback."
+    },
+    {
+      "evidenceID": "mimo-infrastructure-test-llys1na4",
+      "success": false,
+      "passedChecks": 1,
+      "error": "Command failed: /usr/bin/env (see private commands.log)",
+      "recoveryError": null,
+      "resolution": "Repeated readiness failure retained; fixed the same startup/rollback handling."
+    },
+    {
+      "evidenceID": "mimo-infrastructure-test-z5srrjjp",
+      "success": false,
+      "passedChecks": 3,
+      "error": "disabled-PF-is-reenabled timed out",
+      "recoveryError": "Command failed: /Library/PrivilegedHelperTools/mimo-core (see private commands.log)",
+      "resolution": "Accepted the macOS empty PF-reference response after disable."
+    },
+    {
+      "evidenceID": "mimo-infrastructure-test-usfh9nfw",
+      "success": false,
+      "passedChecks": 23,
+      "error": "Command failed: /bin/bash (see private commands.log)",
+      "recoveryError": "Command failed: /Library/PrivilegedHelperTools/mimo-core (see private commands.log)",
+      "resolution": "Removed nested firewall locking in offline recovery; waited for retiring workers during replacement/removal."
+    }
+  ],
+  "privateEvidenceRetained": true,
+  "remainingLimits": [
+    "Networking before the independent boot job runs is not covered by a first-packet guarantee.",
+    "Periodic repair has no strict time bound and does not detect every live process hang.",
+    "Main-anchor inspection does not attest all child-anchor rules or arbitrary privileged bypasses.",
+    "Simultaneous failure of both monitors, OS/launchd failure or missing trusted templates can prevent recovery.",
+    "Startup TUN is still an analysis assumption; normal Rule/Global remain unqualified."
+  ],
+  "finalInstalledVerification": {
+    "success": true,
+    "helperSHA256": "05733dbce01a64baf248e759599f1cce3c9da541e47bf7831b656eeb4420ddbf",
+    "Direct": true,
+    "PF": "healthy",
+    "launchd": "healthy",
+    "savedConfigurationRetained": true,
+    "serviceIntentRetained": true,
+    "GUIReady": true,
+    "menuIconVisible": true,
+    "bootWorkerRemoved": true,
+    "monitoringHistoryContinuesUpdating": true
+  }
+}

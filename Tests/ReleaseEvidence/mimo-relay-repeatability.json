@@ -1,0 +1,469 @@
+{
+  "releaseQualification": false,
+  "scope": "Continuous PKTAP production-profile fixtures; isolated passes do not establish relay repeatability.",
+  "runs": [
+    {
+      "evidenceID": "mimo-packet-test-n0yvy4i0",
+      "success": true,
+      "passed": [
+        "Direct-positive-control-confirms-ordinary-packet-attribution",
+        "Direct-tailnet-peer-TCP-UDP-IPv4-baseline",
+        "native-Tailscale-control-reconnects-with-ordinary-gate-closed",
+        "closed-gate-denies-ordinary-public-TCP-and-DNS",
+        "native-Tailscale-diagnostics-cannot-bypass-the-public-gate",
+        "private-production-IP-check-succeeds-while-ordinary-traffic-stays-blocked",
+        "wrong-proxy-password-cannot-fall-back-to-Direct",
+        "owned-DNS-override-does-not-trigger-a-verification-loop",
+        "rule-ordinary-system-DNS-and-HTTPS-succeed",
+        "rule-MagicDNS-A-matches-native-and-AAAA-is-empty",
+        "rule-IPv4-TCP-UDP-use-proxy-and-IPv6-is-rejected-with-no-uplink-leak",
+        "rule-tailnet-peer-TCP-UDP-IPv4-work-through-relay",
+        "rule-peer-MagicDNS-matches-native-provider",
+        "rule-provider-Stop-blocks-old-and-new-peer-flows-with-public-access-preserved",
+        "rule-provider-Start-restores-peer-access",
+        "rule-closing-gate-disconnects-existing-TCP-UDP-and-local-CONNECT",
+        "rule-own-TUN-start-and-stop-do-not-trigger-external-network-events",
+        "global-ordinary-system-DNS-and-HTTPS-succeed",
+        "Global-public-Tailscale-website-uses-proxy",
+        "global-MagicDNS-A-matches-native-and-AAAA-is-empty",
+        "global-IPv4-TCP-UDP-use-proxy-and-IPv6-is-rejected-with-no-uplink-leak",
+        "global-tailnet-peer-TCP-UDP-IPv4-work-through-relay",
+        "global-peer-MagicDNS-matches-native-provider",
+        "global-provider-Stop-blocks-old-and-new-peer-flows-with-public-access-preserved",
+        "global-provider-Start-restores-peer-access",
+        "global-closing-gate-disconnects-existing-TCP-UDP-and-local-CONNECT",
+        "global-own-TUN-start-and-stop-do-not-trigger-external-network-events",
+        "native-Tailscale-control-reconnects-with-Global-TUN-active",
+        "global-does-not-send-ordinary-DNS-or-DoT-on-uplink",
+        "engine-crash-does-not-open-Direct-traffic",
+        "complete-packet-capture-reconfirms-all-phase-assertions",
+        "original-Direct-services-and-network-restored"
+      ]
+    },
+    {
+      "evidenceID": "mimo-packet-test-al3eqms5",
+      "success": true,
+      "passed": [
+        "Direct-positive-control-confirms-ordinary-packet-attribution",
+        "Direct-tailnet-peer-TCP-UDP-IPv4-baseline",
+        "native-Tailscale-control-reconnects-with-ordinary-gate-closed",
+        "closed-gate-denies-ordinary-public-TCP-and-DNS",
+        "native-Tailscale-diagnostics-cannot-bypass-the-public-gate",
+        "private-production-IP-check-succeeds-while-ordinary-traffic-stays-blocked",
+        "wrong-proxy-password-cannot-fall-back-to-Direct",
+        "owned-DNS-override-does-not-trigger-a-verification-loop",
+        "rule-ordinary-system-DNS-and-HTTPS-succeed",
+        "rule-MagicDNS-A-matches-native-and-AAAA-is-empty",
+        "rule-IPv4-TCP-UDP-use-proxy-and-IPv6-is-rejected-with-no-uplink-leak",
+        "rule-tailnet-peer-TCP-UDP-IPv4-work-through-relay",
+        "rule-peer-MagicDNS-matches-native-provider",
+        "rule-provider-Stop-blocks-old-and-new-peer-flows-with-public-access-preserved",
+        "rule-provider-Start-restores-peer-access",
+        "rule-closing-gate-disconnects-existing-TCP-UDP-and-local-CONNECT",
+        "rule-own-TUN-start-and-stop-do-not-trigger-external-network-events",
+        "global-ordinary-system-DNS-and-HTTPS-succeed",
+        "Global-public-Tailscale-website-uses-proxy",
+        "global-MagicDNS-A-matches-native-and-AAAA-is-empty",
+        "global-IPv4-TCP-UDP-use-proxy-and-IPv6-is-rejected-with-no-uplink-leak",
+        "global-tailnet-peer-TCP-UDP-IPv4-work-through-relay",
+        "global-peer-MagicDNS-matches-native-provider",
+        "global-provider-Stop-blocks-old-and-new-peer-flows-with-public-access-preserved",
+        "global-provider-Start-restores-peer-access",
+        "global-closing-gate-disconnects-existing-TCP-UDP-and-local-CONNECT",
+        "global-own-TUN-start-and-stop-do-not-trigger-external-network-events",
+        "native-Tailscale-control-reconnects-with-Global-TUN-active",
+        "native-Tailscale-peer-relay-TCP-UDP-recovers-with-Global-TUN-active",
+        "global-does-not-send-ordinary-DNS-or-DoT-on-uplink",
+        "engine-crash-does-not-open-Direct-traffic",
+        "complete-packet-capture-reconfirms-all-phase-assertions",
+        "original-Direct-services-and-network-restored"
+      ]
+    },
+    {
+      "evidenceID": "mimo-packet-test-6qsnjp37",
+      "success": false,
+      "passed": [
+        "Direct-positive-control-confirms-ordinary-packet-attribution",
+        "Direct-tailnet-peer-TCP-UDP-IPv4-baseline",
+        "native-Tailscale-control-reconnects-with-ordinary-gate-closed",
+        "closed-gate-denies-ordinary-public-TCP-and-DNS",
+        "native-Tailscale-diagnostics-cannot-bypass-the-public-gate",
+        "private-production-IP-check-succeeds-while-ordinary-traffic-stays-blocked",
+        "wrong-proxy-password-cannot-fall-back-to-Direct",
+        "owned-DNS-override-does-not-trigger-a-verification-loop",
+        "rule-ordinary-system-DNS-and-HTTPS-succeed",
+        "rule-MagicDNS-A-matches-native-and-AAAA-is-empty",
+        "rule-IPv4-TCP-UDP-use-proxy-and-IPv6-is-rejected-with-no-uplink-leak",
+        "original-Direct-services-and-network-restored"
+      ]
+    },
+    {
+      "evidenceID": "mimo-packet-test-kffuhbzt",
+      "success": false,
+      "passed": [
+        "Direct-positive-control-confirms-ordinary-packet-attribution",
+        "Direct-tailnet-peer-TCP-UDP-IPv4-baseline",
+        "native-Tailscale-control-reconnects-with-ordinary-gate-closed",
+        "closed-gate-denies-ordinary-public-TCP-and-DNS",
+        "native-Tailscale-diagnostics-cannot-bypass-the-public-gate",
+        "private-production-IP-check-succeeds-while-ordinary-traffic-stays-blocked",
+        "wrong-proxy-password-cannot-fall-back-to-Direct",
+        "owned-DNS-override-does-not-trigger-a-verification-loop",
+        "rule-ordinary-system-DNS-and-HTTPS-succeed",
+        "rule-MagicDNS-A-matches-native-and-AAAA-is-empty",
+        "rule-IPv4-TCP-UDP-use-proxy-and-IPv6-is-rejected-with-no-uplink-leak",
+        "rule-tailnet-peer-TCP-UDP-IPv4-work-through-relay",
+        "rule-peer-MagicDNS-matches-native-provider",
+        "rule-provider-Stop-blocks-old-and-new-peer-flows-with-public-access-preserved",
+        "rule-provider-Start-restores-peer-access",
+        "rule-closing-gate-disconnects-existing-TCP-UDP-and-local-CONNECT",
+        "rule-own-TUN-start-and-stop-do-not-trigger-external-network-events",
+        "global-ordinary-system-DNS-and-HTTPS-succeed",
+        "Global-public-Tailscale-website-uses-proxy",
+        "global-MagicDNS-A-matches-native-and-AAAA-is-empty",
+        "global-IPv4-TCP-UDP-use-proxy-and-IPv6-is-rejected-with-no-uplink-leak",
+        "global-tailnet-peer-TCP-UDP-IPv4-work-through-relay",
+        "global-peer-MagicDNS-matches-native-provider",
+        "global-provider-Stop-blocks-old-and-new-peer-flows-with-public-access-preserved",
+        "global-provider-Start-restores-peer-access",
+        "global-closing-gate-disconnects-existing-TCP-UDP-and-local-CONNECT",
+        "global-own-TUN-start-and-stop-do-not-trigger-external-network-events",
+        "native-Tailscale-control-reconnects-with-Global-TUN-active",
+        "original-Direct-services-and-network-restored"
+      ]
+    },
+    {
+      "evidenceID": "mimo-packet-test-zc8hhbx9",
+      "success": false,
+      "passed": [
+        "Direct-positive-control-confirms-ordinary-packet-attribution",
+        "Direct-tailnet-peer-TCP-UDP-IPv4-baseline",
+        "native-Tailscale-control-reconnects-with-ordinary-gate-closed",
+        "closed-gate-denies-ordinary-public-TCP-and-DNS",
+        "native-Tailscale-diagnostics-cannot-bypass-the-public-gate",
+        "private-production-IP-check-succeeds-while-ordinary-traffic-stays-blocked",
+        "wrong-proxy-password-cannot-fall-back-to-Direct",
+        "owned-DNS-override-does-not-trigger-a-verification-loop",
+        "rule-ordinary-system-DNS-and-HTTPS-succeed",
+        "rule-MagicDNS-A-matches-native-and-AAAA-is-empty",
+        "rule-IPv4-TCP-UDP-use-proxy-and-IPv6-is-rejected-with-no-uplink-leak",
+        "rule-tailnet-peer-TCP-UDP-IPv4-work-through-relay",
+        "rule-peer-MagicDNS-matches-native-provider",
+        "rule-provider-Stop-blocks-old-and-new-peer-flows-with-public-access-preserved",
+        "rule-provider-Start-restores-peer-access",
+        "rule-closing-gate-disconnects-existing-TCP-UDP-and-local-CONNECT",
+        "rule-own-TUN-start-and-stop-do-not-trigger-external-network-events",
+        "global-ordinary-system-DNS-and-HTTPS-succeed",
+        "Global-public-Tailscale-website-uses-proxy",
+        "global-MagicDNS-A-matches-native-and-AAAA-is-empty",
+        "global-IPv4-TCP-UDP-use-proxy-and-IPv6-is-rejected-with-no-uplink-leak",
+        "global-tailnet-peer-TCP-UDP-IPv4-work-through-relay",
+        "global-peer-MagicDNS-matches-native-provider",
+        "global-provider-Stop-blocks-old-and-new-peer-flows-with-public-access-preserved",
+        "global-provider-Start-restores-peer-access",
+        "global-closing-gate-disconnects-existing-TCP-UDP-and-local-CONNECT",
+        "global-own-TUN-start-and-stop-do-not-trigger-external-network-events",
+        "native-Tailscale-control-reconnects-with-Global-TUN-active",
+        "original-Direct-services-and-network-restored"
+      ],
+      "failure": "Global native down/up peer recovery timed out; native stacks and metrics retained privately."
+    },
+    {
+      "evidenceID": "mimo-packet-test-1tx43gu6",
+      "success": false,
+      "passed": [
+        "Direct-positive-control-confirms-ordinary-packet-attribution",
+        "Direct-tailnet-peer-TCP-UDP-IPv4-baseline",
+        "native-Tailscale-control-reconnects-with-ordinary-gate-closed",
+        "closed-gate-denies-ordinary-public-TCP-and-DNS",
+        "native-Tailscale-diagnostics-cannot-bypass-the-public-gate",
+        "private-production-IP-check-succeeds-while-ordinary-traffic-stays-blocked",
+        "wrong-proxy-password-cannot-fall-back-to-Direct",
+        "owned-DNS-override-does-not-trigger-a-verification-loop",
+        "rule-ordinary-system-DNS-and-HTTPS-succeed",
+        "rule-MagicDNS-A-matches-native-and-AAAA-is-empty",
+        "rule-IPv4-TCP-UDP-use-proxy-and-IPv6-is-rejected-with-no-uplink-leak",
+        "original-Direct-services-and-network-restored"
+      ],
+      "failure": "Rule peer relay timed out; requesting another guest relay region did not recover ping. Default preference restored."
+    },
+    {
+      "evidenceID": "mimo-packet-test-kozum5qp",
+      "success": true,
+      "passed": [
+        "Direct-positive-control-confirms-ordinary-packet-attribution",
+        "Direct-tailnet-peer-TCP-UDP-IPv4-baseline",
+        "native-Tailscale-control-reconnects-with-ordinary-gate-closed",
+        "closed-gate-denies-ordinary-public-TCP-and-DNS",
+        "native-Tailscale-diagnostics-cannot-bypass-the-public-gate",
+        "private-production-IP-check-succeeds-while-ordinary-traffic-stays-blocked",
+        "wrong-proxy-password-cannot-fall-back-to-Direct",
+        "owned-DNS-override-does-not-trigger-a-verification-loop",
+        "rule-ordinary-system-DNS-and-HTTPS-succeed",
+        "rule-MagicDNS-A-matches-native-and-AAAA-is-empty",
+        "rule-IPv4-TCP-UDP-use-proxy-and-IPv6-is-rejected-with-no-uplink-leak",
+        "rule-tailnet-peer-TCP-UDP-IPv4-work-through-relay",
+        "rule-peer-MagicDNS-matches-native-provider",
+        "rule-provider-Stop-blocks-old-and-new-peer-flows-with-public-access-preserved",
+        "rule-provider-Start-restores-peer-access",
+        "rule-closing-gate-disconnects-existing-TCP-UDP-and-local-CONNECT",
+        "rule-own-TUN-start-and-stop-do-not-trigger-external-network-events",
+        "global-ordinary-system-DNS-and-HTTPS-succeed",
+        "Global-public-Tailscale-website-uses-proxy",
+        "global-MagicDNS-A-matches-native-and-AAAA-is-empty",
+        "global-IPv4-TCP-UDP-use-proxy-and-IPv6-is-rejected-with-no-uplink-leak",
+        "global-tailnet-peer-TCP-UDP-IPv4-work-through-relay",
+        "global-peer-MagicDNS-matches-native-provider",
+        "global-provider-Stop-blocks-old-and-new-peer-flows-with-public-access-preserved",
+        "global-provider-Start-restores-peer-access",
+        "global-closing-gate-disconnects-existing-TCP-UDP-and-local-CONNECT",
+        "global-own-TUN-start-and-stop-do-not-trigger-external-network-events",
+        "native-Tailscale-control-reconnects-with-Global-TUN-active",
+        "native-Tailscale-peer-relay-TCP-UDP-recovers-with-Global-TUN-active",
+        "global-does-not-send-ordinary-DNS-or-DoT-on-uplink",
+        "engine-crash-does-not-open-Direct-traffic",
+        "complete-packet-capture-reconfirms-all-phase-assertions",
+        "original-Direct-services-and-network-restored"
+      ]
+    },
+    {
+      "evidenceID": "mimo-packet-test-m4mq5f7n",
+      "success": false,
+      "passed": [
+        "Direct-positive-control-confirms-ordinary-packet-attribution",
+        "Direct-tailnet-peer-TCP-UDP-IPv4-baseline",
+        "native-Tailscale-control-reconnects-with-ordinary-gate-closed",
+        "closed-gate-denies-ordinary-public-TCP-and-DNS",
+        "native-Tailscale-diagnostics-cannot-bypass-the-public-gate",
+        "private-production-IP-check-succeeds-while-ordinary-traffic-stays-blocked",
+        "wrong-proxy-password-cannot-fall-back-to-Direct",
+        "owned-DNS-override-does-not-trigger-a-verification-loop",
+        "rule-ordinary-system-DNS-and-HTTPS-succeed",
+        "rule-MagicDNS-A-matches-native-and-AAAA-is-empty",
+        "rule-IPv4-TCP-UDP-use-proxy-and-IPv6-is-rejected-with-no-uplink-leak",
+        "original-Direct-services-and-network-restored"
+      ],
+      "driverSHA256": "2de6cc655072441df59b32e49370389f7822804a1f32e59840f2457478f26da5",
+      "helperSHA256": {
+        "mihomo": "a55a9073f9b7b1fa596a82c034d2dae3407ec34732102b6e42c5513ce3033f34",
+        "render-profiles": "b7ec0912384e736a1561e898146113762566f9b77d4bc864716cf7012b9eed2c",
+        "native-transport-check": "91199674b6c2f2dbd6055a516fa815a3c29bbe849dd8350f28f5bca4e6059ebf"
+      },
+      "diagnosticOptions": [
+        "--capture-relay",
+        "--diagnose-relay-layers"
+      ],
+      "failure": "Rule peer relay timed out; diagnostic ping also failed with relaxed firewall/TUN, protected firewall/TUN and closed firewall/no TUN. These steps do not establish a root cause.",
+      "layerDiagnosis": {
+        "scope": "VM-only failure diagnosis; intentionally relaxed firewall interval is not acceptance",
+        "relaxedFirewallAt": 1795009742.074511,
+        "relaxed-firewall-with-TUN": false,
+        "protectedFirewallRestoredAt": 1795009757.124116,
+        "protected-firewall-with-TUN": false,
+        "TUNRemovedAt": 1795009774.6269052,
+        "closed-firewall-without-TUN": false
+      }
+    },
+    {
+      "evidenceID": "mimo-packet-test-uk6ens58",
+      "success": false,
+      "passed": [
+        "Direct-positive-control-confirms-ordinary-packet-attribution",
+        "Direct-tailnet-peer-TCP-UDP-IPv4-baseline",
+        "native-Tailscale-control-reconnects-with-ordinary-gate-closed",
+        "closed-gate-denies-ordinary-public-TCP-and-DNS",
+        "native-Tailscale-diagnostics-cannot-bypass-the-public-gate",
+        "private-production-IP-check-succeeds-while-ordinary-traffic-stays-blocked",
+        "wrong-proxy-password-cannot-fall-back-to-Direct",
+        "owned-DNS-override-does-not-trigger-a-verification-loop",
+        "rule-ordinary-system-DNS-and-HTTPS-succeed",
+        "rule-MagicDNS-A-matches-native-and-AAAA-is-empty",
+        "rule-IPv4-TCP-UDP-use-proxy-and-IPv6-is-rejected-with-no-uplink-leak",
+        "rule-tailnet-peer-TCP-UDP-IPv4-work-through-relay",
+        "rule-peer-MagicDNS-matches-native-provider",
+        "rule-provider-Stop-blocks-old-and-new-peer-flows-with-public-access-preserved",
+        "rule-provider-Start-restores-peer-access",
+        "rule-closing-gate-disconnects-existing-TCP-UDP-and-local-CONNECT",
+        "rule-own-TUN-start-and-stop-do-not-trigger-external-network-events",
+        "global-ordinary-system-DNS-and-HTTPS-succeed",
+        "Global-public-Tailscale-website-uses-proxy",
+        "global-MagicDNS-A-matches-native-and-AAAA-is-empty",
+        "global-IPv4-TCP-UDP-use-proxy-and-IPv6-is-rejected-with-no-uplink-leak",
+        "global-tailnet-peer-TCP-UDP-IPv4-work-through-relay",
+        "global-peer-MagicDNS-matches-native-provider",
+        "global-provider-Stop-blocks-old-and-new-peer-flows-with-public-access-preserved",
+        "global-provider-Start-restores-peer-access",
+        "global-closing-gate-disconnects-existing-TCP-UDP-and-local-CONNECT",
+        "global-own-TUN-start-and-stop-do-not-trigger-external-network-events",
+        "native-Tailscale-control-reconnects-with-Global-TUN-active",
+        "original-Direct-services-and-network-restored"
+      ],
+      "driverSHA256": "27c9e2fa39c284a03276ea40ffba9e4c01e3bd29651f9961bf2cbdd62a242ea1",
+      "helperSHA256": {
+        "mihomo": "a55a9073f9b7b1fa596a82c034d2dae3407ec34732102b6e42c5513ce3033f34",
+        "render-profiles": "b7ec0912384e736a1561e898146113762566f9b77d4bc864716cf7012b9eed2c",
+        "native-transport-check": "91199674b6c2f2dbd6055a516fa815a3c29bbe849dd8350f28f5bca4e6059ebf"
+      },
+      "diagnosticOptions": [
+        "--capture-relay",
+        "--diagnose-relay-layers"
+      ],
+      "failure": "Global native down/up peer recovery timed out after both modes passed peer TCP/UDP. Ping and actual peer TCP/UDP remained unavailable through all six diagnostic steps, including Direct IPv4 without Mimo TUN/protected DNS/gate and after a guest relay reset. This does not identify the original trigger.",
+      "layerDiagnosis": {
+        "scope": "VM-only failure diagnosis; intentionally relaxed firewall interval is not acceptance",
+        "protected-firewall-before-changes": {
+          "ping": false,
+          "DERP": false,
+          "TCP": false,
+          "UDP": false
+        },
+        "relaxedFirewallAt": 1795010216.4783502,
+        "relaxed-firewall-with-TUN": {
+          "ping": false,
+          "DERP": false,
+          "TCP": false,
+          "UDP": false
+        },
+        "protectedFirewallRestoredAt": 1795010228.566185,
+        "protected-firewall-with-TUN": {
+          "ping": false,
+          "DERP": false,
+          "TCP": false,
+          "UDP": false
+        },
+        "TUNRemovedAt": 1795010243.0580108,
+        "closed-firewall-without-TUN": {
+          "ping": false,
+          "DERP": false,
+          "TCP": false,
+          "UDP": false
+        },
+        "directIPv4At": 1795010255.13905,
+        "direct-IPv4": {
+          "ping": false,
+          "DERP": false,
+          "TCP": false,
+          "UDP": false
+        },
+        "guestRelayResetAt": 1795010267.243789,
+        "direct-IPv4-after-guest-relay-reset": {
+          "ping": false,
+          "DERP": false,
+          "TCP": false,
+          "UDP": false
+        }
+      }
+    }
+  ],
+  "directBaselines": [
+    {
+      "evidenceID": "mimo-direct-relay-20261118-212107",
+      "scope": "Direct-mode guest native relay reconnection; no Mimo policy or host routing changes",
+      "attempts": [
+        {
+          "cycle": "baseline",
+          "attempt": 1,
+          "start": 1795008067.970479,
+          "elapsed": 1.208,
+          "ok": true,
+          "relay": true
+        },
+        {
+          "cycle": "reconnect-1",
+          "attempt": 1,
+          "start": 1795008069.288034,
+          "elapsed": 1.478,
+          "ok": true,
+          "relay": true
+        },
+        {
+          "cycle": "reconnect-2",
+          "attempt": 1,
+          "start": 1795008070.860308,
+          "elapsed": 1.581,
+          "ok": true,
+          "relay": true
+        },
+        {
+          "cycle": "reconnect-3",
+          "attempt": 1,
+          "start": 1795008072.530748,
+          "elapsed": 2.193,
+          "ok": true,
+          "relay": true
+        },
+        {
+          "cycle": "reconnect-4",
+          "attempt": 1,
+          "start": 1795008074.829249,
+          "elapsed": 1.599,
+          "ok": true,
+          "relay": true
+        },
+        {
+          "cycle": "reconnect-5",
+          "attempt": 1,
+          "start": 1795008076.529972,
+          "elapsed": 1.494,
+          "ok": true,
+          "relay": true
+        },
+        {
+          "cycle": "reconnect-6",
+          "attempt": 1,
+          "start": 1795008078.1333098,
+          "elapsed": 1.511,
+          "ok": true,
+          "relay": true
+        },
+        {
+          "cycle": "down-up-1",
+          "attempt": 1,
+          "start": 1795008080.268646,
+          "elapsed": 1.382,
+          "ok": true,
+          "relay": true
+        },
+        {
+          "cycle": "down-up-2",
+          "attempt": 1,
+          "start": 1795008082.235256,
+          "elapsed": 1.369,
+          "ok": true,
+          "relay": true
+        }
+      ]
+    },
+    {
+      "evidenceID": "mimo-direct-relay-20261118-215137",
+      "scope": "Direct-mode guest native relay reconnection; no Mimo policy or host routing changes",
+      "attempts": [
+        {
+          "cycle": "baseline",
+          "attempt": 1,
+          "start": 1795009898.092561,
+          "elapsed": 1.206,
+          "ok": true,
+          "relay": true
+        },
+        {
+          "cycle": "reconnect-1",
+          "attempt": 1,
+          "start": 1795009899.387979,
+          "elapsed": 2.409,
+          "ok": true,
+          "relay": true
+        },
+        {
+          "cycle": "down-up-1",
+          "attempt": 1,
+          "start": 1795009902.39484,
+          "elapsed": 1.425,
+          "ok": true,
+          "relay": true
+        }
+      ]
+    }
+  ],
+  "interpretation": "Both successful and failing runs remain reproducible. Diagnostic firewall relaxation never qualifies protected access. No production firewall exception was widened; attempted TCP close/reset exceptions did not resolve the failure and were reverted."
+}

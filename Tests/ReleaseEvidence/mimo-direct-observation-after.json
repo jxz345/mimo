@@ -1,0 +1,28 @@
+{
+  "success": true,
+  "passed": [
+    "pf-real-repair-restores-healthy-Direct",
+    "pf-Direct-IP-visible-after-recovery",
+    "pf-ordinary-user-HTTPS-remains-available",
+    "anchor-real-repair-restores-healthy-Direct",
+    "anchor-Direct-IP-visible-after-recovery",
+    "anchor-ordinary-user-HTTPS-remains-available",
+    "supervisor-real-repair-restores-healthy-Direct",
+    "supervisor-Direct-IP-visible-after-recovery",
+    "supervisor-ordinary-user-HTTPS-remains-available",
+    "real-firewall-lock-contention-triggers-infrastructure-failure",
+    "firewall-busy-real-repair-restores-healthy-Direct",
+    "firewall-busy-Direct-IP-visible-after-recovery",
+    "firewall-busy-ordinary-user-HTTPS-remains-available",
+    "reinstall-real-repair-restores-healthy-Direct",
+    "reinstall-Direct-IP-visible-after-recovery",
+    "reinstall-records-fresh-startup-IP-without-manual-refresh",
+    "reinstall-ordinary-user-HTTPS-remains-available",
+    "original-Direct-proxy-allowlist-password-and-service-intent-restored"
+  ],
+  "failures": [],
+  "scope": "Installed Release in mimo-vm. Real PF disable/anchor loss, supervisor restart, competing kernel firewall lock and bundled service reinstall. No injected status or mocked network.",
+  "packageSHA256": "b9014ec111cbbc6994acb3a60cb00da93aa9417fd324854e7d44745b1e623f2a",
+  "helperSHA256": "680df53bebbc318a496289e5be6b246dc0188455ed8739e7f0b9384130ab7764",
+  "evidence": "mimo-direct-observation-03t1yazz"
+}

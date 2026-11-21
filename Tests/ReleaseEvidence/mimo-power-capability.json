@@ -1,0 +1,14 @@
+{
+  "before": "Sleep Count:0\nDark Wake Count:0\nUser Wake Count:0\n",
+  "scope": "Actual guest sleep request in Direct; not physical-Mac qualification",
+  "wakeScheduled": true,
+  "sleepRequest": {
+    "status": 71,
+    "output": "Unable to sleep system: error 0xe00002e2\n"
+  },
+  "alarmCleanupStatus": 0,
+  "after": "Sleep Count:0\nDark Wake Count:0\nUser Wake Count:0\n",
+  "date": "2026-11-19",
+  "evidenceID": "mimo-power-capability-ofslts33",
+  "physicalSleepQualified": false
+}

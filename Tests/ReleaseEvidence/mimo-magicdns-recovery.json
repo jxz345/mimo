@@ -1,0 +1,65 @@
+{
+  "updated": "2026-11-21",
+  "version": "1.0",
+  "build": "1",
+  "basedOnPublishedSource": "6d922c02bdcdd0689f79cc12f655d7b838dd1639",
+  "changes": [
+    "Mihomo consumes a root-owned live tailnet provider file, independent of HTTP port collisions or obsolete HTTP pollers",
+    "The diagnostic HTTP listener prefers loopback port 18766 and falls back to a kernel-assigned loopback port; the dashboard reports the actual binding",
+    "Active status and heartbeat handling independently revoke approval when the protected resolver entry disappears or changes",
+    "The refresh interval and Configure link are alongside the IP-check details"
+  ],
+  "artifacts": {
+    "Mimo-1.0.zip": "2ba396248d69ff9400c35a61ad72f756f69893f4a2a5dc977270cc3ef14ef84e",
+    "Mimo-1.0.pkg": "e6b4f7f88e5bd3ed8bdeda7dc19e36d8491e41173ff937558c4f7c29b27cb4d4",
+    "mimo-gui": "6fb176e441795a456744292eaa92b4641c49d0a898f22a039ed9eb3f83d99f15",
+    "mimo-core": "d4b64cf2402879b74ffe57e5dc822bda44a0c27eb7b4aacefc45beba367a2470"
+  },
+  "validation": {
+    "environment": "mimo-vm",
+    "configuration": "Release",
+    "architecture": "arm64",
+    "sharedTests": {
+      "count": 204,
+      "failures": 0
+    },
+    "runtime": {
+      "environment": "mimo-vm",
+      "helperSHA256": "d4b64cf2402879b74ffe57e5dc822bda44a0c27eb7b4aacefc45beba367a2470",
+      "checks": [
+        "rule-system-full-absolute-uppercase-peer-names-and-UDP-TCP-MagicDNS",
+        "rule-public-TXT-and-owned-provider-file",
+        "global-system-full-absolute-uppercase-peer-names-and-UDP-TCP-MagicDNS",
+        "global-public-TXT-and-owned-provider-file",
+        "occupied-preferred-port-selects-a-free-loopback-port-in-Direct",
+        "fallback-rule-system-full-absolute-uppercase-peer-names-and-UDP-TCP-MagicDNS",
+        "fallback-rule-public-TXT-and-owned-provider-file",
+        "fallback-after-core-restart-system-full-absolute-uppercase-peer-names-and-UDP-TCP-MagicDNS",
+        "fallback-after-core-restart-public-TXT-and-owned-provider-file",
+        "core-restart-rebinds-without-contacting-the-occupied-port",
+        "preferred-port-recovered-system-full-absolute-uppercase-peer-names-and-UDP-TCP-MagicDNS",
+        "preferred-port-recovered-public-TXT-and-owned-provider-file",
+        "native-tailnet-stop-updates-the-live-file-provider-to-Reject",
+        "native-tailnet-reconnected-system-full-absolute-uppercase-peer-names-and-UDP-TCP-MagicDNS",
+        "native-tailnet-reconnected-public-TXT-and-owned-provider-file",
+        "missing-system-resolver-closes-and-automatically-restores-Rule",
+        "resolver-recovered-system-full-absolute-uppercase-peer-names-and-UDP-TCP-MagicDNS",
+        "resolver-recovered-public-TXT-and-owned-provider-file",
+        "original-mode-settings-credential-service-intent-and-native-tailnet-preserved"
+      ],
+      "error": null
+    },
+    "visual": "Native dashboard scenarios and populated Settings rendered in light/dark; Direct light and active-audit Rule dark inspected at 1040x690 points with the interval beside IP-check details",
+    "artifactIdentity": "Installed GUI/core/helper match packaged bytes; strict ad-hoc signature verification passed",
+    "providerPermissions": "Live provider file is root-owned with mode 0600 inside the private mihomo directory",
+    "resolverGuard": "Actual resolver removal recorded mimo_dns_configuration_lost and mimo_gate_closed in the same logged second, followed by automatic Rule and MagicDNS recovery"
+  },
+  "physicalMacObservation": "User-reported Rule/Allowed had no responding DNS listener and no owned system resolver. Reload profile restored TCP DNS on 1053 with the expected synthetic public A answer. Full tailnet-name resolution on that physical Mac has not yet been confirmed.",
+  "limits": [
+    "The original persistent Allowed-with-missing-DNS failure was not reproduced in the VM; the new status/heartbeat guard is additional defense, not proof of the original cause",
+    "Runtime and native UI checks ran only in mimo-vm; no broad reboot, sleep, fault, multi-user or uninstall campaign repeated",
+    "Provider-port fallback does not move the DNS listener from 1053",
+    "Cross-tailnet shared nodes require full names; earlier short-name expectations were invalid and corrected",
+    "An intermediate HTTP-provider implementation contacted the occupied old port through obsolete engine pollers; the final file-provider build passed zero-requests-to-that-port checks"
+  ]
+}
