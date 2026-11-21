@@ -58,8 +58,15 @@ public enum MimoFirewallPolicy {
         if let mode, mode.requiresVerification, let tunnel {
             rules.append("pass out quick on \(tunnel) all no state")
         }
-        // Application DNS must not leak through a LAN resolver or a competing VPN.
+        // On the affected Mac PF matches the engine's root UID but not its
+        // expected runtime GID for Quad100 DNS. Scope this early anchor call to
+        // root TCP DNS at Quad100; its child still requires the freshly verified
+        // native interface. Reuse that child so interface loss/Stop revokes both
+        // DNS and inner-tailnet access in the same atomic native transaction.
+        // Ordinary application DNS still meets the group guard before the
+        // unscoped native anchor, so it cannot bypass Mimo via a competing VPN.
         rules += [
+            "anchor \"native-transport\" out quick inet proto tcp to 100.100.100.100 port 53 user 0",
             "block return out quick proto { tcp, udp } to any port { 53, 853 } group != \(group)",
             "anchor \"native-transport\" out quick",
             "pass out quick inet6 proto icmp6 to { fe80::/10, ff02::/16 } icmp6-type { neighbrsol, neighbradv, routersol } no state",

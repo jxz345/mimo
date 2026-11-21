@@ -9,7 +9,7 @@ enum MimoTailnetNetworkTests {
         let dns: NSDictionary = ["InterfaceName": "utun8", "ServerAddresses": ["100.100.100.100"], "SupplementalMatchDomains": ["", "example.ts.net"]]
         let ip: NSDictionary = ["InterfaceName": "utun8", "Addresses": ["100.65.243.85"], "AdditionalRoutes": [["DestinationAddress": "100.100.100.100", "SubnetMask": "255.255.255.255"]]]
         source.set([prefix + "DNS": dns, prefix + "IPv4": ip, prefix + "VPN": ["Status": 7], prefix + "Proxies": ["FTPPassive": 1], "State:/Network/Global/Proxies": ["FTPPassive": 1, "__SCOPED__": ["utun8": ["HTTPEnable": 0]]]])
-        let changes = MimoTailnetNetworkChanges(read: source.get)
+        let changes = MimoTailnetNetworkChanges(read: source.get, interfaceIndex: { $0 == "utun8" ? 32 : 0 })
         changes.start()
         changes.setProxyEndpoint("203.0.113.8", interface: "en0")
         let keys = ["DNS", "IPv4", "VPN", "Proxies"].map { prefix + $0 }
@@ -44,6 +44,20 @@ enum MimoTailnetNetworkTests {
         require(changes.isNativeDNSSelection(["__CONFIGURATION_ID__": "Supplemental: native 0", "ServerAddresses": ["100.100.100.100"]]) == false, "a Direct/unknown public route cannot classify native DNS selection")
         changes.setProxyEndpoint("203.0.113.8", interface: "en0")
         require(changes.isNativeDNSSelection(["__CONFIGURATION_ID__": "Supplemental: native 0", "ServerAddresses": ["100.100.100.100"]]), "configd may select the native resolver while the protected resolver is republished")
+        var scoped: [String: Any] = ["__CONFIGURATION_ID__": "Supplemental: native 0", "__IF_INDEX__": 32,
+                                     "SearchOrder": 100000, "SearchDomains": ["example.ts.net"],
+                                     "ServerAddresses": ["100.100.100.100", "fd7a:115c:a1e0::53"]]
+        require(changes.isNativeDNSSelection(scoped as NSDictionary), "configd's current native interface index is expected reconnect metadata")
+        for invalid: Any in [0, -1, 33, "32"] {
+            scoped["__IF_INDEX__"] = invalid
+            require(!changes.isNativeDNSSelection(scoped as NSDictionary), "invalid or different interface indices remain external")
+        }
+        scoped["__IF_INDEX__"] = 32
+        scoped["ServerAddresses"] = ["1.1.1.1"]
+        require(!changes.isNativeDNSSelection(scoped as NSDictionary), "a matching interface index cannot authorize a different DNS server")
+        scoped["ServerAddresses"] = ["100.100.100.100"]
+        scoped["UnknownField"] = 1
+        require(!changes.isNativeDNSSelection(scoped as NSDictionary), "unknown resolver fields remain external")
         require(!changes.isNativeDNSSelection(["__CONFIGURATION_ID__": "Supplemental: native 0", "ServerAddresses": ["1.1.1.1"]]), "public DNS selection is never classified as Quad100")
         source.set(["Setup:/Network/Service/native/Interface": ["Type": "VPN", "SubType": "io.tailscale.ipn.macsys"], prefix + "VPN": ["Status": 0]])
         let cold = MimoTailnetNetworkChanges(read: source.get)

@@ -38,6 +38,11 @@ def main():
     peer = next(p for p in native['Peer'].values() if p.get('Online'))
     name = peer['DNSName'].rstrip('.')
     addresses = sorted(a for a in peer['TailscaleIPs'] if ':' not in a)
+    # Only peers in this tailnet expand from a short name; shared nodes need full names.
+    suffix = '.' + native.get('MagicDNSSuffix', '').strip('.')
+    own = next((p for p in native['Peer'].values() if p.get('Online') and suffix != '.'
+                and p['DNSName'].rstrip('.').endswith(suffix)), None)
+    if own is None: print('SKIP: no online peer in this tailnet for the short-name check', flush=True)
     os.umask(0o077)
     root = Path(tempfile.mkdtemp(prefix='mimo-magicdns-', dir='/var/tmp'))
     private = root / 'private-backup'; private.mkdir()
@@ -81,6 +86,12 @@ def main():
             result = command('/usr/bin/sudo', '-n', '-u', 'jay', '/usr/bin/python3', '-c',
                 'import json,socket,sys;print(json.dumps(sorted({r[4][0] for r in socket.getaddrinfo(sys.argv[1],None,socket.AF_INET)})))', host, timeout=15)
             assert json.loads(result.stdout) == addresses, label + '-' + style + '-system-DNS'
+        if own is not None:
+            short = own['DNSName'].rstrip('.')[:-len(suffix)]
+            result = command('/usr/bin/sudo', '-n', '-u', 'jay', '/usr/bin/python3', '-c',
+                'import json,socket,sys;print(json.dumps(sorted({r[4][0] for r in socket.getaddrinfo(sys.argv[1],None,socket.AF_INET)})))', short, timeout=15)
+            assert json.loads(result.stdout) == sorted(a for a in own['TailscaleIPs'] if ':' not in a), label + '-short-system-DNS'
+            record(label + '-system-short-own-tailnet-peer-name')
         for tcp in [False, True]:
             args = ['/usr/bin/sudo', '-n', '-u', 'jay', '/usr/bin/dig', '@127.0.0.1', '-p', '1053', name, 'A', '+time=3', '+tries=1']
             if tcp: args.append('+tcp')

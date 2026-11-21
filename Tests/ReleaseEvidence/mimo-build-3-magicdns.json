@@ -1,0 +1,101 @@
+{
+  "date": "2026-11-21",
+  "status": "qualified installed Release package",
+  "version": "1.0",
+  "build": "3",
+  "environment": "mimo-vm; normal installed Release package with saved real proxy and native Tailscale",
+  "sha256": {
+    "Mimo-1.0.pkg": "cdf560bc6ac7ecf6e6848d790a84ac0f91be8dcc1f9ecb5aa265feda78326ba0",
+    "Mimo-1.0.zip": "5053667efb21b9b448bcc768551ef7b91daa399d14fe43dbf1044ffbbb02a9a7",
+    "mimo-core": "01df332bb827a2852df31f9dd51f2d149971ca18fe82cd511a800f7be2bdfd04",
+    "mimo-gui": "84773210916598dcc8a173444448a2edd7b3331356e153f50c67e7cf1fc559ad"
+  },
+  "installedIdentity": "All app/widget/cleanup bundles report build 3; installed app and privileged helper match the packaged binaries; sealed ZIP contents match the app.",
+  "validation": {
+    "shared": "219 tests, zero failures in mimo-vm",
+    "focusedService": [
+      "Tailnet notification and route classification, including valid/mismatched/unknown configd native interface indices",
+      "Native enforcement progresses while the main actor is blocked; Stop fences late updates and interface leases expire",
+      "Profile preparation joins fresh native firewall/provider publication and fences stopped or stale observations",
+      "Stale supervisor replies, interrupted preparation/probes, credential mutation fencing and Direct failure isolation"
+    ],
+    "installedFirewall": [
+      "installed root TCP Quad100 call precedes DNS group guard; no test wrapper",
+      "root group-0 TCP DNS succeeds through installed native policy",
+      "ordinary direct TCP/UDP DNS and root group-0 UDP remain blocked",
+      "three fresh installed-engine full-name answers without temporary PF rules",
+      "provider Stop revokes root TCP exception while public Rule approval remains active",
+      "provider Start restores root TCP DNS and preserves active Rule approval",
+      "all four service and two infrastructure rows carry current inspection times",
+      "original mode, settings, service intent and credentials preserved"
+    ],
+    "installedTailnetUpdates": [
+      "mimo-provider-stop: public DNS works; no gate closure, IP check or profile reload",
+      "mimo-provider-start: public DNS works; no gate closure, IP check or profile reload",
+      "native-tailnet-down: public DNS works; no gate closure, IP check or profile reload",
+      "native-tailnet-up: public DNS works; no gate closure, IP check or profile reload",
+      "full peer MagicDNS works over UDP and TCP after both switches",
+      "occupied-diagnostic-port: public DNS works; no gate closure, IP check or profile reload",
+      "occupied diagnostic port does not affect the private provider or MagicDNS",
+      "original settings, credentials, service intent and native connection preserved"
+    ],
+    "installedDNSRecovery": [
+      "rule-system-full-absolute-uppercase-peer-names-and-UDP-TCP-MagicDNS",
+      "rule-public-TXT-and-owned-provider-file",
+      "global-system-full-absolute-uppercase-peer-names-and-UDP-TCP-MagicDNS",
+      "global-public-TXT-and-owned-provider-file",
+      "occupied-preferred-port-selects-a-free-loopback-port-in-Direct",
+      "fallback-rule-system-full-absolute-uppercase-peer-names-and-UDP-TCP-MagicDNS",
+      "fallback-rule-public-TXT-and-owned-provider-file",
+      "fallback-after-core-restart-system-full-absolute-uppercase-peer-names-and-UDP-TCP-MagicDNS",
+      "fallback-after-core-restart-public-TXT-and-owned-provider-file",
+      "core-restart-rebinds-without-contacting-the-occupied-port",
+      "preferred-port-recovered-system-full-absolute-uppercase-peer-names-and-UDP-TCP-MagicDNS",
+      "preferred-port-recovered-public-TXT-and-owned-provider-file",
+      "native-tailnet-stop-updates-the-live-file-provider-to-Reject",
+      "native-tailnet-reconnected-system-full-absolute-uppercase-peer-names-and-UDP-TCP-MagicDNS",
+      "native-tailnet-reconnected-public-TXT-and-owned-provider-file",
+      "missing-system-resolver-closes-and-automatically-restores-Rule",
+      "resolver-recovered-system-full-absolute-uppercase-peer-names-and-UDP-TCP-MagicDNS",
+      "resolver-recovered-public-TXT-and-owned-provider-file",
+      "original-mode-settings-credential-service-intent-and-native-tailnet-preserved"
+    ],
+    "ui": "Source fixture renders in light/dark include healthy, stale and unavailable inspection ages; final installed package supplies fresh timestamps for all six rows.",
+    "previews": [
+      "Previews/mimo-dashboard-health-light.png",
+      "Previews/mimo-dashboard-health-stale-dark.png"
+    ],
+    "packaging": "arm64 only, inside-out ad-hoc signatures verified before and after packaging, all bundled build numbers checked, ZIP preserves sealed app bytes. PKG AppleDouble warning inspected: only macOS provenance attributes; installed package and signature checks passed.",
+    "restoration": "Original mode, proxy, allowlist, credentials, service intent and native connection preserved across installation and runtime checks."
+  },
+  "physicalBasis": {
+    "record": "mimo-magicdns-scoped-candidate.json",
+    "scope": "User ran the integrated candidate script on the affected physical Mac before building. It used the same early root TCP Quad100 call through the live native child.",
+    "result": "Previously failing full name passed three uncached engine queries, TCP/UDP local-listener queries and macOS resolution; the script restored its wrapper."
+  },
+  "resolvedDuringQualification": "The initial build-3 candidate classified configd native DNS __IF_INDEX__ metadata as an external change and repeated verification on reconnect. The final build validates that index against the current native interface. Focused negative tests and the final installed live-update suite pass.",
+  "testSources": [
+    "Tests/MihomoRuntimeTests/release_magicdns_firewall_test.py",
+    "Tests/MihomoRuntimeTests/release_tailnet_live_update_test.py",
+    "Tests/MihomoRuntimeTests/release_magicdns_test.py",
+    "Tests/MimoServiceTests/mimo_tailnet_network_tests.swift",
+    "Tests/MimoSharedTests/MimoRoutingTests.swift",
+    "Tests/MimoSharedTests/MimoProtectedDNSTests.swift",
+    "Tests/MimoSharedTests/MimoServiceStatusTests.swift"
+  ],
+  "limits": [
+    "The final build-3 package has not yet been confirmed on the affected physical Mac; physical acceptance covered the prior temporary candidate policy.",
+    "The installed own-tailnet peer short-name check was explicitly skipped: the VM has no online peer in its own tailnet. Resolver search-domain construction is unit-tested.",
+    "Custom split-DNS domains outside .ts.net are outside this fix.",
+    "The early exception trusts root-owned sockets, not a particular executable; only TCP Quad100 on the live verified native interface is allowed.",
+    "No new physical sleep/wake, first-packet boot, simultaneous-user or peer UDP-echo qualification.",
+    "App is ad-hoc signed, not Developer ID signed or notarized."
+  ],
+  "publication": {
+    "releaseURL": "https://github.com/jxz345/mimo/releases/tag/v1.0",
+    "sourceRef": "refs/tags/v1.0",
+    "branch": "main",
+    "manifest": "release-build.json",
+    "cask": "jxz345/tap/mimo"
+  }
+}

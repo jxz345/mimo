@@ -184,6 +184,7 @@ final class TailscaleProviderService {
     private(set) var status: TailscaleVergeStatus?
     private(set) var error: String?
     private(set) var boundPort: Int?
+    private(set) var healthCheckedAt: Date?
     var changed: (() -> Void)?
     private var task: Task<Void, Never>?
     private var listener: NWListener?
@@ -205,6 +206,7 @@ final class TailscaleProviderService {
             if !enabled { writeProviderFiles(.init(status: .init(served: .reject(reason: "provider-stopped"), checkedAt: .now), user: nil)) }
             return
         }
+        healthCheckedAt = .now
         self.enabled = enabled
         generation += 1
         task?.cancel(); task = nil
@@ -267,6 +269,7 @@ final class TailscaleProviderService {
         self.previousUser = result.user
         let changed = status?.served != result.status.served
         status = result.status
+        healthCheckedAt = result.status.checkedAt
         writeProviderFiles(result)
         if changed { RuntimeLog.shared.info("tailscale_provider_changed", fields: TailscaleVergeChange.logFields(result.status.served)) }
         self.changed?()
@@ -306,6 +309,7 @@ final class TailscaleProviderService {
             listener.stateUpdateHandler = { [weak self, weak listener] state in
                 MainActor.assumeIsolated {
                     guard let self, let listener, self.enabled, self.listener === listener else { return }
+                    self.healthCheckedAt = .now
                     if case .ready = state {
                         guard let port = listener.port else { return }
                         self.boundPort = Int(port.rawValue)

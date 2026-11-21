@@ -19,22 +19,18 @@ final class MimoDNSConfiguration {
     func install(willChange: (() -> Void)? = nil, didChange: (() -> Void)? = nil) throws {
         if store == nil { store = SCDynamicStoreCreate(nil, "Mimo protected DNS" as CFString, nil, nil) }
         guard let store else { throw MimoRuntimeError.unavailable("Could not configure the protected DNS resolver.") }
-        // Match each existing supplemental domain at a higher priority, so a native
-        // VPN's default or MagicDNS resolver cannot bypass Mimo's DNS policy.
-        var domains = Set([""])
-        let values = SCDynamicStoreCopyMultiple(store, nil, ["State:/Network/Service/.*/DNS"] as CFArray) as? [String: [String: Any]] ?? [:]
-        for (key, value) in values where key != MimoRuntime.dnsStateKey {
-            for domain in value["SupplementalMatchDomains"] as? [String] ?? [] {
-                guard domain.utf8.count <= 253, domain.unicodeScalars.allSatisfy({ CharacterSet.alphanumerics.contains($0) || $0 == "." || $0 == "-" }) else { continue }
-                domains.insert(domain)
-            }
+        var values = SCDynamicStoreCopyMultiple(store, nil, ["State:/Network/Service/.*/DNS"] as CFArray) as? [String: [String: Any]] ?? [:]
+        values.removeValue(forKey: MimoRuntime.dnsStateKey)
+        // Saved search domains override DHCP values, as they do for configd.
+        var primary: [String: Any]?
+        if let service = (SCDynamicStoreCopyValue(store, "State:/Network/Global/IPv4" as CFString) as? [String: Any])?["PrimaryService"] as? String,
+           !service.isEmpty, !service.contains("/") {
+            let saved = SCDynamicStoreCopyValue(store, "Setup:/Network/Service/\(service)/DNS" as CFString) as? [String: Any] ?? [:]
+            primary = (values["State:/Network/Service/\(service)/DNS"] ?? [:]).merging(saved) { $1 }
         }
-        guard domains.count <= 128 else { throw MimoRuntimeError.unavailable("Too many supplemental DNS domains to safely override.") }
-        let value: [String: Any] = [
-            "ServerAddresses": ["127.0.0.1"], "ServerPort": MimoRuntime.dnsPort,
-            "SupplementalMatchDomains": domains.sorted(), "SupplementalMatchOrders": domains.map { _ in 1 },
-            "SupplementalMatchDomainsNoSearch": 1, "SearchOrder": 1
-        ]
+        guard let value = MimoProtectedDNS.resolver(services: values, primary: primary) else {
+            throw MimoRuntimeError.unavailable("Too many supplemental DNS domains to safely override.")
+        }
         let key = MimoRuntime.dnsStateKey as CFString
         let actual = SCDynamicStoreCopyValue(store, key)
         // Re-publishing an identical resolver can cause configd to issue new

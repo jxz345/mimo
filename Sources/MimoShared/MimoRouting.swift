@@ -71,10 +71,39 @@ public struct MimoServiceStatus: Codable, Equatable, Sendable, Identifiable {
     public var address: String?
     public var port: Int?
     public var bindingConfirmed: Bool
+    /// Time the service owner inspected this status, retained through cached replies.
+    public var checkedAt: Date?
     public init(id: MimoServiceID, health: MimoServiceHealth, transport: String,
-                address: String? = nil, port: Int? = nil, bindingConfirmed: Bool = false) {
+                address: String? = nil, port: Int? = nil, bindingConfirmed: Bool = false, checkedAt: Date? = nil) {
         self.id = id; self.health = health; self.transport = transport
         self.address = address; self.port = port; self.bindingConfirmed = bindingConfirmed
+        self.checkedAt = checkedAt
+    }
+
+    public func healthTitle(at date: Date) -> String {
+        switch health {
+        case .running:
+            guard let age = MimoHealthLabel.age(checkedAt: checkedAt, at: date) else { return "Unavailable" }
+            return age <= 35 ? "Healthy" : "Stale"
+        case .stopped: return "Stopped"
+        case .restarting: return "Restarting"
+        case .unavailable: return "Unavailable"
+        case .notInstalled: return "Not installed"
+        }
+    }
+}
+
+public enum MimoHealthLabel {
+    public static func age(checkedAt: Date?, at date: Date) -> Int? {
+        guard let checkedAt else { return nil }
+        let seconds = date.timeIntervalSince(checkedAt)
+        guard seconds.isFinite, seconds >= -5, seconds < Double(Int.max) else { return nil }
+        return Int(max(0, seconds))
+    }
+
+    public static func text(_ title: String, checkedAt: Date?, at date: Date) -> String {
+        let age = age(checkedAt: checkedAt, at: date).map { "\($0) secs" } ?? "—"
+        return "\(title)(\(age))"
     }
 }
 

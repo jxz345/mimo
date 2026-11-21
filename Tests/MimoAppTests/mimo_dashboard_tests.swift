@@ -26,8 +26,9 @@ enum MimoDashboardTests {
             .init(id: .profileHosting, health: .running, transport: "Private file delivery"),
             .init(id: .tailnetProvider, health: .running, transport: "HTTP", address: "127.0.0.1", port: 18766, bindingConfirmed: true)
         ]
+        for index in routing.services.indices { routing.services[index].checkedAt = now.addingTimeInterval(Double(-index - 2)) }
         for dark in [false, true] {
-            for scenario in ["direct", "rule", "background-audit", "global", "blocked", "checking", "empty", "tailnet-stopped", "long-text", "direct-checking", "direct-failed", "unqualified", "infrastructure-failed", "infrastructure-stale"] {
+            for scenario in ["direct", "rule", "background-audit", "global", "blocked", "checking", "empty", "tailnet-stopped", "long-text", "direct-checking", "direct-failed", "unqualified", "infrastructure-failed", "infrastructure-stale", "services-stale", "services-unknown"] {
                 var value = routing
                 value.configuration.mode = scenario.hasPrefix("direct") ? .direct : scenario == "global" ? .global : .rule
                 value.phase = .active; value.effectiveMode = value.configuration.mode
@@ -46,6 +47,8 @@ enum MimoDashboardTests {
                     value.reason = "The independent firewall check failed. Service repair is required."
                 }
                 if scenario == "infrastructure-stale" { value.infrastructure?.checkedAt = now.addingTimeInterval(-60) }
+                if scenario == "services-stale" { for index in value.services.indices { value.services[index].checkedAt = now.addingTimeInterval(-60) } }
+                if scenario == "services-unknown" { for index in value.services.indices { value.services[index].checkedAt = nil } }
                 if scenario == "long-text" {
                     value.configuration.proxy?.name = "A deliberately long profile name for the primary travel connection"
                     value.reason += " Open Settings to review the proxy configuration and add the expected exit address before retrying."

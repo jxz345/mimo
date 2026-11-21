@@ -90,14 +90,14 @@ mkdir -p "$pkg_work/root" "$pkg_work/packages" "$pkg_work/scripts"
 cp "$SCRIPT_DIR/pkg/preinstall" "$SCRIPT_DIR/pkg/postinstall" "$pkg_work/scripts/"
 cp "$KIT_ROOT/Sources/MimoDiagnostics/command-support.sh" \
     "$KIT_ROOT/Sources/MimoDiagnostics/cleanup-installation.sh" "$pkg_work/scripts/"
-ditto "$APP_BUNDLE" "$pkg_work/root/Mimo.app"
+ditto --norsrc --noextattr "$APP_BUNDLE" "$pkg_work/root/Mimo.app"
 pkgbuild --analyze --root "$pkg_work/root" "$pkg_work/components.plist"
 # Always install to /Applications: a relocatable bundle would update whichever copy with the same
 # bundle ID Installer finds first (a build folder, a scratch copy). Allow same-version reinstalls.
 plutil -replace 0.BundleIsRelocatable -bool NO "$pkg_work/components.plist"
 plutil -replace 0.BundleIsVersionChecked -bool NO "$pkg_work/components.plist"
 plutil -replace 0.BundleOverwriteAction -string upgrade "$pkg_work/components.plist"
-pkgbuild \
+COPYFILE_DISABLE=1 pkgbuild \
     --root "$pkg_work/root" \
     --component-plist "$pkg_work/components.plist" \
     --install-location /Applications \

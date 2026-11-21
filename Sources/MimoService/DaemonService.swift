@@ -408,7 +408,8 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
         result.routing?.hasProxyPassword = hasProxyPassword
         result.routing?.tailnetExpected = nativeTailnetExpected
         result.routing?.services.append(.init(id: .tailnetProvider, health: settings.tailscaleProviderEnabled ? (provider.boundPort != nil && provider.error == nil ? .running : .unavailable) : .stopped,
-                                             transport: "Loopback HTTP", address: "127.0.0.1", port: provider.boundPort, bindingConfirmed: settings.tailscaleProviderEnabled && provider.boundPort != nil && provider.error == nil))
+                                             transport: "Loopback HTTP", address: "127.0.0.1", port: provider.boundPort, bindingConfirmed: settings.tailscaleProviderEnabled && provider.boundPort != nil && provider.error == nil,
+                                             checkedAt: provider.healthCheckedAt))
         return result
     }
 

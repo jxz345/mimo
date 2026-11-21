@@ -25,7 +25,7 @@ xcrun swiftc -swift-version 6 -parse-as-library -O -D MIMO_DAEMON -D MIMO_VM_ACC
     "$repo"/Sources/MimoShared/*.swift "$repo"/Sources/MimoCore/*.swift \
     "$repo"/Sources/MimoService/*.swift -o "$output/mimo-core-vm-acceptance"
 xcrun swiftc -swift-version 6 -parse-as-library \
-    "$repo"/Sources/MimoShared/*.swift "$repo/Sources/MimoService/SystemCredentials.swift" \
+    "$repo"/Sources/MimoShared/*.swift "$repo/Sources/MimoCore/RuntimeLog.swift" "$repo/Sources/MimoService/SystemCredentials.swift" \
     "$repo/Tests/MihomoRuntimeTests/acceptance_client.swift" -o "$output/acceptance-client"
 xcrun swiftc -swift-version 6 -parse-as-library "$repo"/Sources/MimoShared/*.swift \
     "$repo/Tests/MihomoRuntimeTests/installation_check.swift" -o "$output/installation-check"

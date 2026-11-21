@@ -12,8 +12,13 @@ final class MimoTailnetNetworkChanges: @unchecked Sendable {
     private var publicInterface: String?
     private var inheritedDNS: Set<[String]> = []
     private let read: @Sendable () -> Snapshot?
+    private let interfaceIndex: @Sendable (String) -> UInt32
 
-    init(read: @escaping @Sendable () -> Snapshot? = MimoTailnetNetworkChanges.snapshot) { self.read = read }
+    init(read: @escaping @Sendable () -> Snapshot? = MimoTailnetNetworkChanges.snapshot,
+         interfaceIndex: @escaping @Sendable (String) -> UInt32 = { if_nametoindex($0) }) {
+        self.read = read
+        self.interfaceIndex = interfaceIndex
+    }
 
     func start() { lock.withLock { previous = read() ?? [:]; rememberServices(previous) } }
 
@@ -85,8 +90,15 @@ final class MimoTailnetNetworkChanges: @unchecked Sendable {
             guard publicInterface != nil, var fields = value as? [String: Any],
                   let identifier = fields["__CONFIGURATION_ID__"] as? String else { return false }
             let parts = identifier.split(separator: " ")
-            guard parts.count == 3, parts[0] == "Supplemental:", knownServices[String(parts[1])] != nil,
+            guard parts.count == 3, parts[0] == "Supplemental:", let interface = knownServices[String(parts[1])],
                   Int(parts[2]) != nil else { return false }
+            // configd may publish a scoped native selection during reconnect.
+            // Accept its bookkeeping only when it names the current native
+            // interface; an unknown, stale or different index remains external.
+            if let value = fields.removeValue(forKey: "__IF_INDEX__") {
+                guard let index = value as? Int, index > 0,
+                      index == Int(interfaceIndex(interface)) else { return false }
+            }
             for key in ["__CONFIGURATION_ID__", "__FLAGS__", "__ORDER__"] { fields.removeValue(forKey: key) }
             return MimoTailnetChangePolicy.isNativeDNS(fields)
         }

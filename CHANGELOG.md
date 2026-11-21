@@ -1,5 +1,15 @@
 # Mimo changelog
 
+## 1.0 (build 3) — 2026-11-21
+
+- Permit root TCP DNS to Quad100 through the verified native Tailscale policy before the generic DNS group block. Both the root-only and integrated-candidate tests restored full-name answers on the affected physical Mac, including repeated fresh queries and macOS resolution; clearing the native policy revokes the exception. Ordinary direct DNS remains blocked.
+- Provide a temporary test of the integrated correction through the live native anchor, with repeated uncached full-name queries and TCP/UDP listener checks. Automatic restoration preserves failure exit status; no owner-independent fallback or app build is required.
+- Recognize configd’s native DNS interface-index metadata on Tailnet reconnect only when it matches the current native interface. Preserve verification for wrong/unknown indices, changed DNS servers and unknown fields.
+- Use `Healthy(n secs)` consistently for all six dashboard monitoring rows, based on retained inspection timestamps. Show stale or unavailable reports without resetting their age on redraw; retain stopped and failure states.
+- Add a bounded, read-only service snapshot script for conflicting dashboard, launchd and controller observations.
+
+- Carry the native search domains in the protected resolver. It becomes the system default in Rule/Global, which previously left no search list, so short names such as `peer` no longer expanded to `peer.<tailnet>.ts.net`. Direct was unaffected. All queries still go only to Mimo's listener.
+
 ## 1.0 — DNS recovery and provider-port fallback
 
 - Read the live tailnet provider from a root-owned file, independent of HTTP ports and obsolete pollers. Its diagnostic HTTP listener falls back to a kernel-assigned loopback port if 18766 is occupied; display the actual port. Missing data starts with Reject.

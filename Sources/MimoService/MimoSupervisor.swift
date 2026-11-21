@@ -892,10 +892,11 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
         state.configuration.profileHostingEnabled = profileEnabled
         state.configuration.mihomoEnabled = engineEnabled
         if cachedServices == nil || Date.now.timeIntervalSince(cachedServices!.at) > 2 {
-            cachedServices = (.now, [
-                .init(id: .core, health: runtime.isRunning(MimoService.label) ? .running : .stopped, transport: "XPC / Mach"),
-                .init(id: .mihomo, health: runtime.isRunning(MimoRuntime.engineLabel) ? .running : .stopped, transport: "HTTP / SOCKS · Unix controller", address: "127.0.0.1", port: MimoRuntime.mixedPort, bindingConfirmed: state.allowsTraffic && state.configuration.mode.requiresVerification),
-                .init(id: .profileHosting, health: profileEnabled ? .running : .stopped, transport: "In-memory · Unix socket", address: MimoRuntime.controller.path)
+            let checkedAt = Date.now
+            cachedServices = (checkedAt, [
+                .init(id: .core, health: runtime.isRunning(MimoService.label) ? .running : .stopped, transport: "XPC / Mach", checkedAt: checkedAt),
+                .init(id: .mihomo, health: runtime.isRunning(MimoRuntime.engineLabel) ? .running : .stopped, transport: "HTTP / SOCKS · Unix controller", address: "127.0.0.1", port: MimoRuntime.mixedPort, bindingConfirmed: state.allowsTraffic && state.configuration.mode.requiresVerification, checkedAt: checkedAt),
+                .init(id: .profileHosting, health: profileEnabled ? .running : .stopped, transport: "In-memory · Unix socket", address: MimoRuntime.controller.path, checkedAt: checkedAt)
             ])
         }
         state.services = cachedServices?.values ?? []

@@ -1,0 +1,50 @@
+{
+  "date": "2026-11-21",
+  "status": "integrated candidate script passed on the affected physical Mac and in mimo-vm; followed by build 3 packaging",
+  "installedVersion": "1.0",
+  "installedBuild": "2",
+  "newAppBuilt": false,
+  "scriptSHA256": "d2fef87f7a1f5d3292d0d9cbd0a5223c0b165f827f55bc7e12d68f02c3ee3d07",
+  "physicalPrecedingExperiment": {
+    "rootOnlyQuad100TCP": "correct full-name answer from installed engine and local listener",
+    "passRulePackets": 7,
+    "broaderFallbackUsed": false,
+    "restorationReported": true
+  },
+  "vmCandidateChecks": [
+    "three engine queries with ordinary engine DNS cache cleared each time",
+    "TCP local-listener query after engine cache clear",
+    "UDP local-listener query after engine cache clear",
+    "macOS system-resolver query",
+    "Tailnet IPv4 required; fake-IP answers rejected"
+  ],
+  "vmCleanupChecks": [
+    "normal completion restores parent/open/permission/power policy readbacks",
+    "TERM preserves failure exit status and restores policies",
+    "parent KILL triggers independent watchdog restoration",
+    "watchdog deadline triggers restoration and preserves failure status"
+  ],
+  "test": "Tests/MihomoRuntimeTests/magicdns_candidate_script_test.py",
+  "limits": [
+    "The script is temporary and does not install a permanent app correction.",
+    "Physical acceptance covers Rule-mode full-name resolution under the temporary candidate policy; it does not qualify short names, custom split-DNS domains or a newly packaged app.",
+    "Only the ordinary engine DNS cache is cleared; the macOS system cache is not flushed.",
+    "A combined cleanup run observed a policy change during the forced timeout; a subsequent run with per-case before/after snapshots passed all four cases. Concurrent Mimo policy replacement must never be overwritten by cleanup."
+  ],
+  "physicalCandidate": {
+    "evidenceSource": "user-supplied output of the published test-magicdns-candidate.pl",
+    "mode": "rule",
+    "nativeInterface": "utun8",
+    "before": "dial tcp 100.100.100.100:53: connect: network is down",
+    "freshEngineQueriesPassed": 3,
+    "localListenerTCP": "NOERROR with Tailnet IPv4 answer after engine DNS cache clear",
+    "localListenerUDP": "NOERROR with Tailnet IPv4 answer after engine DNS cache clear",
+    "macOSSystemResolver": "same Tailnet IPv4 answer",
+    "allAnswersConsistent": true,
+    "restorationReported": true,
+    "installedAppChanged": false,
+    "result": "PASS"
+  },
+  "scope": "Historical pre-build candidate test; newAppBuilt describes that test stage only.",
+  "followup": "mimo-build-3-magicdns.json"
+}

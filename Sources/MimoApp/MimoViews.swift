@@ -39,7 +39,7 @@ struct DashboardView: View {
     private let serviceTitleFont = Font.system(size: 13, weight: .medium)
     private let serviceStatusFont = Font.system(size: 13)
     private let serviceControlFont = Font.system(size: 11)
-    private let serviceStatusWidth: CGFloat = 104
+    private let serviceStatusWidth: CGFloat = 152
     private let serviceAccessoryWidth: CGFloat = 170
     private let serviceRowHeight: CGFloat = 60
     private var routing: MimoRoutingState { monitor.routingState }
@@ -202,10 +202,14 @@ struct DashboardView: View {
                     }.frame(maxWidth: .infinity, alignment: .leading)
                 }.padding(.horizontal, 14).padding(.vertical, 12)
                 Divider()
-                infrastructureStatus
-                Divider()
-                VStack(spacing: 0) { ForEach(MimoServiceID.allCases) { service in serviceRow(service) } }
-                    .padding(.horizontal, 14)
+                TimelineView(.periodic(from: .now, by: 1)) { context in
+                    VStack(spacing: 0) {
+                        infrastructureStatus(at: context.date)
+                        Divider()
+                        VStack(spacing: 0) { ForEach(MimoServiceID.allCases) { service in serviceRow(service, at: context.date) } }
+                            .padding(.horizontal, 14)
+                    }
+                }
                 Divider()
                 Label(monitor.operationError ?? installer.message ?? monitor.lookupStatusMessage ?? "Shared across this Mac · Services continue when Mimo closes.", systemImage: "info.circle")
                     .font(.caption2).foregroundStyle(.secondary).lineLimit(2, reservesSpace: true)
@@ -215,35 +219,27 @@ struct DashboardView: View {
         }
     }
 
-    private var infrastructureStatus: some View {
-        TimelineView(.periodic(from: .now, by: 1)) { context in
-            let status = (routing.infrastructure ?? .init()).current(at: context.date)
-            VStack(spacing: 0) {
-                infrastructureIndicator("PF firewall", symbol: "shield.lefthalf.filled", health: status.pf, checkedAt: status.checkedAt)
-                Divider()
-                infrastructureIndicator("launchd monitor", symbol: "waveform.path.ecg", health: status.launchd, checkedAt: status.checkedAt)
-            }
-            .help("Independent checks run every 10 seconds. " + (status.checkedAt.map { "Last check: \($0.formatted(date: .omitted, time: .standard))." } ?? "No current inspection is available.") + " PF reports the main firewall policy; launchd reports startup jobs and saved service intent. Intentional Stop choices are healthy.")
-        }.padding(.horizontal, 14).frame(height: serviceRowHeight * 2 + 1)
+    private func infrastructureStatus(at date: Date) -> some View {
+        let status = (routing.infrastructure ?? .init()).current(at: date)
+        return VStack(spacing: 0) {
+            infrastructureIndicator("PF firewall", symbol: "shield.lefthalf.filled", health: status.pf, checkedAt: status.checkedAt, at: date)
+            Divider()
+            infrastructureIndicator("launchd monitor", symbol: "waveform.path.ecg", health: status.launchd, checkedAt: status.checkedAt, at: date)
+        }
+        .help("Independent checks run every 10 seconds. " + (status.checkedAt.map { "Last check: \($0.formatted(date: .omitted, time: .standard))." } ?? "No current inspection is available.") + " PF reports the main firewall policy; launchd reports startup jobs and saved service intent. Intentional Stop choices are healthy.")
+        .padding(.horizontal, 14).frame(height: serviceRowHeight * 2 + 1)
     }
 
-    private func infrastructureIndicator(_ title: String, symbol: String, health: MimoInfrastructureHealth, checkedAt: Date?) -> some View {
+    private func infrastructureIndicator(_ title: String, symbol: String, health: MimoInfrastructureHealth, checkedAt: Date?, at date: Date) -> some View {
         HStack(spacing: 6) {
             Image(systemName: symbol).foregroundStyle(.secondary).frame(width: 20)
             Text(title).font(serviceTitleFont).lineLimit(1).frame(maxWidth: .infinity, alignment: .leading)
             HStack(spacing: 4) {
                 Circle().fill(health == .healthy ? Color.secondary : Color.orange).frame(width: 5, height: 5)
-                Text(health.title).lineLimit(1)
-            }.font(serviceStatusFont).foregroundStyle(health == .healthy ? Color.secondary : Color.orange)
+                Text(MimoHealthLabel.text(health == .stale ? "Stale" : health.title, checkedAt: checkedAt, at: date)).lineLimit(1)
+            }.font(serviceStatusFont).monospacedDigit().foregroundStyle(health == .healthy ? Color.secondary : Color.orange)
                 .frame(width: serviceStatusWidth, alignment: .leading)
-            HStack(spacing: 6) {
-                Text("Last check").foregroundStyle(.secondary)
-                Spacer(minLength: 0)
-                Group {
-                    if let checkedAt { Text(checkedAt, style: .relative) }
-                    else { Text("No result") }
-                }.monospacedDigit().lineLimit(1)
-            }.font(serviceControlFont).frame(width: serviceAccessoryWidth, alignment: .trailing)
+            Color.clear.frame(width: serviceAccessoryWidth, height: 1).accessibilityHidden(true)
         }.font(serviceStatusFont).frame(maxWidth: .infinity).frame(height: serviceRowHeight)
             .accessibilityElement(children: .combine)
     }
@@ -261,17 +257,24 @@ struct DashboardView: View {
         }
     }
 
-    private func serviceRow(_ id: MimoServiceID) -> some View {
+    private func serviceRow(_ id: MimoServiceID, at date: Date) -> some View {
         let status = routing.services.first { $0.id == id }
         let health = status?.health ?? .unavailable
         let tailnetFailure = id == .tailnetProvider && (health == .unavailable || health == .notInstalled
             || (health == .stopped && routing.tailnetExpected == true))
+        let title = monitor.serviceOperation == id ? "Working…" : status?.healthTitle(at: date) ?? "Unavailable"
+        let stale = health == .running && title != "Healthy" && monitor.serviceOperation != id
+        let color = tailnetFailure ? Color.red : stale ? Color.orange : Color.secondary
         return VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 6) {
                 Image(systemName: serviceSymbol(id)).foregroundStyle(tailnetFailure ? Color.red : Color.secondary).frame(width: 20)
                 Text(id.title).font(serviceTitleFont).lineLimit(1).frame(maxWidth: .infinity, alignment: .leading)
-                HStack(spacing: 4) { Circle().fill(tailnetFailure ? Color.red : Color.secondary).frame(width: 5, height: 5); Text(monitor.serviceOperation == id ? "Working…" : health.rawValue.capitalized).lineLimit(1) }
-                    .font(serviceStatusFont).foregroundStyle(tailnetFailure ? Color.red : Color.secondary).frame(width: serviceStatusWidth, alignment: .leading)
+                HStack(spacing: 4) {
+                    Circle().fill(color).frame(width: 5, height: 5)
+                    Text(MimoHealthLabel.text(title, checkedAt: status?.checkedAt, at: date)).lineLimit(1)
+                }
+                    .font(serviceStatusFont).monospacedDigit().foregroundStyle(color).frame(width: serviceStatusWidth, alignment: .leading)
+                    .help(status?.checkedAt.map { "Last checked: \($0.formatted(date: .omitted, time: .standard)). Age is retained when status is cached." } ?? "No service inspection time is available.")
                 serviceButtons(id, health: health).frame(width: serviceAccessoryWidth, alignment: .trailing)
             }
             HStack(spacing: 8) {

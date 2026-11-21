@@ -16,6 +16,27 @@ final class MimoRoutingTests: XCTestCase {
         XCTAssertTrue(MimoFirewallPolicy.permission(open: true).contains("/com.apple/000.mimo/open-policy"))
     }
 
+    func testRootMagicDNSExceptionRemainsInsideTheVerifiedNativePolicy() throws {
+        for mode: ProxyMode? in [nil, .rule, .global] {
+            let rules = try MimoFirewallPolicy.preparedPolicy(group: 400, endpoints: ["192.0.2.10"], proxyPort: 1080, mode: mode)
+            let scoped = try XCTUnwrap(rules.range(of:
+                "anchor \"/com.apple/000.mimo/native-transport\" out quick inet proto tcp to 100.100.100.100 port 53 user 0\n"))
+            let guardRule = try XCTUnwrap(rules.range(of:
+                "block return out quick proto { tcp, udp } to any port { 53, 853 } group != 400\n"))
+            let general = try XCTUnwrap(rules.range(of:
+                "anchor \"/com.apple/000.mimo/native-transport\" out quick\n"))
+            XCTAssertLessThan(scoped.lowerBound, guardRule.lowerBound)
+            XCTAssertLessThan(guardRule.lowerBound, general.lowerBound,
+                              "Ordinary DNS must be rejected before the general tailnet exception")
+            XCTAssertFalse(rules.contains("anchor \"native-transport\""), "Both calls must reference the same absolute child")
+            XCTAssertFalse(rules.contains("pass out quick inet proto tcp to 100.100.100.100"),
+                           "No unconditional parent pass may outlive the native interface observation")
+        }
+        XCTAssertEqual(try MimoNativeTransport().render(), "\n", "No verified native interface grants no DNS exception")
+        XCTAssertFalse(MimoFirewallPolicy.startupBlocking.contains("native-transport"))
+        XCTAssertFalse(MimoFirewallPolicy.directIPv4.contains("native-transport"))
+    }
+
     func testPendingBlockRevokesApprovalWithoutClaimingConfirmedBlocking() {
         var policy = MimoAccessPolicy()
         policy.directRestored(configuration: MimoConfiguration())
