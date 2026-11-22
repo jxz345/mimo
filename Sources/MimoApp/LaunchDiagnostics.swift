@@ -108,13 +108,15 @@ enum MimoEntryPoint {
             // from a standard account. Never accepts commands or prints state,
             // profiles, credentials, or an authorization credential.
             Task { @MainActor in
+                var stage = "core state"
                 do {
                     let core = try await DaemonRPC.call(DaemonRequest(.state), serviceLabel: MimoService.controlLabel)
                     guard core.state != nil else { throw DaemonFailure.unavailable }
                     // Stale revisions reach each mutation's authorization check
                     // but cannot change settings, credentials, or routing.
                     for command: DaemonCommand in [.configure, .initialize, .setToken, .removeToken,
-                                                   .configureRouting, .saveProxy, .removeProxy] {
+                                                   .configureRouting, .saveProxy, .removeProxy, .selectProxy] {
+                        stage = "core \(command.rawValue) authorization"
                         var stale = DaemonRequest(command)
                         stale.expectedRevision = -1
                         do {
@@ -123,20 +125,24 @@ enum MimoEntryPoint {
                         } catch DaemonFailure.conflict {}
                     }
                     var request = DaemonRequest(.supervisor)
+                    stage = "supervisor state"
                     request.supervisor = MimoSupervisorRequest(.state)
                     let supervisor = try await DaemonRPC.call(request, serviceLabel: MimoService.supervisorControlLabel)
                     guard supervisor.routing != nil else { throw DaemonFailure.unavailable }
                     request.supervisor = MimoSupervisorRequest(.profile)
+                    stage = "profile read"
                     let profile = try await DaemonRPC.call(request, serviceLabel: MimoService.supervisorControlLabel)
                     guard profile.profileContents != nil else { throw DaemonFailure.unavailable }
                     // Missing service/operation fields are rejected before a
                     // lifecycle operation can run, after checking app identity.
                     request.supervisor = MimoSupervisorRequest(.service)
+                    stage = "service authorization"
                     do {
-                        _ = try await DaemonRPC.call(request, serviceLabel: MimoService.supervisorControlLabel)
+                        _ = try await DaemonRPC.call(request, timeout: 75, serviceLabel: MimoService.supervisorControlLabel)
                         throw DaemonFailure.invalidRequest
                     } catch DaemonFailure.conflict {}
                     if geteuid() != 0 {
+                        stage = "root-only operation restriction"
                         request.supervisor = MimoSupervisorRequest(.approve)
                         do {
                             _ = try await DaemonRPC.call(request, serviceLabel: MimoService.supervisorControlLabel)
@@ -150,7 +156,8 @@ enum MimoEntryPoint {
                     print("PASS: installed-app controls and private profile access; root-only operations remain restricted")
                     exit(0)
                 } catch {
-                    fputs("Service access check failed. Reinstall the matching Mimo app and services.\n", stderr)
+                    let reason = (error as? DaemonFailure)?.rawValue ?? "request failed"
+                    fputs("Service access check failed at \(stage): \(reason).\n", stderr)
                     exit(1)
                 }
             }

@@ -1,0 +1,110 @@
+{
+  "version": "2.1",
+  "build": "8",
+  "completed_at_utc": "2026-11-22T18:40:01.511121+00:00",
+  "release_tag": "v2.1-build.8",
+  "status": "passed",
+  "artifacts": {
+    "Mimo-2.1.pkg": "fa3dacc4df2f2382272afa540450466d0eb3e68d25c264ac1954dcb52e52795f",
+    "Mimo-2.1.zip": "2426aeee4e2173da53a997dbcb79888fe013a2b04188c91019f2b4d0a6f9678b"
+  },
+  "shared_tests": {
+    "passed": 237,
+    "failed": 0
+  },
+  "native_vm_suites": {
+    "service_groups": 14,
+    "gui_groups": 14,
+    "daemon_contracts": "passed",
+    "network_cleanup_checks": 18,
+    "firewall_guard_checks": 27,
+    "scope": "Final sources compiled on Delta; all service, GUI and installer/network tests executed in mimo-vm only."
+  },
+  "final_package_vm_checks": {
+    "passed": true,
+    "checks": [
+      "exact installed 2.1 build 8, startup services, legacy proxy migration, owner-only local storage",
+      "two accounts see identical shared proxy list and revision",
+      "Never preference and repeated actual manual exit-IP refresh, including successful check timestamps",
+      "exact signed GUI accesses both installed endpoints from two accounts",
+      "local IPinfo save/remove is shared without disclosure through state or events",
+      "inactive add preserves current routing/check; stale account revision rejected",
+      "selected proxy authenticates from local storage; real Rule profile and exit verification succeed",
+      "active proxy edit reloads/verifies while retaining Rule",
+      "inactive edit while Rule is active does not reload or run another lookup",
+      "proxy selection reloads/verifies while retaining Global",
+      "None and active deletion restore Direct; protected mode is rejected without a proxy",
+      "shared catalog, selected ID and Never survive core restart without Keychain dependency"
+    ],
+    "cleanup": "passed",
+    "version": "2.1",
+    "build": "8"
+  },
+  "credential_validation": {
+    "local_file": "root-owned 0600, outside app bundle",
+    "machine_keychain_migration": "Unit tests cover durable save before deletion, failed save preservation and retry without stale reimport. The installed VM retains the migrated legacy proxy across acceptance reruns.",
+    "ipinfo": "Synthetic token save/remove shared across two accounts; absent from state/events. Unit tests cover fixed HTTPS Bearer request, redirect rejection and sanitized transport errors.",
+    "proxy": "Established private VM proxy authenticated successfully through the final installed engine; credentials never copied out of the VM."
+  },
+  "package_checks": {
+    "zip_installed_signature": "passed",
+    "installed_helper_matches_bundled_core": true,
+    "expanded_pkg_signature": "passed",
+    "expanded_pkg_appledouble_files": 0,
+    "pkg_local_xattr_names": [
+      "com.apple.provenance"
+    ]
+  },
+  "distribution_contracts": {
+    "cask_version": "2.1",
+    "cask_url": "https://github.com/jxz345/mimo/releases/download/v2.1-build.8/Mimo-2.1.zip",
+    "cask_service_setup_required": true,
+    "cask_cleanup_authenticated": true
+  },
+  "limits": [
+    "Physical fast user switching, sleep and login-screen behavior were not newly qualified; two-account access uses real XPC and the exact signed GUI diagnostic in a VM.",
+    "No real IPinfo token was used for this release qualification; request privacy is unit-tested.",
+    "No new MagicDNS/IPv6 packet-capture qualification; the existing profile and cleanup rules are unchanged and their contracts pass.",
+    "Rendered dashboard fixtures use synthetic data; they are not screenshots of a physical Mac.",
+    "Release binaries are ad-hoc signed, not notarized."
+  ],
+  "source_sha256": {
+    "Scripts/generate-xcode-project.sh": "579d74c21a50918705e7df3a69c434290632326f10833c2e83e09a705d1599dc",
+    "Sources/MimoApp/LaunchDiagnostics.swift": "a87e36f10df89db56c3b6660b5763f8ded8c63ad58ebc0d69079328e653cc5f3",
+    "Sources/MimoApp/LegacyDashboardViews.swift": "64b49743f8b69224589e6ecb362fea57caa6f3b510b85a2f979155076c66253a",
+    "Sources/MimoApp/MimoProxyDraft.swift": "705a1397f119d191db560199708a38cc903db4f0a06d06eb08fe8a1579728310",
+    "Sources/MimoApp/MimoReleasedMonitor.swift": "45777aa5b2321cdcf532be3298f72dc378c54bc1e03c4b1bb27ba7159b78fe46",
+    "Sources/MimoApp/MimoViews.swift": "5c21c688ca8cad243f3396d59d5b61076f594b6262c677f1ffe3693bf3ab7040",
+    "Sources/MimoApp/PublicIPMonitor.swift": "59f98c8683e16100806f8aaea9c13312b58726697f9830bf8d371d773eb37ba9",
+    "Sources/MimoCore/MonitoringEngine.swift": "4b8745253960591930e5954f54bbbd837ca1d4976c620fc271aa940ddc757388",
+    "Sources/MimoDaemon/daemon.sh": "eadd740f18f4de779414cf497314a1aa424ef6fb5216bfa52e20eb825e84acff",
+    "Sources/MimoService/DaemonMain.swift": "49a408e6c920800b0796fa1064f5ab8bf1670c7006e8cd096131e0f6ab9671f2",
+    "Sources/MimoService/DaemonService.swift": "72ada8d17abe1e43805c69f1a019c338b11725d9699188ef3769730b5c316964",
+    "Sources/MimoService/LegacyMachineMigration.swift": "f514ac204a80524411713d97ff4a3e1dd5886a1968c4d3b3536803125bd0811b",
+    "Sources/MimoService/MimoCoordinator.swift": "ea39d935692e3b83f373b51e5003d8bd14781a89afc4f00fbb9c6d3a44e62400",
+    "Sources/MimoService/MimoSupervisor.swift": "dafd4678ecbbb96f570e5e0216f5b1ea4388129ed128916be799f52bc9bf54f1",
+    "Sources/MimoService/MimoSystemRuntime.swift": "0743b726c1ddb9d4b2a224f43a46ee1b21e2d945476dc9ef697768fb6d93da70",
+    "Sources/MimoService/SystemCredentials.swift": "3e0e98052d4cf71ca4c6734e78394e974f89218bb84079b302942a1ac30c67d1",
+    "Sources/MimoShared/AppGroupStorage.swift": "562116b3b06489f395b6484a5a482fd942f6654482547f80b387d0849ab2f518",
+    "Sources/MimoShared/DaemonProtocol.swift": "7376fa50c33f8828f8932027a016fd65da25537555032373497dcd1eb5d770cb",
+    "Sources/MimoShared/EventLogLine.swift": "927d77f92707a06085d3df32596599f12295ef69a4382db0447b53a71fa1eaa1",
+    "Sources/MimoShared/IPLocationProvider.swift": "d2e7da77b902b509dbbcd2cfc84a1a19746af37656022f684dae66f3b9f7dcf9",
+    "Sources/MimoShared/MimoRouting.swift": "d7569022701df11961d90e1159cf6b879a6987280e70bb6724ca89225c075353",
+    "Sources/MimoShared/MonitoringRules.swift": "8080a33390d8d23d18deb2577d742c310abe36706cfdf250da7c3336a742efe3",
+    "Sources/MimoShared/PreferenceStorage.swift": "368864bd72487cc64e953efbdcde85629ad55c9a221c814a8bd50f5e7abc6786",
+    "Sources/MimoShared/ProviderFailurePolicy.swift": "fbeca3bb28760b487ab0c7827bb038f1a0f8c1a0ff0b69974cf1db2cc8351e51",
+    "Sources/MimoShared/SecureTokenStore.swift": "79018a00fb0df48143869caf23113437a87b01104f553765e4448798b64db4af",
+    "Sources/MimoWidgets/MimoStatusWidget.swift": "8362be190d03ce9136cbc6fcfbb2175acf63ad3e924339a0fafbaa18ed22ccd5",
+    "Tests/MimoAppTests/credential_test.swift": "fba8398549bb3d03622958fb4f94a6e82731aaa8943a1196b2629f84c49748ff",
+    "Tests/MimoAppTests/mimo_country_tests.swift": "c4cfc405989196de1971ebbc5ed8f636360f4d43c353acf6dd9453ce00fce116",
+    "Tests/MimoAppTests/mimo_dashboard_tests.swift": "ab6d592364d3e20246fd36b4e728f09a8d46b82eeb80436d0a368d1cd5538164",
+    "Tests/MimoAppTests/mimo_draft_tests.swift": "ded444b37635faeac04447522558b0a7feb1da50ebb522222bee3d49eaedccb6",
+    "Tests/MimoAppTests/released_monitor_tests.swift": "7b095ed79125a7f1edf9b6570af4adcc93bd284f72e10ca8ed82dc469055ec82",
+    "Tests/MimoServiceTests/service_test.swift": "35e2f65f947d8d9555783335a2d04ed527c1a48a6115a82f7a6e9a5094d81030",
+    "Tests/MimoSharedTests/ProviderFailurePolicyTests.swift": "89edabb81a1b362b9eb0d07a4524ac2238d28f023de56baf52594b4ca74a4388",
+    "Sources/MimoShared/MimoLocalSettings.swift": "cd57e0ca776d3639641a803e73612600881100a91de3a51481e9b16f47fbcdf7",
+    "Sources/MimoShared/MimoManualRefresh.swift": "43e16e142ef27aebf658602c9f117efdc8457344547d3ece5ed67f95fe8e0cf4",
+    "Tests/MihomoRuntimeTests/release_v21_test.py": "08f0afd240620a6eab03f6dded9276af48aeb2bdb77ec21c86f2e13464fefff8",
+    "Tests/MihomoRuntimeTests/release_v21_controls.swift": "0a84ca80c2543356e313cfe87d3a1286999d46987e3b3a15830701e9c4950afa"
+  }
+}

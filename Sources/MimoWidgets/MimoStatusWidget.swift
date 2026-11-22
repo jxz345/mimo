@@ -5,7 +5,7 @@ struct MimoWidgetEntry: TimelineEntry, Sendable {
     let date: Date
     let snapshot: MimoSnapshot?
     let indicators: MonitorIndicatorState
-    var refreshInterval: RefreshInterval = .fifteenMinutes
+    var refreshInterval: RefreshInterval = .sixtyMinutes
     var routing = MimoRoutingState()
     var monitoringStatus: MonitoringStatus = .ready
     var presentation: MimoStatusPresentation {
@@ -102,7 +102,7 @@ enum WidgetServiceState {
             let cached = UserDefaults.standard.data(forKey: "daemon.widget-cache").flatMap { try? JSONDecoder().decode(DaemonState.self, from: $0) }
             return MimoWidgetEntry(date: .now, snapshot: cached?.presentedSnapshot,
                                      indicators: .init(errorMessage: "Background service unavailable; cached data is stale", suppressLocation: true),
-                                     refreshInterval: cached?.settings.refreshInterval ?? .fifteenMinutes)
+                                     refreshInterval: cached?.settings.refreshInterval ?? .sixtyMinutes)
         }
     }
 }

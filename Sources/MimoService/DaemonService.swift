@@ -21,7 +21,7 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
     private var mutationInProgress = false
     private let controls = MimoControlQueue()
     private let authorize: @Sendable (Data?) -> Bool
-    private let credentials: any CredentialBackend
+    private let credentialMigrationWarning: String?
     private var routingConfiguration: MimoConfiguration
     private let routing: MimoCoordinator?
     private var hasProxyPassword = false
@@ -30,12 +30,15 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
     private var networkReleaseRequested: Bool { routing != nil && MimoSystemRuntime().networkReleaseRequested }
 
     init(storage: FilePreferenceStorage, observeSystem: Bool = true,
-         credentials: any CredentialBackend = SystemCredentials(),
+         credentials: any CredentialBackend = MimoLegacyCredentials(),
          client: any PublicIPLookupClientProtocol = PublicIPLookupClient(),
          authorize: @escaping @Sendable (Data?) -> Bool = ServiceAuthorization.validate) throws {
         self.storage = storage
         self.authorize = authorize
-        self.credentials = credentials
+        let cleaned = try MimoLocalSettings.migrate(storage, legacy: credentials)
+        credentialMigrationWarning = cleaned ? nil : "Credentials saved locally. Legacy Keychain cleanup needs retry after restarting core."
+        try MimoLocalSettings.migrateMonitoring(storage)
+        let localCredentials = MimoLocalCredentials(storage: storage)
         if let data = storage.data(forKey: "service.settings") {
             settings = try JSONDecoder().decode(MachineSettings.self, from: data).validated()
             initialized = true
@@ -64,7 +67,7 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
             refreshAttemptStore: RefreshAttemptStore(defaults: storage), lookupBudgetStore: LookupBudgetStore(defaults: storage),
             indicatorStore: IndicatorStore(defaults: storage), allowedIPStore: AllowedIPStore(defaults: storage),
             providerHealthStore: ProviderHealthStore(defaults: storage), diagnosticPreferencesStore: DiagnosticPreferencesStore(defaults: storage),
-            client: routing.map { MimoLookupClient($0) as any PublicIPLookupClientProtocol } ?? client, ipinfoCredentials: CredentialSession(service: CredentialService(backend: credentials),
+            client: routing.map { MimoLookupClient($0) as any PublicIPLookupClientProtocol } ?? client, ipinfoCredentials: CredentialSession(service: CredentialService(backend: localCredentials),
                                                                account: SecureTokenStore.ipinfoLiteAccount))
         provider = TailscaleProviderService(persistFiles: observeSystem)
         super.init()
@@ -89,7 +92,7 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
         await routing?.start()
         guard initialized || routingConfiguration.mode == .direct else { return }
         if initialized, routingConfiguration.proxy != nil {
-            hasProxyPassword = (try? credentials.read(account: MimoRuntime.proxyPasswordAccount))?.isEmpty == false
+            hasProxyPassword = routingConfiguration.proxies?.first(where: { $0.id == routingConfiguration.activeProxyID })?.hasPassword == true
         }
         if initialized { _ = await engine.ipinfoCredentials.load() }
         else { engine.apply(settings.monitoring, requestRefresh: false) }
@@ -188,9 +191,9 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
     func handle(_ request: DaemonRequest, uid: uid_t, session: DaemonSession? = nil) async -> DaemonResponse {
         var request = request
         guard request.protocolVersion == MimoService.protocolVersion else { return DaemonResponse(failure: .incompatible) }
-        let humanControl = [.configureRouting, .saveProxy, .removeProxy, .configure, .initialize,
-                            .setToken, .removeToken, .refresh, .testProvider, .startTailnetProvider].contains(request.command)
-        let restricted = [.configureRouting, .saveProxy, .removeProxy, .configure, .initialize, .setToken, .removeToken].contains(request.command)
+        let humanControl = [.configureRouting, .saveProxy, .removeProxy, .selectProxy, .configure, .initialize,
+                            .setToken, .removeToken, .testProvider, .startTailnetProvider].contains(request.command)
+        let restricted = [.configureRouting, .saveProxy, .removeProxy, .selectProxy, .configure, .initialize, .setToken, .removeToken].contains(request.command)
         if restricted, session?.installedApp != true, !authorize(request.authorization) {
             return DaemonResponse(failure: .unauthorized)
         }
@@ -220,7 +223,7 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
                 // Any local account may restore this shared integration. This
                 // command has no client-supplied settings or network policy.
                 guard request.settings == nil, request.routing == nil, request.proxy == nil,
-                      request.proxyPassword == nil, request.token == nil, request.migration == nil,
+                      request.proxyPassword == nil, request.proxyID == nil, request.token == nil, request.migration == nil,
                       request.supervisor == nil, request.presentation == nil, request.provider == nil else {
                     throw DaemonFailure.invalidRequest
                 }
@@ -258,6 +261,7 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
                 if Date().timeIntervalSince(lastManualRequest) >= 1 {
                     lastManualRequest = Date()
                     let selected = request.provider
+                    if request.command == .refresh { engine.beginManualRefresh() }
                     Task { [engine] in
                         if request.command == .testProvider, let selected { await engine.testProvider(selected) }
                         else { await engine.refresh(force: true, bypassMinimumInterval: true, trigger: .manual) }
@@ -322,26 +326,14 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
                     guard initialized else { throw DaemonFailure.invalidRequest }
                     let token = request.token?.trimmingCharacters(in: .whitespacesAndNewlines)
                     if request.command == .setToken {
-                        guard let token, !token.isEmpty, token.utf8.count <= 4096 else { throw DaemonFailure.invalidRequest }
+                        guard let token, !token.isEmpty, token.utf8.count <= 4096, !token.unicodeScalars.contains(where: { CharacterSet.whitespacesAndNewlines.union(.controlCharacters).contains($0) }) else { throw DaemonFailure.invalidRequest }
                     }
                     engine.invalidatePendingLookup()
                     await routing?.beginConfigurationChange(reason: "The lookup credential is changing. Verification is required.")
                     defer { routing?.endConfigurationChange() }
-                    let previousToken = try credentials.read(account: SecureTokenStore.ipinfoLiteAccount)
-                    if request.command == .setToken {
-                        guard let token, await engine.saveIPinfoToken(token, requestRefresh: false) else { throw DaemonFailure.credential }
-                    } else {
-                        guard await engine.removeIPinfoToken() else { throw DaemonFailure.credential }
-                    }
-                    do {
-                        try storage.update(["service.revision": revision + 1])
-                    } catch {
-                        let restored: Bool
-                        if let previousToken { restored = await engine.ipinfoCredentials.save(previousToken) }
-                        else { restored = await engine.ipinfoCredentials.remove() }
-                        if !restored { throw DaemonFailure.credential }
-                        throw error
-                    }
+                    try storage.update([MimoLocalSettings.tokenKey: request.command == .setToken ? token : nil,
+                                        "service.revision": revision + 1])
+                    guard await engine.reloadLocalIPinfoToken() else { throw DaemonFailure.credential }
                     revision += 1
                     await routing?.update(configuration: routingConfiguration, allowlist: settings.allowlist, revision: revision)
                     Task { [engine] in await engine.refresh(force: true, bypassMinimumInterval: true, trigger: .settingsChanged) }
@@ -351,61 +343,67 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
                 var response = DaemonResponse(state: state(for: uid), events: RuntimeLog.shared.recentLines())
                 response.diagnosticEvents = RuntimeLog.shared.recentDiagnosticRecords()
                 return response
-            case .configureRouting, .saveProxy, .removeProxy:
+            case .configureRouting, .saveProxy, .removeProxy, .selectProxy:
                 guard session?.installedApp == true || authorize(request.authorization) else { throw DaemonFailure.unauthorized }
                 guard initialized, !mutationInProgress, request.expectedRevision == revision else { throw DaemonFailure.conflict }
                 mutationInProgress = true
                 defer { mutationInProgress = false }
                 var next = routingConfiguration
-                let changesSecret = request.command == .saveProxy || request.command == .removeProxy
-                let previousSecret = changesSecret ? try credentials.read(account: MimoRuntime.proxyPasswordAccount) : nil
-                var nextSecret = previousSecret
+                var entries = next.proxies ?? []
+                var passwords = try MimoLocalSettings.passwords(in: storage)
+                let previousPassword = next.activeProxyID.flatMap { passwords[$0] }
                 switch request.command {
                 case .configureRouting:
                     guard let requested = request.routing else { throw DaemonFailure.invalidRequest }
                     next.mode = requested.mode
+                case .selectProxy:
+                    if let id = request.proxyID, !entries.contains(where: { $0.id == id }) { throw DaemonFailure.invalidRequest }
+                    next.activeProxyID = request.proxyID
+                    if request.proxyID == nil { next.mode = .direct }
                 case .saveProxy:
                     guard let proxy = request.proxy else { throw DaemonFailure.invalidRequest }
-                    nextSecret = request.proxyPassword ?? previousSecret
-                    next.proxy = MimoProxy(try proxy.settings(password: nextSecret ?? ""))
-                case .removeProxy: next.proxy = nil; nextSecret = nil
+                    let id = request.proxyID ?? UUID()
+                    if request.proxyID != nil, !entries.contains(where: { $0.id == id }) { throw DaemonFailure.invalidRequest }
+                    let password = request.proxyPassword ?? passwords[id] ?? ""
+                    let entry = MimoSavedProxy(id: id, proxy: MimoProxy(try proxy.settings(password: password)), hasPassword: !password.isEmpty)
+                    if let index = entries.firstIndex(where: { $0.id == id }) { entries[index] = entry }
+                    else { entries.append(entry) }
+                    passwords[id] = password.isEmpty ? nil : password
+                case .removeProxy:
+                    guard let id = request.proxyID, entries.contains(where: { $0.id == id }) else { throw DaemonFailure.invalidRequest }
+                    entries.removeAll { $0.id == id }; passwords[id] = nil
+                    if next.activeProxyID == id { next.activeProxyID = nil; next.mode = .direct }
                 default: break
                 }
+                next.proxies = entries
                 next = try next.validated()
+                guard !next.mode.requiresVerification || next.proxy != nil else { throw DaemonFailure.invalidRequest }
+                let affectsRouting = next.mode != routingConfiguration.mode ||
+                    (next.mode.requiresVerification && (next.proxy != routingConfiguration.proxy ||
+                        next.activeProxyID != routingConfiguration.activeProxyID ||
+                        next.activeProxyID.flatMap { passwords[$0] } != previousPassword))
                 if next.mode.requiresVerification, networkReleaseRequested {
                     try await routing?.startReleasedEngine()
                     next.mihomoEnabled = true
                 }
-                engine.invalidatePendingLookup()
-                await routing?.beginConfigurationChange(reason: "Shared proxy configuration is changing.",
-                    selectingDirect: request.command == .configureRouting && next.mode == .direct)
-                defer { routing?.endConfigurationChange() }
-                let secretChanged = nextSecret != previousSecret
-                if secretChanged {
-                    if let nextSecret, !nextSecret.isEmpty { try credentials.save(nextSecret, account: MimoRuntime.proxyPasswordAccount) }
-                    else { try credentials.delete(account: MimoRuntime.proxyPasswordAccount) }
+                if affectsRouting {
+                    engine.invalidatePendingLookup()
+                    await routing?.beginConfigurationChange(reason: "Shared proxy configuration is changing.", selectingDirect: next.mode == .direct)
                 }
-                do {
-                    try storage.update(["service.routing": try JSONEncoder().encode(next), "service.revision": revision + 1])
-                } catch {
-                    if secretChanged {
-                        do {
-                            if let previousSecret { try credentials.save(previousSecret, account: MimoRuntime.proxyPasswordAccount) }
-                            else { try credentials.delete(account: MimoRuntime.proxyPasswordAccount) }
-                        } catch {
-                            hasProxyPassword = false
-                            throw DaemonFailure.credential
-                        }
-                    }
-                    throw error
-                }
+                defer { if affectsRouting { routing?.endConfigurationChange() } }
+                try storage.update(["service.routing": try JSONEncoder().encode(next),
+                                    MimoLocalSettings.passwordsKey: try JSONEncoder().encode(passwords),
+                                    "service.revision": revision + 1])
                 routingConfiguration = next; revision += 1
                 engine.allowlistChecksEnabled = next.mode.requiresVerification
                 engine.networkEventChecksEnabled = next.mode.requiresVerification
-                if changesSecret { hasProxyPassword = nextSecret?.isEmpty == false }
-                await routing?.update(configuration: next, allowlist: settings.allowlist, revision: revision)
-                Task { [engine] in await engine.refresh(force: true, bypassMinimumInterval: true, trigger: .settingsChanged) }
-                RuntimeLog.shared.info("mimo_routing_changed", fields: ["mode": next.mode.rawValue, "revision": String(revision)])
+                hasProxyPassword = next.activeProxyID.flatMap { passwords[$0] }?.isEmpty == false
+                await routing?.update(configuration: next, allowlist: settings.allowlist, revision: revision, preservingAccess: !affectsRouting)
+                if affectsRouting {
+                    Task { [engine] in await engine.refresh(force: true, bypassMinimumInterval: true, trigger: .settingsChanged) }
+                }
+                RuntimeLog.shared.info("mimo_proxy_catalog_changed", fields: ["operation": request.command.rawValue,
+                    "count": String(entries.count), "mode": next.mode.rawValue, "revision": String(revision), "reload": String(affectsRouting)])
             case .supervisor: throw DaemonFailure.invalidRequest
             }
             publish()
@@ -430,9 +428,10 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
                            settings: settings, presentation: presentation, snapshot: engine.snapshot, status: engine.status,
                            indicators: engine.indicators, authorizationState: engine.authorizationState,
                            providerHealth: engine.providerHealth, budget: engine.lookupBudget, nextProvider: engine.preferences.provider, cooldowns: cooldowns,
-                           hasIPinfoToken: !engine.isIPinfoTokenUnavailable, credentialError: engine.ipinfoCredentials.errorMessage,
+                           hasIPinfoToken: !engine.isIPinfoTokenUnavailable, credentialError: engine.ipinfoCredentials.errorMessage ?? credentialMigrationWarning,
                            allowlistEventID: allowlistEventID, errorEventID: errorEventID,
                            providerStatus: provider.status, providerError: provider.error, storageError: storage.lastError)
+        result.manualRefresh = engine.manualRefresh
         result.routing = routing?.state ?? MimoRoutingState(configuration: routingConfiguration)
         result.routing?.hasProxyPassword = hasProxyPassword
         result.routing?.tailnetExpected = networkReleaseRequested ? false : nativeTailnetExpected

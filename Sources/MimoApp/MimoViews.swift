@@ -47,7 +47,7 @@ struct DashboardView: View {
     private var location: MimoSnapshot? { monitor.snapshot.flatMap { $0.ipAddress == routing.displayedIP?.address ? $0 : nil } }
     private var savedSettingsKnown: Bool { monitor.daemonState != nil }
     private var proxyTitle: String {
-        routing.configuration.proxy?.name ?? (savedSettingsKnown ? "No proxy configured" : "Configuration unavailable")
+        routing.configuration.proxy.map { "\($0.name) · \($0.type.displayName)" } ?? (savedSettingsKnown ? "None · Direct only" : "Configuration unavailable")
     }
 
     var body: some View {
@@ -60,7 +60,7 @@ struct DashboardView: View {
                     .keyboardShortcut("r", modifiers: .command).disabled(!monitor.canRefresh).mimoGlassButton()
                 Spacer()
                 Picker("Routing mode", selection: Binding(get: { routing.configuration.mode }, set: monitor.setMode)) {
-                    ForEach(ProxyMode.allCases) { Text($0.title).tag($0) }
+                    ForEach(ProxyMode.allCases) { Text($0.title).tag($0).disabled($0.requiresVerification && routing.configuration.proxy == nil) }
                 }.pickerStyle(.segmented).labelsHidden().frame(width: 280).disabled(!monitor.canChangeSharedSettings || installer.isInstalling)
                     .help("Direct: no proxy. Rule: apply the saved profile. Global: proxy all public internet traffic.")
             }.padding(.horizontal, 18).padding(.vertical, 10).modifier(MimoBarBackground())
@@ -154,16 +154,6 @@ struct DashboardView: View {
                 VStack(alignment: .leading, spacing: 5) {
                     HStack { Text("Proxy configuration").foregroundStyle(.secondary); Spacer(); Button { MimoSettingsNavigation.open(.proxy) } label: { Text("Edit"); Image(systemName: "arrow.right") }.buttonStyle(.plain) }
                     Text(proxyTitle).font(.headline).lineLimit(1).help(proxyTitle)
-                    Text(routing.configuration.proxy.map { "\($0.type.displayName) · Shared proxy" } ?? (savedSettingsKnown ? "Add a proxy in Settings" : "Connect to services to load saved settings"))
-                        .font(.caption).foregroundStyle(.secondary)
-                    VStack(alignment: .leading, spacing: 7) {
-                        HStack(spacing: 6) {
-                            Label("This Mac", systemImage: "desktopcomputer")
-                            Image(systemName: "arrow.right")
-                            Text(routeTitle).foregroundStyle(.primary)
-                        }
-                        Label(tailnetNote, systemImage: "network")
-                    }.font(.caption).foregroundStyle(.secondary).padding(.top, 12)
                 }.font(.callout).padding(.top, 3)
                 HStack {
                     VStack(alignment: .leading, spacing: 3) {
@@ -226,7 +216,7 @@ struct DashboardView: View {
                         VStack(spacing: 0) { ForEach(MimoServiceID.allCases) { service in serviceRow(service, at: context.date) } }
                             .padding(.horizontal, 14)
                         Divider()
-                        Label(monitor.operationError ?? installer.message ?? (monitor.installationInactive ? "Services removed. System / other VPN manages networking." : monitor.connected
+                        Label(monitor.operationError ?? monitor.lookupStatusMessage ?? installer.message ?? (monitor.installationInactive ? "Services removed. System / other VPN manages networking." : monitor.connected
                             ? monitor.lookupStatusMessage ?? (monitor.installationInactive ? "Monitoring in this app. Safe to delete Mimo.app." : routing.networkReleased == true ? "Engine stays stopped until you start it." : "Shared across this Mac · Services continue when Mimo closes.")
                             : monitor.connectionSummary(at: context.date)), systemImage: "info.circle")
                             .font(.caption2).foregroundStyle(.secondary).lineLimit(2, reservesSpace: true)
@@ -401,22 +391,7 @@ struct DashboardView: View {
         case .unavailable: .secondary
         }
     }
-    private var routeTitle: String {
-        if monitor.installationInactive { return "System networking" }
-        if !monitor.connected { return "Status unknown" }
-        if routing.networkReleased == true { return "Mimo routing released" }
-        if presentation.isRestoringDirect { return "Switching to Direct" }
-        if presentation.isDirect { return "Direct connection" }
-        if !routing.allowsTraffic { return "Internet blocked" }
-        return routing.configuration.mode == .rule ? "Profile rules" : "Proxy public internet"
-    }
-    private var tailnetNote: String {
-        if monitor.installationInactive { return "System / other VPN manages networking" }
-        if !monitor.connected { return "Tailnet status unconfirmed" }
-        if routing.networkReleased == true { return "System / other VPN manages networking" }
-        if routing.services.first(where: { $0.id == .tailnetProvider })?.health == .running { return "LAN & Tailscale stay local" }
-        return presentation.isDirect ? "Direct routing · Tailnet provider stopped" : "LAN stays local · Tailnet access blocked"
-    }
+
 }
 
 struct SettingsView: View {
@@ -528,8 +503,8 @@ struct SettingsView: View {
                         }.labelsHidden().fixedSize().disabled(!monitor.canChangeSharedSettings)
                     }
                     systemEvent("Network changes", action: "Rule / Global only")
-                    systemEvent("Traffic", action: monitor.routingState.networkReleased == true ? "System / other VPN" : "IPv4 only · IPv6 disabled")
-                        .help("IPv6 stays disabled while Mimo manages networking, including ordinary Direct. Stop engine and use Direct restores Mimo-owned settings.")
+                    systemEvent("Traffic", action: monitor.routingState.configuration.mode.requiresVerification ? "Profile rejects IPv6" : "System / other VPN")
+                        .help("Rule and Global capture IPv6 in the TUN and reject it in the profile. Direct uses system networking.")
                     HStack(alignment: .firstTextBaseline, spacing: 24) {
                         HStack(alignment: .firstTextBaseline, spacing: 10) {
                             Text("Rule / Global")
@@ -593,7 +568,7 @@ struct SettingsView: View {
                     }
                     Text("Mimo uses 80% of capped quotas; remaining is Mimo’s allowance. Counts reset at midnight UTC for this Mac. Other devices may share a provider’s quota. IPinfo Lite is unlimited with a token.")
                         .font(.caption).foregroundStyle(.secondary)
-                    Text("If an IP lookup fails, Mimo tries the next available provider and avoids the failed provider for 8 hours (or longer if requested by that provider). Pauses survive restarts. Unknown country data is not a failure.")
+                    Text("If an IP lookup fails, Mimo tries the next available provider and avoids the failed provider for 10 minutes (or longer if requested by that provider). Pauses survive restarts. Unknown country data is not a failure.")
                         .font(.callout).foregroundStyle(.secondary)
                     SecureField("Shared IPinfo token", text: $token)
                     HStack {
@@ -602,6 +577,8 @@ struct SettingsView: View {
                         Button("Remove token") { Task { _ = await monitor.removeIPinfoToken() } }
                     }.controlSize(.small).disabled(monitor.isCredentialBusy)
                     Text(monitor.ipinfoCredentialStatus).font(.caption).foregroundStyle(.secondary)
+                    Text("Stored locally for all users. Sent only to IPinfo over HTTPS for authentication.")
+                        .font(.caption).foregroundStyle(.secondary)
                 }.disabled(!monitor.canChangeSharedSettings)
             }
             MimoCard("System & network events") {
@@ -631,17 +608,40 @@ private struct MimoProxyForm: View {
     private var conflicting: Bool { draft.conflicts(with: monitor.daemonState) }
     private var unavailable: Bool { !monitor.connected || monitor.daemonState?.initialized != true || draft.revision == nil }
     var body: some View {
-        MimoCard("Shared proxy configuration") {
+        MimoCard("Shared proxies") {
             VStack(alignment: .leading, spacing: 14) {
+                Picker("Active proxy", selection: Binding<UUID?>(get: {
+                    monitor.routingState.configuration.activeProxyID
+                }, set: { id in Task { _ = await monitor.selectProxy(id) } })) {
+                    Text("None · Direct only").tag(nil as UUID?)
+                    ForEach(monitor.routingState.configuration.proxies ?? []) { entry in
+                        Text(entry.proxy.name).tag(Optional(entry.id))
+                    }
+                }.disabled(unavailable || monitor.isChangingSettings)
+                ForEach(monitor.routingState.configuration.proxies ?? []) { entry in
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(entry.proxy.name).fontWeight(.medium)
+                            Text("\(entry.proxy.type.displayName) · \(entry.proxy.server):\(String(entry.proxy.port))").font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        if entry.id == monitor.routingState.configuration.activeProxyID { Text("Active").font(.caption) }
+                        Button("Edit") { draft.select(entry.id, from: monitor.daemonState); error = nil }
+                    }
+                }
+                Button("Add proxy") { draft.select(nil, from: monitor.daemonState); error = nil }
+                    .disabled(unavailable || monitor.isChangingSettings)
+                Divider()
+                Text(draft.proxyID == nil ? "New proxy" : "Edit proxy").font(.headline)
                 Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 12) {
                     GridRow { Text("Name"); TextField("Proxy name", text: $draft.name) }
                     GridRow { Text("Type"); Picker("Type", selection: $draft.type) { ForEach(ClashProxySettings.ProxyType.allCases) { Text($0.displayName).tag($0) } }.labelsHidden() }
                     GridRow { Text("Server"); TextField("proxy.example.com", text: $draft.server) }
                     GridRow { Text("Port"); TextField("1080", text: $draft.port) }
                     GridRow { Text("Username"); TextField("Optional", text: $draft.username) }
-                    GridRow { Text("Password"); SecureField(monitor.routingState.hasProxyPassword ? "Saved in System Keychain" : "Optional", text: $draft.password) }
+                    GridRow { Text("Password"); SecureField(draft.hasPassword ? "Saved locally" : "Optional", text: $draft.password) }
                 }.textFieldStyle(.roundedBorder).disabled(unavailable || monitor.isChangingSettings)
-                if monitor.routingState.hasProxyPassword { Toggle("Remove the saved password", isOn: $draft.clearPassword).disabled(unavailable || monitor.isChangingSettings) }
+                if draft.hasPassword { Toggle("Remove the saved password", isOn: $draft.clearPassword).disabled(unavailable || monitor.isChangingSettings) }
                 if conflicting {
                     Text("Shared settings changed while this form was open. Your draft is preserved. Reload the latest settings before saving.")
                         .font(.callout).foregroundStyle(.secondary)
@@ -650,24 +650,24 @@ private struct MimoProxyForm: View {
                 }
                 if let error { Text(error).font(.caption).foregroundStyle(.primary) }
                 HStack {
-                    Button("Save and apply") { save() }.mimoGlassButton()
-                    Button("Remove", role: .destructive) { confirmRemoval = true }
+                    Button("Save proxy") { save() }.mimoGlassButton()
+                    Button("Remove", role: .destructive) { confirmRemoval = true }.disabled(draft.proxyID == nil)
                     Spacer()
                     Button("Import my saved proxy") {
                         guard let revision = draft.revision else { return }
                         Task { if await monitor.importLegacyProxy(expectedRevision: revision) { load() } }
                     }
                 }.disabled(unavailable || conflicting || monitor.isChangingSettings)
-                Text("Shared across this Mac. No administrator password is needed after installation. Legacy Keychain entries are retained after import.").font(.caption).foregroundStyle(.secondary)
+                Text("Shared by all users on this Mac. New proxies are saved inactive. Credentials are stored locally.").font(.caption).foregroundStyle(.secondary)
             }
         }.onChange(of: monitor.daemonState?.revision, initial: true) { _, _ in draft.receive(monitor.daemonState) }
             .onChange(of: monitor.daemonState?.initialized) { _, _ in draft.receive(monitor.daemonState) }
             .confirmationDialog("Remove the shared proxy?", isPresented: $confirmRemoval) {
                 Button("Remove proxy", role: .destructive) {
-                    guard let revision = draft.revision else { return }
-                    Task { if await monitor.removeProxy(expectedRevision: revision) { load() } }
+                    guard let revision = draft.revision, let id = draft.proxyID else { return }
+                    Task { if await monitor.removeProxy(id: id, expectedRevision: revision) { draft.select(nil, from: monitor.daemonState) } }
                 }
-            } message: { Text("Rule and Global will remain blocked. Direct stays available.") }
+            } message: { Text("Removing the active proxy switches this Mac to Direct.") }
     }
     private func load() {
         draft.receive(monitor.daemonState, discardChanges: true)
@@ -676,7 +676,7 @@ private struct MimoProxyForm: View {
         do {
             guard let revision = draft.revision else { return }
             let value = try draft.validatedProxy(), password = draft.passwordChange
-            Task { if await monitor.saveProxy(value, password: password, expectedRevision: revision) { error = nil; load() } }
+            Task { if await monitor.saveProxy(value, password: password, expectedRevision: revision, id: draft.proxyID) { error = nil; load() } }
         } catch { self.error = error.localizedDescription }
     }
 }

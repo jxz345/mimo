@@ -195,9 +195,8 @@ public struct IPinfoLiteProvider: IPLocationProvider {
             throw LookupError.missingToken(.ipinfoLite)
         }
 
-        var components = URLComponents(string: "https://api.ipinfo.io/lite/me")!
-        components.queryItems = [URLQueryItem(name: "token", value: ipinfoToken)]
-        let response: IPinfoLiteResponse = try await JSONHTTPClient.get(components.url!, session: session)
+        let response: IPinfoLiteResponse = try await JSONHTTPClient.get(
+            URL(string: "https://api.ipinfo.io/lite/me")!, session: session, bearerToken: ipinfoToken)
         guard !response.ip.isEmpty else { throw LookupError.invalidResponse }
 
         return MimoSnapshot(
@@ -306,17 +305,34 @@ public struct IpapiIsProvider: IPLocationProvider {
     }
 }
 
+/// IPinfo authentication is scoped to its fixed HTTPS endpoint. Never forward it on redirects.
+final class IPinfoRequestPolicy: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
+    static let shared = IPinfoRequestPolicy()
+    func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse,
+                    newRequest request: URLRequest, completionHandler: @escaping @Sendable (URLRequest?) -> Void) {
+        completionHandler(nil)
+    }
+}
+
 private enum JSONHTTPClient {
-    static func get<Response: Decodable>(_ url: URL, session: URLSession) async throws -> Response {
+    static func get<Response: Decodable>(_ url: URL, session: URLSession, bearerToken: String? = nil) async throws -> Response {
         var request = URLRequest(url: url)
         request.timeoutInterval = 12
         request.cachePolicy = .reloadIgnoringLocalCacheData
         request.setValue("Mimo/1.0", forHTTPHeaderField: "User-Agent")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+        if let bearerToken {
+            guard url.scheme == "https", url.host == "api.ipinfo.io", url.query == nil,
+                  !bearerToken.isEmpty, bearerToken.utf8.count <= 4096,
+                  !bearerToken.unicodeScalars.contains(where: { CharacterSet.whitespacesAndNewlines.union(.controlCharacters).contains($0) }) else {
+                throw LookupError.invalidResponse
+            }
+            request.setValue("Bearer \(bearerToken)", forHTTPHeaderField: "Authorization")
+        }
 
         do {
             try Task.checkCancellation()
-            let (data, response) = try await session.data(for: request)
+            let (data, response) = try await session.data(for: request, delegate: bearerToken == nil ? nil : IPinfoRequestPolicy.shared)
             try Task.checkCancellation()
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw LookupError.invalidResponse
@@ -342,7 +358,8 @@ private enum JSONHTTPClient {
         } catch let error as LookupError {
             throw error
         } catch {
-            throw LookupError.transport(error.localizedDescription)
+            // Underlying URL/session errors may contain request details. Never emit a token.
+            throw LookupError.transport(bearerToken == nil ? error.localizedDescription : "IPinfo HTTPS request failed.")
         }
     }
 

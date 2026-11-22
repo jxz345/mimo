@@ -3,6 +3,8 @@ import Foundation
 /// A Settings editor owns the revision it loaded, not the revision of the latest status poll.
 /// Kept by SettingsView so switching sections does not discard an unfinished edit or secret.
 struct MimoProxyDraft {
+    var proxyID: UUID?
+    var hasPassword = false
     var name = ""
     var server = ""
     var port = "1080"
@@ -14,7 +16,9 @@ struct MimoProxyDraft {
 
     mutating func receive(_ state: DaemonState?, discardChanges: Bool = false) {
         guard let state, state.initialized, revision == nil || discardChanges else { return }
-        let proxy = state.routing?.configuration.proxy
+        let entry = state.routing?.configuration.proxies?.first(where: { $0.id == proxyID })
+        let proxy = entry?.proxy
+        hasPassword = entry?.hasPassword == true
         name = proxy?.name ?? ""
         server = proxy?.server ?? ""
         port = String(proxy?.port ?? 1080)
@@ -23,6 +27,11 @@ struct MimoProxyDraft {
         password = ""
         clearPassword = false
         revision = state.revision
+    }
+
+    mutating func select(_ id: UUID?, from state: DaemonState?) {
+        proxyID = id
+        receive(state, discardChanges: true)
     }
 
     func conflicts(with state: DaemonState?) -> Bool {

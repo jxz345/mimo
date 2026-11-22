@@ -73,7 +73,7 @@ public final class FilePreferenceStorage: PreferenceStorage, @unchecked Sendable
         // The system daemon must reopen state while the login session is locked.
         // User-session file protection prevents that. Protect both the temporary
         // and committed files with owner-only permissions from their creation;
-        // provider/proxy passwords remain in the separate System Keychain.
+        // private proxy passwords and the IPinfo token are stored only here.
         var template = Array(url.deletingLastPathComponent().appendingPathComponent(".state-XXXXXX").path.utf8CString)
         let descriptor = template.withUnsafeMutableBufferPointer { mkstemp($0.baseAddress!) }
         guard descriptor >= 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }

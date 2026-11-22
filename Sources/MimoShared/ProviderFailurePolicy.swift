@@ -1,7 +1,7 @@
 import Foundation
 
 public enum ProviderFailurePolicy {
-    public static let pauseInterval: TimeInterval = 8 * 60 * 60
+    public static let pauseInterval: TimeInterval = 10 * 60
 
     /// Never shorten a longer Retry-After supplied by the provider itself.
     public static func resumeAt(after error: LookupError, now: Date) -> Date {

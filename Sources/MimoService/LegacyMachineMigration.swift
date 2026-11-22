@@ -18,7 +18,6 @@ enum LegacyMachineMigration {
             try Data(contentsOf: oldFlags).write(to: newFlags, options: .atomic)
             try files.setAttributes([.posixPermissions: 0o600], ofItemAtPath: newFlags.path)
         }
-        try SystemCredentials().migrateLegacy(removeOriginals: false)
         try Data("copied\n".utf8).write(to: marker, options: .atomic)
         try files.setAttributes([.posixPermissions: 0o600], ofItemAtPath: marker.path)
     }
@@ -27,7 +26,6 @@ enum LegacyMachineMigration {
         let files = FileManager.default
         guard files.fileExists(atPath: marker.path) else { return }
         try requireRootFile(marker)
-        try SystemCredentials().migrateLegacy(removeOriginals: true)
         try ServiceAuthorization.removeRight(LegacyNaming.appID + ".configure")
         if files.fileExists(atPath: oldRoot.path) {
             try requireRootDirectory(oldRoot)

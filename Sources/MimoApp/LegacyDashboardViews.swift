@@ -65,7 +65,7 @@ struct MenuBarCountryLabel: View {
         if indicators.suppressLocation { return "Exit IP error" }
         let allowlist = showsAllowlistStop ? ", not on the allowlist" : ""
         guard let snapshot else { return "Exit IP location unavailable" + allowlist }
-        let stale = snapshot.isStale(at: date, threshold: Double(refreshInterval.rawValue * 2))
+        let stale = snapshot.isStale(at: date, threshold: refreshInterval.snapshotStaleThreshold)
         if snapshot.isCountryChangeHighlighted(at: date) {
             return "Exit IP country changed from \(snapshot.countryChange?.previousName ?? "previous location") to \(snapshot.countryName)" + allowlist + (stale ? ", data is stale" : "")
         }
@@ -76,7 +76,7 @@ struct MenuBarCountryLabel: View {
         guard !indicators.suppressLocation else { return "Exit IP error" }
         guard let snapshot else { return "Locating" }
         let label = snapshot.menuBarLabel(style: displayStyle)
-        return snapshot.isStale(at: date, threshold: Double(refreshInterval.rawValue * 2)) ? "Stale · \(label)" : label
+        return snapshot.isStale(at: date, threshold: refreshInterval.snapshotStaleThreshold) ? "Stale · \(label)" : label
     }
 }
 
@@ -331,7 +331,7 @@ private struct StaleDataNotice: View {
     let date: Date
 
     var body: some View {
-        if let snapshot, snapshot.isStale(at: date, threshold: Double(refreshInterval.rawValue * 2)) {
+        if let snapshot, snapshot.isStale(at: date, threshold: refreshInterval.snapshotStaleThreshold) {
             Label(
                 "Last verified \(snapshot.checkedAt.formatted(.relative(presentation: .named))); refresh is overdue",
                 systemImage: "clock.badge.exclamationmark"
@@ -1070,10 +1070,10 @@ struct LegacySettingsView: View {
                         Button("Remove token", role: .destructive) { Task { await removeToken() } }
                     }
                     .disabled(monitor.isCredentialBusy)
-                    Text(monitor.isCredentialBusy ? "Waiting for Keychain… Complete any macOS access prompt." : (tokenStatus ?? monitor.ipinfoCredentialStatus))
+                    Text(monitor.isCredentialBusy ? "Updating the shared token…" : (tokenStatus ?? monitor.ipinfoCredentialStatus))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
-                    Text("The shared token is stored in the System Keychain and loaded by the daemon at boot. Import reads this account’s old token once; saving or removing the shared token uses the installed background service without an administrator password.")
+                    Text("The shared token is stored locally by mimo-core and sent only to IPinfo over HTTPS for authentication. Import reads this account’s old Keychain token once.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 } else if preferences.provider == .ipapiCo {
@@ -1259,7 +1259,7 @@ struct LegacySettingsView: View {
     private func saveToken() async {
         if await monitor.saveIPinfoToken(ipinfoToken) {
             ipinfoToken = ""
-            tokenStatus = "Saved in System Keychain · available to background monitoring"
+            tokenStatus = "Saved locally · available to background monitoring"
         } else if let error = monitor.operationError { tokenStatus = error }
     }
 

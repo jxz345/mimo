@@ -49,6 +49,7 @@ enum CredentialAppTests {
         }
 
         try await ReleasedMonitorTests.run(output: output)
+        try await MonitoringV21Tests.run()
 
         require(SingleInstanceController.isCurrentUserProcess(getpid()), "The current user's process must match")
         require(!SingleInstanceController.isCurrentUserProcess(-1), "An unknown process must not block this user")

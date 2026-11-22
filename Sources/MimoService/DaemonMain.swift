@@ -108,13 +108,15 @@ enum DaemonMain {
             case ["--check-installation"]:
                 try runtime.checkInstallation()
                 Task { @MainActor in
-                    let deadline = Date.now.addingTimeInterval(60)
+                    // Startup retires legacy network controls before servicing
+                    // requests. Allow that bounded work to finish on a busy Mac.
+                    let deadline = Date.now.addingTimeInterval(120)
                     var problems = ["supervisor"]
                     while Date.now < deadline {
                         var request = DaemonRequest(.supervisor)
                         request.supervisor = MimoSupervisorRequest(.state)
-                        async let supervisor = try? DaemonRPC.call(request, timeout: 2, serviceLabel: MimoRuntime.supervisorLabel)
-                        async let core = try? DaemonRPC.call(DaemonRequest(.state), timeout: 2)
+                        async let supervisor = try? DaemonRPC.call(request, timeout: 10, serviceLabel: MimoRuntime.supervisorLabel)
+                        async let core = try? DaemonRPC.call(DaemonRequest(.state), timeout: 10)
                         let (response, coreResponse) = await (supervisor, core)
                         guard let flags = try? runtime.servicePreferences() else { break }
                         problems = MimoInstallationReadiness.problems(flags: flags, supervisor: response?.routing,

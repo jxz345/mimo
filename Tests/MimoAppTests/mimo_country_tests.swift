@@ -16,12 +16,12 @@ enum MimoCountryTests {
             indicators: MonitorIndicatorState(), authorizationState: .allowed,
             providerHealth: [.ipWhois: .init(lastFailure: now, lastError: "transport", consecutiveFailures: 1)],
             budget: LookupBudget(), nextProvider: .ipapiCo,
-            cooldowns: [.ipWhois: now.addingTimeInterval(8 * 3600)], hasIPinfoToken: false)
+            cooldowns: [.ipWhois: now.addingTimeInterval(600)], hasIPinfoToken: false)
         let monitor = PublicIPMonitor(readDeactivation: { false }); monitor.receive(state)
         MimoSettingsNavigation.shared.section = .monitoring
         try CredentialAppTests.render(SettingsView(monitor: monitor), size: NSSize(width: 1040, height: 740), dark: true,
             to: output.appendingPathComponent("monitoring-provider-pause.png"))
-        print("PASS: Monitoring provider pause rendered with failure reason, retry time and eight-hour policy")
+        print("PASS: Monitoring provider pause rendered with failure reason, retry time and ten-minute policy")
     }
 
     private static func countryAndDirectEvents() async throws {
@@ -80,11 +80,11 @@ enum MimoCountryTests {
         require(monitor.status == .ready, "the next provider must recover the lookup")
         require(await client.providers == [.ipWhois, .ipapiCo], "a failure must rotate immediately without retrying the failed provider")
         let persistedPause = ProviderCooldownStore(defaults: defaults).retryNotBefore(for: .ipWhois)
-        require((persistedPause?.timeIntervalSince(began) ?? 0) >= 8 * 3600, "the eight-hour exclusion must persist")
+        require((persistedPause?.timeIntervalSince(began) ?? 0) >= 600, "the ten-minute exclusion must persist")
         require(ProviderHealthStore(defaults: defaults).load(for: .ipWhois).lastError == "transport", "Settings must retain the failure reason")
         await monitor.refresh(force: true, bypassMinimumInterval: true, trigger: .manual)
         require(await client.providers == [.ipWhois, .ipapiCo, .ipapiCo], "manual refresh must also skip the failed provider")
-        print("PASS: failed provider rotates immediately, persists its eight-hour pause/reason and is skipped on manual refresh")
+        print("PASS: failed provider rotates immediately, persists its ten-minute pause/reason and is skipped on manual refresh")
     }
 
     private static func require(_ condition: Bool, _ message: String) {

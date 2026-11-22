@@ -37,7 +37,7 @@ Keep `Design/MIMO_EVENT_DRIVEN_WORKFLOWS.md` synchronized when changing event tr
 
 ## Security & Configuration
 
-Never commit provider tokens or personal signing data. Store IPinfo credentials through the app's Keychain flow. Replace the placeholder App Group only with a registered identifier in both entitlements and shared storage configuration; keep signing/team changes local unless the task explicitly requires them.
+Never commit provider tokens, proxy credentials or personal signing data. Core owns the system-wide proxy list, passwords and IPinfo token in owner-only local storage outside the app bundle. Keychain access is limited to legacy migration/import; new credentials must not be saved there. Keep credentials out of public state, diagnostics and release artifacts. Replace the placeholder App Group only with a registered identifier in both entitlements and shared storage configuration; keep signing/team changes local unless the task explicitly requires them.
 
 ## Release build identity
 

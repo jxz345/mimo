@@ -299,6 +299,8 @@ final class MimoCoordinator {
                 self.state = interim
                 self.state.configuration.mode = self.configuration.mode
                 self.state.configuration.proxy = self.configuration.proxy
+                self.state.configuration.proxies = self.configuration.proxies
+                self.state.configuration.activeProxyID = self.configuration.activeProxyID
                 if preparing {
                     self.state.phase = .validating
                     self.state.reason = "Validating the profile. Internet remains blocked."
@@ -310,6 +312,8 @@ final class MimoCoordinator {
             // Selected configuration is owned by core, while supervisor reports the actual gate.
             result.configuration.mode = configuration.mode
             result.configuration.proxy = configuration.proxy
+            result.configuration.proxies = configuration.proxies
+            result.configuration.activeProxyID = configuration.activeProxyID
             if configuration.mode == .direct, result.effectiveMode == .direct {
                 result.observedIP = directObservation
             }

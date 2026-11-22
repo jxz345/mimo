@@ -75,6 +75,23 @@ public enum EventLogLine {
         case "shared_settings_initialized": return "Shared settings imported"
         case "shared_settings_changed": return "Shared settings changed"
         case "shared_credential_changed": return "Shared credential updated"
+        case "mimo_proxy_catalog_changed":
+            let action = switch fields["operation"] {
+            case "saveProxy": "Proxy saved"
+            case "removeProxy": "Proxy removed"
+            case "selectProxy": "Active proxy changed"
+            default: "Routing selection changed"
+            }
+            return "\(action) · \(fields["count"] ?? "?") saved · \(fields["mode"] ?? "unknown")" +
+                (fields["reload"] == "true" ? " · applying routing change" : " · routing unchanged")
+        case "manual_refresh_queued": return "Refresh now requested · waiting for a lookup result"
+        case "manual_refresh_finished":
+            switch fields["outcome"] {
+            case "succeeded": return "Refresh now completed · exit IP updated"
+            case "deferred": return "Refresh now deferred · no lookup ran; see provider availability"
+            case "cancelled": return "Refresh now cancelled · networking or services changed"
+            default: return "Refresh now failed · last successful IP retained"
+            }
         case "mimo_network_changed": return "Check trigger · \(trigger(fields["source"]))" + detail(fields["detail"]) + " · generation \(fields["generation"] ?? "?")"
         case "mimo_cycle_owned_event_ignored": return "Own tunnel update ignored · \(trigger(fields["source"]))"
         case "network_airport_telemetry_ignored": return "Wi-Fi status update ignored" + detail(fields["key"]) + detail(fields["fields"])
@@ -143,7 +160,8 @@ public enum EventLogLine {
         case "provider_rotated_after_failure":
             return "Next provider after failure · \(providerName(fields["from"])) → \(providerName(fields["to"]))"
         case "provider_failure_paused":
-            return "\(provider) paused for 8 hours · \(ProviderFailurePolicy.reason(fields["reason"])) · retry after \(time(fields["resumeAt"]))"
+            let duration = fields["seconds"].flatMap(Int.init).map { "\($0 / 60) minutes" } ?? "\(fields["hours"] ?? "8") hours"
+            return "\(provider) paused for \(duration) · \(ProviderFailurePolicy.reason(fields["reason"])) · retry after \(time(fields["resumeAt"]))"
         case "confirmation_deferred":
             return "Country change to confirm · \(fields["from"] ?? "?") → \(fields["to"] ?? "?") · asking \(provider)"
         case "confirmation_result":

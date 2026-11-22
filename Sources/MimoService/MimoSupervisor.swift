@@ -5,7 +5,6 @@ import Security
 @MainActor
 final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
     private let runtime = MimoSystemRuntime()
-    private let credentials = SystemCredentials()
     private var policy = MimoAccessPolicy()
     private var allowlist = AllowedIPList()
     private var endpoint: String?
@@ -303,6 +302,9 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 guard uid == 0 else { throw DaemonFailure.unauthorized }
             }
             if message.command == .service {
+                // Invalid read-only access probes cannot perform an operation and
+                // must not wait behind an unrelated verification cycle.
+                guard message.service != nil, message.operation != nil else { throw DaemonFailure.conflict }
                 try await controls.wait(command: "\(message.service?.rawValue ?? "service") \(message.operation?.rawValue ?? "change")") {
                     self.powerGuard.fence.isCycleActive || self.operationPending
                 }
@@ -364,6 +366,13 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
             case .direct:
                 if runtime.networkReleaseRequested {
                     // Heartbeats and saved Direct cannot reacquire networking.
+                    return response()
+                }
+                if policy.state.phase == .active, policy.state.effectiveMode == .direct,
+                   !runtime.closed, runtime.gateState == "direct" {
+                    // A startup request may arrive after startup already restored
+                    // Direct. Acknowledge it without reloading the same profile.
+                    policy.directRestored(configuration: message.configuration ?? policy.state.configuration)
                     return response()
                 }
                 deferredNetworkReasons.removeAll()
@@ -429,8 +438,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 let preparation = Task { () throws -> PreparedCandidate in
                     guard let result = await preparationQueue.run({ Result { () throws -> (ClashProxySettings, String?) in
                         var preparationTiming = MimoTransitionTiming("preparation")
-                        let secret = try SystemCredentials().read(account: MimoRuntime.proxyPasswordAccount) ?? ""
-                        let candidate = try metadata.settings(password: secret)
+                        let candidate = try runtime.savedProxy(configuration: configuration, revision: revision)
                         let profile = IPAddressValidator.normalize(candidate.server) == nil ? nil :
                             try MihomoProfile.render(candidate, mode: mode, stage: .active, probePassword: password, bypassBlocks: bypassBlocks)
                         preparationTiming.record("credentials_and_render")

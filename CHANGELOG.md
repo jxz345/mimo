@@ -1,5 +1,14 @@
 # Mimo changelog
 
+## 2.1 (build 8) — 2026-11-23
+
+- Save a system-wide list of HTTP/SOCKS5 proxies with one active selection or None. Inactive edits save without reloading; active protected edits reload and verify. None or active deletion restores Direct. Preserve revisions and drafts across accounts; do not automatically fail over proxies.
+- Store proxy passwords and the IPinfo token in core-owned local data outside the app bundle. Migrate machine Keychain credentials once, deleting only after durable save; retain explicit read-only personal import. Keep secrets out of public state and diagnostics. Use IPinfo HTTPS Bearer authentication and reject redirects.
+- Change ordinary provider failure cooldown to ten minutes, preserving longer server restrictions and daily budgets. Migrate identifiable local pauses while preserving ambiguous old HTTP/rate-limit deadlines.
+- Default periodic monitoring to one hour, migrate existing 15-minute preferences once, and add Never. Preserve manual/startup/event/recovery checks; Never removes only periodic scheduling and interval-derived stale status.
+- Report shared Refresh now progress and outcomes, including cooldown deferral, same-IP timestamp updates and coalesced requests. Remove routine proxy setup/routing prose from the dashboard to fit its standard size.
+- Preserve a newly selected 15-minute interval after Stop. Allow startup cleanup to finish before installer health verification times out, and acknowledge redundant Direct requests without reloading the profile.
+
 ## 2.0 (build 7) — 2026-11-23
 
 - Make install/reinstall/upgrade restore all Mimo services and endpoints, overriding full Stop and individual service-stop preferences. Resume inactive installations in Direct and preserve active protected modes/settings. Always check conflicting engines/ports and obtain confirmation before replacing competitors.

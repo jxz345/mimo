@@ -11,7 +11,7 @@ public enum MimoAccessPhase: String, Codable, Sendable {
     case closing, blocked, validating, checking, restoringDirect, active, unavailable
 }
 
-/// Public metadata only. The password lives in a distinct System Keychain account.
+/// Public metadata only. Passwords stay in core-owned local storage.
 public struct MimoProxy: Codable, Equatable, Sendable {
     public var name: String
     public var type: ClashProxySettings.ProxyType
@@ -28,15 +28,36 @@ public struct MimoProxy: Codable, Equatable, Sendable {
     }
 }
 
+public struct MimoSavedProxy: Codable, Equatable, Sendable, Identifiable {
+    public var id: UUID
+    public var proxy: MimoProxy
+    public var hasPassword: Bool
+    public init(id: UUID = UUID(), proxy: MimoProxy, hasPassword: Bool = false) {
+        self.id = id; self.proxy = proxy; self.hasPassword = hasPassword
+    }
+}
+
 public struct MimoConfiguration: Codable, Equatable, Sendable {
     public var mode: ProxyMode = .direct
+    /// Selected metadata, retained for runtime consumers and legacy-state migration.
     public var proxy: MimoProxy?
+    /// nil identifies the pre-2.1 single-proxy format. An empty list is intentional.
+    public var proxies: [MimoSavedProxy]?
+    public var activeProxyID: UUID?
     public var profileHostingEnabled = true
     public var mihomoEnabled = true
     public init() {}
     public func validated() throws -> Self {
         var result = self
         if let proxy { result.proxy = MimoProxy(try proxy.settings()) }
+        if var entries = proxies {
+            guard entries.count <= 256, Set(entries.map(\.id)).count == entries.count else { throw DaemonFailure.invalidRequest }
+            for index in entries.indices { entries[index].proxy = MimoProxy(try entries[index].proxy.settings()) }
+            guard Set(entries.map { $0.proxy.name.lowercased() }).count == entries.count else { throw DaemonFailure.invalidRequest }
+            if let activeProxyID, !entries.contains(where: { $0.id == activeProxyID }) { throw DaemonFailure.invalidRequest }
+            result.proxies = entries
+            result.proxy = entries.first(where: { $0.id == activeProxyID })?.proxy
+        }
         return result
     }
 }

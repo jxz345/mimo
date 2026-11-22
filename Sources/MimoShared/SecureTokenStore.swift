@@ -15,14 +15,7 @@ public enum SecureTokenStore {
 
     public static func read(account: String) throws -> String? {
         if let current = try read(account: account, service: service) { return current }
-        guard let legacy = try read(account: account, service: LegacyNaming.appID) else { return nil }
-        try save(legacy, account: account)
-        guard try read(account: account, service: service) == legacy else { throw KeychainError.unexpectedStatus(errSecInternalError) }
-        let removal = SecItemDelete([kSecClass as String: kSecClassGenericPassword,
-                                    kSecAttrService as String: LegacyNaming.appID,
-                                    kSecAttrAccount as String: account] as CFDictionary)
-        guard removal == errSecSuccess || removal == errSecItemNotFound else { throw KeychainError.unexpectedStatus(removal) }
-        return legacy
+        return try read(account: account, service: LegacyNaming.appID)
     }
 
     private static func read(account: String, service: String) throws -> String? {

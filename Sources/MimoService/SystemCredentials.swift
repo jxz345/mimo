@@ -41,30 +41,7 @@ final class InstalledAppControlListener: NSObject, NSXPCListenerDelegate {
 /// The daemon runs in the system context. Never consult a user's login keychain, never show UI,
 /// and never send the saved value back to a client. Every query targets the System file keychain.
 struct SystemCredentials: CredentialBackend {
-    func migrateLegacy(removeOriginals: Bool) throws {
-        for account in [SecureTokenStore.ipinfoLiteAccount, MimoRuntime.proxyPasswordAccount] {
-            var legacy = try query(account: account)
-            legacy[kSecAttrService as String] = LegacyNaming.serviceID
-            var lookup = legacy
-            lookup[kSecReturnData as String] = true
-            lookup[kSecMatchLimit as String] = kSecMatchLimitOne
-            var result: CFTypeRef?
-            let status = SecItemCopyMatching(lookup as CFDictionary, &result)
-            if status == errSecItemNotFound { continue }
-            guard status == errSecSuccess, let data = result as? Data,
-                  let value = String(data: data, encoding: .utf8) else { throw KeychainError.unexpectedStatus(status) }
-            if try read(account: account) == nil {
-                guard !removeOriginals else { throw DaemonFailure.credential }
-                try save(value, account: account)
-            }
-            guard try read(account: account) == value else { throw DaemonFailure.conflict }
-            if removeOriginals {
-                let deletion = SecItemDelete(legacy as CFDictionary)
-                guard deletion == errSecSuccess || deletion == errSecItemNotFound else { throw KeychainError.unexpectedStatus(deletion) }
-            }
-        }
-    }
-
+    var serviceID = MimoService.label
     func query(account: String) throws -> [String: Any] {
         guard [SecureTokenStore.ipinfoLiteAccount, MimoRuntime.proxyPasswordAccount].contains(account) else {
             throw DaemonFailure.invalidRequest
@@ -73,7 +50,7 @@ struct SystemCredentials: CredentialBackend {
         let status = SecKeychainOpen("/Library/Keychains/System.keychain", &keychain)
         guard status == errSecSuccess, let keychain else { throw KeychainError.unexpectedStatus(status) }
         return [kSecClass as String: kSecClassGenericPassword,
-         kSecAttrService as String: MimoService.label,
+         kSecAttrService as String: serviceID,
          kSecAttrAccount as String: account,
          kSecMatchSearchList as String: [keychain],
          kSecUseAuthenticationUI as String: kSecUseAuthenticationUIFail]
@@ -92,20 +69,7 @@ struct SystemCredentials: CredentialBackend {
         return token
     }
 
-    func save(_ value: String, account: String) throws {
-        let query = try query(account: account)
-        let data = Data(value.utf8)
-        let status = SecItemUpdate(query as CFDictionary, [kSecValueData as String: data] as CFDictionary)
-        if status == errSecItemNotFound {
-            // A root-only ACL survives an ad-hoc executable's code hash changing at upgrade.
-            var add = query
-            add[kSecUseKeychain as String] = (add.removeValue(forKey: kSecMatchSearchList as String) as? [SecKeychain])?.first
-            add[kSecValueData as String] = data
-            add[kSecAttrAccess as String] = try Self.ownerAccess()
-            let result = SecItemAdd(add as CFDictionary, nil)
-            guard result == errSecSuccess else { throw KeychainError.unexpectedStatus(result) }
-        } else if status != errSecSuccess { throw KeychainError.unexpectedStatus(status) }
-    }
+    func save(_ value: String, account: String) throws { throw DaemonFailure.invalidRequest }
 
     func delete(account: String) throws {
         let status = SecItemDelete(try query(account: account) as CFDictionary)
@@ -119,6 +83,19 @@ struct SystemCredentials: CredentialBackend {
             throw DaemonFailure.credential
         }
         return access
+    }
+}
+
+/// Read-only source for a one-time migration; new credentials always use local storage.
+struct MimoLegacyCredentials: CredentialBackend {
+    func read(account: String) throws -> String? {
+        if let value = try SystemCredentials().read(account: account) { return value }
+        return try SystemCredentials(serviceID: LegacyNaming.serviceID).read(account: account)
+    }
+    func save(_ value: String, account: String) throws { throw DaemonFailure.invalidRequest }
+    func delete(account: String) throws {
+        try SystemCredentials().delete(account: account)
+        try SystemCredentials(serviceID: LegacyNaming.serviceID).delete(account: account)
     }
 }
 

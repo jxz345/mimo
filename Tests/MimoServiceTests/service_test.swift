@@ -60,13 +60,14 @@ struct ServiceTests {
         defer { try? FileManager.default.removeItem(at: directory) }
         let storage = try FilePreferenceStorage(url: directory.appendingPathComponent("state.plist"))
         let client = RecordingLookup()
+        try storage.update(["service.routing": JSONEncoder().encode(MimoConfiguration())])
         let credentials = MemorySystemCredentials()
         let service = try DaemonService(storage: storage, observeSystem: false, credentials: credentials, client: client,
                                         authorize: { $0 == Data("authorized".utf8) })
         require(!service.state(for: 501).initialized, "new service must await explicit initialization")
         require(await client.count == 0, "uninitialized service must not spend quota")
         var initialize = DaemonRequest(.initialize)
-        initialize.expectedRevision = 0
+        initialize.expectedRevision = service.state(for: 501).revision
         initialize.settings = MachineSettings(preferences: .init(provider: .ipinfoLite, providerPool: [.ipinfoLite]))
         require(await service.handle(initialize, uid: 501).failure == .unauthorized, "configuration must require authorization")
         require(await service.handle(DaemonRequest(.networkChanged), uid: 501).failure == .unauthorized,
@@ -80,11 +81,11 @@ struct ServiceTests {
         try await Task.sleep(for: .milliseconds(350))
         require(await client.count == 1, "daemon must load its System Keychain token and look up once")
         require(service.state(for: 501).budget.callsToday(for: .ipinfoLite) == 21, "initialization must retain the migrating user’s consumed quota")
-        require(credentials.reads == 1, "daemon startup must read the System Keychain once")
+        require(credentials.reads == 2, "legacy credentials are read once during local migration")
         require(service.state(for: 502).hasIPinfoToken, "other users receive token availability")
         let wire = try JSONEncoder().encode(service.state(for: 502))
         require(!String(decoding: wire, as: UTF8.self).contains("daemon-test-secret"), "state must never contain the saved token")
-        initialize.expectedRevision = 1
+        initialize.expectedRevision = service.state(for: 501).revision
         require(await service.handle(initialize, uid: 502).failure == .alreadyInitialized, "later users cannot overwrite migration")
 
         var presentation = DaemonRequest(.presentation)
@@ -124,7 +125,7 @@ struct ServiceTests {
         settings.allowlist = AllowedIPList(addresses: ["192.0.2.20"])
         update.settings = settings
         require(await service.handle(update, uid: 501).failure == .conflict, "stale edits must fail")
-        update.expectedRevision = 1
+        update.expectedRevision = service.state(for: 501).revision
         require(await service.handle(update, uid: 501).failure == nil, "current revision must commit")
         require(service.state(for: 502).settings.allowlist.contains("192.0.2.20"), "configuration must be visible to all users")
         require(!service.state(for: 502).authorizationState.isNotAllowed && service.state(for: 502).allowlistEventID == nil,
@@ -146,7 +147,7 @@ struct ServiceTests {
         var incompatible = DaemonRequest(.state)
         incompatible.protocolVersion = 99
         require(await service.handle(incompatible, uid: 501).failure == .incompatible, "protocol mismatch must be explicit")
-        try await routingCredentialChecks(service, credentials: credentials, stateFile: directory.appendingPathComponent("state.plist"))
+        try await routingCredentialChecks(service, credentials: credentials, client: client, stateFile: directory.appendingPathComponent("state.plist"))
         let committedRevision = service.state(for: 501).revision
         service.stop()
         let restored = try DaemonService(storage: FilePreferenceStorage(url: directory.appendingPathComponent("state.plist")),
@@ -216,56 +217,54 @@ struct ServiceTests {
 
     @MainActor
     private static func routingCredentialChecks(_ service: DaemonService, credentials: MemorySystemCredentials,
-                                        stateFile: URL) async throws {
+                                                client: RecordingLookup, stateFile: URL) async throws {
         func request(_ command: DaemonCommand) -> DaemonRequest {
             var request = DaemonRequest(command)
             request.expectedRevision = service.state(for: 501).revision
             request.authorization = Data("authorized".utf8)
             return request
         }
+        func local() throws -> FilePreferenceStorage { try FilePreferenceStorage(url: stateFile) }
+        let oldReads = credentials.reads
+        let before = await client.count
         var save = request(.saveProxy)
-        save.proxy = MimoProxy(ClashProxySettings(name: "Test", type: .socks5, server: "192.0.2.20",
-                                                port: 1080, username: "test-user"))
+        save.proxy = MimoProxy(ClashProxySettings(name: "Test", type: .socks5, server: "192.0.2.20", port: 1080, username: "test-user"))
         save.proxyPassword = "proxy-test-secret"
-        require(await service.handle(save, uid: 501).failure == nil, "saving a machine proxy must succeed")
-        require(try credentials.read(account: SecureTokenStore.ipinfoLiteAccount) == "daemon-test-secret",
-                "saving a proxy must preserve the IPinfo token")
-        require(try credentials.read(account: MimoRuntime.proxyPasswordAccount) == "proxy-test-secret",
-                "the proxy password must use its own account")
+        require(await service.handle(save, uid: 501).failure == nil, "saving a shared proxy succeeds")
+        let id = service.state(for: 502).routing!.configuration.proxies!.first!.id
+        require(service.state(for: 502).routing?.configuration.proxy == nil, "new proxy is visible to all accounts and inactive")
+        require(await client.count == before, "inactive save must not request an IP check")
+        require(try local().string(forKey: MimoLocalSettings.tokenKey) == "daemon-test-secret", "proxy save retains local IPinfo token")
+        require(try MimoLocalSettings.passwords(in: local())[id] == "proxy-test-secret", "proxy password is local")
         let encoded = String(decoding: try JSONEncoder().encode(service.state(for: 502)), as: UTF8.self)
-        require(!encoded.contains("daemon-test-secret") && !encoded.contains("proxy-test-secret"),
-                "public state must omit both machine secrets")
-
+        require(!encoded.contains("daemon-test-secret") && !encoded.contains("proxy-test-secret"), "broadcast omits credentials")
         var protected = request(.configureRouting)
-        var protectedConfiguration = MimoConfiguration(); protectedConfiguration.mode = .rule
-        protected.routing = protectedConfiguration
-        require(await service.handle(protected, uid: 501).failure == nil, "Rule selection must enable proxy-exit approval")
-        require(!service.state(for: 501).authorizationState.isNotAllowed,
-                "entering Rule must not compare the cached Direct address with the proxy allowlist")
+        var mode = MimoConfiguration(); mode.mode = .rule; protected.routing = mode
+        require(await service.handle(protected, uid: 502).failure == .invalidRequest, "None restricts all clients to Direct")
+        var select = request(.selectProxy); select.proxyID = id
+        require(await service.handle(select, uid: 502).failure == nil, "another account selects shared proxy")
+        require(service.state(for: 501).routing?.configuration.activeProxyID == id, "active selection is shared")
+        require(service.state(for: 501).routing?.configuration.mode == .direct, "selection preserves Direct")
+        protected.expectedRevision = service.state(for: 501).revision
+        require(await service.handle(protected, uid: 501).failure == nil, "Rule with selected proxy is available")
         try await Task.sleep(for: .milliseconds(350))
-        require(service.state(for: 501).authorizationState.isNotAllowed && service.state(for: 501).allowlistEventID != nil,
-                "a fresh protected lookup outside the allowlist must still publish its rejection")
-
-        credentials.blockedReadAccount = MimoRuntime.proxyPasswordAccount
-        var direct = request(.configureRouting)
-        direct.routing = MimoConfiguration()
-        require(await service.handle(direct, uid: 501).failure == nil,
-                "Direct recovery must not require reading a proxy credential")
-        require(service.state(for: 501).routing?.hasProxyPassword == true,
-                "mode selection must preserve known credential availability")
-        require(!service.state(for: 501).authorizationState.isNotAllowed && service.state(for: 501).allowlistEventID == nil,
-                "selecting Direct must clear the protected rejection immediately")
-        credentials.blockedReadAccount = nil
-
-        var token = request(.setToken)
-        token.token = "replacement-ipinfo-secret"
-        require(await service.handle(token, uid: 501).failure == nil, "token replacement must commit")
-        require(try credentials.read(account: MimoRuntime.proxyPasswordAccount) == "proxy-test-secret",
-                "token replacement must preserve the proxy password")
+        require(service.state(for: 501).authorizationState.isNotAllowed, "protected IP is still checked against allowlist")
+        var stale = request(.saveProxy); stale.proxyID = id; stale.proxy = save.proxy
+        var second = request(.saveProxy); second.proxy = save.proxy; second.proxy?.name = "Second"
+        let count = await client.count
+        require(await service.handle(second, uid: 502).failure == nil, "second account adds inactive entry")
+        require(await client.count == count, "inactive save preserves protected access without a lookup")
+        require(await service.handle(stale, uid: 501).failure == .conflict, "concurrent stale edit cannot overwrite list")
+        require(service.state(for: 501).routing?.configuration.proxies?.count == 2, "both entries survive")
+        var none = request(.selectProxy)
+        require(await service.handle(none, uid: 502).failure == nil, "None switches shared mode to Direct")
+        require(service.state(for: 501).routing?.configuration.mode == .direct, "Direct is shared")
+        require(!service.state(for: 501).authorizationState.isNotAllowed, "Direct clears protected rejection")
         try await Task.sleep(for: .milliseconds(350))
-
-        // A directory at the state-file path forces the atomic commit to fail without changing
-        // permissions or relying on the UID running this suite. Only this test's temporary data moves.
+        var token = request(.setToken); token.token = "replacement-ipinfo-secret"
+        require(await service.handle(token, uid: 501).failure == nil, "local token replacement commits")
+        require(try MimoLocalSettings.passwords(in: local())[id] == "proxy-test-secret", "token save retains password")
+        try await Task.sleep(for: .milliseconds(350))
         let revision = service.state(for: 501).revision
         let backup = stateFile.appendingPathExtension("backup")
         try FileManager.default.moveItem(at: stateFile, to: backup)
@@ -275,38 +274,23 @@ struct ServiceTests {
                 try? FileManager.default.removeItem(at: stateFile)
                 try? FileManager.default.moveItem(at: backup, to: stateFile)
             }
-            var failing = request(.setToken)
-            failing.token = "must-not-commit"
-            require(await service.handle(failing, uid: 501).failure == .storage,
-                    "a failed revision write must report failure")
-            require(try credentials.read(account: SecureTokenStore.ipinfoLiteAccount) == "replacement-ipinfo-secret",
-                    "a failed state commit must restore the previous Keychain token")
-            require(service.engine.ipinfoToken == "replacement-ipinfo-secret" && service.state(for: 501).revision == revision,
-                    "rollback must restore the cached token and preserve the committed revision")
-            var failingProxy = request(.saveProxy)
-            failingProxy.proxy = save.proxy
-            failingProxy.proxyPassword = "must-not-change-proxy"
-            require(await service.handle(failingProxy, uid: 501).failure == .storage,
-                    "proxy metadata and its revision must commit together")
-            require(try credentials.read(account: MimoRuntime.proxyPasswordAccount) == "proxy-test-secret",
-                    "a failed proxy commit must restore its previous password")
-            credentials.blockedReadAccount = MimoRuntime.proxyPasswordAccount
-            var failingMode = request(.configureRouting)
-            failingMode.routing = MimoConfiguration()
-            require(await service.handle(failingMode, uid: 501).failure == .storage,
-                    "a mode save failure must not access proxy credentials")
-            credentials.blockedReadAccount = nil
-            require(try credentials.read(account: MimoRuntime.proxyPasswordAccount) == "proxy-test-secret",
-                    "a mode save failure must not delete an unrelated saved proxy password")
+            var failing = request(.setToken); failing.token = "must-not-commit"
+            require(await service.handle(failing, uid: 501).failure == .storage, "failed token write reports error")
+            var proxyFailure = request(.saveProxy); proxyFailure.proxyID = id; proxyFailure.proxy = save.proxy; proxyFailure.proxyPassword = "must-not-commit"
+            require(await service.handle(proxyFailure, uid: 501).failure == .storage, "failed catalog write reports error")
+            require(service.state(for: 501).revision == revision, "failed writes retain revision")
         }
-        require(await service.handle(request(.removeToken), uid: 501).failure == nil, "token removal must succeed")
-        require(try credentials.read(account: MimoRuntime.proxyPasswordAccount) == "proxy-test-secret",
-                "removing the token must preserve the proxy password")
-        require(await service.handle(request(.removeProxy), uid: 501).failure == nil, "proxy removal must succeed")
-        require(try credentials.read(account: MimoRuntime.proxyPasswordAccount) == nil &&
-                    credentials.read(account: SecureTokenStore.ipinfoLiteAccount) == nil,
-                "removing the proxy must leave the separate removed-token state unchanged")
-        print("PASS: machine credential account separation, public-state redaction, Direct recovery without secrets and token rollback")
+        require(try local().string(forKey: MimoLocalSettings.tokenKey) == "replacement-ipinfo-secret", "failed write preserves token")
+        require(try MimoLocalSettings.passwords(in: local())[id] == "proxy-test-secret", "failed write preserves proxy password")
+        require(await service.handle(request(.removeToken), uid: 501).failure == nil, "token removal succeeds")
+        select = request(.selectProxy); select.proxyID = id
+        require(await service.handle(select, uid: 501).failure == nil, "proxy may be selected again")
+        var remove = request(.removeProxy); remove.proxyID = id
+        require(await service.handle(remove, uid: 501).failure == nil, "active proxy removal succeeds")
+        require(service.state(for: 502).routing?.configuration.activeProxyID == nil, "active deletion selects None")
+        require(try MimoLocalSettings.passwords(in: local())[id] == nil && local().string(forKey: MimoLocalSettings.tokenKey) == nil, "removed credentials are absent locally")
+        require(credentials.reads == oldReads, "normal edits never return to Keychain")
+        print("PASS: shared proxy catalog, selection, inactive edits, conflict fencing, local credentials and atomic failure recovery")
     }
     static func require(_ value: Bool, _ message: String) { if !value { fatalError(message) } }
 }

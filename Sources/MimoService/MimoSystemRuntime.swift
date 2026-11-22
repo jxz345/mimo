@@ -192,6 +192,17 @@ final class MimoSystemRuntime {
         try savedRouting().configuration
     }
 
+    nonisolated func savedProxy(configuration: MimoConfiguration, revision: Int) throws -> ClashProxySettings {
+        try secureFile(MimoService.storageURL)
+        let storage = try FilePreferenceStorage(url: MimoService.storageURL)
+        guard storage.integer(forKey: "service.revision") == revision,
+              let data = storage.data(forKey: "service.routing") else { throw DaemonFailure.conflict }
+        let saved = try JSONDecoder().decode(MimoConfiguration.self, from: data).validated()
+        guard saved == configuration, let id = saved.activeProxyID, let metadata = saved.proxy else { throw DaemonFailure.conflict }
+        let password = try MimoLocalSettings.passwords(in: storage)[id] ?? ""
+        return try metadata.settings(password: password)
+    }
+
     func savedBypassBlocks() throws -> [MimoBypassBlock] {
         let storage = try FilePreferenceStorage(url: MimoService.storageURL)
         guard let data = storage.data(forKey: "service.settings") else { return MimoBypassBlock.defaults }

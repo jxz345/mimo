@@ -215,15 +215,19 @@ public enum RefreshInterval: Int, CaseIterable, Codable, Identifiable, Sendable 
     case fifteenMinutes = 900
     case thirtyMinutes = 1_800
     case sixtyMinutes = 3_600
+    case never = -1
 
     public var id: Int { rawValue }
+    public var periodicSeconds: TimeInterval? { self == .never ? nil : Double(rawValue) }
+    public var snapshotStaleThreshold: TimeInterval { periodicSeconds.map { $0 * 2 } ?? .infinity }
 
     public var displayName: String {
         switch self {
         case .fiveMinutes: "Every 5 minutes"
-        case .fifteenMinutes: "Every 15 minutes (recommended)"
+        case .fifteenMinutes: "Every 15 minutes"
         case .thirtyMinutes: "Every 30 minutes"
-        case .sixtyMinutes: "Every hour"
+        case .sixtyMinutes: "Every hour (default)"
+        case .never: "Never"
         }
     }
 }
@@ -238,7 +242,7 @@ public struct MonitoringPreferences: Codable, Equatable, Sendable {
     public init(
         provider: ProviderID = .ipapiCo,
         providerPool: [ProviderID] = [.ipapiCo, .ipWhois, .ipapiIs],
-        refreshInterval: RefreshInterval = .fifteenMinutes,
+        refreshInterval: RefreshInterval = .sixtyMinutes,
         menuBarDisplayStyle: MenuBarDisplayStyle = .flag,
         highlightCountryChanges: Bool = true
     ) {
@@ -262,7 +266,7 @@ public struct MonitoringPreferences: Codable, Equatable, Sendable {
             .split(separator: ",")
             .compactMap { ProviderID(rawValue: String($0)) }
         let providerPool = storedPool.isEmpty ? [ProviderID.ipapiCo, .ipWhois, .ipapiIs] : storedPool
-        let refreshInterval = RefreshInterval(rawValue: defaults.integer(forKey: MimoPreferenceKey.refreshInterval)) ?? .fifteenMinutes
+        let refreshInterval = RefreshInterval(rawValue: defaults.integer(forKey: MimoPreferenceKey.refreshInterval)) ?? .sixtyMinutes
         let menuBarDisplayStyle = MenuBarDisplayStyle(rawValue: defaults.string(forKey: MimoPreferenceKey.menuBarDisplayStyle) ?? "") ?? .flag
         let highlightCountryChanges = defaults.object(forKey: MimoPreferenceKey.highlightCountryChanges) as? Bool ?? true
         return MonitoringPreferences(

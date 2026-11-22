@@ -767,7 +767,7 @@ install_service() (
     # watchdog iteration. Never bootstrap the same job twice.
     ensure_loaded "$INFRASTRUCTURE" "$HEALTH_PLIST" || return 1
     install_stage verifying_services || return 1
-    bounded_command 90 check-services "$EXECUTABLE" --check-installation "$installation_id" || return 1
+    bounded_command 150 check-services "$EXECUTABLE" --check-installation "$installation_id" || return 1
     install_event services_verified || return 1
     run "$EXECUTABLE" --finish-name-migration || return 1
     /bin/rm -f "$LEGACY_EXECUTABLE" || return 1

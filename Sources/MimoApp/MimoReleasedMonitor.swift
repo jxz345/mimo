@@ -39,6 +39,9 @@ final class MimoReleasedMonitor {
 
     func remember(_ state: DaemonState) {
         guard engine == nil else { return }
+        // Upgrade old released preferences before copying the already-migrated
+        // machine settings, so an explicit new 15-minute choice stays intact.
+        try? MimoLocalSettings.migrateMonitoring(store)
         Self.anonymousPreferences(state.preferences).save(to: store)
         DiagnosticPreferencesStore(defaults: store).save(state.settings.diagnostics)
         LookupBudgetStore(defaults: store).save(state.budget)
@@ -53,6 +56,7 @@ final class MimoReleasedMonitor {
 
     func start() {
         guard engine == nil else { return }
+        try? MimoLocalSettings.migrateMonitoring(store)
         Self.anonymousPreferences(MonitoringPreferences.load(from: store)).save(to: store)
         let monitor = MonitoringEngine(preferencesStore: store, observeSystem: observeSystem,
             snapshotStore: SnapshotStore(defaults: store), cooldownStore: ProviderCooldownStore(defaults: store),

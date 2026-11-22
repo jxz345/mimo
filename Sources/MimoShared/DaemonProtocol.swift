@@ -34,8 +34,8 @@ public enum MimoService {
     public static let controlLabel = "com.mimo.core.control"
     public static let supervisorControlLabel = "com.mimo.supervisor.control"
     public static let installedAppIdentity = URL(fileURLWithPath: "/Library/Application Support/Mimo/app.cdhash")
-    // Released/suspended service states require a matching 2.0 client.
-    public static let protocolVersion = 6
+    // Shared proxy catalogs and refresh outcomes require a matching 2.1 client.
+    public static let protocolVersion = 7
     public static let executable = "/Library/PrivilegedHelperTools/mimo-core"
     public static let plist = "/Library/LaunchDaemons/\(label).plist"
     public static let support = URL(fileURLWithPath: "/Library/Application Support/Mimo", isDirectory: true)
@@ -136,6 +136,7 @@ public struct DaemonState: Codable, Sendable {
     public var providerError: String?
     public var storageError: String?
     public var routing: MimoRoutingState? = nil
+    public var manualRefresh: MimoManualRefresh? = nil
 
     public var preferences: MonitoringPreferences {
         var preferences = settings.monitoring
@@ -161,7 +162,7 @@ public struct DaemonState: Codable, Sendable {
 
 public enum DaemonCommand: String, Codable, Sendable {
     case state, subscribe, refresh, testProvider, configure, initialize, presentation, setToken, removeToken, events
-    case configureRouting, saveProxy, removeProxy, supervisor, networkChanged
+    case configureRouting, saveProxy, removeProxy, selectProxy, supervisor, networkChanged
     case startTailnetProvider
 }
 
@@ -178,6 +179,8 @@ public struct DaemonRequest: Codable, Sendable {
     public var authorization: Data?
     public var routing: MimoConfiguration?
     public var proxy: MimoProxy?
+    /// nil creates a proxy for saveProxy, or selects None for selectProxy.
+    public var proxyID: UUID?
     /// Write-only. nil preserves the existing secret; an empty value explicitly clears it.
     public var proxyPassword: String?
     public var supervisor: MimoSupervisorRequest?
@@ -194,7 +197,7 @@ public enum DaemonFailure: String, Error, Codable, LocalizedError, Sendable {
         case .conflict: "Another user changed the shared settings. Review the latest values and try again."
         case .invalidRequest: "The requested settings are invalid."
         case .storage: "The background service could not save its state. Check the service log."
-        case .credential: "The System Keychain operation failed. Check the credential status and try again."
+        case .credential: "The saved credential could not be loaded or updated. Check the credential status and try again."
         case .alreadyInitialized: "Shared settings have already been initialized and were not overwritten."
         }
     }

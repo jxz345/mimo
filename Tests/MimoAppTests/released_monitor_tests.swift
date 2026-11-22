@@ -22,6 +22,15 @@ enum ReleasedMonitorTests {
         let defaults = UserDefaults(suiteName: suite)!
         defer { defaults.removePersistentDomain(forName: suite) }
         let client = Client()
+        let remembered = MimoReleasedMonitor(defaults: defaults, client: Client(), observeSystem: false)
+        var explicitInterval = ClientConnectionTests.state()
+        explicitInterval.settings.refreshInterval = .fifteenMinutes
+        remembered.remember(explicitInterval)
+        remembered.start()
+        require(remembered.engine?.preferences.refreshInterval == .fifteenMinutes,
+            "The first Stop after upgrade must preserve an explicitly selected 15-minute interval")
+        remembered.stop()
+        defaults.removePersistentDomain(forName: suite)
         let released = MimoReleasedMonitor(defaults: defaults, client: client, observeSystem: false)
         var inactive = true
         var subscriptions = 0

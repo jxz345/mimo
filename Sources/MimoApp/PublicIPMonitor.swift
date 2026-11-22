@@ -131,6 +131,10 @@ final class PublicIPMonitor: ObservableObject {
     }
     var lookupStatusMessage: String? {
         guard connected || installationInactive else { return nil }
+        let manual = installationInactive ? releasedMonitor.engine?.manualRefresh : daemonState?.manualRefresh
+        if let manual, manual.pending || manual.finishedAt.map({ displayDate.timeIntervalSince($0) < 30 }) == true {
+            return manual.message
+        }
         switch status {
         case .idle, .ready: return nil
         case .refreshing: return "Checking the exit IP…"
@@ -147,7 +151,7 @@ final class PublicIPMonitor: ObservableObject {
     }
     var ipinfoToken: String? { nil } // Saved machine credentials never leave the daemon.
     var ipinfoCredentialStatus: String {
-        if isCredentialBusy { return "Updating System Keychain…" }
+        if isCredentialBusy { return "Updating local token…" }
         if let error = daemonState?.credentialError { return error }
         return isIPinfoTokenUnavailable ? "No shared IPinfo token" : "Shared token available to background monitoring"
     }
@@ -188,9 +192,15 @@ final class PublicIPMonitor: ObservableObject {
         Task { _ = await changeShared(request) }
     }
 
-    func saveProxy(_ proxy: MimoProxy, password: String?, expectedRevision: Int) async -> Bool {
-        var request = DaemonRequest(.saveProxy); request.proxy = proxy; request.proxyPassword = password
+    func saveProxy(_ proxy: MimoProxy, password: String?, expectedRevision: Int, id: UUID? = nil) async -> Bool {
+        var request = DaemonRequest(.saveProxy); request.proxyID = id; request.proxy = proxy; request.proxyPassword = password
         request.expectedRevision = expectedRevision
+        return await changeShared(request)
+    }
+
+    func selectProxy(_ id: UUID?) async -> Bool {
+        var request = DaemonRequest(.selectProxy)
+        request.proxyID = id
         return await changeShared(request)
     }
 
@@ -211,8 +221,9 @@ final class PublicIPMonitor: ObservableObject {
         return await saveProxy(MimoProxy(proxy), password: proxy.password, expectedRevision: expectedRevision)
     }
 
-    func removeProxy(expectedRevision: Int) async -> Bool {
+    func removeProxy(id: UUID, expectedRevision: Int) async -> Bool {
         var request = DaemonRequest(.removeProxy)
+        request.proxyID = id
         request.expectedRevision = expectedRevision
         return await changeShared(request)
     }
@@ -543,7 +554,7 @@ final class PublicIPMonitor: ObservableObject {
               case .notAllowed(let address) = authorizationState,
               state.routing?.configuration.mode.requiresVerification == true,
               state.routing?.phase == .blocked, state.routing?.blockingIP?.address == address,
-              state.snapshot?.isStale(threshold: Double(state.settings.refreshInterval.rawValue * 2)) == false else {
+              state.snapshot?.isStale(threshold: state.settings.refreshInterval.snapshotStaleThreshold) == false else {
             if warningPresented != nil { RuntimeLog.shared.info("allowlist_warning_cleared") }
             AllowlistWarningWindowController.shared.dismiss(); warningPresented = nil; return
         }
@@ -723,6 +734,8 @@ final class PublicIPMonitor: ObservableObject {
 
     func initializeSharedSettings() async {
         let defaults = MimoAppGroup.defaults
+        do { try MimoLocalSettings.migrateMonitoring(defaults) }
+        catch { operationError = "Could not migrate monitoring preferences."; return }
         let legacyProvider = FileManager.default.fileExists(atPath: TailscaleVergeProvider.monitorPlistPath)
             || FileManager.default.fileExists(atPath: MimoService.support.appendingPathComponent("legacy-provider-enabled").path)
             || FileManager.default.fileExists(atPath: "/Library/Preferences/com.mimo.legacy-provider-enabled")

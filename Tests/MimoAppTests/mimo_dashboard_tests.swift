@@ -18,6 +18,10 @@ enum MimoDashboardTests {
         var routing = MimoRoutingState()
         routing.configuration.proxy = MimoProxy(ClashProxySettings(name: "Personal proxy", type: .socks5,
             server: "192.0.2.20", port: 1080))
+        let entry = MimoSavedProxy(proxy: routing.configuration.proxy!)
+        let alternative = MimoSavedProxy(proxy: MimoProxy(ClashProxySettings(name: "Backup proxy", type: .http, server: "192.0.2.30", port: 8080)))
+        routing.configuration.proxies = [entry, alternative]
+        routing.configuration.activeProxyID = entry.id
         routing.observedIP = MimoIPObservation(address: "192.0.2.10", checkedAt: now)
         routing.infrastructure = .init(pf: .healthy, launchd: .healthy, checkedAt: now)
         routing.services = [

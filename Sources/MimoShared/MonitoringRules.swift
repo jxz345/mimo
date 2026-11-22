@@ -16,6 +16,7 @@ extension RefreshInterval {
         case .fifteenMinutes: "every 15 minutes"
         case .thirtyMinutes: "every 30 minutes"
         case .sixtyMinutes: "every hour"
+        case .never: "on demand (periodic checks off)"
         }
     }
 }

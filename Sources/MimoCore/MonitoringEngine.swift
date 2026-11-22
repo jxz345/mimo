@@ -143,7 +143,9 @@ final class MonitoringEngine: ObservableObject {
     private var consecutiveFailures = 0
     private var temporarilyFailedProviders: Set<ProviderID> = []
     private var isRefreshing = false
+    @Published private(set) var manualRefresh: MimoManualRefresh?
     var lookupInFlight: Bool { isRefreshing }
+    var periodicRefreshScheduled: Bool { refreshTimer?.isValid == true }
     var networkEventChecksEnabled = true
     private var controlHolds = 0
     var hasQueuedControl: Bool { controlHolds > 0 }
@@ -273,6 +275,8 @@ final class MonitoringEngine: ObservableObject {
 
     func stop() {
         RuntimeLog.shared.info("monitor_stopped")
+        cancelManualRefresh()
+        deferredControlRefresh = nil
         isStarted = false
         lifecycleGeneration &+= 1
         activeLookupTask?.cancel()
@@ -317,6 +321,56 @@ final class MonitoringEngine: ObservableObject {
         var updated = allowedIPList
         guard updated.remove(value) else { return }
         setAllowedIPList(updated)
+    }
+
+    func reloadLocalIPinfoToken() async -> Bool {
+        guard await ipinfoCredentials.load() else { return false }
+        cooldownStore.clear(for: .ipinfoLite)
+        ipinfoCredentialChanged(requestRefresh: false)
+        return true
+    }
+
+    func beginManualRefresh() {
+        guard manualRefresh?.pending != true else { return }
+        manualRefresh = MimoManualRefresh(at: currentDate)
+        if isRefreshing {
+            manualRefresh?.startedAt = currentDate
+            manualRefresh?.phase = .checking
+            manualRefresh?.message = "Checking the exit IP…"
+        }
+        RuntimeLog.shared.info("manual_refresh_queued")
+    }
+
+    private func cancelManualRefresh() {
+        guard manualRefresh?.pending == true else { return }
+        manualRefresh?.phase = .failed
+        manualRefresh?.finishedAt = currentDate
+        manualRefresh?.message = "Refresh cancelled because networking or services changed. Try again."
+        RuntimeLog.shared.info("manual_refresh_finished", fields: ["outcome": "cancelled"])
+    }
+
+    private func finishManualRefresh() {
+        guard var operation = manualRefresh, operation.pending else { return }
+        switch status {
+        case .ready:
+            operation.phase = .succeeded
+            operation.message = "Exit IP refreshed."
+        case .coolingDown(let date), .waitingForMinimumInterval(let date), .providerPaused(_, let date):
+            operation.phase = operation.startedAt == nil ? .deferred : .failed
+            let prefix = operation.startedAt == nil ? "No lookup ran." : "Refresh failed."
+            operation.message = "\(prefix) Providers are paused or out of budget until \(date.formatted(date: .omitted, time: .shortened))."
+        case .waitingForIPinfoToken:
+            operation.phase = .deferred
+            operation.message = "Not refreshed. Save an IPinfo token or enable another provider."
+        case .failed(let message), .awaitingConfirmation(let message):
+            if recheckUrgency != nil { return } // Pool rotation is still answering this request.
+            operation.phase = .failed
+            operation.message = "Refresh failed. \(message)"
+        default: return
+        }
+        operation.finishedAt = currentDate
+        manualRefresh = operation
+        RuntimeLog.shared.info("manual_refresh_finished", fields: ["outcome": operation.phase.rawValue])
     }
 
     func loadIPinfoToken() async -> Bool {
@@ -377,13 +431,13 @@ final class MonitoringEngine: ObservableObject {
     var isIPinfoTokenUnavailable: Bool { ipinfoToken == nil }
 
     var ipinfoCredentialStatus: String {
-        if ipinfoCredentials.isBusy { return "Waiting for Keychain…" }
+        if ipinfoCredentials.isBusy { return "Loading local token…" }
         if ipinfoToken != nil { return "Token available for this session" }
         switch ipinfoCredentials.state {
         case .notLoaded: return "Saved token not loaded"
-        case .loading: return "Waiting for Keychain…"
+        case .loading: return "Loading local token…"
         case .missing, .available: return "No saved token found"
-        case .failed: return "Keychain access failed; try Load again"
+        case .failed: return "Local token could not be loaded; try again"
         }
     }
 
@@ -494,6 +548,7 @@ final class MonitoringEngine: ObservableObject {
         urgency urgencyOverride: RefreshUrgency? = nil,
         preferredProvider: ProviderID? = nil
     ) async {
+        if trigger == .manual { beginManualRefresh() }
         let urgency = urgencyOverride ?? trigger.urgency
         if controlHolds > 0 {
             let old = deferredControlRefresh
@@ -521,6 +576,8 @@ final class MonitoringEngine: ObservableObject {
             RuntimeLog.shared.info("refresh_coalesced_in_flight", fields: ["trigger": trigger.rawValue])
             return
         }
+        var providerFollowUp = false
+        defer { if !providerFollowUp { finishManualRefresh() } }
         var activeProvider = preferredProvider ?? preferences.provider
         let refreshGeneration = lifecycleGeneration
         // No credential read, network request, quota charge, or missing-token error is needed.
@@ -531,8 +588,8 @@ final class MonitoringEngine: ObservableObject {
             RuntimeLog.shared.info("refresh_skipped", fields: ["trigger": trigger.rawValue, "reason": "token_unavailable"])
             return
         }
-        if !force, let snapshot,
-           currentDate.timeIntervalSince(snapshot.checkedAt) < Double(preferences.refreshInterval.rawValue) {
+        if !force, let interval = preferences.refreshInterval.periodicSeconds, let snapshot,
+           currentDate.timeIntervalSince(snapshot.checkedAt) < interval {
             return
         }
 
@@ -619,6 +676,11 @@ final class MonitoringEngine: ObservableObject {
         activeLookupID = lookupID
         isRefreshing = true
         status = .refreshing
+        if manualRefresh?.pending == true {
+            if manualRefresh?.startedAt == nil { manualRefresh?.startedAt = currentDate }
+            manualRefresh?.phase = .checking
+            manualRefresh?.message = "Checking the exit IP…"
+        }
         RuntimeLog.shared.info("lookup_started", fields: ["provider": activeProvider.rawValue, "lookup": lookupID.uuidString])
         defer {
             RuntimeLog.shared.info("lookup_finished", fields: ["lookup": lookupID.uuidString])
@@ -645,6 +707,7 @@ final class MonitoringEngine: ObservableObject {
             activeLookupTask = request
             var fetched = try await request.value
             guard isStarted, refreshGeneration == lifecycleGeneration else {
+                cancelManualRefresh()
                 RuntimeLog.shared.info("lookup_discarded_after_stop", fields: ["provider": activeProvider.rawValue])
                 return
             }
@@ -678,8 +741,9 @@ final class MonitoringEngine: ObservableObject {
                 "country": fetched.countryCode
             ])
         } catch {
-            guard isStarted, refreshGeneration == lifecycleGeneration else { return }
+            guard isStarted, refreshGeneration == lifecycleGeneration else { cancelManualRefresh(); return }
             if error is CancellationError {
+                cancelManualRefresh()
                 RuntimeLog.shared.info("lookup_cancelled", fields: ["provider": activeProvider.rawValue])
                 return
             }
@@ -702,7 +766,7 @@ final class MonitoringEngine: ObservableObject {
             cooldownStore.save(retryNotBefore: resumeAt, for: activeProvider)
             RuntimeLog.shared.info("provider_failure_paused", fields: [
                 "provider": activeProvider.rawValue, "reason": lookupError.category,
-                "resumeAt": resumeAt.formatted(.iso8601), "hours": "8"
+                "resumeAt": resumeAt.formatted(.iso8601), "seconds": String(Int(resumeAt.timeIntervalSince(currentDate)))
             ])
             if let next = advanceProvider(after: activeProvider) {
                 RuntimeLog.shared.info("provider_rotated_after_failure", fields: [
@@ -712,6 +776,7 @@ final class MonitoringEngine: ObservableObject {
                 // A different provider has its own quota and cooldown.
                 recheckUrgency = .networkChange
                 recheckBypassesMinimumInterval = true
+                providerFollowUp = true
             } else {
                 status = .coolingDown(providerCooldowns().values.min() ?? resumeAt)
                 scheduleRetry(after: secondsUntil(providerCooldowns().values.min() ?? resumeAt))
@@ -880,7 +945,8 @@ final class MonitoringEngine: ObservableObject {
 
     private func schedulePeriodicRefresh() {
         refreshTimer?.invalidate()
-        let interval = TimeInterval(preferences.refreshInterval.rawValue)
+        refreshTimer = nil
+        guard let interval = preferences.refreshInterval.periodicSeconds else { return }
         let timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 await self?.refresh(force: true, trigger: .periodic)

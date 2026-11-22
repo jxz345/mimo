@@ -14,13 +14,15 @@ enum MimoDraftTests {
         state.initialized = true; state.revision = 1
         var routing = MimoRoutingState()
         routing.configuration.proxy = MimoProxy(ClashProxySettings(name: "Original", type: .http, server: "192.0.2.1", port: 443))
+        let entry = MimoSavedProxy(proxy: routing.configuration.proxy!)
+        routing.configuration.proxies = [entry]; routing.configuration.activeProxyID = entry.id
         state.routing = routing
-        draft.receive(state)
+        draft.select(entry.id, from: state)
         precondition(draft.revision == 1 && draft.name == "Original")
         draft.name = "Unfinished edit"; draft.password = "only-in-memory"
         draft.receive(state)
         precondition(draft.name == "Unfinished edit" && draft.password == "only-in-memory")
-        state.revision = 2; state.routing?.configuration.proxy?.name = "Another editor"
+        state.revision = 2; state.routing?.configuration.proxies?[0].proxy.name = "Another editor"
         draft.receive(state)
         precondition(draft.conflicts(with: state) && draft.revision == 1 && draft.name == "Unfinished edit",
                      "Status updates must preserve edits and their original revision")
