@@ -1,6 +1,27 @@
 import Foundation
 
 enum MimoRecoveryState {
+    /// Installation explicitly restores every service, while an active upgrade
+    /// retains its selected routing mode. Full deactivation resumes in Direct.
+    static func commitInstallation(storage: FilePreferenceStorage, startingInDirect: Bool) throws -> MimoConfiguration {
+        var configuration = try storage.data(forKey: "service.routing").map {
+            try JSONDecoder().decode(MimoConfiguration.self, from: $0).validated()
+        } ?? MimoConfiguration()
+        if startingInDirect { configuration.mode = .direct }
+        configuration.mihomoEnabled = true
+        configuration.profileHostingEnabled = true
+        var settings = try storage.data(forKey: "service.settings").map {
+            try JSONDecoder().decode(MachineSettings.self, from: $0)
+        } ?? MachineSettings()
+        settings.tailscaleProviderEnabled = true
+        try storage.update([
+            "service.routing": try JSONEncoder().encode(configuration),
+            "service.settings": try JSONEncoder().encode(settings),
+            "service.revision": storage.integer(forKey: "service.revision") + 1
+        ])
+        return configuration
+    }
+
     static func commitDirect(storage: FilePreferenceStorage, activateServices: Bool = false) throws -> MimoConfiguration {
         var configuration: MimoConfiguration
         if let data = storage.data(forKey: "service.routing") {

@@ -32,7 +32,15 @@ enum DaemonMain {
                 ])
             }
             SecKeychainSetUserInteractionAllowed(false)
-            switch Array(CommandLine.arguments.dropFirst()) {
+            let arguments = Array(CommandLine.arguments.dropFirst())
+            if arguments.first == "--record-installation-event", arguments.count == 6 {
+                try MimoInstallationJournal.append(attempt: arguments[1], operation: arguments[2],
+                    stage: arguments[3], item: arguments[4], status: arguments[5])
+                return
+            }
+            let installationAttempt = arguments.first == "--check-installation" && arguments.count == 2 ? arguments[1] : nil
+            if let installationAttempt, UUID(uuidString: installationAttempt) == nil { throw DaemonFailure.invalidRequest }
+            switch installationAttempt == nil ? arguments : ["--check-installation"] {
             case ["--migrate-legacy-names"]:
                 try LegacyMachineMigration.prepare()
                 return
@@ -48,8 +56,10 @@ enum DaemonMain {
                 return
             case ["--prepare-activation"]:
                 // Installer owns maintenance and has stopped every writer.
-                _ = try runtime.persistDirectRecovery(activateServices: true)
-                try runtime.saveServicePreferences(MimoServicePreferences())
+                try runtime.prepareInstallation(startingInDirect: true)
+                return
+            case ["--prepare-installation"]:
+                try runtime.prepareInstallation(startingInDirect: runtime.networkReleaseRequested)
                 return
             case ["--network-release-requested"]:
                 print(runtime.networkReleaseRequested ? "released" : "managed")
@@ -97,20 +107,31 @@ enum DaemonMain {
                 throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
             case ["--check-installation"]:
                 try runtime.checkInstallation()
-                let flags = try runtime.servicePreferences()
                 Task { @MainActor in
-                    for _ in 0..<20 {
+                    let deadline = Date.now.addingTimeInterval(60)
+                    var problems = ["supervisor"]
+                    while Date.now < deadline {
                         var request = DaemonRequest(.supervisor)
                         request.supervisor = MimoSupervisorRequest(.state)
-                        if let response = try? await DaemonRPC.call(request, timeout: 2, serviceLabel: MimoRuntime.supervisorLabel),
-                           let state = response.routing, state.phase != .unavailable,
-                           state.services.first(where: { $0.id == .core })?.health == (flags.core ? .running : .stopped),
-                           state.services.first(where: { $0.id == .mihomo })?.health == (flags.engine ? .running : .stopped) {
-                            print("Mimo supervisor and saved service lifecycle state are ready.")
+                        async let supervisor = try? DaemonRPC.call(request, timeout: 2, serviceLabel: MimoRuntime.supervisorLabel)
+                        async let core = try? DaemonRPC.call(DaemonRequest(.state), timeout: 2)
+                        let (response, coreResponse) = await (supervisor, core)
+                        guard let flags = try? runtime.servicePreferences() else { break }
+                        problems = MimoInstallationReadiness.problems(flags: flags, supervisor: response?.routing,
+                            provider: coreResponse?.state?.routing?.services.first(where: { $0.id == .tailnetProvider }))
+                        if problems.isEmpty, (try? runtime.checkInstalledController()) != nil {
+                            print("All Mimo services, provider endpoint, engine controller and infrastructure monitors are healthy.")
                             exit(0)
                         }
+                        if problems.isEmpty { problems = ["engine_controller"] }
                         try? await Task.sleep(for: .milliseconds(500))
                     }
+                    if let installationAttempt {
+                        for problem in problems {
+                            try? MimoInstallationJournal.append(attempt: installationAttempt, operation: "install", stage: "health_failed", item: problem)
+                        }
+                    }
+                    fputs("Service verification failed: \(problems.joined(separator: ", "))\n", stderr)
                     exit(1)
                 }
                 RunLoop.main.run()

@@ -117,7 +117,7 @@ printf 'PASS  Signature verifies.\n'
 
 # Use the verified NEW helper: older installed bundles do not contain it. A failed cleanup
 # must leave the old bundle available for recovery, never continue into rm/copy.
-/bin/bash "$new_app/Contents/Resources/cleanup-installation.sh" --app "$app_path" \
+/usr/bin/sudo /bin/bash "$new_app/Contents/Resources/cleanup-installation.sh" --app "$app_path" \
     || fail "Clean uninstall preparation failed. The existing app was not replaced."
 
 # macOS lets an app modify or replace another app's bundle only with App Management permission,
@@ -133,7 +133,9 @@ fi
 bounded_command 60 copy ditto "$new_app" "$app_path" || fail "Could not copy the app to $install_dir.
 $app_management_hint"
 printf 'PASS  Installed: %s\n' "$app_path"
-printf 'Open the dashboard and choose Install Service to enable shared background monitoring.\n'
+printf 'Installing dependencies and all shared services…\n'
+/bin/bash "$app_path/Contents/Resources/setup.command" \
+    || fail "Service setup failed. The installation is incomplete; resolve the reported error and retry."
 
 if /bin/bash "$app_path/Contents/Resources/diagnose-launch.sh" --app "$app_path" --launch --timeout 60; then
     step_log PASS "Mimo completed startup and its main thread is responding."

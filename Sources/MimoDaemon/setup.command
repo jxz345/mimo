@@ -19,6 +19,4 @@ if [ ! -x "$brew" ]; then
 fi
 formula=$(/usr/bin/plutil -extract formula raw -o - "$setup_dir/MihomoDependency.plist")
 "$brew" install "$formula"
-operation=install
-if [ -f '/Library/Application Support/Mimo/deactivated' ]; then operation=activate; fi
-/usr/bin/sudo /bin/bash "$setup_dir/daemon.sh" "$operation"
+/usr/bin/sudo /bin/bash "$setup_dir/daemon.sh" install

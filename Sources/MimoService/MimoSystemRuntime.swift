@@ -230,6 +230,15 @@ final class MimoSystemRuntime {
     }
 
     func persistDirectRecovery(activateServices: Bool = false) throws -> MimoConfiguration {
+        try persistRouting { try MimoRecoveryState.commitDirect(storage: $0, activateServices: activateServices) }
+    }
+
+    func prepareInstallation(startingInDirect: Bool) throws {
+        _ = try persistRouting { try MimoRecoveryState.commitInstallation(storage: $0, startingInDirect: startingInDirect) }
+        try saveServicePreferences(MimoServicePreferences())
+    }
+
+    private func persistRouting(_ commit: (FilePreferenceStorage) throws -> MimoConfiguration) throws -> MimoConfiguration {
         let directory = MimoService.storageURL.deletingLastPathComponent()
         try secureDirectory(MimoService.support)
         try secureDirectory(directory)
@@ -238,7 +247,7 @@ final class MimoSystemRuntime {
         }
         return try withExtendedLifetime(lock) {
             if FileManager.default.fileExists(atPath: MimoService.storageURL.path) { try secureFile(MimoService.storageURL) }
-            return try MimoRecoveryState.commitDirect(storage: FilePreferenceStorage(url: MimoService.storageURL), activateServices: activateServices)
+            return try commit(FilePreferenceStorage(url: MimoService.storageURL))
         }
     }
 
@@ -267,6 +276,17 @@ final class MimoSystemRuntime {
         let result = BoundedProcess.run(MimoRuntime.engine.path, ["-v"])
         guard result.status == 0, result.text.contains("Mihomo Meta v\(MimoRuntime.version) ") else {
             throw MimoRuntimeError.unavailable("Install the pinned mihomo \(MimoRuntime.version) dependency.")
+        }
+    }
+
+    func checkInstalledController() throws {
+        try secureController()
+        let result = BoundedProcess.run("/usr/bin/curl", ["--silent", "--fail", "--max-time", "2", "--unix-socket",
+            MimoRuntime.controller.path, "http://localhost/version"], timeout: 3)
+        guard result.status == 0, let data = result.text.data(using: .utf8),
+              let value = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              value["version"] as? String == "v\(MimoRuntime.version)" else {
+            throw MimoRuntimeError.unavailable("The installed mihomo controller did not pass its version check.")
         }
     }
 

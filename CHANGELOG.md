@@ -1,5 +1,12 @@
 # Mimo changelog
 
+## 2.0 (build 7) — 2026-11-23
+
+- Make install/reinstall/upgrade restore all Mimo services and endpoints, overriding full Stop and individual service-stop preferences. Resume inactive installations in Direct and preserve active protected modes/settings. Always check conflicting engines/ports and obtain confirmation before replacing competitors.
+- Require fresh core-owned service, provider, controller and infrastructure health verification. Propagate setup failure through Homebrew and the standalone installer.
+- Record shared installation, conflict replacement, verification and rollback events in mimo-core's bounded machine journal, served to every GUI account through the existing Event Log API.
+- Authenticate Homebrew and standalone installer cleanup so reinstall after full Stop can close verified Mimo clients still open in other accounts, even after the service manager has been removed. Document one-time cleanup when Homebrew still has an older uninstall hook cached.
+
 ## 2.0 (build 6) — 2026-11-22
 
 - Let the profile own steady Rule/Global routing, bypasses, DNS and IPv6 rejection. Use PF only for startup, verification and detected transitions/failures; Direct releases Mimo packet filtering. Restore older macOS IPv6 changes rather than disabling IPv6 system-wide.

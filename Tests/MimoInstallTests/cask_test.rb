@@ -57,10 +57,11 @@ def cask(_token, &block)
   $capture.instance_eval(&block)
 end
 
-source = File.read(ARGV.fetch(0)).gsub("@VERSION@", "2.0").gsub("@BUILD@", "6")
+build = File.read(File.expand_path("../../Configuration/BuildNumber.txt", __dir__)).strip
+source = File.read(ARGV.fetch(0)).gsub("@VERSION@", "2.0").gsub("@BUILD@", build)
 eval(source, TOPLEVEL_BINDING, ARGV.fetch(0))
 raise "Cask version must stay equal to the marketing version" unless $capture.version == "2.0"
-raise "Each build must have an immutable release URL" unless $capture.download_url == "https://github.com/jxz345/mimo/releases/download/v2.0-build.6/Mimo-2.0.zip"
+raise "Each build must have an immutable release URL" unless $capture.download_url == "https://github.com/jxz345/mimo/releases/download/v2.0-build.#{build}/Mimo-2.0.zip"
 raise "Cask must depend on the pinned mihomo formula" unless $capture.dependencies.include?({ formula: "jxz345/tap/mihomo@1.19.34" })
 raise "Cask must require Apple silicon" unless $capture.dependencies.include?({ arch: :arm64 })
 raise "Mimo must conflict with the legacy cask" unless $capture.conflicts == { cask: "exit-ip-monitor" }
@@ -76,16 +77,16 @@ raise "Preflight must only verify, then release this app's quarantine" unless $c
 service = [[
   "/bin/bash",
   ["{{appdir}}/Mimo.app/Contents/Resources/daemon.sh", "install"],
-  { sudo: true, must_succeed: false, print_stdout: true },
+  { sudo: true, must_succeed: true, print_stdout: true },
   [],
 ]]
 raise "Postflight must install the shared service without a legacy opt-out guard" unless $capture.postflight.runs == service
 script = $capture.uninstall_options.fetch(:script)
 raise "Cleanup failure must stop uninstall" unless script.fetch(:must_succeed)
-raise "Whole cleanup must not run as root" if script[:sudo]
+raise "Cleanup needs administrator authentication for other accounts after full Stop" unless script[:sudo]
 raise "Wrong interpreter" unless script.fetch(:executable) == "/bin/bash"
 arguments = script.fetch(:args)
 raise "Missing independent cleanup" unless arguments[1].include?('cleanup_main --app "$1"')
 raise "Wrong target" unless arguments.last == "/Applications/Mimo.app"
 raise "No graceful quit" unless $capture.uninstall_options[:quit] == "com.mimo"
-puts "PASS: cask releases only the verified staged app's quarantine, sets up the required shared service without failing the app install, and requires external cleanup after graceful quit"
+puts "PASS: cask releases only the verified app's quarantine, requires successful service setup on every install, and requires cleanup after graceful quit"

@@ -1,0 +1,63 @@
+{
+  "version": "2.0",
+  "build": "7",
+  "completed_at_utc": "2026-11-22T16:17:14+00:00",
+  "release_tag": "v2.0-build.7",
+  "status": "passed",
+  "artifacts": {
+    "Mimo-2.0.pkg": "a1cf242409c02e9e5e743609cb1fa19b3fe951fd9f4f9f046a01cdde584ea77d",
+    "Mimo-2.0.zip": "18c4e92ca638ba2983618d37316d4082cc95a218e66f4cd2e972955f343cba08"
+  },
+  "shared_tests": {
+    "passed": 228,
+    "failed": 0
+  },
+  "installation_qualification": {
+    "evidence": "mimo-install-restoration.json",
+    "implementation_source_hashes_match": true,
+    "scope": "All recorded implementation source hashes match the prior installed VM qualification; build identity advanced to 7."
+  },
+  "final_package_vm_checks": {
+    "signed_app_version_build": "2.0 / 7",
+    "installer_mandatory_health": "passed",
+    "all_five_launchd_jobs": "passed",
+    "installed_core_matches_bundled_core": "passed",
+    "all_service_intent_enabled": "passed",
+    "mihomo_controller_version": "v1.19.34",
+    "fixed_tailnet_provider_18766": "passed",
+    "identical_core_events_across_accounts": "passed",
+    "gui_launch_as_user_501": "passed, fresh ready heartbeat",
+    "full_service_uninstall": "passed"
+  },
+  "distribution_contracts": {
+    "cask_version": "2.0",
+    "cask_url": "https://github.com/jxz345/mimo/releases/download/v2.0-build.7/Mimo-2.0.zip",
+    "cask_service_setup_required": true,
+    "cask_cleanup_authenticated": true,
+    "generated_cleanup_matches_source": true
+  },
+  "limits": [
+    "No new protected-traffic qualification; active Rule/Global mode preservation is covered by state tests.",
+    "Physical fast user switching/login-screen freezing not reproduced; multi-account checks use real core clients and existing service authorization/revision tests.",
+    "Higher-marketing-version brew upgrade not separately exercised; it uses the same mandatory postflight.",
+    "Older Homebrew receipts retain their original uninstall hook; closing other-account GUI clients or the documented one-time administrator cleanup may be required for the first migration.",
+    "Release binaries are ad-hoc signed, not notarized."
+  ],
+  "source_sha256": {
+    "Sources/MimoDaemon/daemon.sh": "1112e65135cf1ffb1fa06eac4af4119aabf69805f41db6672856e31f81ab7fbd",
+    "Sources/MimoDaemon/setup.command": "920f36b66c654051153c15bfedd7a849b69ff4dff5e0178ef7ac07b67f099c09",
+    "Sources/MimoService/DaemonMain.swift": "e691e423c95b137074f1158b5430c91ec60d2dc12ade63e5d1bff2ba568e3262",
+    "Sources/MimoService/MimoDirectRecovery.swift": "8e0e7bebba5b2e152baeb4a6515baff520d3d8e4c814365a2690a5da6a30e653",
+    "Sources/MimoService/MimoSystemRuntime.swift": "bf580a7be97b518f58154933e631c2df76e37a240e2ea4899ba5b7e248016742",
+    "Sources/MimoService/MimoInstallationReadiness.swift": "f87c7260588726d1279388b3ae898efa96c23899bcdb545527b706bf0dfd90e4",
+    "Sources/MimoCore/MimoInstallationJournal.swift": "ea49f04fa17f3039a106696954145ed026e9c1b27b20915c826f0f14d06d804e",
+    "Sources/MimoCore/RuntimeLog.swift": "aaa6038b7f80b69d4f3dafda61efea003d30c6438524db07c2ddd4f697224678",
+    "Sources/MimoShared/EventLogLine.swift": "cff7519272a86bf30b9b23648678db4182edb89fcf7337ae62d63ef40086f204",
+    "Packaging/mimo.rb.in": "c5595d0c575a1970255a20ef53f05d85c6194bb7f4fa158bde4ee6edc1990171",
+    "Scripts/install-release.sh": "5bc103e24f1c80c0061b16bcb360213c7b082ff3b6c287bb1610eae0b9964870",
+    "Scripts/pkg/postinstall": "c51e46893b062063b3953ffc5d90305d1c64e8a0707c6f3c0988b1a0e17cbf38",
+    "Tests/MihomoRuntimeTests/install_reactivation_test.py": "43736dc19ff57497c3d1ad532184fa2902422a3be82c632a05bfce6a2c86bbf1",
+    "Tests/MihomoRuntimeTests/installation_events_client.swift": "0f57fda49deb52ad718560bc5e7f292a4dfc9c76a9b299fad244eaf6d1a074f7",
+    "Tests/MimoServiceTests/mimo_installation_tests.swift": "48cce74b5b62b1930d32603ef33726a43d71c8171ac4af064545398ee9f51b8f"
+  }
+}

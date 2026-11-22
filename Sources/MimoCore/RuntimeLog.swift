@@ -66,8 +66,27 @@ final class RuntimeLog: @unchecked Sendable {
         if changed { Self.cleanupOldLogs(in: directory, retentionDays: preferences.retentionDays) }
     }
 
-    func recentLines() -> [String] { lock.withLock { recent.lines } }
-    func recentDiagnosticRecords() -> [String] { lock.withLock { diagnosticRecords.lines } }
+    func recentLines() -> [String] {
+        var lines = lock.withLock { recent.lines }
+        #if MIMO_DAEMON
+        var installation = EventLogBuffer(limit: 500)
+        installation.append(jsonLines: MimoInstallationJournal.records().joined(separator: "\n"))
+        lines = Array(Set(lines + installation.lines).sorted().suffix(500))
+        #endif
+        return lines
+    }
+    func recentDiagnosticRecords() -> [String] {
+        var lines = lock.withLock { diagnosticRecords.lines }
+        #if MIMO_DAEMON
+        let dated = Set(lines + MimoInstallationJournal.records()).map { line -> (String, String) in
+            let data = Data(line.utf8)
+            let value = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+            return (value?["timestamp"] as? String ?? "", line)
+        }
+        lines = Array(dated.sorted { $0 < $1 }.suffix(500).map(\.1))
+        #endif
+        return lines
+    }
 
     func info(_ event: String, fields: [String: String] = [:]) {
         write(level: "info", event: event, fields: fields)

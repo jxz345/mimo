@@ -9,6 +9,11 @@ public enum EventLogLine {
 
     public static func format(timestamp: String, event: String, fields: [String: String]) -> String? {
         guard let message = message(event: event, fields: fields) else { return nil }
+        if event == "mimo_installation", timestamp.count == 24, timestamp.hasSuffix("Z") {
+            // Several installer stages can complete in one second. Preserve the
+            // journal's milliseconds so merging GUI/core replies keeps their order.
+            return "\(timestamp.replacingOccurrences(of: "T", with: " "))  \(truncated(message))"
+        }
         return "\(stamp(timestamp))  \(truncated(message))"
     }
 
@@ -16,6 +21,33 @@ public enum EventLogLine {
     public static func message(event: String, fields: [String: String]) -> String? {
         let provider = providerName(fields["provider"])
         switch event {
+        case "mimo_installation":
+            let action = fields["operation"] == "activate" ? "Activation" : "Installation"
+            let item = detail(fields["item"].flatMap { $0.isEmpty ? nil : $0 })
+            switch fields["stage"] {
+            case "started": return "\(action) started · restoring all Mimo services"
+            case "reactivating": return "Previous Stop overridden · services will resume in Direct"
+            case "conflicts": return "\(action) · checking conflicting services and occupied ports"
+            case "conflict_detected": return "Conflicting service found" + item + " · PID \(fields["status"] ?? "?")"
+            case "conflict_cancelled": return "Conflict replacement cancelled · competitors left running"
+            case "conflict_approved": return "Conflict replacement approved"
+            case "conflict_disabled": return "Competing startup service disabled" + item
+            case "conflict_stop_requested": return "Competing process stop requested" + item
+            case "conflicts_cleared": return "Competing services stopped · resources available"
+            case "replacing_services": return "\(action) · replacing Mimo engine and daemons"
+            case "services_enabled": return "All Mimo services enabled · saved stop preferences cleared"
+            case "starting_services": return "\(action) · starting all Mimo services"
+            case "verifying_services": return "\(action) · checking core, engine, provider and infrastructure health"
+            case "services_verified": return "All Mimo services passed health verification"
+            case "health_failed": return "Installation health check failed" + item
+            case "succeeded": return "\(action) completed · all services installed and healthy"
+            case "cancelled": return "\(action) cancelled" + item
+            case "failed": return "\(action) failed" + item + " · status \(fields["status"] ?? "?")"
+            case "rollback_started": return "Restoring previous Mimo installation after failure"
+            case "rollback_succeeded": return "Previous Mimo installation restored"
+            case "rollback_failed": return "Installation recovery incomplete · recovery files retained"
+            default: return nil
+            }
         case "mimo_deactivation_started": return "Stop engine · full service uninstall started"
         case "mimo_deactivation_succeeded": return "Network controls released · IP monitoring continues in this app"
         case "mimo_deactivation_cancelled": return "Service uninstall cancelled · removal not confirmed"

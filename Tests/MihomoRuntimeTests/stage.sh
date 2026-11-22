@@ -33,8 +33,12 @@ cp "$repo/Tests/MihomoRuntimeTests/packet_test.py" "$output/packet_test.py"
 cp "$repo/Tests/MihomoRuntimeTests/relay_test.py" "$output/relay_test.py"
 cp "$repo/Tests/MihomoRuntimeTests/brew_state.py" "$output/brew_state.py"
 cp "$repo/Tests/MihomoRuntimeTests/brew_command.py" "$output/brew_command.py"
+cp "$repo/Tests/MihomoRuntimeTests/install_reactivation_test.py" "$output/"
+cp "$repo/Tests/MihomoRuntimeTests/installer_conflicts_test.py" "$output/"
 xcrun swiftc -swift-version 6 -parse-as-library "$repo"/Sources/MimoShared/*.swift \
     "$repo/Tests/MihomoRuntimeTests/installation_check.swift" -o "$output/installation-check"
+xcrun swiftc -swift-version 6 -parse-as-library "$repo"/Sources/MimoShared/*.swift \
+    "$repo/Tests/MihomoRuntimeTests/installation_events_client.swift" -o "$output/events-client"
 xcrun swiftc -swift-version 6 -parse-as-library -D MIMO_SERVICE_TEST \
     "$repo"/Sources/MimoShared/*.swift "$repo"/Sources/MimoCore/*.swift \
     "$repo"/Sources/MimoService/*.swift \

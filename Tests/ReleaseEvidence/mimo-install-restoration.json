@@ -1,0 +1,70 @@
+{
+  "date": "2026-11-22",
+  "status": "passed",
+  "scope": "Pre-release qualification for build 7 installation restoration and shared core ownership; mimo-vm only",
+  "candidate": {
+    "version": "2.0",
+    "build": "6",
+    "published": false,
+    "note": "Local candidate only. Published build 6 is unchanged; the next published binary needs a new build number.",
+    "zip_sha256": "fda31edb9dd11b3835cbe6cead1c3f8ec83e96e9869fd322a3ad15e28e8c4013"
+  },
+  "checks": {
+    "shared_tests": {
+      "passed": 228,
+      "failed": 0
+    },
+    "native_service_tests": "passed, including installation state/health/journal, real XPC, per-user state and revision conflicts",
+    "installer_daemon_contracts": "passed in mimo-vm; late standalone-version guard and setup failure checks rerun and passed",
+    "release_package": "built and sealed signatures verified",
+    "installed_regression": {
+      "passed": true,
+      "cases": [
+        "Full Stop then install restores all five jobs, engine/controller/provider and enabled intent in Direct",
+        "Individually stopped core/engine/profile restored by install",
+        "Concurrent installer rejects without removing another operation lock",
+        "Conflict cancellation preserves the live competitor and inactive Mimo",
+        "Approval disables/unloads the identified KeepAlive competitor, then health verification passes",
+        "Root and secondary-user core Event Log clients see identical installation records",
+        "Final cleanup leaves all Mimo services deactivated"
+      ]
+    },
+    "homebrew": {
+      "install": "passed with mandatory service checks",
+      "reinstall_after_full_stop": "passed; all five jobs, enabled preferences, controller and fixed provider endpoint verified",
+      "other_account_gui": "passed with authenticated current cask: launch GUI as UID 501, full Stop, reinstall from UID 502; other-account GUI closed, services restored",
+      "cached_older_hook": "reproduced refusal to stop UID 501 from UID 502; one-time administrator cleanup succeeded, reinstall migrated the cached hook; next Stop/reinstall with other-account GUI needed no manual cleanup",
+      "uninstall": "passed after reinstall; app, helpers, owned services and Homebrew receipt removed",
+      "version": "2.0",
+      "source": "local cask fixture using the candidate ZIP; no public tap or release changed"
+    },
+    "standalone_installer": "VM fixture passed authenticated verified cleanup before replacement, dependency/service setup before launch, and failure propagation",
+    "vm_cleanup": "passed: no jobs, app, helpers, Homebrew receipt, Mimo resolver or PF rules; original cask, directory modes and trust restored; no temporary credential request files remain"
+  },
+  "limits": [
+    "No new protected-traffic qualification; active Rule/Global mode preservation is covered by state tests.",
+    "Physical fast user switching/login-screen freezing not reproduced; multi-account checks use real core clients and existing service authorization/revision tests.",
+    "Higher-marketing-version brew upgrade not separately exercised; it uses the same mandatory postflight.",
+    "VM Homebrew directory permissions and cask URL were temporary test fixtures.",
+    "Initial Debug-bundle/signature and competing-process fixture failures were excluded from passing qualification; final installed regression uses the Release bundle and a compiled C fixture.",
+    "Older Homebrew receipts retain their original uninstall hook; closing other-account GUI clients or the documented one-time administrator cleanup may be required for the first migration."
+  ],
+  "source_sha256": {
+    "Sources/MimoDaemon/daemon.sh": "1112e65135cf1ffb1fa06eac4af4119aabf69805f41db6672856e31f81ab7fbd",
+    "Sources/MimoDaemon/setup.command": "920f36b66c654051153c15bfedd7a849b69ff4dff5e0178ef7ac07b67f099c09",
+    "Sources/MimoService/DaemonMain.swift": "e691e423c95b137074f1158b5430c91ec60d2dc12ade63e5d1bff2ba568e3262",
+    "Sources/MimoService/MimoDirectRecovery.swift": "8e0e7bebba5b2e152baeb4a6515baff520d3d8e4c814365a2690a5da6a30e653",
+    "Sources/MimoService/MimoSystemRuntime.swift": "bf580a7be97b518f58154933e631c2df76e37a240e2ea4899ba5b7e248016742",
+    "Sources/MimoService/MimoInstallationReadiness.swift": "f87c7260588726d1279388b3ae898efa96c23899bcdb545527b706bf0dfd90e4",
+    "Sources/MimoCore/MimoInstallationJournal.swift": "ea49f04fa17f3039a106696954145ed026e9c1b27b20915c826f0f14d06d804e",
+    "Sources/MimoCore/RuntimeLog.swift": "aaa6038b7f80b69d4f3dafda61efea003d30c6438524db07c2ddd4f697224678",
+    "Sources/MimoShared/EventLogLine.swift": "cff7519272a86bf30b9b23648678db4182edb89fcf7337ae62d63ef40086f204",
+    "Packaging/mimo.rb.in": "c5595d0c575a1970255a20ef53f05d85c6194bb7f4fa158bde4ee6edc1990171",
+    "Scripts/install-release.sh": "5bc103e24f1c80c0061b16bcb360213c7b082ff3b6c287bb1610eae0b9964870",
+    "Scripts/pkg/postinstall": "c51e46893b062063b3953ffc5d90305d1c64e8a0707c6f3c0988b1a0e17cbf38",
+    "Tests/MihomoRuntimeTests/install_reactivation_test.py": "43736dc19ff57497c3d1ad532184fa2902422a3be82c632a05bfce6a2c86bbf1",
+    "Tests/MihomoRuntimeTests/installation_events_client.swift": "0f57fda49deb52ad718560bc5e7f292a4dfc9c76a9b299fad244eaf6d1a074f7",
+    "Tests/MimoServiceTests/mimo_installation_tests.swift": "48cce74b5b62b1930d32603ef33726a43d71c8171ac4af064545398ee9f51b8f"
+  },
+  "completed_at_utc": "2026-11-22T16:07:18+00:00"
+}

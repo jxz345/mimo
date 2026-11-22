@@ -38,6 +38,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [[ "${BASH_SOURCE[0]}" = "$0" ]] && [ "${1:-}" = install ] && [ "${2:-}" = --app ]; then
     [ "$#" = 3 ] || { echo 'Usage: daemon.sh install --app /Applications/Mimo.app' >&2; exit 2; }
     SCRIPT_DIR=$(cd "$3/Contents/Resources" && pwd -P) || exit 1
+    # Installation commands and the bundled core evolve together. An older core
+    # may interpret an unknown CLI flag as daemon startup; never send it new commands.
+    /usr/bin/cmp -s "${BASH_SOURCE[0]}" "$SCRIPT_DIR/daemon.sh" || {
+        echo 'Installer and app versions do not match. Install the current Mimo.app, then run its bundled setup.command.' >&2
+        exit 1
+    }
     set -- install
 fi
 if [ -f "$SCRIPT_DIR/command-support.sh" ]; then
@@ -49,6 +55,19 @@ else
 fi
 run() { bounded_command 20 "$1" "$@"; }
 require_root() { [ "$(/usr/bin/id -u)" = 0 ] || { echo 'Administrator authentication is required.' >&2; return 1; }; }
+
+# This journal survives daemon replacement and is readable in every GUI account.
+# Only fixed stage names, verified service identities and status codes are recorded.
+install_event() {
+    [ -n "${installation_logger:-}" ] || return 0
+    bounded_command 10 installation-event "$installation_logger" --record-installation-event "$installation_id" \
+        "${installation_operation:-install}" "$1" "${2:-}" "${3:-}"
+}
+
+install_stage() {
+    installation_stage=$1
+    install_event "$1"
+}
 
 # Never install executable code through a symlink or into a user-writable directory.
 secure_directory() {
@@ -316,15 +335,20 @@ check_engine_conflicts() {
         descriptions+=("$command (PID $pid)${target:+ — $target}")
     done <<< "$table"
     [ "${#pids[@]}" != 0 ] || return 0
+    for ((index=0; index<${#pids[@]}; index++)); do
+        install_event conflict_detected "${targets[index]:-standalone}" "${pids[index]}" || return 1
+    done
     message=$(printf '%s\n' 'Another engine or service occupies resources needed by Mimo:' "${descriptions[@]}" '' \
         'Mimo needs these processes stopped. This will disconnect their connections. Required ports: proxy 7890, DNS 1053 and provider 18766.' \
         'Mimo will replace these running engines. Listed launchd services will be disabled and unloaded so they do not restart at login or reboot. Their apps and settings are kept.' \
         'If installation fails and you want the old proxy back, re-enable it in its app or service manager.')
     printf '%s\n' "$message" >&2
     if [ "${installation_interactive:-1}" != 1 ] || ! confirm_engine_stop "$message"; then
+        install_event conflict_cancelled || return 1
         echo '[MIMO_INSTALL_CANCELLED] Installation cancelled; no competing engines were stopped. Retry installation when ready.' >&2
         return 130
     fi
+    install_event conflict_approved || return 1
     # Validate the entire approved set again before stopping anything.
     for ((index=0; index<${#pids[@]}; index++)); do
         pid=${pids[index]}
@@ -351,10 +375,12 @@ check_engine_conflicts() {
             output=$(run /bin/launchctl print "$target") || return 1
             [ "$(/usr/bin/awk '$1 == "pid" && $2 == "=" {print $3; exit}' <<< "$output")" = "$pid" ] || return 1
             run /bin/launchctl disable "$target" || return 1
+            install_event conflict_disabled "$target" "$pid" || return 1
             run /bin/launchctl bootout "$target" || return 1
         else
             run /bin/kill -TERM "$pid" || return 1
         fi
+        install_event conflict_stop_requested "${target:-standalone}" "$pid" || return 1
     done
     # Include replacements/new engines in the rescan, without extending consent to them.
     started=$SECONDS
@@ -369,6 +395,7 @@ check_engine_conflicts() {
 "
         done <<< "$table"
         if [ -z "$remaining" ]; then
+            install_event conflicts_cleared || return 1
             echo 'Competing engines stopped. Continuing Mimo service installation.' >&2
             return 0
         fi
@@ -511,20 +538,30 @@ restore_installation() {
 
 finish_installation() {
     local result=$1
+    if [ "$result" != 0 ]; then
+        if [ "$result" = 130 ]; then install_event cancelled "$installation_stage" "$result" || :
+        else install_event failed "$installation_stage" "$result" || :; fi
+    fi
     if [ "$result" != 0 ] && [ -n "${stopped_engine_conflicts:-}" ]; then
         printf 'Installation did not finish. These competitors may have been stopped or disabled:\n%sTo restore the old proxy, re-enable it in its app or service manager.\n' "$stopped_engine_conflicts" >&2
     fi
     if [ "$result" != 0 ] && [ "$mutation_started" = 1 ]; then
+        install_event rollback_started || :
         if restore_installation; then
+            # Inactive rollback removes the whole temporary stage. The verified
+            # bundled core remains available to record the recovery result.
+            installation_logger="$SCRIPT_DIR/../MacOS/mimo-core"
+            install_event rollback_succeeded || :
             echo 'Service installation failed; previous files and loaded services were restored.' >&2
         else
+            install_event rollback_failed || :
             echo "Service installation failed; recovery files were retained in $stage. Repair installation before continuing." >&2
             /bin/rm -f "$DIR/Service/install.lock"
             return
         fi
     fi
     [ -z "$stage" ] || /bin/rm -rf "$stage"
-    /bin/rm -f "$DIR/Service/install.lock"
+    if [ "${installer_lock:-1}" = 1 ]; then /bin/rm -f "$DIR/Service/install.lock"; fi
 }
 
 install_service() (
@@ -535,28 +572,34 @@ install_service() (
     local login_installed=0 login_backup=0
     local legacy_removal_bridge=0 stopped_engine_conflicts=""
     local dependency expected_hash actual_hash manager_mode
+    local installation_id installation_logger="" installation_stage=preflight installer_lock=0
     local installed_files=("$DIR/deactivated" "$RUNTIME/services.json" "$DIR/Service/state.plist" "$EXECUTABLE" "$PLIST" "$ENGINE_PLIST" "$SUPERVISOR_PLIST" "$LEGACY_CORE_PLIST" "$MANAGER" "$DIR/command-support.sh" "$DIR/cleanup-installation.sh" "$DIR/release-network.pl" "$DIR/installed-app" "$GRANT" "$RUNTIME/mihomo" "$RUNTIME/engine.sha256" "$RUNTIME/blocking.yaml" "$LEGACY_EXECUTABLE" "$PROFILES/blocking.yaml")
     installed_files+=("$APP_IDENTITY" "$OLD_MANAGER" "$OLD_GRANT")
     installed_files+=("$GUARD_SCRIPT" "$BOOT_PLIST" "$HEALTH_PLIST" "$BOOT_RULES" /etc/pf.conf "$GUARD/blocking.pf")
     for path in "$LABEL" "$ENGINE" "$SUPERVISOR" "$BOOT_GUARD" "$INFRASTRUCTURE"; do installed_files+=("$GUARD/$path.plist"); done
+    secure_directory "$DIR" && secure_directory /Library/Logs/Mimo || return 1
+    installation_id=$(/usr/bin/uuidgen) || return 1
+    trap 'finish_installation $?' EXIT
+    trap 'exit 130' INT
+    trap 'exit 143' TERM
     [ -x "$binary" ] || { echo 'Install from a built Mimo.app bundle.' >&2; return 1; }
     app=$(cd "$SCRIPT_DIR/../.." && pwd -P) || return 1
     run /usr/bin/codesign --verify --deep --strict "$app" || return 1
     run /usr/bin/codesign --verify --strict "$binary" || return 1
+    installation_logger=$binary
+    install_event started || return 1
+    installation_stage=installation_lock
+    service_lock || return 1
+    installer_lock=1
+    installation_stage=preflight
     [ -f "$SCRIPT_DIR/release-network.pl" ] || { echo 'This installer requires the current complete Mimo app; upgrade the bundle before repairing services.' >&2; return 1; }
     /usr/bin/perl -c "$SCRIPT_DIR/release-network.pl" || return 1
-    # Updating/reinstalling the app must not undo an explicit full Stop. Only
-    # Activate Mimo may reclaim networking or ask to replace another engine.
+    # Install/reinstall/upgrade are explicit activation requests. Retain the old
+    # receipt for rollback, but never return success with missing services.
     if confirmed_deactivation; then
         was_deactivated=1
-        if [ "${activation_requested:-0}" != 1 ]; then
-            if [ "$(/bin/cat "$DIR/deactivated")" = mimo-inactive-v1 ]; then
-                bounded_command 120 network-release /usr/bin/perl "$SCRIPT_DIR/release-network.pl" || return 1
-                printf 'mimo-inactive-v2\n' > "$DIR/deactivated" || return 1
-            fi
-            echo 'Mimo app updated; services remain inactive. Use Activate Mimo to restore services.'
-            return 0
-        fi
+        activation_requested=1
+        install_event reactivating || return 1
     fi
     dependency_source || return 1
     if [ -e "$LEGACY_BRIDGE_MARKER" ]; then
@@ -591,10 +634,6 @@ install_service() (
         secure_directory "$RUNTIME" 0700 && secure_directory /Library/Logs/Mimo &&
         secure_directory "$PROFILES" 0700 &&
         secure_directory "$GUARD" 0700 && secure_directory /etc/pf.anchors || return 1
-    service_lock || return 1
-    trap 'finish_installation $?' EXIT
-    trap 'exit 130' INT
-    trap 'exit 143' TERM
     for path in "${installed_files[@]}"; do
         [ ! -L "$path" ] || { echo "Refusing symlink: $path" >&2; return 1; }
         [ ! -e "$path" ] || { [ -f "$path" ] && [ "$(/usr/bin/stat -f %u "$path")" = 0 ]; } || return 1
@@ -606,6 +645,7 @@ install_service() (
         index=$((index + 1))
     done
     /usr/bin/install -o root -g wheel -m 0755 "$binary" "$stage/new" || return 1
+    installation_logger="$stage/new"
     # Preserve a sealed, root-owned GUI copy solely for per-user login removal.
     # It still works after Finder removes the public bundle, and never runs as root.
     /usr/bin/ditto --noextattr --norsrc --noacl "$app" "$stage/login.app" || return 1
@@ -641,16 +681,12 @@ install_service() (
     done
     if [ -f "/Library/LaunchDaemons/$LEGACY.plist" ]; then /usr/bin/touch "$DIR/legacy-provider-enabled" || return 1; fi
     # Complete signature/hash/staging checks before asking to disconnect another proxy.
-    release_intent=$(run "$stage/new" --network-release-requested) || return 1
-    if [ "${activation_requested:-0}" = 1 ]; then release_intent=managed; fi
-    case "$release_intent" in
-        managed) check_engine_conflicts || return $? ;;
-        released) ;;
-        *) return 1 ;;
-    esac
+    install_stage conflicts || return 1
+    check_engine_conflicts || return $?
     ensure_runtime_group || return 1
     if [ -f "$RUNTIME/ipv6-original.plist" ]; then old_ipv4_policy=1; fi
     mutation_started=1
+    install_stage replacing_services || return 1
     run "$stage/new" --begin-maintenance || return 1
     unload "$INFRASTRUCTURE" && unload "$BOOT_GUARD" && unload "$LEGACY-http" && unload "$LEGACY" && unload "$LABEL" && unload "$ENGINE" && unload "$SUPERVISOR" || return 1
     wait_mimo_workers || return 1
@@ -692,7 +728,9 @@ install_service() (
     /usr/bin/install -o root -g wheel -m 0600 "$stage/supervisor.plist" "$GUARD/$SUPERVISOR.plist" || return 1
     /usr/bin/install -o root -g wheel -m 0600 "$stage/core.plist" "$GUARD/$LABEL.plist" || return 1
     /usr/bin/install -o root -g wheel -m 0600 "$stage/engine.plist" "$GUARD/$ENGINE.plist" || return 1
-    if [ "${activation_requested:-0}" = 1 ]; then run "$EXECUTABLE" --prepare-activation || return 1; fi
+    if [ "${activation_requested:-0}" = 1 ]; then run "$EXECUTABLE" --prepare-activation || return 1
+    else run "$EXECUTABLE" --prepare-installation || return 1; fi
+    install_event services_enabled || return 1
     run /usr/bin/perl "$GUARD_SCRIPT" --configure || return 1
     run /usr/bin/perl "$GUARD_SCRIPT" --boot || return 1
     /bin/rm -f "$LEGACY_CORE_PLIST" || return 1
@@ -719,24 +757,28 @@ install_service() (
         fi
     fi
     /bin/rm -f "$RUNTIME/maintenance" || return 1
-    run /bin/launchctl enable "system/$BOOT_GUARD" || return 1
-    run /bin/launchctl enable "system/$INFRASTRUCTURE" || return 1
+    install_stage starting_services || return 1
+    for path in "$BOOT_GUARD" "$INFRASTRUCTURE" "$SUPERVISOR" "$LABEL" "$ENGINE"; do
+        run /bin/launchctl enable "system/$path" || return 1
+    done
     run /bin/launchctl bootstrap system "$BOOT_PLIST" || return 1
-    run /bin/launchctl enable "system/$SUPERVISOR" || return 1
     run /bin/launchctl bootstrap system "$SUPERVISOR_PLIST" || return 1
-    bounded_command 60 check-services "$EXECUTABLE" --check-installation || return 1
     # The supervisor may already have registered the health job during its first
     # watchdog iteration. Never bootstrap the same job twice.
     ensure_loaded "$INFRASTRUCTURE" "$HEALTH_PLIST" || return 1
+    install_stage verifying_services || return 1
+    bounded_command 90 check-services "$EXECUTABLE" --check-installation "$installation_id" || return 1
+    install_event services_verified || return 1
     run "$EXECUTABLE" --finish-name-migration || return 1
     /bin/rm -f "$LEGACY_EXECUTABLE" || return 1
     # Generated profiles from older builds may contain secrets. Regenerate via
     # stdin/socket delivery; remove obsolete copies only after the new jobs pass.
     /bin/rm -f "$RUNTIME/candidate.yaml" "$RUNTIME/config.yaml" "$RUNTIME/reload.json" "$RUNTIME/blocking.yaml" "$RUNTIME/controller.sock" || return 1
     /bin/rm -f "$DIR/deactivated" || return 1
-    mutation_started=0
     /bin/rm -f "/Library/LaunchDaemons/$LEGACY.plist" "/Library/LaunchDaemons/$LEGACY-http.plist" "/etc/sudoers.d/mimo-tailscale-verge" "$DIR/tailscale-verge.sh" || return 1
-    echo 'Mimo supervisor, core and pinned mihomo installed. Saved mode and service stop preferences are retained. Rule and Global require a fresh verified exit on the saved allowlist.'
+    install_event succeeded || return 1
+    mutation_started=0
+    echo 'All Mimo services installed, enabled and verified. Previously inactive installations resume in Direct. Active Rule and Global retain their mode and require a fresh verified exit on the saved allowlist.'
 )
 
 user_name_operation() {
@@ -863,6 +905,7 @@ uninstall_service() (
 
 main() {
     local installation_interactive=1 activation_requested=0
+    local installation_operation=${1:-install}
     if [ "$#" = 2 ] && [ "$1" = install ] && [ "$2" = --non-interactive ]; then
         installation_interactive=0
         set -- install

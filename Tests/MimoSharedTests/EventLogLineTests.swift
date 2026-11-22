@@ -6,6 +6,19 @@ import AppKit
 
 /// The Event Log window's lines: one concise UTC line per important event, nothing for routine records.
 final class EventLogLineTests: XCTestCase {
+    func testInstallerEventsDistinguishConsentVerificationAndRollback() {
+        for stage in ["started", "reactivating", "conflict_detected", "conflict_cancelled", "conflict_approved",
+                      "conflict_disabled", "conflict_stop_requested", "conflicts_cleared", "replacing_services",
+                      "services_enabled", "starting_services", "verifying_services", "services_verified",
+                      "succeeded", "cancelled", "failed", "health_failed", "rollback_started", "rollback_succeeded", "rollback_failed"] {
+            XCTAssertNotNil(EventLogLine.message(event: "mimo_installation", fields: ["operation": "install", "stage": stage]))
+        }
+        XCTAssertEqual(EventLogLine.message(event: "mimo_installation", fields: ["stage": "failed", "item": "verifying_services", "status": "1"]),
+                       "Installation failed · verifying_services · status 1")
+        XCTAssertEqual(EventLogLine.message(event: "mimo_installation", fields: ["operation": "activate", "stage": "succeeded"]),
+                       "Activation completed · all services installed and healthy")
+        XCTAssertTrue(EventLogLine.format(timestamp: "2026-11-22T15:30:00.123Z", event: "mimo_installation", fields: ["stage": "started"])!.hasPrefix("2026-11-22 15:30:00.123Z"))
+    }
     func testVerificationTriggersAndGeographyAreExplicit() {
         XCTAssertEqual(EventLogLine.message(event: "mimo_network_changed", fields: ["source": "route", "detail": "route added on en0 (pid 42)", "generation": "7"]),
                        "Check trigger · route · route added on en0 (pid 42) · generation 7")

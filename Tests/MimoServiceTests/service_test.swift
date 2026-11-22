@@ -25,6 +25,7 @@ struct ServiceTests {
         MimoNativeObserverTests.run()
         try await MimoNativeObserverTests.preparation()
         try await MimoRecoveryTests.run()
+        try MimoInstallationTests.run()
         let boot = UUID().uuidString
         let reference = MimoPFReference(token: "12345", boot: boot)
         require(try reference.token(forBoot: boot) == "12345", "same-boot PF references remain usable")
@@ -87,13 +88,16 @@ struct ServiceTests {
         require(await service.handle(initialize, uid: 502).failure == .alreadyInitialized, "later users cannot overwrite migration")
 
         var presentation = DaemonRequest(.presentation)
+        // The real XPC caller below also saves its own preferences. Do not use
+        // that account as the untouched-user fixture (mimo-vm's user is UID 502).
+        let untouchedUID: uid_t = getuid() == 502 ? 503 : 502
         var personal = UserPresentationPreferences()
         personal.displayStyle = .name
         personal.highlightCountryChanges = false
         presentation.presentation = personal
         require(await service.handle(presentation, uid: 501).failure == nil, "personal appearance requires no administrator")
         require(service.state(for: 501).presentation.displayStyle == .name, "request updates caller preferences")
-        require(service.state(for: 502).presentation.displayStyle == .flag, "different users retain independent preferences")
+        require(service.state(for: untouchedUID).presentation.displayStyle == .flag, "different users retain independent preferences")
 
         // Exercise NSXPC encoding, kernel caller identity and asynchronous replies without launchd.
         let listener = NSXPCListener.anonymous()
@@ -149,7 +153,7 @@ struct ServiceTests {
                                         observeSystem: false, credentials: credentials, client: client)
         require(restored.state(for: 501).revision == committedRevision, "settings revision must survive restart")
         require(restored.state(for: 501).presentation.displayStyle == .name, "personal preferences must survive restart")
-        require(restored.state(for: 502).presentation.displayStyle == .flag, "restart must retain user isolation")
+        require(restored.state(for: untouchedUID).presentation.displayStyle == .flag, "restart must retain user isolation")
         require(restored.state(for: 501).budget.callsToday(for: .ipinfoLite) >= 2, "provider budget must survive restart")
         // Fresh Direct monitoring needs no shared-settings migration or Keychain read.
         let freshStorage = try FilePreferenceStorage(url: directory.appendingPathComponent("fresh.plist"))

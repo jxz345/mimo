@@ -4,7 +4,7 @@
 # Service setup must succeed before the package reports a completed installation.
 app="$2/Mimo.app"
 [ -d "$app" ] || app="${3%/}/Applications/Mimo.app"
-[ -d "$app" ] || exit 0
+[ -d "$app" ] || { echo 'Mimo app is missing; service installation cannot complete.' >&2; exit 1; }
 source "$app/Contents/Resources/command-support.sh"
 # Allow the bounded 60-second conflict confirmation as well as service setup.
 bounded_command 240 install-service /bin/bash "$app/Contents/Resources/daemon.sh" install || exit 1
