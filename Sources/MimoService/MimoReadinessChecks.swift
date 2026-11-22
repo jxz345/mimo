@@ -78,7 +78,19 @@ final class MimoReadinessChecks: Sendable {
                       result.text.split(separator: "\n").contains("n127.0.0.1:\(MimoRuntime.dnsPort)") else { return false }
             }
             let tunnel = BoundedProcess.run("/sbin/ifconfig", [MihomoProfile.tunnelDevice])
-            return tunnel.status == 0 && tunnel.text.contains("UP")
+            guard tunnel.status == 0, tunnel.text.contains("UP"), tunnel.text.contains("inet6 fdfe:dcba:9876::1") else { return false }
+            // Confirm both ordinary address families enter the profile before
+            // removing PF's transition barrier. Documentation prefixes avoid
+            // contacting any service; route get sends no network packets.
+            for address in ["198.51.100.1", "2001:db8::1"] {
+                // Darwin route defaults to AF_INET even for an IPv6 literal.
+                let family = address.contains(":") ? "-inet6" : "-inet"
+                let route = BoundedProcess.run("/sbin/route", ["-n", "get", family, address])
+                guard route.status == 0, route.text.split(separator: "\n").contains(where: {
+                    $0.trimmingCharacters(in: .whitespaces) == "interface: \(MihomoProfile.tunnelDevice)"
+                }) else { return false }
+            }
+            return true
         }) else { throw CancellationError() }
         return result
     }

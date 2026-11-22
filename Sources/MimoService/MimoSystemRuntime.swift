@@ -98,9 +98,54 @@ final class MimoSystemRuntime {
         return true
     }
 
-    func enforceIPv4Policy() throws {
+    /// Upgrade while the startup barrier is closed. Retire every old child,
+    /// persistent DNS key and saved IPv6 disable flag before loading a profile.
+    func migrateLegacyNetworkControls() throws {
         guard !networkReleaseRequested else { return }
-        try withFirewallLock { try MimoIPv4Configuration.apply() }
+        guard closed else { throw DaemonFailure.conflict }
+        try withFirewallLock {
+            try clearOwnedPolicyChildren()
+            try dns.remove()
+            try MimoIPv4Configuration.apply(restoring: true)
+        }
+        RuntimeLog.shared.info("mimo_legacy_network_controls_removed")
+    }
+
+    /// The caller has replaced the parent, so children cannot grant old policy.
+    /// Enumerate descendants, including unreferenced previous-version anchors.
+    private func clearOwnedPolicyChildren() throws {
+        try MimoFirewallLock.mutate {
+            var paths = [MimoFirewallPolicy.anchor]
+            var index = 0
+            while index < paths.count {
+                let parent = paths[index]; index += 1
+                let result = BoundedProcess.run("/sbin/pfctl", ["-a", parent, "-s", "Anchors"])
+                guard result.status == 0 else { throw MimoRuntimeError.unavailable("Could not inspect older Mimo firewall policies.") }
+                for line in result.text.split(separator: "\n") {
+                    let child = line.trimmingCharacters(in: .whitespaces)
+                    guard !child.isEmpty else { continue }
+                    let path = child.hasPrefix(MimoFirewallPolicy.anchor + "/") ? child : parent + "/" + child
+                    let suffix = path.dropFirst(MimoFirewallPolicy.anchor.count + 1)
+                    guard path.hasPrefix(parent + "/"), !suffix.isEmpty,
+                          suffix.split(separator: "/", omittingEmptySubsequences: false).allSatisfy({
+                              !$0.isEmpty && $0 != "." && $0 != ".." && $0.utf8.allSatisfy {
+                                  (48...57).contains($0) || (65...90).contains($0) || (97...122).contains($0) || [45, 46, 95].contains($0)
+                              }
+                          }), paths.count < 128, !paths.contains(path) else { throw DaemonFailure.invalidRequest }
+                    paths.append(path)
+                }
+            }
+            for path in paths.dropFirst() {
+                for kind in ["rules", "nat", "Tables"] { try command("/sbin/pfctl", ["-a", path, "-F", kind]) }
+                for kind in ["-sr", "-sn"] {
+                    let actual = BoundedProcess.run("/sbin/pfctl", ["-a", path, kind])
+                    guard actual.status == 0, actual.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                        throw MimoRuntimeError.unavailable("An older Mimo firewall policy remains installed.")
+                    }
+                }
+            }
+        }
+        installedPolicy = nil; verifiedBaseline = nil; expectedPolicies = [:]
     }
 
     func infrastructureStatus() -> MimoInfrastructureStatus {
@@ -307,9 +352,20 @@ final class MimoSystemRuntime {
                     }
                 }
                 try installPF(MimoFirewallPolicy.permissionParent)
-                try MimoIPv4Configuration.apply()
                 _ = try writePrivate(Data("blocked".utf8), name: "gate.state")
                 installedPolicy = policy
+            }
+        } else {
+            // Active mode withdrew the parent barrier. Reusing probe bytes must
+            // still restore that parent before clearing the power barrier.
+            try withFirewallLock {
+                try MimoFirewallLock.mutate {
+                    try command("/sbin/pfctl", ["-a", MimoFirewallPolicy.anchor, "-f", "-"], input: Data(MimoFirewallPolicy.permissionParent.utf8))
+                    let parent = BoundedProcess.run("/sbin/pfctl", ["-a", MimoFirewallPolicy.anchor, "-sr"])
+                    guard parent.status == 0, parent.text.contains("anchor \"permission\""), parent.text.contains("block drop out quick all") else { throw DaemonFailure.conflict }
+                    _ = try writePrivate(Data(parent.text.utf8), name: "guard.expected")
+                    _ = try writePrivate(Data("blocked".utf8), name: "gate.state")
+                }
             }
         }
         timing.record("install_probe_policy")
@@ -368,7 +424,6 @@ final class MimoSystemRuntime {
             guard main.status == 0, main.text.contains("anchor \"com.apple/*\""),
                   !main.text.contains("pass out quick"), !main.text.contains("pass quick"),
                   live.status == 0, live.text.contains("anchor \"power-guard\""),
-                  live.text.contains("anchor \"permission\""),
                   status.status == 0, status.text.contains("Status: Enabled"),
                   (try? secureFile(expected)) != nil,
                   live.text == (try? String(contentsOf: expected, encoding: .utf8)) else { return false }
@@ -394,7 +449,6 @@ final class MimoSystemRuntime {
             // States created before the guard existed must not override the newly closed policy.
             try command("/sbin/pfctl", ["-k", "0.0.0.0/0"])
             try command("/sbin/pfctl", ["-k", "::/0"])
-            if applyIPv4Preferences { try MimoIPv4Configuration.apply() }
             _ = try writePrivate(Data("blocked".utf8), name: "gate.state")
             closed = true
         }
@@ -405,7 +459,7 @@ final class MimoSystemRuntime {
         try MimoFirewallLock.mutate {
             guard !maintenanceActive, !infrastructureRepairPending else { throw DaemonFailure.conflict }
             try command("/sbin/pfctl", ["-a", MimoFirewallPolicy.permissionAnchor, "-f", "-"],
-                        input: Data(MimoFirewallPolicy.permission(open: false).utf8))
+                        input: Data(MimoFirewallPolicy.privateProbePermission.utf8))
         }
         try MimoPowerGuard.clear()
     }
@@ -433,7 +487,7 @@ final class MimoSystemRuntime {
         while !nativeTransportWriter.hasObservation(since: instant) {
             try Task.checkCancellation()
             guard nativeTransportWriter.isHealthy else {
-                throw MimoRuntimeError.unavailable("Native transport rules need recovery.")
+                throw MimoRuntimeError.unavailable("Native provider publication needs recovery.")
             }
             try await Task.sleep(for: .milliseconds(50))
         }
@@ -462,11 +516,11 @@ final class MimoSystemRuntime {
                 throw MimoRuntimeError.unavailable("The effective PF root or enable state changed.")
             }
             let parent = BoundedProcess.run("/sbin/pfctl", ["-a", MimoFirewallPolicy.anchor, "-sr"])
-            let gate = BoundedProcess.run("/sbin/pfctl", ["-a", MimoFirewallPolicy.permissionAnchor, "-sr"])
+            let barrier = BoundedProcess.run("/sbin/pfctl", ["-a", MimoPowerGuard.anchor, "-sr"])
             let expectedParent = try String(contentsOf: MimoRuntime.directory.appendingPathComponent("guard.expected"), encoding: .utf8)
             guard parent.status == 0, parent.text == expectedParent,
-                  gate.status == 0, gate.text.trimmingCharacters(in: .whitespacesAndNewlines) ==
-                    "anchor \"/\(MimoFirewallPolicy.anchor)/open-policy\" out quick all" else {
+                  parent.text.trimmingCharacters(in: .whitespacesAndNewlines) == "anchor \"power-guard\" out quick all",
+                  barrier.status == 0, barrier.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                 throw MimoRuntimeError.unavailable("The active firewall permission changed.")
             }
         } }) else { throw CancellationError() }
@@ -498,9 +552,16 @@ final class MimoSystemRuntime {
                 throw MimoRuntimeError.unavailable("The preinstalled final policy changed.")
             }
             timing.record("grant_parent_identity")
-            try command("/sbin/pfctl", ["-a", MimoFirewallPolicy.permissionAnchor, "-f", "-"],
-                        input: Data(MimoFirewallPolicy.permission(open: true).utf8))
+            // Remove the transition policy atomically. The passive power anchor
+            // has no packet decisions while active; profile routing now owns access.
+            let barrier = BoundedProcess.run("/sbin/pfctl", ["-a", MimoPowerGuard.anchor, "-sr"])
+            guard barrier.status == 0, barrier.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw DaemonFailure.conflict }
+            try command("/sbin/pfctl", ["-a", MimoFirewallPolicy.anchor, "-f", "-"], input: Data(MimoFirewallPolicy.activeParent.utf8))
+            let active = BoundedProcess.run("/sbin/pfctl", ["-a", MimoFirewallPolicy.anchor, "-sr"])
+            guard active.status == 0, active.text.trimmingCharacters(in: .whitespacesAndNewlines) == "anchor \"power-guard\" out quick all" else { throw DaemonFailure.conflict }
+            _ = try writePrivate(Data(active.text.utf8), name: "guard.expected")
             timing.record("grant_permission")
+            RuntimeLog.shared.info("mimo_transition_firewall_released")
             _ = try writePrivate(Data("active".utf8), name: "gate.state")
             closed = false
         }
@@ -514,13 +575,12 @@ final class MimoSystemRuntime {
             guard maintenanceRecovery || !maintenanceActive else { throw MimoRuntimeError.unavailable("Service installation is in progress.") }
             _ = try writePrivate(Data("pending".utf8), name: "gate.state")
             if !uninstalling {
-                // Saved Direct is already authorized. Release the protected IPv4
-                // gate before removing TUN/DNS interception, keeping IPv6 blocked.
-                // Do not flush IPv4 connections or wait for an allowlist check.
-                try installPF(MimoFirewallPolicy.directIPv4, requiresRuntimeGroup: false)
-                try command("/sbin/pfctl", ["-k", "::/0"])
+                // Direct is explicitly authorized. Remove Mimo's packet rules
+                // before retiring TUN/DNS, without flushing other owners' states.
+                try installPF(MimoFirewallPolicy.direct, requiresRuntimeGroup: false)
+                try clearOwnedPolicyChildren()
                 closed = false
-                RuntimeLog.shared.info("mimo_direct_ipv4_released")
+                RuntimeLog.shared.info("mimo_direct_network_released")
             }
             do { try loadProfile(MihomoProfile.blocking()) }
             catch { try changeJobUnderFirewallLock(.mihomo, operation: .stop) }
@@ -533,7 +593,7 @@ final class MimoSystemRuntime {
             do { try nativeTransportWriter.update(.init()); try MimoPowerGuard.clear() }
             catch { RuntimeLog.shared.info("mimo_direct_cleanup_deferred") }
             if !uninstalling {
-                try MimoIPv4Configuration.apply()
+                try MimoIPv4Configuration.apply(restoring: true)
                 _ = try writePrivate(Data("direct".utf8), name: "gate.state")
                 closed = false
                 return
@@ -595,11 +655,11 @@ final class MimoSystemRuntime {
             try command("/sbin/pfctl", ["-a", MimoFirewallPolicy.anchor, "-f", "-"], input: bytes)
         }
         let installed = BoundedProcess.run("/sbin/pfctl", ["-a", MimoFirewallPolicy.anchor, "-sr"])
-        guard installed.status == 0, !installed.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        guard installed.status == 0, rules.isEmpty == installed.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw MimoRuntimeError.unavailable("The installed firewall rules could not be read back.")
         }
         _ = try writePrivate(Data(installed.text.utf8), name: "guard.expected")
-        RuntimeLog.shared.info("mimo_pf_policy_installed", fields: ["policy": rules == MimoFirewallPolicy.startupBlocking ? "startup" : rules == MimoFirewallPolicy.directIPv4 ? "direct" : rules.contains("pass out quick on \(MihomoProfile.tunnelDevice)") ? "active" : "probe"])
+        RuntimeLog.shared.info("mimo_pf_policy_installed", fields: ["policy": rules == MimoFirewallPolicy.startupBlocking ? "startup" : rules == MimoFirewallPolicy.direct ? "direct" : rules == MimoFirewallPolicy.activeParent ? "active" : "probe"])
 
         enableToken = try currentEnableToken()
         let status = BoundedProcess.run("/sbin/pfctl", ["-s", "info"])

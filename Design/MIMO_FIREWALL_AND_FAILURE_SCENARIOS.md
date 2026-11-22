@@ -1,5 +1,7 @@
 # Mimo firewall and failure scenarios — TUN-enabled baseline
 
+> **Historical analysis, superseded by 2.0 build 6.** This document discusses the older steady PF policy and a hypothetical startup TUN. Current Rule/Global leave only an empty emergency anchor, Direct has no Mimo packet rules, and the profile captures then rejects IPv6. See [current workflows](MIMO_EVENT_DRIVEN_WORKFLOWS.md) and [current protection limits](../README.md#modes-and-protection). Older claims about active IPv6 denial, native transport exceptions and permanent DNS blocks do not describe build 6.
+
 Hostname bootstrap implementation: while PF remains closed, Mimo retires the previous TUN using the credential-free blocking profile and confirms the tunnel is absent. Only then does it permit the runtime group’s fixed HTTPS DNS resolver. Failure stays blocked; after an A record is obtained, bootstrap access is closed before endpoint policy installation and final-profile verification. This prevents a routing deadlock through the previous proxy; it does not change pre-loader boot protection.
 
 Updated: 2026-11-20. Scope: Apple silicon, IPv4-only Mimo + pinned mihomo, **assuming TUN is already enabled in the protected startup profile**, plus the conditional Developer ID / Network Extension assessment in section 13. The independent PF boot loader, active infrastructure repair and dashboard health reporting described below are current implementation changes. Startup TUN remains an analysis assumption, not a new release qualification.

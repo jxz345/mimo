@@ -132,7 +132,7 @@ cleanup_job_state() {
 
 cleanup_privileged() {
     local timeout=10
-    case "$1" in /Library/PrivilegedHelperTools/mimo-manage|/Library/PrivilegedHelperTools/com.example.exitipmonitor.manage) timeout=90 ;; esac
+    case "$1" in /Library/PrivilegedHelperTools/mimo-manage|/Library/PrivilegedHelperTools/com.example.exitipmonitor.manage) timeout=180 ;; esac
     if [ "$(/usr/bin/id -u)" = 0 ]; then
         bounded_command "$timeout" remove-provider "$@"
     else

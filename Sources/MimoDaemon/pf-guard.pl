@@ -232,6 +232,14 @@ sub inspect_pf_snapshot {
     my $info = required('/sbin/pfctl', '-s', 'info');
     my $children_valid = 1;
     my $withdrawn = 0;
+    if ($state eq 'active') {
+        # Active routing belongs exclusively to the profile. The sole parent
+        # reference is passive unless an independent transition closes it.
+        $children_valid = 0 unless $live =~ /^anchor "power-guard" out quick all\s*$/;
+        my $barrier = required('/sbin/pfctl', '-a', "$anchor/power-guard", '-sr');
+        if ($barrier =~ /\S/) { $withdrawn = 1; $state = 'blocked'; }
+    }
+    $children_valid = 0 if $state eq 'direct' && $live =~ /\S/;
     if ($live =~ /^anchor "permission"/m) {
         for my $child (['probe-policy', $probe], ['open-policy', $final]) {
             my $actual = required('/sbin/pfctl', '-a', $anchor . '/' . $child->[0], '-sr');
@@ -283,7 +291,7 @@ sub close_gate_locked {
     required('/sbin/pfctl', '-k', '0.0.0.0/0');
     required('/sbin/pfctl', '-k', '::/0');
     my $actual = required('/sbin/pfctl', '-a', $anchor, '-sr');
-    die "Independent blocking anchor is empty\n" unless $actual =~ /^block drop out quick all$/m;
+    die "Independent blocking anchor is empty\n" unless $actual =~ /^block drop out quick all label "mimo:transition:deny"$/m;
     atomic_write("$runtime/guard.expected", $actual);
     atomic_write("$runtime/gate.state", 'blocked');
     $pf_healthy = 1;

@@ -68,7 +68,7 @@ enum MimoMenuTests {
         require(presentation(inconsistent).kind == .unavailable && presentation(inconsistent).address == nil
                 && !presentation(inconsistent).detail.contains("approved"), "inconsistent mode/approval must not claim allowed access")
 
-        let native = MimoStatusMenu(monitor: PublicIPMonitor())
+        let native = MimoStatusMenu(monitor: PublicIPMonitor(readDeactivation: { false }))
         let identities = native.menu.items.map(ObjectIdentifier.init)
         for _ in 0..<5 { native.update() }
         require(native.menu.items.map(ObjectIdentifier.init) == identities, "status updates must preserve native menu item identity and focus")
@@ -85,7 +85,7 @@ enum MimoMenuTests {
         require(Set(actions.map { "\($0.keyEquivalentModifierMask.rawValue):\($0.keyEquivalent)" }).count == actions.count,
                 "popup shortcuts must be distinct")
 
-        let setupMonitor = PublicIPMonitor()
+        let setupMonitor = PublicIPMonitor(readDeactivation: { false })
         var setupState = DaemonState(instanceID: UUID(), build: "UI setup fixture", initialized: false, revision: 0,
             settings: MachineSettings(), presentation: UserPresentationPreferences(), snapshot: nil,
             status: .idle, indicators: MonitorIndicatorState(), authorizationState: .unavailable,

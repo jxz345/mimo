@@ -11,7 +11,7 @@
 # postinstall scripts (Scripts/pkg/) quit a running copy and launch the new one.
 # install.sh (from Scripts/install-release.sh) installs the app from the downloaded
 # .pkg without Installer or Gatekeeper, or downloads the .pkg from the GitHub release
-# v<version> of the origin remote (set MIMO_RELEASE_REPO=owner/repo to override).
+# v<version>-build.<build> (set MIMO_RELEASE_REPO=owner/repo to override).
 #
 # Builds and checks artifacts locally; does not publish or invoke GitHub Actions.
 # The script checks for unwanted archive metadata; a locally created
@@ -71,6 +71,7 @@ done
 
 version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP_BUNDLE/Contents/Info.plist")"
 build_number="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP_BUNDLE/Contents/Info.plist")"
+release_tag="v${version}-build.${build_number}"
 bundle_id="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_BUNDLE/Contents/Info.plist")"
 pkg_path="$DIST_DIR/Mimo-$version.pkg"
 mkdir -p "$DIST_DIR"
@@ -138,6 +139,7 @@ rm -f "$install_path"
 if [[ -n "$release_repo" ]]; then
     sed -e "s|@RELEASE_REPO@|$release_repo|" \
         -e "s|@VERSION@|$version|" \
+        -e "s|@RELEASE_TAG@|$release_tag|" \
         -e "s|@PKG_SHA256@|$pkg_sha|" \
         "$SCRIPT_DIR/install-release.sh" | awk -v support="$KIT_ROOT/Sources/MimoDiagnostics/command-support.sh" '
             /^# @COMMAND_SUPPORT@$/ { while ((getline line < support) > 0) print line; close(support); next }
@@ -183,14 +185,14 @@ PYTHON
 printf '\nSUCCESS: Mimo %s (build %s)\n' "$version" "$build_number"
 cat "$DIST_DIR/SHA256SUMS"
 printf '\nCask values for jxz345/homebrew-tap Casks/mimo.rb:\n'
-printf '  version "%s"\n  sha256 "%s"\n' "$version" "$(shasum -a 256 "$zip_path" | awk '{print $1}')"
+printf '  version "%s,%s"\n  sha256 "%s"\n' "$version" "$build_number" "$(shasum -a 256 "$zip_path" | awk '{print $1}')"
 if [[ "${CI:-}" != "true" ]]; then
     printf 'Artifacts built locally. Nothing was published and no workflow was invoked.\n'
 fi
 
 # Prepare the companion tap update with exact artifact metadata; do not publish it here.
 zip_sha="$(shasum -a 256 "$zip_path" | awk '{print $1}')"
-sed -e "s|@VERSION@|$version|g" -e "s|@ZIP_SHA256@|$zip_sha|g" \
+sed -e "s|@VERSION@|$version|g" -e "s|@BUILD@|$build_number|g" -e "s|@ZIP_SHA256@|$zip_sha|g" \
     "$KIT_ROOT/Packaging/mimo.rb.in" > "$DIST_DIR/mimo.rb"
 python3 "$SCRIPT_DIR/sync-homebrew-cleanup.py" "$DIST_DIR/mimo.rb"
 printf 'Prepared Homebrew cask: %s\n' "$DIST_DIR/mimo.rb"

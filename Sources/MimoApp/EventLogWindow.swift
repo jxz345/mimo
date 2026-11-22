@@ -27,6 +27,13 @@ final class EventLogModel: ObservableObject {
         updateLines()
         polling = Task { [weak self] in
             while !Task.isCancelled {
+                if MimoDeactivation.isConfirmed() {
+                    self?.coreStatus = "removed; monitoring in GUI"
+                    self?.supervisorStatus = "removed; network controls released"
+                    self?.updateLines()
+                    try? await Task.sleep(for: .seconds(2))
+                    continue
+                }
                 var request = DaemonRequest(.supervisor)
                 var message = MimoSupervisorRequest(.state)
                 message.includeEvents = true

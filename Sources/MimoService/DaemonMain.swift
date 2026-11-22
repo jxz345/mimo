@@ -87,6 +87,9 @@ enum DaemonMain {
                 }
                 try runtime.closeGate()
                 try runtime.writeBlockingProfile()
+                // IPv6 must enter the profile's REJECT rule even on a network
+                // without native IPv6 at engine startup (it may appear later).
+                setenv("SKIP_SYSTEM_IPV6_CHECK", "1", 1)
                 let arguments = [MimoRuntime.engine.path, "-d", MimoRuntime.profileDirectory.path, "-f", MimoRuntime.blockingProfile.path]
                 var argv = arguments.map { strdup($0) } + [nil]
                 defer { argv.forEach { free($0) } }

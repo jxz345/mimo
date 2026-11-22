@@ -2,14 +2,21 @@ import Darwin
 import Foundation
 import SystemConfiguration
 
-/// Mimo is IPv4-only while installed. Save each service's original enabled flag
-/// before disabling IPv6, including services added after installation. Do not
-/// rewrite address/router configuration. Uninstall restores the saved flags.
+/// Legacy IPv6 preference journal compatibility. Current routing never disables
+/// macOS IPv6; upgrade, Direct and uninstall restore flags saved by older builds.
 enum MimoIPv4Configuration {
     static let backup = MimoRuntime.directory.appendingPathComponent("ipv6-original.plist")
     private static let pending = MimoRuntime.directory.appendingPathComponent("ipv6-apply-pending")
 
     static func apply(restoring: Bool = false) throws {
+        // Current builds only restore the legacy journal. Avoid acquiring the
+        // global preferences lock when Mimo never changed these settings.
+        if restoring, !FileManager.default.fileExists(atPath: backup.path) {
+            guard !FileManager.default.fileExists(atPath: pending.path) else {
+                throw MimoRuntimeError.unavailable("The older IPv6 restoration journal is missing. Network cleanup is incomplete.")
+            }
+            return
+        }
         guard geteuid() == 0,
               let preferences = SCPreferencesCreate(nil, "Mimo IPv4 policy" as CFString, nil),
               SCPreferencesLock(preferences, false) else {

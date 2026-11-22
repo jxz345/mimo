@@ -2,39 +2,40 @@ import XCTest
 @testable import MimoShared
 
 final class MimoRoutingTests: XCTestCase {
-    func testPermissionPoliciesUseAbsoluteReferencesAndDenyWithoutAGrant() throws {
-        // ../ anchor loading panicked the qualification VM kernel. Absolute
-        // references passed real PF load/readback there; keep them invariant.
-        for mode in [ProxyMode.rule, .global] {
-            let rules = try MimoFirewallPolicy.preparedPolicy(group: 400, endpoints: ["192.0.2.10"], proxyPort: 1080, mode: mode)
-            XCTAssertFalse(rules.contains("../"))
-            XCTAssertTrue(rules.contains("/com.apple/000.mimo/native-transport"))
-            XCTAssertTrue(rules.contains("block drop out quick all"))
+    func testEveryGeneratedPacketRuleHasAnIdentifiablePersistentLabel() throws {
+        let policies = [MimoFirewallPolicy.startupBlocking,
+            try MimoFirewallPolicy.render(group: 400),
+            try MimoFirewallPolicy.render(group: 400, endpoints: ["192.0.2.10"], proxyPort: 1080)]
+        for policy in policies {
+            for line in policy.split(separator: "\n") where line.hasPrefix("pass ") || line.hasPrefix("block ") {
+                XCTAssertTrue(line.contains("label \"mimo:"), String(line))
+            }
         }
-        XCTAssertTrue(MimoFirewallPolicy.permissionParent.hasSuffix(MimoFirewallPolicy.startupBlocking))
-        XCTAssertFalse(MimoFirewallPolicy.permission(open: true).contains("../"))
-        XCTAssertTrue(MimoFirewallPolicy.permission(open: true).contains("/com.apple/000.mimo/open-policy"))
+    }
+    func testActiveModesLeavePacketDecisionsToProfileAndOtherFirewalls() throws {
+        for mode in [ProxyMode.rule, .global] {
+            let active = try MimoFirewallPolicy.render(group: 400, endpoints: ["192.0.2.10"], proxyPort: 1080, mode: mode)
+            XCTAssertEqual(active, MimoFirewallPolicy.activeParent)
+            XCTAssertFalse(active.contains("pass "))
+            XCTAssertFalse(active.contains("block "))
+            XCTAssertFalse(active.contains("native-transport"))
+            XCTAssertEqual(try MimoFirewallPolicy.preparedPolicy(group: 400, endpoints: ["192.0.2.10"], proxyPort: 1080, mode: mode), "")
+        }
+        XCTAssertEqual(MimoFirewallPolicy.direct, "")
     }
 
-    func testRootMagicDNSExceptionRemainsInsideTheVerifiedNativePolicy() throws {
-        for mode: ProxyMode? in [nil, .rule, .global] {
-            let rules = try MimoFirewallPolicy.preparedPolicy(group: 400, endpoints: ["192.0.2.10"], proxyPort: 1080, mode: mode)
-            let scoped = try XCTUnwrap(rules.range(of:
-                "anchor \"/com.apple/000.mimo/native-transport\" out quick inet proto tcp to 100.100.100.100 port 53 user 0\n"))
-            let guardRule = try XCTUnwrap(rules.range(of:
-                "block return out quick proto { tcp, udp } to any port { 53, 853 } group != 400\n"))
-            let general = try XCTUnwrap(rules.range(of:
-                "anchor \"/com.apple/000.mimo/native-transport\" out quick\n"))
-            XCTAssertLessThan(scoped.lowerBound, guardRule.lowerBound)
-            XCTAssertLessThan(guardRule.lowerBound, general.lowerBound,
-                              "Ordinary DNS must be rejected before the general tailnet exception")
-            XCTAssertFalse(rules.contains("anchor \"native-transport\""), "Both calls must reference the same absolute child")
-            XCTAssertFalse(rules.contains("pass out quick inet proto tcp to 100.100.100.100"),
-                           "No unconditional parent pass may outlive the native interface observation")
+    func testTransitionAllowsOnlyPinnedTCPProbeAndLocalControl() throws {
+        let rules = try MimoFirewallPolicy.preparedPolicy(group: 400, endpoints: ["192.0.2.10"], proxyPort: 1080)
+        XCTAssertTrue(rules.contains("pass out quick proto tcp to 192.0.2.10 port 1080 group 400 no state"))
+        XCTAssertTrue(rules.hasSuffix("block drop out quick all label \"mimo:probe:deny\"\n"))
+        for bypass in ["native-transport", "utun239", "100.64.0.0/10", "10.0.0.0/8", "group !=", "1.1.1.1", "proto udp to 192.0.2.10"] {
+            XCTAssertFalse(rules.contains(bypass), bypass)
         }
-        XCTAssertEqual(try MimoNativeTransport().render(), "\n", "No verified native interface grants no DNS exception")
-        XCTAssertFalse(MimoFirewallPolicy.startupBlocking.contains("native-transport"))
-        XCTAssertFalse(MimoFirewallPolicy.directIPv4.contains("native-transport"))
+        XCTAssertTrue(MimoFirewallPolicy.permissionParent.hasSuffix(MimoFirewallPolicy.startupBlocking))
+        XCTAssertTrue(MimoFirewallPolicy.privateProbePermission.contains("anchor \"/com.apple/000.mimo/probe-policy\" out quick\n"))
+        let bootstrap = try MimoFirewallPolicy.preparedPolicy(group: 400, endpoints: [], proxyPort: nil)
+        XCTAssertTrue(bootstrap.contains("pass out quick proto tcp to 1.1.1.1 port 443 group 400"))
+        XCTAssertFalse(bootstrap.contains("port 53"))
     }
 
     func testPendingBlockRevokesApprovalWithoutClaimingConfirmedBlocking() {
@@ -195,27 +196,12 @@ final class MimoRoutingTests: XCTestCase {
         XCTAssertEqual(policy.state.blockingIP?.address, "2001:db8::42")
     }
 
-    func testIPv6FirewallBlockPrecedesTunnelAndNativeExceptions() throws {
-        for mode: ProxyMode? in [nil, .rule, .global] {
-            let rules = try MimoFirewallPolicy.render(group: 10000, mode: mode, tunnel: mode == nil ? nil : "utun239")
-            let deny = try XCTUnwrap(rules.range(of: "block return out quick inet6 all"))
-            let native = try XCTUnwrap(rules.range(of: "anchor \"native-transport\""))
-            XCTAssertLessThan(deny.lowerBound, native.lowerBound)
-            if let tunnel = rules.range(of: "pass out quick on utun239") { XCTAssertLessThan(deny.lowerBound, tunnel.lowerBound) }
-        }
-        XCTAssertTrue(MimoFirewallPolicy.directIPv4.contains("block return out quick inet6 all"))
-        XCTAssertFalse(MimoFirewallPolicy.directIPv4.contains("block return out quick all"))
-    }
-
-    func testPowerBarrierPrecedesEveryProtectedTrafficException() throws {
-        for mode: ProxyMode? in [nil, .rule, .global] {
-            let rules = try MimoFirewallPolicy.render(group: 10000, mode: mode, tunnel: mode == nil ? nil : "utun239")
-            let power = try XCTUnwrap(rules.range(of: "anchor \"power-guard\" out quick"))
-            for exception in ["pass out quick on lo0", "anchor \"native-transport\"", "pass out quick on utun239"] {
-                if let range = rules.range(of: exception) { XCTAssertLessThan(power.lowerBound, range.lowerBound) }
-            }
-        }
-        XCTAssertFalse(MimoFirewallPolicy.directIPv4.contains("power-guard"), "Direct does not depend on protected wake verification")
+    func testTransitionBarrierCoversBothFamiliesWithoutSteadyIPv6Rules() throws {
+        XCTAssertTrue(MimoFirewallPolicy.startupBlocking.hasSuffix("block drop out quick all label \"mimo:transition:deny\"\n"))
+        XCTAssertTrue(MimoFirewallPolicy.startupBlocking.contains("icmp6-type"), "Link control remains available for network recovery")
+        XCTAssertFalse(MimoFirewallPolicy.startupBlocking.contains("block return out quick inet6 all"))
+        XCTAssertEqual(MimoFirewallPolicy.direct, "")
+        XCTAssertEqual(try MimoFirewallPolicy.render(group: 10000, mode: .rule), MimoFirewallPolicy.activeParent)
     }
 
     func testBlockingAddressSurvivesRetryAndClearsOnlyAfterApprovalOrDirect() {
@@ -241,7 +227,7 @@ final class MimoRoutingTests: XCTestCase {
         XCTAssertFalse(wire.contains("password"))
     }
 
-    func testRuleProfilePreservesOriginalIPv4RulesAndDisablesIPv6() throws {
+    func testRuleProfileCapturesIPv6AndRejectsItWithoutDisablingMacOSIPv6() throws {
         let settings = try configuration.proxy!.settings()
         let original = try ClashVergeProfile.render(settings)
         let result = try MihomoProfile.render(settings, mode: .rule, stage: .active, probePassword: "fixture-probe-secret")
@@ -251,7 +237,9 @@ final class MimoRoutingTests: XCTestCase {
         XCTAssertFalse(result.contains("/tmp/verge"))
         XCTAssertFalse(result.contains("external-controller-cors"))
         XCTAssertFalse(result.contains("fake-ip-range6:"))
-        XCTAssertFalse(result.contains("ipv6: true"))
+        XCTAssertTrue(result.contains("\nipv6: true\n"), "TUN must capture IPv6 for the profile REJECT rule")
+        XCTAssertTrue(result.contains("  inet6-address: [\(MihomoProfile.tunnelIPv6)]"))
+        XCTAssertTrue(result.contains("  - tcp://any:53"))
         XCTAssertFalse(result.contains("fd7a:"))
         XCTAssertTrue(result.contains("ipv6: false"))
         XCTAssertTrue(result.contains("udp: true"))
@@ -289,8 +277,8 @@ final class MimoRoutingTests: XCTestCase {
         let policy = MimoFirewallPolicy.startupBlocking
         XCTAssertTrue(policy.hasPrefix("block return out quick on lo0"))
         XCTAssertTrue(policy.contains("port { \(MimoRuntime.mixedPort), \(MimoRuntime.dnsPort) }"))
-        XCTAssertTrue(policy.contains("block return out quick inet6 all"))
-        XCTAssertTrue(policy.hasSuffix("block drop out quick all\n"))
+        XCTAssertFalse(policy.contains("block return out quick inet6 all"))
+        XCTAssertTrue(policy.hasSuffix("block drop out quick all label \"mimo:transition:deny\"\n"))
         XCTAssertFalse(policy.contains("group "))
         XCTAssertFalse(policy.contains("native-transport"))
         XCTAssertFalse(policy.contains(MimoFirewallPolicy.bootstrapResolver))

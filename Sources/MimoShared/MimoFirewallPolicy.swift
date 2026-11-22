@@ -1,42 +1,32 @@
 import Foundation
 
-/// Only literal addresses and a fixed interface/group enter PF syntax. Never interpolate hostnames,
-/// user-provided interface names, shell fragments, or arbitrary configuration text.
+/// PF is only a transition barrier. The active profile owns routing and DNS.
+/// Only validated literal endpoints and the installed runtime group enter PF syntax.
 public enum MimoFirewallPolicy {
     public static let anchor = "com.apple/000.mimo"
     public static let permissionAnchor = anchor + "/permission"
-    /// No permission child means no public access. The independent power guard
-    /// can also revoke grants without depending on supervisor actor scheduling.
-    public static let permissionParent = "anchor \"power-guard\" out quick\nanchor \"permission\" out quick\n" + startupBlocking
-    public static func permission(open: Bool) -> String {
-        "anchor \"/\(anchor)/\(open ? "open-policy" : "probe-policy")\" out quick\n"
-    }
-
-    public static func preparedPolicy(group: UInt32, endpoints: [String], proxyPort: Int?, mode: ProxyMode? = nil) throws -> String {
-        var rules = try render(group: group, endpoints: endpoints, proxyPort: proxyPort,
-                               mode: mode, tunnel: mode == nil ? nil : MihomoProfile.tunnelDevice)
-        rules = rules.replacingOccurrences(of: "anchor \"power-guard\" out quick\n", with: "")
-            .replacingOccurrences(of: "anchor \"native-transport\"", with: "anchor \"/\(anchor)/native-transport\"")
-        // Literal endpoints never need an unrestricted bootstrap exception.
-        if !endpoints.isEmpty {
-            rules = rules.replacingOccurrences(of: "pass out quick proto tcp to \(bootstrapResolver) port 443 group \(group) no state\n", with: "")
-        }
-        return rules
-    }
+    public static let permissionParent = "# mimo:transition — emergency barrier, private probe, then deny\nanchor \"power-guard\" out quick\nanchor \"permission\" out quick\n" + startupBlocking
+    /// No pass/block rules: other firewall owners retain their normal decisions.
+    /// The empty child can be filled immediately on a network/power/failure event.
+    public static let activeParent = "# mimo:active — profile owns routing; emergency anchor is empty\nanchor \"power-guard\" out quick\n"
+    public static let direct = ""
+    public static let privateProbePermission = "# mimo:probe — authenticated verification only\nanchor \"/com.apple/000.mimo/probe-policy\" out quick\n"
     public static let bootstrapResolver = "1.1.1.1"
-    public static let directIPv4 = "pass out quick on lo0 all no state\nblock return out quick inet6 all\n"
-    /// Applied before dependency/group validation. No unverified runtime group
-    /// or native transport receives public access during startup inspection.
-    public static let startupBlocking = """
-    block return out quick on lo0 proto { tcp, udp } to { 127.0.0.1, ::1 } port { \(MimoRuntime.mixedPort), \(MimoRuntime.dnsPort) }
-    pass out quick on lo0 all no state
-    block return out quick inet6 all
-    block return out quick proto { tcp, udp } to any port { 53, 853 }
-    pass out quick inet proto udp from any port 68 to 255.255.255.255 port 67 no state
-    pass out quick to { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16 } no state
-    block drop out quick all
+
+    private static let localControl = """
+    block return out quick on lo0 proto { tcp, udp } to { 127.0.0.1, ::1 } port { \(MimoRuntime.mixedPort), \(MimoRuntime.dnsPort) } label "mimo:transition:public-listeners"
+    pass out quick on lo0 all no state label "mimo:transition:local-control"
+    pass out quick inet proto udp from any port 68 to 255.255.255.255 port 67 no state label "mimo:transition:dhcp"
+    pass out quick inet6 proto icmp6 to { fe80::/10, ff02::/16 } icmp6-type { neighbrsol, neighbradv, routersol, routeradv } no state label "mimo:transition:ipv6-link-control"
 
     """
+    /// No application/TUN/LAN/native-VPN exception while a transition is closed.
+    public static let startupBlocking = localControl + "block drop out quick all label \"mimo:transition:deny\"\n"
+
+    public static func preparedPolicy(group: UInt32, endpoints: [String], proxyPort: Int?, mode: ProxyMode? = nil) throws -> String {
+        try render(group: group, endpoints: endpoints, proxyPort: proxyPort, mode: mode)
+            .replacingOccurrences(of: activeParent, with: "")
+    }
 
     public static func render(group: UInt32, endpoints: [String] = [], proxyPort: Int? = nil,
                               mode: ProxyMode? = nil, tunnel: String? = nil) throws -> String {
@@ -44,59 +34,18 @@ public enum MimoFirewallPolicy {
               proxyPort.map({ (1...65535).contains($0) }) ?? endpoints.isEmpty,
               tunnel == nil || tunnel == MihomoProfile.tunnelDevice,
               mode != .direct else { throw DaemonFailure.invalidRequest }
-        var rules = [
-            "# Mimo: independently enforced application gate",
-            "anchor \"power-guard\" out quick"
-        ]
-        if mode == nil {
-            // An established localhost CONNECT session must not keep forwarding via the
-            // engine's endpoint exception while ordinary application traffic is closed.
-            rules.append("block return out quick on lo0 proto { tcp, udp } to { 127.0.0.1, ::1 } port { \(MimoRuntime.mixedPort), \(MimoRuntime.dnsPort) }")
-        }
-        rules.append("pass out quick on lo0 all no state")
-        rules.append("block return out quick inet6 all")
-        if let mode, mode.requiresVerification, let tunnel {
-            rules.append("pass out quick on \(tunnel) all no state")
-        }
-        // On the affected Mac PF matches the engine's root UID but not its
-        // expected runtime GID for Quad100 DNS. Scope this early anchor call to
-        // root TCP DNS at Quad100; its child still requires the freshly verified
-        // native interface. Reuse that child so interface loss/Stop revokes both
-        // DNS and inner-tailnet access in the same atomic native transaction.
-        // Ordinary application DNS still meets the group guard before the
-        // unscoped native anchor, so it cannot bypass Mimo via a competing VPN.
-        rules += [
-            "anchor \"native-transport\" out quick inet proto tcp to 100.100.100.100 port 53 user 0",
-            "block return out quick proto { tcp, udp } to any port { 53, 853 } group != \(group)",
-            "anchor \"native-transport\" out quick",
-            "pass out quick inet6 proto icmp6 to { fe80::/10, ff02::/16 } icmp6-type { neighbrsol, neighbradv, routersol } no state",
-            "pass out quick inet proto udp from any port 68 to 255.255.255.255 port 67 no state",
-            "pass out quick proto tcp to \(bootstrapResolver) port 443 group \(group) no state"
-        ]
-        if let proxyPort {
+        if mode != nil { return activeParent }
+        var rules = activeParent + localControl
+        // The authenticated private listener can only check exit-IP HTTPS hosts.
+        // The public listeners and TUN remain blocked. No UDP relay exception is
+        // needed for this TCP-only probe; ordinary routing belongs to the profile.
+        if endpoints.isEmpty {
+            rules += "pass out quick proto tcp to \(bootstrapResolver) port 443 group \(group) no state label \"mimo:probe:bootstrap-doh\"\n"
+        } else if let proxyPort {
             for address in endpoints {
-                rules.append("pass out quick proto tcp to \(address) port \(proxyPort) group \(group) no state")
-                // SOCKS5 UDP ASSOCIATE may select a different relay port. Keep the
-                // address pinned to the verified endpoint and the engine group.
-                rules.append("pass out quick proto udp to \(address) group \(group) no state")
+                rules += "pass out quick proto tcp to \(address) port \(proxyPort) group \(group) no state label \"mimo:probe:proxy\"\n"
             }
         }
-        // A stopped provider must reject tailnet traffic even from Rule's engine.
-        // The earlier native sub-anchor permits only a freshly verified interface.
-        rules.append("block return out quick to { 100.64.0.0/10, fd7a:115c:a1e0::/48 }")
-        if mode == .rule {
-            // Only the dedicated runtime group can execute the profile's intentional direct rules.
-            rules.append("pass out quick proto { tcp, udp } all group \(group) no state")
-        }
-        // LAN access remains local. Tailnet ranges are deliberately not included here: the verified
-        // provider and native transport require their own enforcement qualification.
-        rules += [
-            "pass out quick to { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16, fe80::/10 } no state",
-            // Drop an unclassified SYN so the native socket observer can inspect
-            // SYN_SENT and grant only an authenticated infrastructure tuple.
-            // Returning an error immediately destroys the socket before inspection.
-            "block drop out quick all"
-        ]
-        return rules.joined(separator: "\n") + "\n"
+        return rules + "block drop out quick all label \"mimo:probe:deny\"\n"
     }
 }

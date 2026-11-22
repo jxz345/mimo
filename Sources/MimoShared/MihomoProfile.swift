@@ -4,6 +4,7 @@ import Foundation
 public enum MihomoProfile {
     public enum Stage: Sendable { case verification, active }
     public static let tunnelDevice = "utun239"
+    public static let tunnelIPv6 = "fdfe:dcba:9876::1/126"
 
     public static func blocking(controllerPath: String = MimoRuntime.controller.path) -> String {
         """
@@ -42,13 +43,19 @@ public enum MihomoProfile {
         let dnsStart = body.range(of: "\ndns:", range: corsStart..<body.endIndex)!.lowerBound
         var profile = String(body[..<corsStart]) + String(body[dnsStart...])
         profile = profile.replacingOccurrences(of: "\"/tmp/verge/verge-mihomo.sock\"", with: ClashVergeProfile.quoted(controllerPath))
-            .replacingOccurrences(of: "ipv6: true", with: "ipv6: false")
             .replacingOccurrences(of: "  - fd7a:115c:a1e0::/48\n", with: "")
             .replacingOccurrences(of: "allow-lan: false", with: "allow-lan: false\nbind-address: 127.0.0.1")
             .replacingOccurrences(of: "log-level: info", with: "log-level: silent")
             .replacingOccurrences(of: "mixed-port: 7890", with: "mixed-port: \(stage == .active ? MimoRuntime.mixedPort : 0)")
             .replacingOccurrences(of: "dns:\n  enable: true", with: "dns:\n  enable: true\n  listen: \(stage == .active ? "127.0.0.1:\(MimoRuntime.dnsPort)" : "''")")
             .replacingOccurrences(of: "tun:\n  enable: true", with: "tun:\n  device: \(tunnelDevice)\n  enable: \(stage == .active)")
+        // Enable IPv6 capture, but keep the existing profile-level rejection.
+        // `ipv6: false` at the top level would prevent TUN IPv6 routes entirely.
+        // Do not change any macOS service's IPv6 preferences.
+        profile = profile.replacingOccurrences(of: "  stack: gvisor\n", with:
+            "  stack: gvisor\n  inet6-address: [\(tunnelIPv6)]\n")
+            .replacingOccurrences(of: "  ipv6: true\n", with: "  ipv6: false\n")
+            .replacingOccurrences(of: "  - any:53\n", with: "  - any:53\n  - tcp://any:53\n")
         // Local provider delivery cannot collide with another application's
         // TCP listener or leave an obsolete HTTP poller attached to its port.
         let start = profile.range(of: "    type: http\n", range: profile.range(of: "\nproxy-providers:\n")!.upperBound..<profile.endIndex)!.lowerBound

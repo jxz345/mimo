@@ -16,6 +16,15 @@ public enum EventLogLine {
     public static func message(event: String, fields: [String: String]) -> String? {
         let provider = providerName(fields["provider"])
         switch event {
+        case "mimo_deactivation_started": return "Stop engine · full service uninstall started"
+        case "mimo_deactivation_succeeded": return "Network controls released · IP monitoring continues in this app"
+        case "mimo_deactivation_cancelled": return "Service uninstall cancelled · removal not confirmed"
+        case "mimo_deactivation_failed": return "Service uninstall incomplete · retry cleanup before deleting the app"
+        case "mimo_cleanup_step":
+            guard let message = MimoCleanupEvent.messages[fields["stage"] ?? ""] else { return nil }
+            return fields["step"].map { "Cleanup \($0) · " + message } ?? message
+        case "mimo_local_monitor_started": return "Exit IP monitoring started in this app · no network controls"
+        case "mimo_local_monitor_stopped": return "Exit IP monitoring in this app stopped"
         case "monitor_started": return "Monitoring started"
         case "monitor_stopped": return "Monitoring stopped"
         case "daemon_ready": return "Background service ready"
@@ -43,6 +52,9 @@ public enum EventLogLine {
         case "mimo_verification_audit_failed": return "Verification audit failed" + detail(fields["reason"])
         case "mimo_native_transport_failed": return "Tailnet transport failed" + detail(fields["reason"])
         case "mimo_ipv4_policy_failed": return "IPv4 network policy needs repair" + detail(fields["reason"])
+        case "mimo_legacy_network_controls_removed": return "Removed older Mimo firewall policies and DNS override; restored saved IPv6 settings"
+        case "mimo_transition_firewall_released": return "Verification passed; transition firewall released to profile routing"
+        case "mimo_direct_network_released": return "Direct selected; Mimo firewall restrictions removed"
         case "mimo_liveness_lost":
             if fields["heartbeatExpired"] == "true" { return "Check trigger · core heartbeat expired" }
             if fields["engineRunning"] == "false" { return "Check trigger · mihomo stopped" }

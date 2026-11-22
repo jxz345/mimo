@@ -17,7 +17,7 @@ enum MimoCountryTests {
             providerHealth: [.ipWhois: .init(lastFailure: now, lastError: "transport", consecutiveFailures: 1)],
             budget: LookupBudget(), nextProvider: .ipapiCo,
             cooldowns: [.ipWhois: now.addingTimeInterval(8 * 3600)], hasIPinfoToken: false)
-        let monitor = PublicIPMonitor(); monitor.receive(state)
+        let monitor = PublicIPMonitor(readDeactivation: { false }); monitor.receive(state)
         MimoSettingsNavigation.shared.section = .monitoring
         try CredentialAppTests.render(SettingsView(monitor: monitor), size: NSSize(width: 1040, height: 740), dark: true,
             to: output.appendingPathComponent("monitoring-provider-pause.png"))

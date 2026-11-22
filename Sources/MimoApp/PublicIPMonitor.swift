@@ -61,6 +61,7 @@ final class PublicIPMonitor: ObservableObject {
     private let subscribe: SubscriptionFactory
     private let readStatus: StatusReader
     private let readDeactivation: () -> Bool
+    private let releasedMonitor: MimoReleasedMonitor
     private let reconnectDelay: Duration
     private var cancelSubscription: (() -> Void)?
     private var reconnectTask: Task<Void, Never>?
@@ -82,12 +83,15 @@ final class PublicIPMonitor: ObservableObject {
         return { subscription.invalidate() }
     }, readStatus: @escaping StatusReader = { request, timeout, label in
         try await DaemonRPC.call(request, timeout: timeout, serviceLabel: label)
-    }, reconnectDelay: Duration = .seconds(3), readDeactivation: @escaping () -> Bool = MimoDeactivation.isConfirmed) {
+    }, reconnectDelay: Duration = .seconds(3), readDeactivation: @escaping () -> Bool = MimoDeactivation.isConfirmed,
+       releasedMonitor: MimoReleasedMonitor = MimoReleasedMonitor()) {
+        self.releasedMonitor = releasedMonitor
         self.readDeactivation = readDeactivation
         self.installationInactive = readDeactivation()
         self.subscribe = subscribe
         self.readStatus = readStatus
         self.reconnectDelay = reconnectDelay
+        releasedMonitor.changed = { [weak self] in self?.receiveReleasedMonitoring() }
     }
 
     func hasSupervisorReply(at date: Date = .now) -> Bool {
@@ -117,13 +121,16 @@ final class PublicIPMonitor: ObservableObject {
     var isRefreshDeferred: Bool {
         switch status { case .coolingDown, .waitingForMinimumInterval: true; default: false }
     }
-    var nextProvider: ProviderID { daemonState?.nextProvider ?? preferences.provider }
+    var nextProvider: ProviderID { installationInactive ? preferences.provider : daemonState?.nextProvider ?? preferences.provider }
     var isIPinfoTokenUnavailable: Bool { daemonState?.hasIPinfoToken != true }
     var canChangeSharedSettings: Bool { connected && daemonState?.initialized == true && !isChangingSettings && serviceOperation == nil }
-    var canRefresh: Bool { connected && !isChangingSettings && (daemonState?.initialized == true || routingState.configuration.mode == .direct)
-        && status != .refreshing && ![.checking, .validating].contains(routingState.phase) }
+    var canRefresh: Bool {
+        if installationInactive { return releasedMonitor.engine != nil && status != .refreshing }
+        return connected && !isChangingSettings && (daemonState?.initialized == true || routingState.configuration.mode == .direct)
+            && status != .refreshing && ![.checking, .validating].contains(routingState.phase)
+    }
     var lookupStatusMessage: String? {
-        guard connected else { return nil }
+        guard connected || installationInactive else { return nil }
         switch status {
         case .idle, .ready: return nil
         case .refreshing: return "Checking the exit IP…"
@@ -156,7 +163,8 @@ final class PublicIPMonitor: ObservableObject {
             state.configuration.mode = .direct; state.configuration.mihomoEnabled = false
             state.phase = .active; state.effectiveMode = .direct
             state.networkReleased = true; state.networkReleaseRequested = true
-            state.reason = "Mimo is inactive. System networking restored; services and login items removed."
+            state.reason = "Network controls released. Exit IP monitoring continues while Mimo is open."
+            state.observedIP = snapshot.map { MimoIPObservation(address: $0.ipAddress, checkedAt: $0.checkedAt) }
             state.services = MimoServiceID.allCases.map { .init(id: $0, health: .notInstalled, transport: "") }
             return state
         }
@@ -386,6 +394,7 @@ final class PublicIPMonitor: ObservableObject {
 
     func stop() {
         started = false
+        releasedMonitor.stop()
         connectionGeneration += 1
         cancelSubscription?(); cancelSubscription = nil
         statusTask?.cancel(); statusTask = nil
@@ -478,6 +487,7 @@ final class PublicIPMonitor: ObservableObject {
         let oldSnapshot = snapshot, oldIndicators = indicators
         let oldStatusPresentation = statusPresentation
         daemonState = state
+        releasedMonitor.remember(state)
         if let routing = state.routing { reconcileServiceProgress(routing) }
         if !connected {
             RuntimeLog.shared.info("daemon_client_connected", fields: ["generation": String(connectionGeneration),
@@ -548,7 +558,10 @@ final class PublicIPMonitor: ObservableObject {
 
     func refreshInstallationState() {
         let inactive = readDeactivation()
-        guard inactive != installationInactive else { return }
+        guard inactive != installationInactive else {
+            if inactive && started && sessionActive { releasedMonitor.start() }
+            return
+        }
         installationInactive = inactive
         if inactive {
             connectionGeneration += 1
@@ -559,13 +572,30 @@ final class PublicIPMonitor: ObservableObject {
             connection.phase = .inactive
             serviceOperation = nil; serviceOperationID = nil
             snapshot = nil; status = .idle; operationError = nil
-            serviceMessage = "Mimo is inactive. Services removed and networking restored."
-        } else if started && sessionActive {
+            serviceMessage = "Network controls released. Monitoring in this app."
+            if started && sessionActive { releasedMonitor.start() }
+        } else {
+            releasedMonitor.stop()
+            guard started, sessionActive else { return }
             reconnectTask = Task { [weak self] in
                 self?.reconnectTask = nil
                 self?.connect()
             }
         }
+    }
+
+    private func receiveReleasedMonitoring() {
+        guard installationInactive, started, sessionActive, let engine = releasedMonitor.engine else { return }
+        snapshot = engine.snapshot
+        status = engine.status
+        preferences = engine.preferences
+        indicators = engine.indicators
+        providerHealth = engine.providerHealth
+        lookupBudget = engine.lookupBudget
+        diagnosticPreferences = engine.diagnosticPreferences
+        authorizationState = .unavailable
+        displayDate = .now
+        reloadSurfaces()
     }
 
     func applicationDidBecomeActive() {
@@ -585,6 +615,7 @@ final class PublicIPMonitor: ObservableObject {
     func sessionDidResignActive() {
         guard started else { return }
         sessionActive = false
+        releasedMonitor.stop()
         connectionGeneration += 1
         cancelSubscription?(); cancelSubscription = nil
         reconnectTask?.cancel(); reconnectTask = nil
@@ -646,6 +677,7 @@ final class PublicIPMonitor: ObservableObject {
     }
 
     func apply(_ updated: MonitoringPreferences) {
+        if installationInactive { releasedMonitor.engine?.apply(MimoReleasedMonitor.anonymousPreferences(updated)); return }
         guard let state = daemonState else { return }
         if updated.menuBarDisplayStyle != preferences.menuBarDisplayStyle || updated.highlightCountryChanges != preferences.highlightCountryChanges {
             var presentation = state.presentation
@@ -748,20 +780,24 @@ final class PublicIPMonitor: ObservableObject {
     }
     func refresh(force: Bool = false, bypassMinimumInterval: Bool = false, trigger: RefreshTrigger = .manual) async {
         guard canRefresh else { return }
+        if installationInactive { await releasedMonitor.engine?.refresh(force: true, bypassMinimumInterval: true); return }
         _ = await send(DaemonRequest(.refresh))
     }
     func testProvider(_ provider: ProviderID) async {
         guard canRefresh else { return }
+        if installationInactive { await releasedMonitor.engine?.testProvider(provider); return }
         var request = DaemonRequest(.testProvider); request.provider = provider; _ = await send(request)
     }
-    func pausedUntil(_ provider: ProviderID) -> Date? { daemonState?.cooldowns[provider] }
+    func pausedUntil(_ provider: ProviderID) -> Date? { installationInactive ? releasedMonitor.engine?.pausedUntil(provider) : daemonState?.cooldowns[provider] }
     func setCountryChangeHighlightsEnabled(_ enabled: Bool) { var updated = preferences; updated.highlightCountryChanges = enabled; apply(updated) }
     func dismissCountryChangeHighlight() {
+        if installationInactive { releasedMonitor.engine?.dismissCountryChangeHighlight(); return }
         guard var presentation = daemonState?.presentation else { return }
         presentation.dismissedCountryChange = daemonState?.snapshot?.countryChange?.changedAt
         updatePresentation(presentation) { RuntimeLog.shared.info("country_change_dismissed") }
     }
     func clearError() {
+        if installationInactive { releasedMonitor.engine?.clearError(); return }
         guard var presentation = daemonState?.presentation else { return }
         presentation.dismissedError = daemonState?.errorEventID
         updatePresentation(presentation) { RuntimeLog.shared.info("error_cleared") }

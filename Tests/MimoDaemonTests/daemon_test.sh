@@ -44,6 +44,7 @@ for kind, argument in [('boot', '--boot'), ('health', '--check')]:
     if kind == 'health': assert p['StartInterval'] == 10
 PY
 echo 'PASS: independent PF and health jobs start at boot without executing Mimo or mihomo; core/engine retain saved service intent'
+/usr/bin/perl "$REPO/Tests/MimoDaemonTests/network_release_test.pl"
 /usr/bin/perl "$REPO/Tests/MimoDaemonTests/pf_guard_test.pl" "$REPO/Sources/MimoDaemon/pf-guard.pl"
 
 (

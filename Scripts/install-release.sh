@@ -26,9 +26,10 @@ set -euo pipefail
 
 RELEASE_REPO="@RELEASE_REPO@"
 VERSION="@VERSION@"
+RELEASE_TAG="@RELEASE_TAG@"
 PKG_SHA256="${MIMO_PKG_SHA256:-@PKG_SHA256@}"
 PKG_NAME="Mimo-$VERSION.pkg"
-PKG_URL="${MIMO_PKG_URL:-https://github.com/$RELEASE_REPO/releases/download/v$VERSION/$PKG_NAME}"
+PKG_URL="${MIMO_PKG_URL:-https://github.com/$RELEASE_REPO/releases/download/$RELEASE_TAG/$PKG_NAME}"
 APP_NAME="Mimo.app"
 
 fail() { printf '\nERROR %s\n' "$1" >&2; exit 1; }
@@ -89,11 +90,11 @@ if [[ -z "$source_file" ]]; then
         printf 'curl could not download it: %s\n' "$(grep -o 'curl: .*' "$work/curl.err" | tail -1)"
         if command -v gh >/dev/null && gh auth status >/dev/null 2>&1; then
             printf 'Downloading with gh instead...\n'
-            bounded_command 120 github-download gh release download "v$VERSION" -R "$RELEASE_REPO" -p "$PKG_NAME" -D "$work" --clobber \
+            bounded_command 120 github-download gh release download "$RELEASE_TAG" -R "$RELEASE_REPO" -p "$PKG_NAME" -D "$work" --clobber \
                 || fail "gh could not download $PKG_NAME from $RELEASE_REPO."
         else
             fail "The release could not be downloaded; a private repository needs a GitHub login.
-Download $PKG_NAME from https://github.com/$RELEASE_REPO/releases/tag/v$VERSION
+Download $PKG_NAME from https://github.com/$RELEASE_REPO/releases/tag/$RELEASE_TAG
 in a browser where you are logged in to GitHub, keep it in Downloads, then run:
   bash ~/Downloads/install.sh
 (or: bash ~/Downloads/install.sh /path/to/$PKG_NAME)"

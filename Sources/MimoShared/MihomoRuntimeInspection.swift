@@ -6,7 +6,7 @@ import Foundation
 public enum MihomoRuntimeInspection {
     public static func matches(profile: String, active: Bool, proxy: MimoProxy?,
                                config: [String: Any], rules: [[String: Any]], proxies: [String: Any]) -> Bool {
-        guard config["mode"] as? String == "rule", config["ipv6"] as? Bool == false,
+        guard config["mode"] as? String == "rule", config["ipv6"] as? Bool == (proxy != nil),
               config["allow-lan"] as? Bool == false, config["bind-address"] as? String == "127.0.0.1",
               config["mixed-port"] as? Int == (active ? MimoRuntime.mixedPort : 0),
               ["port", "socks-port", "redir-port", "tproxy-port"].allSatisfy({ config[$0] as? Int == 0 }),
@@ -19,7 +19,8 @@ public enum MihomoRuntimeInspection {
                   tun["stack"] as? String == "gVisor", tun["auto-route"] as? Bool == true,
                   tun["auto-detect-interface"] as? Bool == true,
                   tun["strict-route"] as? Bool != true,
-                  tun["dns-hijack"] as? [String] == ["any:53"],
+                  tun["dns-hijack"] as? [String] == ["any:53", "tcp://any:53"],
+                  tun["inet6-address"] as? [String] == [MihomoProfile.tunnelIPv6],
                   tun["route-exclude-address"] as? [String] == ["100.64.0.0/10"],
                   config["find-process-mode"] as? String == "always" else { return false }
         } else if active { return false }

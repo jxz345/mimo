@@ -39,4 +39,28 @@ for my $intent ({engine => JSON::PP::true, releaseNetwork => JSON::PP::true},
                 {engine => JSON::PP::false, releaseNetwork => 'true'}, {releaseNetwork => JSON::PP::true}) {
     eval { main::release_intent($intent) }; ok($@, 'ambiguous intent is rejected');
 }
+{
+    no warnings 'redefine';
+    my $active = "anchor \"power-guard\" out quick all\n";
+    my ($live, $barrier) = ($active, '');
+    local *main::required = sub {
+        my $query = join(' ', @_);
+        return "TOKENS:\n7 pfctl 123 0 days\n" if $query =~ /References$/;
+        return "Status: Enabled\n" if $query =~ /-s info$/;
+        return "anchor \"com.apple/*\" all\n" if $query eq '/sbin/pfctl -sr';
+        return $barrier if $query =~ /power-guard -sr$/;
+        return $live if $query =~ /000\.mimo -sr$/;
+        return '';
+    };
+    my $snapshot = [undef, 'active', $active, '', '', encode_json({boot => 'test', token => '123'})];
+    ok(!main::inspect_pf_snapshot($snapshot, 'test')->{needs_block}, 'active profile routing requires no steady packet filter');
+    $barrier = 'block drop out quick all label "mimo:transition:deny"';
+    ok(main::inspect_pf_snapshot($snapshot, 'test')->{withdrawn}, 'independent barrier withdraws active access');
+    $barrier = '';
+    $live = $active . "block return out quick inet6 all\n";
+    ok(main::inspect_pf_snapshot($snapshot, 'test')->{needs_block}, 'older active IPv6 filter is not accepted as the new policy');
+    $live = '';
+    $snapshot->[1] = 'direct'; $snapshot->[2] = '';
+    ok(!main::inspect_pf_snapshot($snapshot, 'test')->{needs_block}, 'empty Direct policy is healthy');
+}
 done_testing();

@@ -1,0 +1,78 @@
+{
+  "date": "2026-11-22",
+  "version": "2.0",
+  "build": 6,
+  "tag": "v2.0-build.6",
+  "scope": "Production signed package installed in mimo-vm. Delta used for editing, compiling and portable shared tests only.",
+  "artifacts_sha256": {
+    "Mimo-2.0.pkg": "2881b142f9d0a5aa1ca3f61c5e8fdbbe39127ba237f88853555fb84d7ea9910b",
+    "Mimo-2.0.zip": "14ebedbc64a781642691501499e9e94c99d326d3cb758e1671fba609322f6a31"
+  },
+  "packaged_executables_sha256": {
+    "mimo-core": "95a57894520f6c4b495700b691db520aacdf3dbc08ddae0eacb9f8429a44c800",
+    "mimo-gui": "2b3f98fc7366c99c35f5966e5370bbed02c8c8f571393d5b9e5819b3cce895c6"
+  },
+  "checks": {
+    "shared_tests": 227,
+    "native_service_groups": 13,
+    "native_gui_groups": 13,
+    "network_cleanup_checks": 18,
+    "pf_guard_checks": 27,
+    "installer_contracts": "passed",
+    "daemon_contracts": "passed",
+    "installed_acceptance": [
+      "Installed sealed build 6 and its production helper match",
+      "Direct has no Mimo packet rules, DNS override or new IPv6 preferences journal",
+      "rule: empty active firewall; both TUN routes; IPv6 rejected; HTTPS works",
+      "MagicDNS: three fresh engine queries, TCP/UDP listeners and macOS resolution",
+      "Warm verification returns to the empty active firewall",
+      "global: empty active firewall; both TUN routes; IPv6 rejected; HTTPS works",
+      "Direct has no Mimo packet rules, DNS override or new IPv6 preferences journal",
+      "rule: empty active firewall; both TUN routes; IPv6 rejected; HTTPS works",
+      "Stop: all jobs/rules/old descendants/DNS/boot guard removed; native HTTPS restored",
+      "Cleanup receipts explicitly verify native Tailnet DNS and complete uninstall"
+    ],
+    "homebrew": {
+      "install": "Real Homebrew installed 2.0,6 from the candidate ZIP with its SHA256; only the download URL used a local staged file before publication. Installer code is unchanged.",
+      "inactive_upgrade": "Existing full Stop remained inactive until explicit activation.",
+      "results": [
+        "Closed transition denies IPv4/IPv6 HTTPS and public UDP DNS",
+        "Actual brew uninstall from closed Rule removes app, helpers, all jobs, old PF children and DNS; native HTTPS/Tailnet DNS restored"
+      ]
+    }
+  },
+  "legacy_cleanup": [
+    "Old referenced and orphan PF descendants removed",
+    "Persistent Mimo DNS override removed",
+    "Fresh native Tailnet reverse DNS succeeds after seeded blocking rules are removed",
+    "Unrelated PF rules, PF reference, DNS key and pf.conf bytes preserved",
+    "Second cleanup succeeds"
+  ],
+  "ui": [
+    "Monitoring only shows fresh exit-IP data while services remain removed",
+    "Stop/Activate action enabled and visually distinct",
+    "Native light/dark screenshots inspected"
+  ],
+  "test_notes": [
+    "The IPv6 readiness route query needed Darwin -inet6; the final package contains the correction.",
+    "A TUN may accept a local TCP handshake before rejecting the flow; IPv6 validation requires TLS/HTTP exchange failure.",
+    "Some installed VM runs stalled on provider TLS/timeout failures. A complete run passed with unchanged package bytes; root cause is not established.",
+    "Only cooldowns induced by these failed VM tests were cleared while services were stopped; proxy settings, credentials, allowlist and budgets were retained.",
+    "Homebrew ran as the ordinary mimotest administrator. Scoped VM Homebrew directory write permissions were backed up and restored; no Delta permissions changed.",
+    "The cask caveat text and release-notes URL were corrected after candidate installation; install/uninstall actions and packaged app bytes did not change."
+  ],
+  "limitations": [
+    "No physical Mac sleep, account-switch or arbitrary VPN qualification for build 6",
+    "No claim of first-packet boot protection",
+    "Ad-hoc signed Apple silicon build, not notarized"
+  ],
+  "source_sha256": {
+    "Sources/MimoShared/MimoFirewallPolicy.swift": "3c928457420b3e992e1724d21b27a40cd1fca671be02c7a78ac3a2da443407ac",
+    "Sources/MimoShared/MihomoProfile.swift": "9e8eb4901fbf0551971028b506a12f01642f7988df69ebc04ecbab0dd5fabf9a",
+    "Sources/MimoDiagnostics/release-network.pl": "83f5c048bdea7ea88d8e42e43f575823540b93563b7b01e213c466511c10fdd9",
+    "Sources/MimoDaemon/daemon.sh": "24d59b9f26e0015e0890659b7b8b189e1c878d555615ad8d6e1390832c204460",
+    "Sources/MimoService/MimoReadinessChecks.swift": "65af1fc739bbef5bf2b871c0cd59b58fd5d04662c90cc61bbc29c5977ba20791",
+    "Sources/MimoApp/MimoReleasedMonitor.swift": "77dc29d17dae08a22ff772408a38060a6271da4bdd44b2a7d88a4395b996c9fd",
+    "Packaging/mimo.rb.in": "5dd3cff2c1d98ff7eb0fb72fbdd106245c503b27304bde4aeba53f6d4957162c"
+  }
+}

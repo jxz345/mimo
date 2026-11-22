@@ -29,7 +29,12 @@ class StepCapture
 end
 
 class CaskCapture
-  attr_reader :uninstall_options, :preflight, :postflight, :dependencies, :conflicts
+  attr_reader :uninstall_options, :preflight, :postflight, :dependencies, :conflicts, :download_url
+
+  class Version < String
+    def before_comma; split(",").first; end
+    def after_comma; split(",").last; end
+  end
 
   def initialize
     @preflight = StepCapture.new
@@ -38,7 +43,11 @@ class CaskCapture
   end
 
   def appdir; "/Applications"; end
-  def version(value = nil); value || "1.0"; end
+  def version(value = nil)
+    @version = Version.new(value.gsub("@VERSION@", "2.0").gsub("@BUILD@", "6")) if value
+    @version
+  end
+  def url(value); @download_url = value; end
   def uninstall(**options); @uninstall_options = options; end
   def preflight_steps(&block); @preflight.instance_eval(&block); end
   def postflight_steps(&block); @postflight.instance_eval(&block); end
@@ -54,6 +63,7 @@ def cask(_token, &block)
 end
 
 load ARGV.fetch(0)
+raise "Each build must have an immutable release URL" unless $capture.download_url == "https://github.com/jxz345/mimo/releases/download/v2.0-build.6/Mimo-2.0.zip"
 raise "Cask must depend on the pinned mihomo formula" unless $capture.dependencies.include?({ formula: "jxz345/tap/mihomo@1.19.34" })
 raise "Cask must require Apple silicon" unless $capture.dependencies.include?({ arch: :arm64 })
 raise "Mimo must conflict with the legacy cask" unless $capture.conflicts == { cask: "exit-ip-monitor" }

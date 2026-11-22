@@ -237,11 +237,12 @@ final class MimoPowerGuard: @unchecked Sendable {
         return try MimoFirewallLock.mutate(revoking: true) {
             timing.record("deny_mutation_wait")
             guard request?.isCancelled != true else { throw CancellationError() }
-            // Flush the grant first. Keep the barrier for old/fallback parents.
-            try command(["-a", MimoFirewallPolicy.permissionAnchor, "-F", "rules"])
-            timing.record("deny_permission")
+            // Active mode has only this passive anchor. Fill it first, then
+            // revoke any private probe left over from the preceding transition.
             try command(["-a", anchor, "-f", "-"], input: Data(MimoFirewallPolicy.startupBlocking.utf8))
             timing.record("deny_barrier")
+            try command(["-a", MimoFirewallPolicy.permissionAnchor, "-F", "rules"])
+            timing.record("deny_permission")
             try command(["-k", "0.0.0.0/0"])
             try command(["-k", "::/0"])
             timing.record("deny_states")

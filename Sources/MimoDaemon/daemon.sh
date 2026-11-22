@@ -208,8 +208,8 @@ confirmed_deactivation() {
     [ -f "$receipt" ] && [ ! -L "$receipt" ] &&
         [ "$(/usr/bin/stat -f %u "$receipt")" = 0 ] || return 1
     permissions=$(/usr/bin/stat -f %Lp "$receipt") || return 1
-    [ "$((8#$permissions & 022))" = 0 ] &&
-        [ "$(/bin/cat "$receipt")" = mimo-inactive-v1 ] || return 1
+    [ "$((8#$permissions & 022))" = 0 ] || return 1
+    case "$(/bin/cat "$receipt")" in mimo-inactive-v1|mimo-inactive-v2) ;; *) return 1 ;; esac
     [ ! -e "$EXECUTABLE" ] && [ ! -e "$SUPERVISOR_PLIST" ] || return 1
     for job in "$LABEL" "$ENGINE" "$SUPERVISOR" "$BOOT_GUARD" "$INFRASTRUCTURE"; do
         state=0; job_state "$job" || state=$?
@@ -470,6 +470,7 @@ restore_installation() {
     # the temporary activation gate before removing its recovery executable.
     if [ "${was_deactivated:-0}" = 1 ]; then
         run "$stage/new" --uninstall-runtime || return 1
+        bounded_command 120 network-release /usr/bin/perl "$SCRIPT_DIR/release-network.pl" || return 1
         run "$stage/new" --remove-right || return 1
         remove_runtime_group || return 1
     fi
@@ -534,7 +535,7 @@ install_service() (
     local login_installed=0 login_backup=0
     local legacy_removal_bridge=0 stopped_engine_conflicts=""
     local dependency expected_hash actual_hash manager_mode
-    local installed_files=("$DIR/deactivated" "$RUNTIME/services.json" "$DIR/Service/state.plist" "$EXECUTABLE" "$PLIST" "$ENGINE_PLIST" "$SUPERVISOR_PLIST" "$LEGACY_CORE_PLIST" "$MANAGER" "$DIR/command-support.sh" "$DIR/cleanup-installation.sh" "$DIR/installed-app" "$GRANT" "$RUNTIME/mihomo" "$RUNTIME/engine.sha256" "$RUNTIME/blocking.yaml" "$LEGACY_EXECUTABLE" "$PROFILES/blocking.yaml")
+    local installed_files=("$DIR/deactivated" "$RUNTIME/services.json" "$DIR/Service/state.plist" "$EXECUTABLE" "$PLIST" "$ENGINE_PLIST" "$SUPERVISOR_PLIST" "$LEGACY_CORE_PLIST" "$MANAGER" "$DIR/command-support.sh" "$DIR/cleanup-installation.sh" "$DIR/release-network.pl" "$DIR/installed-app" "$GRANT" "$RUNTIME/mihomo" "$RUNTIME/engine.sha256" "$RUNTIME/blocking.yaml" "$LEGACY_EXECUTABLE" "$PROFILES/blocking.yaml")
     installed_files+=("$APP_IDENTITY" "$OLD_MANAGER" "$OLD_GRANT")
     installed_files+=("$GUARD_SCRIPT" "$BOOT_PLIST" "$HEALTH_PLIST" "$BOOT_RULES" /etc/pf.conf "$GUARD/blocking.pf")
     for path in "$LABEL" "$ENGINE" "$SUPERVISOR" "$BOOT_GUARD" "$INFRASTRUCTURE"; do installed_files+=("$GUARD/$path.plist"); done
@@ -542,11 +543,17 @@ install_service() (
     app=$(cd "$SCRIPT_DIR/../.." && pwd -P) || return 1
     run /usr/bin/codesign --verify --deep --strict "$app" || return 1
     run /usr/bin/codesign --verify --strict "$binary" || return 1
+    [ -f "$SCRIPT_DIR/release-network.pl" ] || { echo 'This installer requires the current complete Mimo app; upgrade the bundle before repairing services.' >&2; return 1; }
+    /usr/bin/perl -c "$SCRIPT_DIR/release-network.pl" || return 1
     # Updating/reinstalling the app must not undo an explicit full Stop. Only
     # Activate Mimo may reclaim networking or ask to replace another engine.
     if confirmed_deactivation; then
         was_deactivated=1
         if [ "${activation_requested:-0}" != 1 ]; then
+            if [ "$(/bin/cat "$DIR/deactivated")" = mimo-inactive-v1 ]; then
+                bounded_command 120 network-release /usr/bin/perl "$SCRIPT_DIR/release-network.pl" || return 1
+                printf 'mimo-inactive-v2\n' > "$DIR/deactivated" || return 1
+            fi
             echo 'Mimo app updated; services remain inactive. Use Activate Mimo to restore services.'
             return 0
         fi
@@ -692,6 +699,7 @@ install_service() (
     /usr/bin/install -o root -g wheel -m 0755 "${BASH_SOURCE[0]}" "$MANAGER" || return 1
     /usr/bin/install -o root -g wheel -m 0644 "$SCRIPT_DIR/command-support.sh" "$DIR/command-support.sh" || return 1
     /usr/bin/install -o root -g wheel -m 0644 "$SCRIPT_DIR/cleanup-installation.sh" "$DIR/cleanup-installation.sh" || return 1
+    /usr/bin/install -o root -g wheel -m 0644 "$SCRIPT_DIR/release-network.pl" "$DIR/release-network.pl" || return 1
     printf '%s\n' "$app" > "$DIR/installed-app" || return 1
     /bin/chmod 0600 "$DIR/installed-app" || return 1
     run "$EXECUTABLE" --install-right || return 1
@@ -804,7 +812,7 @@ remove_runtime_files() {
 
 uninstall_service() (
     require_root || return 1
-    local app keep_gui=${1:-0}
+    local app release_script keep_gui=${1:-0}
     service_lock || return 1
     trap '/bin/rm -f "$DIR/Service/install.lock"' EXIT
     if [ -f "$DIR/installed-app" ]; then
@@ -819,9 +827,13 @@ uninstall_service() (
     # Stop the independent repair job before removing the services it protects.
     unload "$INFRASTRUCTURE" && unload "$BOOT_GUARD" && unload "$LABEL" && unload "$ENGINE" && unload "$SUPERVISOR" && unload "$LEGACY-http" && unload "$LEGACY" || return 1
     wait_mimo_workers || return 1
-    if [ -x "$EXECUTABLE" ] && [ -f "$SUPERVISOR_PLIST" ]; then run "$EXECUTABLE" --uninstall-runtime || return 1; fi
-    if [ -f "$GUARD_SCRIPT" ]; then run /usr/bin/perl "$GUARD_SCRIPT" --remove || return 1; fi
     wait_legacy_workers || return 1
+    # Both uninstall and Stop use the same independent release, including old
+    # child anchors. Do not depend on the installed helper/guard's older cleanup.
+    release_script="$SCRIPT_DIR/release-network.pl"
+    [ -f "$release_script" ] || release_script="$DIR/release-network.pl"
+    [ -f "$release_script" ] || { echo 'Network release helper is missing; reinstall the current app and retry cleanup.' >&2; return 1; }
+    bounded_command 120 network-release /usr/bin/perl "$release_script" || return 1
     if [ "$keep_gui" != 1 ] && [ -n "${app:-}" ]; then
         cleanup_find_processes || return 1
         [ "${#cleanup_matches[@]}" = 0 ] || { echo 'App restarted during removal. Quit it and retry.' >&2; return 1; }
@@ -837,14 +849,15 @@ uninstall_service() (
     for app in "$LABEL" "$ENGINE" "$SUPERVISOR" "$BOOT_GUARD" "$INFRASTRUCTURE"; do /bin/rm -f "$GUARD/$app.plist" || return 1; done
     remove_runtime_files || return 1
     # Keep the manager and its fixed removal grant until every cleanup step succeeds.
-    /bin/rm -rf "$LOGIN_APP" "$APP_IDENTITY" "$DIR/installed-app" "$DIR/command-support.sh" "$DIR/cleanup-installation.sh" "$DIR/names-migrated.v1" "$GRANT" "/etc/sudoers.d/mimo-tailscale-verge" "$MANAGER" "$OLD_MANAGER" "$OLD_GRANT" || return 1
+    /bin/rm -rf "$LOGIN_APP" "$APP_IDENTITY" "$DIR/installed-app" "$DIR/command-support.sh" "$DIR/cleanup-installation.sh" "$DIR/release-network.pl" "$DIR/names-migrated.v1" "$GRANT" "/etc/sudoers.d/mimo-tailscale-verge" "$MANAGER" "$OLD_MANAGER" "$OLD_GRANT" || return 1
     if [ "$keep_gui" = 1 ]; then
         # Only the successful completion of every cleanup step can claim Inactive.
         # Root-owned and readable by all accounts; contains no configuration.
         [ ! -L "$DIR/deactivated" ] || return 1
         /usr/bin/install -o root -g wheel -m 0644 /dev/null "$DIR/deactivated" || return 1
-        printf 'mimo-inactive-v1\n' > "$DIR/deactivated" || return 1
+        printf 'mimo-inactive-v2\n' > "$DIR/deactivated" || return 1
     fi
+    echo 'MIMO_CLEANUP uninstall_completed'
     echo 'Mimo services, firewall guard, login items, private group and runtime files removed; Direct networking restored. Settings, credentials, Homebrew and logs were retained.'
 )
 

@@ -82,6 +82,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
         do {
             try runtime.closeStartupGate()
             try runtime.checkInstallation()
+            try runtime.migrateLegacyNetworkControls()
             try runtime.updateNativeTransport(.init())
             try runtime.closeGate()
             let flags = try runtime.servicePreferences()
@@ -248,10 +249,6 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
             // Direct keeps routine system/network notifications out of IP
             // verification. Tailnet lifecycle and infrastructure health have
             // independent observers and remain active.
-            if !runtime.maintenanceActive {
-                do { try runtime.enforceIPv4Policy() }
-                catch { RuntimeLog.shared.error("mimo_ipv4_policy_failed", fields: ["reason": error.localizedDescription]) }
-            }
             RuntimeLog.shared.info("mimo_direct_event_ignored", fields: ["source": reason])
             return
         }
@@ -277,10 +274,6 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                     close(error.localizedDescription, strictOnly: true)
                 }
             }
-        }
-        else if !runtime.maintenanceActive {
-            do { try runtime.enforceIPv4Policy() }
-            catch { close("IPv4-only network settings could not be applied: \(error.localizedDescription)") }
         }
         RuntimeLog.shared.info("mimo_network_changed", fields: ["source": reason, "detail": detail, "generation": String(generation)])
         Task { _ = try? await DaemonRPC.call(DaemonRequest(.networkChanged), timeout: 2) }
@@ -562,7 +555,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 else { native = try await nativeTransportObserver.prepareForProfile(tailnetEnabled: tailnetEnabled) }
                 guard epoch == generation, check == policy.state.verification, !runtime.maintenanceActive else { throw CancellationError() }
                 guard runtime.nativeTransportIsHealthy else {
-                    throw MimoRuntimeError.unavailable("Native firewall rules and provider data could not be prepared.")
+                    throw MimoRuntimeError.unavailable("Native provider data could not be prepared.")
                 }
                 timing.record("native_provider_ready")
                 RuntimeLog.shared.info("mimo_profile_prerequisites_ready", fields: [

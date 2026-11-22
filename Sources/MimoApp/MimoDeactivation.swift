@@ -11,7 +11,7 @@ enum MimoDeactivation {
               attributes[.type] as? FileAttributeType == .typeRegular,
               attributes[.ownerAccountID] as? Int == 0,
               let mode = attributes[.posixPermissions] as? Int, mode & 0o022 == 0,
-              (try? String(contentsOfFile: receipt, encoding: .utf8)) == "mimo-inactive-v1\n" else { return false }
+              (try? String(contentsOfFile: receipt, encoding: .utf8)) == "mimo-inactive-v2\n" else { return false }
         return !files.fileExists(atPath: MimoService.executable) &&
             !files.fileExists(atPath: MimoRuntime.supervisorPlist)
     }

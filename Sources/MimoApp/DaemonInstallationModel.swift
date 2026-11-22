@@ -149,9 +149,12 @@ final class DaemonInstallationModel: ObservableObject {
             reload()
             MimoAppDelegate.monitor.refreshInstallationState()
             LoginItemController.shared.refresh()
+            for (index, stage) in MimoCleanupEvent.stages(in: result.output).enumerated() {
+                RuntimeLog.shared.info("mimo_cleanup_step", fields: ["stage": stage, "step": String(format: "%02d", index + 1)])
+            }
             switch result.outcome {
             case .succeeded:
-                message = "Mimo is inactive. You can delete Mimo.app or activate it again."
+                message = "Network controls released. Exit IP monitoring continues while this app is open. Safe to delete Mimo.app."
                 RuntimeLog.shared.info("mimo_deactivation_succeeded", fields: ["log": logURL.path])
             case .cancelled:
                 message = "Cleanup cancelled. Mimo has not confirmed removal."
@@ -189,7 +192,9 @@ final class DaemonInstallationModel: ObservableObject {
                 let removed = MimoDeactivation.isConfirmed() &&
                     ![MimoService.label, MimoRuntime.supervisorLabel, MimoRuntime.engineLabel,
                       "com.mimo.pf-boot", "com.mimo.infrastructure"].contains(where: jobLoaded)
-                return Result(outcome: removed ? .succeeded : .failed, output: "Cleanup verification")
+                let output = (try? String(contentsOf: logURL, encoding: .utf8)) ?? ""
+                let completed = MimoCleanupEvent.stages(in: output).contains("uninstall_completed")
+                return Result(outcome: removed && completed ? .succeeded : .failed, output: output)
             }
             let monitorLoaded = process.terminationStatus == 0 && jobLoaded(MimoService.label)
             let responderLoaded = process.terminationStatus == 0 && jobLoaded(MimoRuntime.supervisorLabel)

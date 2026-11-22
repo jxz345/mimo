@@ -284,7 +284,7 @@ targets:
     sources:
       - path: Sources/MimoShared
       - path: Sources/MimoApp
-      - path: Sources/MimoCore/RuntimeLog.swift
+      - path: Sources/MimoCore
       # Installer for the required shared service ships as a bundle resource:
       # sudo /bin/bash Mimo.app/Contents/Resources/daemon.sh install
       - path: Sources/MimoDaemon/daemon.sh

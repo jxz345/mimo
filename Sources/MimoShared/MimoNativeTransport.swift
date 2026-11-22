@@ -88,6 +88,7 @@ public struct MimoNativeTransport: Equatable, Sendable {
         return Self(sockets: sockets)
     }
 
+    /// Legacy policy fixture retained for migration regression tests. Not installed by the provider.
     public func render() throws -> String {
         guard sockets.count <= 256, infrastructure.count <= 256,
               infrastructure.allSatisfy({ IPAddressValidator.normalize($0) == $0 }) else { throw DaemonFailure.invalidRequest }
@@ -104,13 +105,13 @@ public struct MimoNativeTransport: Equatable, Sendable {
             let source = socket.source ?? "any"
             if let destination = socket.destination {
                 guard let key = IPAddressValidator.canonicalKey(destination), trustedKeys.contains(key) else { continue }
-                rules.append("pass out quick \(family) proto tcp from \(source) port \(socket.port) to \(destination) port 443 user 0 no state")
+                rules.append("pass out quick \(family) proto tcp from \(source) port \(socket.port) to \(destination) port 443 user 0 no state label \"mimo:legacy:tailscale-https\"")
             } else {
                 // Protected modes use authenticated DERP relays for peer data.
                 // STUN is limited to trusted infrastructure; arbitrary native UDP
                 // sockets and diagnostic dial requests cannot become a bypass.
                 for destination in infrastructure where destination.contains(":") == socket.ipv6 {
-                    rules.append("pass out quick \(family) proto udp from \(source) port \(socket.port) to \(destination) port 3478 user 0 no state")
+                    rules.append("pass out quick \(family) proto udp from \(source) port \(socket.port) to \(destination) port 3478 user 0 no state label \"mimo:legacy:tailscale-stun\"")
                 }
             }
         }
@@ -118,7 +119,7 @@ public struct MimoNativeTransport: Equatable, Sendable {
             guard interface != MihomoProfile.tunnelDevice, interface.hasPrefix("utun"),
                   !interface.dropFirst(4).isEmpty, interface.dropFirst(4).allSatisfy(\.isNumber) else { throw DaemonFailure.invalidRequest }
             // Inner tailnet packets only; public exit-node traffic is not exempt.
-            rules.append("pass out quick on \(interface) inet to 100.64.0.0/10 no state")
+            rules.append("pass out quick on \(interface) inet to 100.64.0.0/10 no state label \"mimo:legacy:tailnet\"")
         }
         return rules.sorted().joined(separator: "\n") + "\n"
     }

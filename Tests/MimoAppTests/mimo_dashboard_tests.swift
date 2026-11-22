@@ -70,12 +70,12 @@ enum MimoDashboardTests {
                 }
                 state.routing = value
                 state.settings.allowlist = scenario == "empty" ? AllowedIPList() : settings.allowlist
-                let monitor = PublicIPMonitor(); monitor.receive(state)
+                let monitor = PublicIPMonitor(readDeactivation: { false }); monitor.receive(state)
                 try CredentialAppTests.render(DashboardView(monitor: monitor), size: NSSize(width: 1040, height: 660), dark: dark,
                     to: output.appendingPathComponent("dashboard-\(scenario)-\(dark ? "dark" : "light").png"), padding: 0)
             }
             state.routing = routing
-            let monitor = PublicIPMonitor(); monitor.receive(state)
+            let monitor = PublicIPMonitor(readDeactivation: { false }); monitor.receive(state)
             for section in MimoSettingsSection.allCases {
                 MimoSettingsNavigation.shared.section = section
                 try CredentialAppTests.render(SettingsView(monitor: monitor), size: NSSize(width: 880, height: 620), dark: dark,

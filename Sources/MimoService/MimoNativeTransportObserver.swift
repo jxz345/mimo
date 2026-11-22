@@ -94,13 +94,8 @@ enum MimoNativeTransportProbe {
         let count = pids.withUnsafeMutableBytes { proc_listallpids($0.baseAddress, bytes) }
         let candidates = pids.prefix(max(0, Int(count))).filter { $0 > 0 && trustedProcess($0) }
         guard candidates.count == 1, let pid = candidates.first else { return .init() }
-        let sockets = BoundedProcess.run("/usr/sbin/lsof", ["-nP", "-a", "-p", String(pid), "-i", "-sTCP:^CLOSED", "-F0puftPnT"], timeout: 2)
-        guard sockets.status == 0, trustedProcess(pid) else { return .init() }
-        var result = MimoNativeTransport.parse(sockets.text, process: pid)
-        result.infrastructure = infrastructure
-        result.interface = interface
         guard trustedProcess(pid) else { return .init() }
-        return result
+        return MimoNativeTransport(interface: interface)
     }
 
     static func eligibleInterface(_ observation: TailscaleProbe.Result?, at now: Date) -> (String, String)? {
@@ -180,7 +175,7 @@ final class MimoNativeTransportObserver {
         self.interfaceProbe = interfaceProbe
     }
 
-    func start(tailnetEnabled: Bool, discoverInfrastructure: Bool = true) {
+    func start(tailnetEnabled: Bool, discoverInfrastructure: Bool = false) {
         stop()
         // Retain unexpired authenticated endpoints across provider toggles.
         // Rotating DNS must not revoke a still-held control connection merely

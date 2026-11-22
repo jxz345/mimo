@@ -1,5 +1,16 @@
 # Mimo changelog
 
+## 2.0 (build 6) — 2026-11-22
+
+- Let the profile own steady Rule/Global routing, bypasses, DNS and IPv6 rejection. Use PF only for startup, verification and detected transitions/failures; Direct releases Mimo packet filtering. Restore older macOS IPv6 changes rather than disabling IPv6 system-wide.
+- Label every generated packet rule with `mimo:` and its purpose; document anchor ownership and manual inspection. Keep a persistent boot barrier until Stop/uninstall.
+- Publish immutable build tags and include the build in Homebrew's version so same-version upgrades are detected.
+
+- Use one verified full network-release routine for uninstall and Dashboard Stop, including old/nested PF filter/NAT rules and tables, saved IPv6 restoration, removal of Mimo DNS and a system cache refresh. Explicitly verify native Tailnet route/MagicDNS when connected; report failures and retain recovery data.
+- Continue anonymous exit IP monitoring in the active account's open GUI after Stop, with services removed. Pause it on account switch/quit and end it before activation.
+- Make Stop/Activate visually actionable and permit cleanup when shared-service communication is lost. Add readable cleanup stages and local monitoring lifecycle to Event Log.
+- Remove version 1 release narratives from README; archive legacy manual recovery separately.
+
 ## 2.0 (build 5) — 2026-11-22
 
 - Build version 2 on the version 1 build 4 UI: restore the top-toolbar mode picker, in-card route summary, existing service buttons, native Settings forms and footer. Add Bypass and Stop/Activate within that layout. Proxy and Bypass use distinct icons. Use “Stop the engine and release network controls.” on one line at normal width.

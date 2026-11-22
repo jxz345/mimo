@@ -25,7 +25,7 @@ enum ClientConnectionTests {
     static func run(output: URL) async throws {
         let require = CredentialAppTests.require
         let transport = Transport()
-        let monitor = PublicIPMonitor(subscribe: transport.subscribe, readStatus: transport.read, reconnectDelay: .seconds(60))
+        let monitor = PublicIPMonitor(subscribe: transport.subscribe, readStatus: transport.read, reconnectDelay: .seconds(60), readDeactivation: { false })
         defer { monitor.stop(); transport.finishAll() }
         require(monitor.connection.phase == .connecting, "Initial UI must describe connection setup, not a failed service")
         require(monitor.serviceHealthLabel(.core, at: .now) == "Connecting…", "No initial service inspection is available")

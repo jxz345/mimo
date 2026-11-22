@@ -13,6 +13,10 @@ enum CredentialAppTests {
         defer { defaults.removePersistentDomain(forName: MimoAppGroup.identifier) }
         let output = URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
         try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
+        if CommandLine.arguments.contains("--released-only") {
+            try await ReleasedMonitorTests.run(output: output)
+            return
+        }
         if CommandLine.arguments.contains("--installed-event-log") {
             try await EventLogTests.installedExport(output: output)
             return
@@ -43,6 +47,8 @@ enum CredentialAppTests {
             try await CopyFeedbackTests.run()
             return
         }
+
+        try await ReleasedMonitorTests.run(output: output)
 
         require(SingleInstanceController.isCurrentUserProcess(getpid()), "The current user's process must match")
         require(!SingleInstanceController.isCurrentUserProcess(-1), "An unknown process must not block this user")
@@ -81,12 +87,12 @@ enum CredentialAppTests {
         let profile = CredentialSession(service: CredentialService(backend: profileBackend), account: "profile")
         for dark in [false, true] {
             let mode = dark ? "dark" : "light"
-            try render(DashboardView(monitor: PublicIPMonitor()),
+            try render(DashboardView(monitor: PublicIPMonitor(readDeactivation: { false })),
                        size: NSSize(width: 1040, height: 690), dark: dark,
                        to: output.appendingPathComponent("mimo-dashboard-\(mode).png"))
             for section in MimoSettingsSection.allCases {
                 MimoSettingsNavigation.shared.section = section
-                try render(SettingsView(monitor: PublicIPMonitor()),
+                try render(SettingsView(monitor: PublicIPMonitor(readDeactivation: { false })),
                            size: NSSize(width: 880, height: 620), dark: dark,
                            to: output.appendingPathComponent("mimo-settings-\(section.symbol)-\(mode).png"))
             }
@@ -94,9 +100,9 @@ enum CredentialAppTests {
             try render(ClashVergeProfileSection(providerInstalled: false, credentials: profile),
                        size: NSSize(width: 500, height: 640), dark: dark,
                        to: output.appendingPathComponent("profile-\(mode).png"))
-            try render(SettingsView(monitor: PublicIPMonitor()), size: NSSize(width: 560, height: 1300), dark: dark,
+            try render(SettingsView(monitor: PublicIPMonitor(readDeactivation: { false })), size: NSSize(width: 560, height: 1300), dark: dark,
                        to: output.appendingPathComponent("settings-\(mode).png"))
-            try render(BackgroundServiceSection(monitor: PublicIPMonitor(), installer: DaemonInstallationModel()),
+            try render(BackgroundServiceSection(monitor: PublicIPMonitor(readDeactivation: { false }), installer: DaemonInstallationModel()),
                        size: NSSize(width: 640, height: 270), dark: dark,
                        to: output.appendingPathComponent("service-\(mode).png"))
         }

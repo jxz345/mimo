@@ -249,7 +249,7 @@ public struct MimoAccessPolicy: Sendable {
         state.observedIP = observation
         guard !address.contains(":") else {
             state.blockingIP = observation
-            block("Mimo is IPv4-only. An IPv6 exit address cannot approve traffic.")
+            block("The profile rejects IPv6. An IPv4 exit address is required for verification.")
             return false
         }
         guard !allowlist.isEmpty, allowlist.contains(address) else {
@@ -271,7 +271,7 @@ public struct MimoAccessPolicy: Sendable {
         state.configuration = configuration
         state.configuration.mode = .direct
         state.phase = .active; state.effectiveMode = .direct
-        state.reason = "IPv4 networking without a proxy. IPv6 remains disabled."
+        state.reason = "System networking without Mimo proxy routing or firewall restrictions."
         state.verification = nil; state.blockingIP = nil; state.observedIP = nil
     }
 

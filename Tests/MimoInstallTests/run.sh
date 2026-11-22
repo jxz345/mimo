@@ -80,7 +80,7 @@ echo 'PASS: invalid signature fails before the app is launched'
 awk -v support="$REPO/Sources/MimoDiagnostics/command-support.sh" '
     /^# @COMMAND_SUPPORT@$/ { while ((getline line < support) > 0) print line; close(support); next }
     { print }
-' "$REPO/Scripts/install-release.sh" | sed -e 's|@RELEASE_REPO@|test/repo|' -e 's|@VERSION@|1.0|' \
+' "$REPO/Scripts/install-release.sh" | sed -e 's|@RELEASE_REPO@|test/repo|' -e 's|@VERSION@|1.0|' -e 's|@RELEASE_TAG@|v1.0-build.6|' \
     -e 's|@PKG_SHA256@|0000000000000000000000000000000000000000000000000000000000000000|' > "$fixture/install.sh"
 mkdir -p "$fixture/Applications/Mimo.app"
 touch "$fixture/Applications/Mimo.app/preserve"

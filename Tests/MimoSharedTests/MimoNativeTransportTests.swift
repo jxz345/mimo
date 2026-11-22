@@ -55,8 +55,7 @@ final class MimoNativeTransportTests: XCTestCase {
         next.allowlist = AllowedIPList(addresses: ["192.0.2.1"])
         XCTAssertTrue(next.affectsVerification(comparedTo: original))
         let rules = try MimoFirewallPolicy.render(group: 10000, mode: .rule, tunnel: "utun239")
-        XCTAssertLessThan(rules.range(of: "block return out quick to { 100.64")!.lowerBound,
-                          rules.range(of: "pass out quick proto { tcp, udp } all group")!.lowerBound)
+        XCTAssertEqual(rules, MimoFirewallPolicy.activeParent, "Provider toggles no longer grant or reject packets in PF")
     }
     func testOnlyRootOwnedConnectedHTTPSAndBoundUDPBecomeExceptions() throws {
         let fixture = "p123\0uroot\0\nf1\0tIPv4\0PUDP\0n*:41641\0\n"
@@ -83,7 +82,7 @@ final class MimoNativeTransportTests: XCTestCase {
 
     func testInterfaceExceptionIsTailnetOnlyAndRejectsMimoOrInjectedInterfaces() throws {
         let rules = try MimoNativeTransport(interface: "utun3").render()
-        XCTAssertEqual(rules, "pass out quick on utun3 inet to 100.64.0.0/10 no state\n")
+        XCTAssertEqual(rules, "pass out quick on utun3 inet to 100.64.0.0/10 no state label \"mimo:legacy:tailnet\"\n")
         for invalid in ["utun", "utun239", "en0", "utun3\npass all", "utun-1"] {
             XCTAssertThrowsError(try MimoNativeTransport(interface: invalid).render())
         }

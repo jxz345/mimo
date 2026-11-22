@@ -88,7 +88,7 @@ struct DashboardView: View {
                 Text(Self.versionLabel).font(.caption).foregroundStyle(.secondary)
                     .textSelection(.enabled).padding(.leading, 12)
                 Spacer()
-                Text(monitor.installationInactive ? "Mimo is inactive. Safe to delete Mimo.app." : routing.networkReleased == true ? "Engine stays stopped until you start it." : "Routing continues when this window closes.").font(.caption).foregroundStyle(.secondary)
+                Text(monitor.installationInactive ? "Monitoring in this app. Safe to delete Mimo.app." : routing.networkReleased == true ? "Engine stays stopped until you start it." : "Routing continues when this window closes.").font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 Button { NSApp.terminate(nil) } label: { Label("Quit GUI", systemImage: "power") }
             }.buttonStyle(.borderless).padding(.horizontal, 18).padding(.vertical, 10).modifier(MimoBarBackground())
@@ -175,26 +175,35 @@ struct DashboardView: View {
                 }.font(.callout)
                 Divider().padding(.top, 4)
                 VStack(alignment: .leading, spacing: 7) {
-                    Text(monitor.installationInactive ? "Mimo is inactive" : "Using another VPN?").font(.headline)
-                    Text(monitor.installationInactive ? "Services and login items removed. You can delete Mimo.app or activate it again." : "Stop the engine and release network controls.")
+                    Text(monitor.installationInactive ? "Monitoring only" : "Using another VPN?").font(.headline)
+                    Text(monitor.installationInactive ? "Network controls released. IP monitoring continues while this app is open. Safe to delete Mimo.app." : "Stop the engine and release network controls.")
                         .font(.caption).foregroundStyle(.secondary)
                         .lineLimit(monitor.installationInactive ? 3 : 1).minimumScaleFactor(0.9)
                     Button(installer.isInstalling ? "Working…" : monitor.installationInactive ? "Activate Mimo" : installer.hasError ? "Retry cleanup" : "Stop engine and use Direct") {
                         if monitor.installationInactive { installer.install(activating: true) }
                         else { installer.deactivate() }
-                    }.disabled(installer.isInstalling || monitor.serviceOperation != nil || monitor.isChangingSettings)
+                    }.buttonStyle(.borderedProminent)
+                        .disabled(installer.isInstalling || (monitor.connected && (monitor.serviceOperation != nil || monitor.isChangingSettings)))
                     if let message = installer.message { Text(message).font(.caption).foregroundStyle(.secondary) }
 
                 }
                 Spacer(minLength: 0)
                 Divider()
-                LaunchAtLoginControl(compact: true, dashboardStyle: true).disabled(monitor.installationInactive || installer.isInstalling)
+                if monitor.installationInactive {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("Login items removed").font(.callout)
+                        Text("Monitoring stops when you quit this app. Activate Mimo to restore background services.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                } else {
+                    LaunchAtLoginControl(compact: true, dashboardStyle: true).disabled(installer.isInstalling)
+                }
             }.padding(14)
         }
     }
 
     private var services: some View {
-        dashboardCard("Background services", detail: monitor.installationInactive ? "Mimo inactive" : monitor.connected ? "Health & configured endpoints" : monitor.connection.rowTitle) {
+        dashboardCard("Background services", detail: monitor.installationInactive ? "Removed · monitoring in this app" : monitor.connected ? "Health & configured endpoints" : monitor.connection.rowTitle) {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .top, spacing: 10) {
                     Image(systemName: presentation.symbol).font(.system(size: primaryIconSize))
@@ -218,7 +227,7 @@ struct DashboardView: View {
                             .padding(.horizontal, 14)
                         Divider()
                         Label(monitor.operationError ?? installer.message ?? (monitor.installationInactive ? "Services removed. System / other VPN manages networking." : monitor.connected
-                            ? monitor.lookupStatusMessage ?? (monitor.installationInactive ? "Mimo is inactive. Safe to delete Mimo.app." : routing.networkReleased == true ? "Engine stays stopped until you start it." : "Shared across this Mac · Services continue when Mimo closes.")
+                            ? monitor.lookupStatusMessage ?? (monitor.installationInactive ? "Monitoring in this app. Safe to delete Mimo.app." : routing.networkReleased == true ? "Engine stays stopped until you start it." : "Shared across this Mac · Services continue when Mimo closes.")
                             : monitor.connectionSummary(at: context.date)), systemImage: "info.circle")
                             .font(.caption2).foregroundStyle(.secondary).lineLimit(2, reservesSpace: true)
                             .help(monitor.connected ? monitor.lookupStatusMessage ?? "" : monitor.connectionSummary(at: context.date))
@@ -370,7 +379,7 @@ struct DashboardView: View {
         }
     }
     private var accessHeading: String {
-        if monitor.installationInactive { return "Mimo is inactive." }
+        if monitor.installationInactive { return "Monitoring only · network controls released." }
         return switch presentation.kind {
         case .direct: routing.networkReleased == true ? "Direct · Engine stopped" : "You’re connected directly."
         case .verified: "You’re connected. Exit IP approved."

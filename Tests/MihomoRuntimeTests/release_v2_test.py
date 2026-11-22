@@ -106,7 +106,7 @@ def controller(path):
 
 
 def inactive():
-    assert (SUPPORT / 'deactivated').read_text() == 'mimo-inactive-v1\n'
+    assert (SUPPORT / 'deactivated').read_text() == 'mimo-inactive-v2\n'
     assert (SUPPORT / 'deactivated').stat().st_uid == 0
     for job in JOBS:
         assert cmd('/bin/launchctl', 'print', 'system/' + job, check=False).returncode != 0, job
