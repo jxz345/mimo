@@ -31,11 +31,6 @@ end
 class CaskCapture
   attr_reader :uninstall_options, :preflight, :postflight, :dependencies, :conflicts, :download_url
 
-  class Version < String
-    def before_comma; split(",").first; end
-    def after_comma; split(",").last; end
-  end
-
   def initialize
     @preflight = StepCapture.new
     @postflight = StepCapture.new
@@ -44,7 +39,7 @@ class CaskCapture
 
   def appdir; "/Applications"; end
   def version(value = nil)
-    @version = Version.new(value.gsub("@VERSION@", "2.0").gsub("@BUILD@", "6")) if value
+    @version = value if value
     @version
   end
   def url(value); @download_url = value; end
@@ -62,7 +57,9 @@ def cask(_token, &block)
   $capture.instance_eval(&block)
 end
 
-load ARGV.fetch(0)
+source = File.read(ARGV.fetch(0)).gsub("@VERSION@", "2.0").gsub("@BUILD@", "6")
+eval(source, TOPLEVEL_BINDING, ARGV.fetch(0))
+raise "Cask version must stay equal to the marketing version" unless $capture.version == "2.0"
 raise "Each build must have an immutable release URL" unless $capture.download_url == "https://github.com/jxz345/mimo/releases/download/v2.0-build.6/Mimo-2.0.zip"
 raise "Cask must depend on the pinned mihomo formula" unless $capture.dependencies.include?({ formula: "jxz345/tap/mihomo@1.19.34" })
 raise "Cask must require Apple silicon" unless $capture.dependencies.include?({ arch: :arm64 })

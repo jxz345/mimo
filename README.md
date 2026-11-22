@@ -35,7 +35,7 @@ brew upgrade --cask jxz345/tap/mimo
 
 [Download v2.0 build 6](https://github.com/jxz345/mimo/releases/tag/v2.0-build.6) · [What is implemented](#what-is-implemented) · [Event-driven workflows](Design/MIMO_EVENT_DRIVEN_WORKFLOWS.md) · [Clean uninstall](#clean-uninstall-and-reinstall) · [Protection limits](#modes-and-protection)
 
-The `v2.0-build.6` tag identifies build 6; each build has its own release URL. Homebrew tracks both version and build (`2.0,6`), so `brew upgrade` detects a new build even when the marketing version is unchanged. Packages are `Mimo-2.0.zip` and `Mimo-2.0.pkg`. The installed app is `Mimo.app`; its executables are `mimo-gui` and `mimo-core`.
+The `v2.0-build.6` tag identifies build 6; each build has its own release URL. Homebrew shows the marketing version `2.0`; build 6 remains in the app, release URL and manifest. Use `brew reinstall --cask jxz345/tap/mimo` to get a newer build of the same version, including when replacing the earlier `2.0,6` cask receipt. Packages are `Mimo-2.0.zip` and `Mimo-2.0.pkg`. The installed app is `Mimo.app`; its executables are `mimo-gui` and `mimo-core`.
 
 ## First launch
 
@@ -110,7 +110,7 @@ The persistent boot entry is the marked `MIMO BOOT GUARD` block in `/etc/pf.conf
 | Feature | Behavior |
 | --- | --- |
 | **Homebrew distribution** | Mimo v2.0 (build 6), Apple silicon only, with the pinned mihomo 1.19.34 formula, checksum verification, normal install/reinstall/uninstall and standalone ZIP/package installers. The updated service installer asks before stopping conflicting Clash/mihomo engines, verifies their exit and then continues; cancellation preserves them. A standalone repair can use the existing sealed app. |
-| **Release build identity** | Each GitHub upload receives a distinct increasing build number while the marketing version stays unchanged. The dashboard, diagnostics and release manifest identify the exact build. |
+| **Release build identity** | Each GitHub upload receives a distinct increasing build number while the marketing version stays unchanged. Homebrew displays `2.0`; same-version build updates use reinstall. The dashboard, diagnostics and release manifest identify the exact build. |
 | **Consistent Mimo identity** | Mimo app/widget/build names, `com.mimo` app identity, `com.mimo.*` jobs/XPC endpoints, Mimo data/log directories, `mimo-manage` removal command and Mimo archive names. Old names are migration/cleanup inputs, not current branding. |
 | **Shared machine state** | One core owns proxy configuration, credentials, allowlist, provider budget and routing state for all accounts; GUI clients and widgets read that shared state. |
 | **Three routing modes** | Direct remains unproxied; Rule applies the profile; Global uses the proxy. Protected modes require an approved IPv4 and a nonempty allowlist. |
@@ -245,7 +245,7 @@ MIMO_RELEASE_REPO=jxz345/mimo bash Scripts/package-release.sh
 
 Before publishing a new build, advance `Configuration/BuildNumber.txt` beyond the last GitHub build. Local rebuilds retain that number until publication; never upload different binaries under a previously published build number. Include “Mimo VERSION (build N)” in the release notes and upload `release-build.json` alongside its matching artifacts and checksums.
 
-It stages the package without copying extended attributes; macOS can still add provenance metadata locally, which is inspected alongside sealed-signature verification. It builds arm64, embeds the core and legacy-login removal tool, signs inside-out, validates signatures and emits `Mimo-2.0.zip`, `Mimo-2.0.pkg`, `install.sh`, `release-build.json`, `SHA256SUMS` and `mimo.rb`. Publishing is separate. Each build uses an immutable tag such as `v2.0-build.6`; the Homebrew cask version includes both the marketing version and build (`2.0,6`). The cask’s embedded cleanup is kept in sync with:
+It stages the package without copying extended attributes; macOS can still add provenance metadata locally, which is inspected alongside sealed-signature verification. It builds arm64, embeds the core and legacy-login removal tool, signs inside-out, validates signatures and emits `Mimo-2.0.zip`, `Mimo-2.0.pkg`, `install.sh`, `release-build.json`, `SHA256SUMS` and `mimo.rb`. Publishing is separate. Each build uses an immutable tag such as `v2.0-build.6`; the Homebrew cask version remains the marketing version (`2.0`), with the build encoded separately in its download URL. The cask’s embedded cleanup is kept in sync with:
 
 ```sh
 python3 Scripts/sync-homebrew-cleanup.py Packaging/mimo.rb.in

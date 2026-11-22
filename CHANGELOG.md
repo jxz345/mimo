@@ -4,7 +4,7 @@
 
 - Let the profile own steady Rule/Global routing, bypasses, DNS and IPv6 rejection. Use PF only for startup, verification and detected transitions/failures; Direct releases Mimo packet filtering. Restore older macOS IPv6 changes rather than disabling IPv6 system-wide.
 - Label every generated packet rule with `mimo:` and its purpose; document anchor ownership and manual inspection. Keep a persistent boot barrier until Stop/uninstall.
-- Publish immutable build tags and include the build in Homebrew's version so same-version upgrades are detected.
+- Publish immutable build tags while keeping Homebrew's version at `2.0`. Use `brew reinstall` to receive a newer build of the same version; the app and release manifest retain the separate build number.
 
 - Use one verified full network-release routine for uninstall and Dashboard Stop, including old/nested PF filter/NAT rules and tables, saved IPv6 restoration, removal of Mimo DNS and a system cache refresh. Explicitly verify native Tailnet route/MagicDNS when connected; report failures and retain recovery data.
 - Continue anonymous exit IP monitoring in the active account's open GUI after Stop, with services removed. Pause it on account switch/quit and end it before activation.

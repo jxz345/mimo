@@ -185,7 +185,7 @@ PYTHON
 printf '\nSUCCESS: Mimo %s (build %s)\n' "$version" "$build_number"
 cat "$DIST_DIR/SHA256SUMS"
 printf '\nCask values for jxz345/homebrew-tap Casks/mimo.rb:\n'
-printf '  version "%s,%s"\n  sha256 "%s"\n' "$version" "$build_number" "$(shasum -a 256 "$zip_path" | awk '{print $1}')"
+printf '  version "%s"\n  sha256 "%s"\n' "$version" "$(shasum -a 256 "$zip_path" | awk '{print $1}')"
 if [[ "${CI:-}" != "true" ]]; then
     printf 'Artifacts built locally. Nothing was published and no workflow was invoked.\n'
 fi
