@@ -28,6 +28,7 @@ Upgrading from version 1? Update the tap and upgrade:
 
 ```sh
 brew update
+brew trust --formula jxz345/tap/mihomo@1.19.34
 brew fetch --force --cask jxz345/tap/mimo
 brew upgrade --cask jxz345/tap/mimo
 ```
@@ -407,7 +408,7 @@ The App Group default remains an unregistered development identifier. Ad-hoc pac
 
 ## Validation and known limits
 
-**Mimo 2.0 (build 5)** passes 225 shared tests, the native service/app suites, daemon/installer contracts and installed package acceptance in mimo-vm. Full cleanup from all three modes, missing-controller recovery, safe app removal, a second real mihomo serving HTTPS, cancelled/confirmed takeover, inactive reinstall and activation rollback are exercised. Real TLS/HTTP connections prove exact/suffix bypass application and disabling; Global saves retain proxy routing, and MagicDNS remains functional. An actual VM reboot preserves inactivity before explicit activation. See [build 5 release evidence](Tests/ReleaseEvidence/mimo-build-5-v2.json). These checks do not establish universal VPN compatibility or reproduce the earlier physical account-switch freeze.
+**Mimo 2.0 (build 5)** passes 225 shared tests, the native service/app suites, daemon/installer contracts and installed package acceptance in mimo-vm. Full cleanup from all three modes, missing-controller recovery, safe app removal, a second real mihomo serving HTTPS, cancelled/confirmed takeover, inactive reinstall and activation rollback are exercised. Real TLS/HTTP connections prove exact/suffix bypass application and disabling; Global saves retain proxy routing, and MagicDNS remains functional. An actual VM reboot preserves inactivity before explicit activation. See [build 5 release evidence](Tests/ReleaseEvidence/mimo-build-5-v2.json). The [published Homebrew upgrade](Tests/ReleaseEvidence/mimo-build-5-distribution.json) also passes with saved settings/mode, all five jobs, HTTPS and MagicDNS intact. These checks do not establish universal VPN compatibility or reproduce the earlier physical account-switch freeze.
 
 The current **build 4 UI alignment** passes 104 mockup interaction checks and 12 native app assertion groups in mimo-vm. Browser screenshots cover Dashboard, all Settings sections, inactive/conflict states, dark appearance and a narrow window. All six service rows are 60 points high with aligned health labels; the shortened cleanup description fits one line. See [UI evidence](Tests/ReleaseEvidence/mimo-v2-build4-ui.json), [native Dashboard](Previews/mimo-v2-build4-native-light.png) and [web Dashboard](Previews/mimo-v2-build4-web-light.png).
 

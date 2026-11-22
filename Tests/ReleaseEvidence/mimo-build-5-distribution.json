@@ -1,0 +1,28 @@
+{
+  "date": "2026-11-22",
+  "version": "2.0",
+  "build": 5,
+  "release_url": "https://github.com/jxz345/mimo/releases/tag/v2.0",
+  "release_commit": "106fdf33dfdea4fce4388032dc44181deb05e897",
+  "upgrade": "Homebrew cask 1.0 build 4 to published 2.0 build 5 in mimo-vm",
+  "command": "brew upgrade --cask jxz345/tap/mimo",
+  "result": "passed",
+  "checks": [
+    "Homebrew-installed 2.0 build 5 and sealed helper match the published package",
+    "original shared settings, proxy configuration and selected mode preserved",
+    "all five background jobs loaded and saved routing mode active",
+    "real certificate-verified HTTPS works through the installed engine",
+    "MagicDNS returns the native peer address after the published Homebrew upgrade"
+  ],
+  "published_artifacts_sha256": {
+    "Mimo-2.0.pkg": "95e2bc0c3f44dccb5f3b1b4d920547c6b6bdb401fd6b51324d8a9ec266114b91",
+    "Mimo-2.0.zip": "f54c25acecf68e6b6201f5ff13c367db17a9943b121e4bcc3e6f4034c36c5a3b"
+  },
+  "github_digests_match_qualified_artifacts": true,
+  "homebrew_test_notes": [
+    "Used an ordinary non-root VM test administrator with normal sudo authentication and pinned-formula trust.",
+    "Initial attempts stopped before installation because the shared VM Homebrew directories were owned by another account and formula trust was absent for the test account. Scoped test-directory ownership was temporarily adjusted and restored after the successful upgrade.",
+    "The VM now runs the released build 5 with its original shared settings and selected mode; no runtime installation or networking changes were made on Delta.",
+    "A later cask caveat-only edit explains full Stop/Activate and IPv6 restoration; artifact URL, hash and installer code are unchanged."
+  ]
+}
