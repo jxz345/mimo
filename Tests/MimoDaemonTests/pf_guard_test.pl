@@ -2,6 +2,7 @@
 use strict;
 use warnings;
 use Test::More;
+use JSON::PP;
 require $ARGV[0];
 
 my $original = "# administrator rules\nscrub-anchor \"com.apple/*\"\nanchor \"com.apple/*\"\nload anchor \"com.apple\" from \"/etc/pf.anchors/com.apple\"\n";
@@ -31,4 +32,11 @@ ok(main::job_matches($job, $path, $program, '--supervisor', 1), 'matching loaded
 ok(!main::job_matches($job, $path, $program, undef, 1), 'wrong arguments cannot masquerade as core');
 ok(!main::job_matches($job =~ s/keepalive/other/r, $path, $program, '--supervisor', 1), 'missing restart policy rejected');
 ok(!main::job_matches($job =~ s/runatload/other/r, $path, $program, '--supervisor', 1), 'missing boot policy rejected');
+ok(!main::release_intent({engine => JSON::PP::true}), 'old intent remains managed');
+ok(main::release_intent({engine => JSON::PP::false, releaseNetwork => JSON::PP::true}), 'explicit stop survives independent boot/repair reads');
+ok(!main::release_intent({engine => JSON::PP::true, releaseNetwork => JSON::PP::false}), 'explicit start resumes management');
+for my $intent ({engine => JSON::PP::true, releaseNetwork => JSON::PP::true},
+                {engine => JSON::PP::false, releaseNetwork => 'true'}, {releaseNetwork => JSON::PP::true}) {
+    eval { main::release_intent($intent) }; ok($@, 'ambiguous intent is rejected');
+}
 done_testing();

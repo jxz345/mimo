@@ -1,7 +1,7 @@
 import Foundation
 
 enum MimoRecoveryState {
-    static func commitDirect(storage: FilePreferenceStorage) throws -> MimoConfiguration {
+    static func commitDirect(storage: FilePreferenceStorage, activateServices: Bool = false) throws -> MimoConfiguration {
         var configuration: MimoConfiguration
         if let data = storage.data(forKey: "service.routing") {
             configuration = try JSONDecoder().decode(MimoConfiguration.self, from: data).validated()
@@ -9,10 +9,17 @@ enum MimoRecoveryState {
             configuration = MimoConfiguration()
         }
         configuration.mode = .direct
-        try storage.update([
+        if activateServices { configuration.mihomoEnabled = true }
+        var values: [String: Any] = [
             "service.routing": try JSONEncoder().encode(configuration),
             "service.revision": storage.integer(forKey: "service.revision") + 1
-        ])
+        ]
+        if activateServices, let data = storage.data(forKey: "service.settings") {
+            var settings = try JSONDecoder().decode(MachineSettings.self, from: data)
+            settings.tailscaleProviderEnabled = true
+            values["service.settings"] = try JSONEncoder().encode(settings)
+        }
+        try storage.update(values)
         return configuration
     }
 }

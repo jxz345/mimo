@@ -192,6 +192,36 @@ engine_conflict_snapshot() {
     run /bin/ps -axo pid=,uid=,comm=
 }
 
+resource_conflict_pids() {
+    local result=0 output
+    output=$(/usr/sbin/lsof -nP -t -iTCP:7890 -iTCP:1053 -iTCP:18766 -sTCP:LISTEN 2>/dev/null) || result=$?
+    [ "$result" -le 1 ] || return 1
+    printf '%s\n' "$output"
+    result=0
+    output=$(/usr/sbin/lsof -nP -t -iUDP:7890 -iUDP:1053 2>/dev/null) || result=$?
+    [ "$result" -le 1 ] || return 1
+    printf '%s\n' "$output"
+}
+
+confirmed_deactivation() {
+    local receipt="$DIR/deactivated" job state permissions
+    [ -f "$receipt" ] && [ ! -L "$receipt" ] &&
+        [ "$(/usr/bin/stat -f %u "$receipt")" = 0 ] || return 1
+    permissions=$(/usr/bin/stat -f %Lp "$receipt") || return 1
+    [ "$((8#$permissions & 022))" = 0 ] &&
+        [ "$(/bin/cat "$receipt")" = mimo-inactive-v1 ] || return 1
+    [ ! -e "$EXECUTABLE" ] && [ ! -e "$SUPERVISOR_PLIST" ] || return 1
+    for job in "$LABEL" "$ENGINE" "$SUPERVISOR" "$BOOT_GUARD" "$INFRASTRUCTURE"; do
+        state=0; job_state "$job" || state=$?
+        [ "$state" = 1 ] || return 1
+    done
+}
+
+is_competing_process() {
+    case "$2" in "$RUNTIME/mihomo"|"$EXECUTABLE") return 1 ;; esac
+    is_competing_engine "$2" || /usr/bin/grep -Fxq "$1" <<< "$resource_pids"
+}
+
 engine_process_identity() {
     /bin/ps -p "$1" -o uid=,lstart=,comm=
 }
@@ -267,12 +297,13 @@ end run' "$message") || return 1
 }
 
 check_engine_conflicts() {
-    local table pid uid command identity target output index started remaining message
+    local table pid uid command identity target output index started remaining message resource_pids
     local pids=() identities=() targets=() descriptions=()
     table=$(engine_conflict_snapshot) || return 1
+    resource_pids=$(resource_conflict_pids) || return 1
     [ -n "$table" ] || return 1
     while read -r pid uid command; do
-        is_competing_engine "$command" || continue
+        is_competing_process "$pid" "$command" || continue
         [[ "$pid" =~ ^[0-9]+$ ]] && [ "$pid" -gt 1 ] && [[ "$uid" =~ ^[0-9]+$ ]] || return 1
         identity=$(engine_process_identity "$pid") || continue # exited during inspection
         # Do not approve a PID whose executable/owner changed since the scan.
@@ -285,8 +316,8 @@ check_engine_conflicts() {
         descriptions+=("$command (PID $pid)${target:+ — $target}")
     done <<< "$table"
     [ "${#pids[@]}" != 0 ] || return 0
-    message=$(printf '%s\n' 'Another Clash/mihomo engine is running:' "${descriptions[@]}" '' \
-        'Mimo needs these engines stopped. This will disconnect their proxy/VPN connections.' \
+    message=$(printf '%s\n' 'Another engine or service occupies resources needed by Mimo:' "${descriptions[@]}" '' \
+        'Mimo needs these processes stopped. This will disconnect their connections. Required ports: proxy 7890, DNS 1053 and provider 18766.' \
         'Mimo will replace these running engines. Listed launchd services will be disabled and unloaded so they do not restart at login or reboot. Their apps and settings are kept.' \
         'If installation fails and you want the old proxy back, re-enable it in its app or service manager.')
     printf '%s\n' "$message" >&2
@@ -329,10 +360,11 @@ check_engine_conflicts() {
     started=$SECONDS
     while :; do
         table=$(engine_conflict_snapshot) || return 1
+        resource_pids=$(resource_conflict_pids) || return 1
         [ -n "$table" ] || return 1
         remaining=''
         while read -r pid uid command; do
-            is_competing_engine "$command" || continue
+            is_competing_process "$pid" "$command" || continue
             remaining="$remaining$command (PID $pid)
 "
         done <<< "$table"
@@ -434,6 +466,13 @@ restore_installation() {
     local path result=0 index=0
     unload "$INFRASTRUCTURE" && unload "$BOOT_GUARD" && unload "$LABEL" && unload "$ENGINE" && unload "$SUPERVISOR" || return 1
     wait_mimo_workers || return 1
+    # An inactive installation may still have Rule saved. Rollback must release
+    # the temporary activation gate before removing its recovery executable.
+    if [ "${was_deactivated:-0}" = 1 ]; then
+        run "$stage/new" --uninstall-runtime || return 1
+        run "$stage/new" --remove-right || return 1
+        remove_runtime_group || return 1
+    fi
     if [ "${guard_was_installed:-0}" = 0 ] && [ -f "$GUARD_SCRIPT" ]; then
         run /usr/bin/perl "$GUARD_SCRIPT" --remove || return 1
         /bin/rm -f "$GUARD/boot.id" "$GUARD/health.json" || return 1
@@ -451,7 +490,9 @@ restore_installation() {
     [ "$result" = 0 ] || return 1
     # Protected upgrades retain the closed gate. A former Direct/legacy install
     # is restored before restarting its old processes.
-    if [ "$old_ipv4_policy" = 0 ]; then
+    if [ "${was_deactivated:-0}" = 1 ]; then
+        remove_runtime_files || return 1
+    elif [ "$old_ipv4_policy" = 0 ]; then
         if [ "$old_mode" = direct ]; then run "$stage/new" --uninstall-runtime || return 1
         else run "$stage/new" --restore-ipv6-preferences || return 1; fi
     elif [ "$old_mode" = direct ]; then run "$stage/new" --restore-direct-offline || return 1; fi
@@ -488,12 +529,12 @@ finish_installation() {
 install_service() (
     require_root || return 1
     local binary="$SCRIPT_DIR/../MacOS/mimo-core" app stage="" owner=${SUDO_USER:-} path state
-    local mutation_started=0 old_loaded=0 supervisor_loaded=0 legacy_loaded=0 legacy_http_loaded=0 old_mode=direct old_ipv4_policy=0 index=0
+    local mutation_started=0 old_loaded=0 supervisor_loaded=0 legacy_loaded=0 legacy_http_loaded=0 old_mode=direct old_ipv4_policy=0 index=0 was_deactivated=0
     local boot_loaded=0 health_loaded=0 guard_was_installed=0
     local login_installed=0 login_backup=0
     local legacy_removal_bridge=0 stopped_engine_conflicts=""
     local dependency expected_hash actual_hash manager_mode
-    local installed_files=("$EXECUTABLE" "$PLIST" "$ENGINE_PLIST" "$SUPERVISOR_PLIST" "$LEGACY_CORE_PLIST" "$MANAGER" "$DIR/command-support.sh" "$DIR/cleanup-installation.sh" "$DIR/installed-app" "$GRANT" "$RUNTIME/mihomo" "$RUNTIME/engine.sha256" "$RUNTIME/blocking.yaml" "$LEGACY_EXECUTABLE" "$PROFILES/blocking.yaml")
+    local installed_files=("$DIR/deactivated" "$RUNTIME/services.json" "$DIR/Service/state.plist" "$EXECUTABLE" "$PLIST" "$ENGINE_PLIST" "$SUPERVISOR_PLIST" "$LEGACY_CORE_PLIST" "$MANAGER" "$DIR/command-support.sh" "$DIR/cleanup-installation.sh" "$DIR/installed-app" "$GRANT" "$RUNTIME/mihomo" "$RUNTIME/engine.sha256" "$RUNTIME/blocking.yaml" "$LEGACY_EXECUTABLE" "$PROFILES/blocking.yaml")
     installed_files+=("$APP_IDENTITY" "$OLD_MANAGER" "$OLD_GRANT")
     installed_files+=("$GUARD_SCRIPT" "$BOOT_PLIST" "$HEALTH_PLIST" "$BOOT_RULES" /etc/pf.conf "$GUARD/blocking.pf")
     for path in "$LABEL" "$ENGINE" "$SUPERVISOR" "$BOOT_GUARD" "$INFRASTRUCTURE"; do installed_files+=("$GUARD/$path.plist"); done
@@ -501,6 +542,15 @@ install_service() (
     app=$(cd "$SCRIPT_DIR/../.." && pwd -P) || return 1
     run /usr/bin/codesign --verify --deep --strict "$app" || return 1
     run /usr/bin/codesign --verify --strict "$binary" || return 1
+    # Updating/reinstalling the app must not undo an explicit full Stop. Only
+    # Activate Mimo may reclaim networking or ask to replace another engine.
+    if confirmed_deactivation; then
+        was_deactivated=1
+        if [ "${activation_requested:-0}" != 1 ]; then
+            echo 'Mimo app updated; services remain inactive. Use Activate Mimo to restore services.'
+            return 0
+        fi
+    fi
     dependency_source || return 1
     if [ -e "$LEGACY_BRIDGE_MARKER" ]; then
         [ ! -L "$LEGACY_BRIDGE_MARKER" ] && [ -f "$LEGACY_BRIDGE_MARKER" ] &&
@@ -584,7 +634,13 @@ install_service() (
     done
     if [ -f "/Library/LaunchDaemons/$LEGACY.plist" ]; then /usr/bin/touch "$DIR/legacy-provider-enabled" || return 1; fi
     # Complete signature/hash/staging checks before asking to disconnect another proxy.
-    check_engine_conflicts || return $?
+    release_intent=$(run "$stage/new" --network-release-requested) || return 1
+    if [ "${activation_requested:-0}" = 1 ]; then release_intent=managed; fi
+    case "$release_intent" in
+        managed) check_engine_conflicts || return $? ;;
+        released) ;;
+        *) return 1 ;;
+    esac
     ensure_runtime_group || return 1
     if [ -f "$RUNTIME/ipv6-original.plist" ]; then old_ipv4_policy=1; fi
     mutation_started=1
@@ -629,6 +685,7 @@ install_service() (
     /usr/bin/install -o root -g wheel -m 0600 "$stage/supervisor.plist" "$GUARD/$SUPERVISOR.plist" || return 1
     /usr/bin/install -o root -g wheel -m 0600 "$stage/core.plist" "$GUARD/$LABEL.plist" || return 1
     /usr/bin/install -o root -g wheel -m 0600 "$stage/engine.plist" "$GUARD/$ENGINE.plist" || return 1
+    if [ "${activation_requested:-0}" = 1 ]; then run "$EXECUTABLE" --prepare-activation || return 1; fi
     run /usr/bin/perl "$GUARD_SCRIPT" --configure || return 1
     run /usr/bin/perl "$GUARD_SCRIPT" --boot || return 1
     /bin/rm -f "$LEGACY_CORE_PLIST" || return 1
@@ -668,6 +725,7 @@ install_service() (
     # Generated profiles from older builds may contain secrets. Regenerate via
     # stdin/socket delivery; remove obsolete copies only after the new jobs pass.
     /bin/rm -f "$RUNTIME/candidate.yaml" "$RUNTIME/config.yaml" "$RUNTIME/reload.json" "$RUNTIME/blocking.yaml" "$RUNTIME/controller.sock" || return 1
+    /bin/rm -f "$DIR/deactivated" || return 1
     mutation_started=0
     /bin/rm -f "/Library/LaunchDaemons/$LEGACY.plist" "/Library/LaunchDaemons/$LEGACY-http.plist" "/etc/sudoers.d/mimo-tailscale-verge" "$DIR/tailscale-verge.sh" || return 1
     echo 'Mimo supervisor, core and pinned mihomo installed. Saved mode and service stop preferences are retained. Rule and Global require a fresh verified exit on the saved allowlist.'
@@ -746,7 +804,7 @@ remove_runtime_files() {
 
 uninstall_service() (
     require_root || return 1
-    local app
+    local app keep_gui=${1:-0}
     service_lock || return 1
     trap '/bin/rm -f "$DIR/Service/install.lock"' EXIT
     if [ -f "$DIR/installed-app" ]; then
@@ -754,7 +812,7 @@ uninstall_service() (
         case "$app" in /*/Mimo.app|/*/ExitIPMonitor.app) ;; *) return 1 ;; esac
         source "$DIR/cleanup-installation.sh"
         cleanup_app=$app cleanup_uid=0 cleanup_translocations="" cleanup_matches=()
-        cleanup_stop_app || return 1
+        if [ "$keep_gui" != 1 ]; then cleanup_stop_app || return 1; fi
         user_name_operation uninstall || return 1
     fi
     if [ -x "$EXECUTABLE" ] && [ -f "$SUPERVISOR_PLIST" ]; then run "$EXECUTABLE" --begin-maintenance || return 1; fi
@@ -764,7 +822,7 @@ uninstall_service() (
     if [ -x "$EXECUTABLE" ] && [ -f "$SUPERVISOR_PLIST" ]; then run "$EXECUTABLE" --uninstall-runtime || return 1; fi
     if [ -f "$GUARD_SCRIPT" ]; then run /usr/bin/perl "$GUARD_SCRIPT" --remove || return 1; fi
     wait_legacy_workers || return 1
-    if [ -n "${app:-}" ]; then
+    if [ "$keep_gui" != 1 ] && [ -n "${app:-}" ]; then
         cleanup_find_processes || return 1
         [ "${#cleanup_matches[@]}" = 0 ] || { echo 'App restarted during removal. Quit it and retry.' >&2; return 1; }
     fi
@@ -780,11 +838,18 @@ uninstall_service() (
     remove_runtime_files || return 1
     # Keep the manager and its fixed removal grant until every cleanup step succeeds.
     /bin/rm -rf "$LOGIN_APP" "$APP_IDENTITY" "$DIR/installed-app" "$DIR/command-support.sh" "$DIR/cleanup-installation.sh" "$DIR/names-migrated.v1" "$GRANT" "/etc/sudoers.d/mimo-tailscale-verge" "$MANAGER" "$OLD_MANAGER" "$OLD_GRANT" || return 1
+    if [ "$keep_gui" = 1 ]; then
+        # Only the successful completion of every cleanup step can claim Inactive.
+        # Root-owned and readable by all accounts; contains no configuration.
+        [ ! -L "$DIR/deactivated" ] || return 1
+        /usr/bin/install -o root -g wheel -m 0644 /dev/null "$DIR/deactivated" || return 1
+        printf 'mimo-inactive-v1\n' > "$DIR/deactivated" || return 1
+    fi
     echo 'Mimo services, firewall guard, login items, private group and runtime files removed; Direct networking restored. Settings, credentials, Homebrew and logs were retained.'
 )
 
 main() {
-    local installation_interactive=1
+    local installation_interactive=1 activation_requested=0
     if [ "$#" = 2 ] && [ "$1" = install ] && [ "$2" = --non-interactive ]; then
         installation_interactive=0
         set -- install
@@ -792,6 +857,8 @@ main() {
     [ "$#" = 1 ] || return 2
     case "$1" in
         install) install_service ;;
+        activate) activation_requested=1; install_service ;;
+        deactivate) uninstall_service 1 ;;
         remove|uninstall) uninstall_service ;;
         status) /bin/launchctl print "system/$SUPERVISOR" ;;
         *) echo 'Usage: daemon.sh install [--app APP | --non-interactive] | status | uninstall' >&2; return 2 ;;

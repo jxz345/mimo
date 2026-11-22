@@ -1,0 +1,104 @@
+{
+  "scope": "Unreleased 2.0 development candidate; no new GitHub app build",
+  "date": "2026-11-22",
+  "base_commit": "d772840f4ffefc1ba9aec49b21ae8742dbdee016",
+  "control_protocol": 6,
+  "runtime_environment": "mimo-vm; runtime, network and GUI checks only in this VM",
+  "candidate_helper_sha256": "904d65d816c53e5e8c9de3d8cf83992bdf0cb384f44b7eb488e434da202f918d",
+  "source_sha256": {
+    "Sources/MimoShared/MimoBypass.swift": "00a03a8ee1fa5608da494dfebe42511390487d64bacdc6d2fee5a2a70215694b",
+    "Sources/MimoShared/DaemonProtocol.swift": "ae90f1b6f9c575f8d24f0209229e9ac5de1bf7aebc8d2d2103e44ae6d103e088",
+    "Sources/MimoShared/MimoRouting.swift": "1f7296d9dec4daf20a85fe6f858d752f68a2002380e029ad6b1b1bed3e84249b",
+    "Sources/MimoShared/MihomoProfile.swift": "333b259ef6141b069f04c1fda7d1f9c12af633ec7bd24b44d719ef6676ae504e",
+    "Sources/MimoService/MimoSupervisor.swift": "2a876dcd5990150c1042794bb233ed98794baae0060e7238b82b87485dd126bd",
+    "Sources/MimoService/MimoSystemRuntime.swift": "f8420a8da8f606b907f2fbb4876312880e6dcee6862cc9bc1f2c4afb0b2bed27",
+    "Sources/MimoService/DaemonService.swift": "079cdfe942ae99a68ebc4c1268dad2c6a8fe0222ffc4d88dbfae27ec95c52371",
+    "Sources/MimoService/DaemonMain.swift": "f85aa9d85e58f333305e885f5d12eae899db649797817ca6241bf396486ec64b",
+    "Sources/MimoDaemon/pf-guard.pl": "f654bed55075a0b62e8834559bc33777c13a5d3929945c33b5e2fc5cac7e8540",
+    "Sources/MimoApp/MimoViews.swift": "2b28707f358462fc4eb96c00c95f5f9ccf57d10430b9b39676c1dd08085fc969",
+    "Sources/MimoApp/MimoBypassView.swift": "1028beb412602a960b9829e468b2515f93a0a0287c68f661f5a316b25219f9a1",
+    "Sources/MimoApp/PublicIPMonitor.swift": "4dbe051172ce170b8a9d0bc501e45c71a9bdafdf74695752f088877bbd5a074e"
+  },
+  "checks": {
+    "shared_tests": {
+      "passed": 225,
+      "failed": 0
+    },
+    "installed_release_and_resumption": [
+      "Candidate starts with the saved routing mode",
+      "Rule is verified before explicit cleanup",
+      "Stop works without a controller; TUN, DNS, engine, IPv6 ownership and service states are released",
+      "Another PF anchor and enable reference survive cleanup",
+      "Bypass edits while released do not start the engine or reclaim listeners",
+      "Occupied-port conflict keeps Direct networking released with an actionable error",
+      "Independent configure, boot and health checks honor released intent",
+      "Core and supervisor restart preserves released intent while another listener is active",
+      "UDP DNS conflict also leaves networking released",
+      "Explicit Start restores ordinary Direct and resumes managed services",
+      "Rule activation loads saved bypass edits while retaining MagicDNS rules",
+      "Selecting Rule explicitly starts a released engine and verifies before opening"
+    ],
+    "original_vm_installation_settings_and_intent_restored": true,
+    "unsigned_xcode_build": "passed",
+    "daemon_and_conflict_contracts": "passed",
+    "installer_cleanup_reinstall_contracts": "passed",
+    "mockup_interaction_checks": 97,
+    "service_regression_suite": {
+      "status": "passed",
+      "assertion_groups": [
+        "blocked WindowServer query cannot hold session detection; account changes and stop reject old display replies",
+        "supervisor command ordering, live-core identity, heartbeat isolation and saved-revision checks",
+        "session and wake events revoke stale approvals, preserve sleep hold, and bypass Direct",
+        "power fence closes before acknowledgement, rejects late approvals and requires fresh verification after wake",
+        "shared closure identity rejects delayed confirmation after cancellation without restarting PF or controller work",
+        "native enforcement progresses while the main actor is blocked; Stop fences late updates and interface leases expire",
+        "profile preparation joins fresh native firewall/provider publication and fences stopped or stale observations",
+        "firewall maintenance waits for contention and times out without bypassing the lock",
+        "emergency Direct recovery persists mode/revision before opening access and preserves stopped-core intent",
+        "stale supervisor replies, interrupted preparation/probes, credential mutation fencing and Direct failure isolation",
+        "machine credential account separation, public-state redaction, Direct recovery without secrets and token rollback",
+        "real XPC transport, initialization, authorization, secret isolation, per-user state, concurrent refresh, revision conflicts, restart persistence and bounded subprocesses"
+      ]
+    },
+    "native_app_suite": {
+      "status": "passed",
+      "assertion_groups": [
+        "duplicate process checks and reopen notifications are scoped to the current user",
+        "startup, status, activation, refresh and Test make no Keychain calls; the profile view reads the proxy info at most once; IPinfo waits without quota use",
+        "Load proxy info, Save and Remove share one 293 pt row, within the narrowest value column",
+        "menu-bar labels retain their error, country-change and allowlist presentation",
+        "native routing icons, exact blocked IP, country/proof matching and stable menu actions",
+        "delayed Settings load, retained drafts/secrets, revision conflicts and explicit reload",
+        "native dashboard scenarios and populated Settings render in both appearances",
+        "GUI connection lifecycle, bounded/coalesced probes, obsolete callbacks, communication labels, independent supervisor status, protocol mismatch and stop",
+        "blocked login-item service leaves GUI responsive; refresh coalesces; startup and explicit choices serialize and read back off-main",
+        "Refresh now calls the provider and updates the snapshot immediately inside the five-second gap",
+        "explicit Load/Save enables cached IPinfo use; Remove clears the cache without a request",
+        "mixed pools continue anonymous monitoring without reading the saved IPinfo token"
+      ]
+    },
+    "baseline_rule_active_after_restoration": true
+  },
+  "mockup": {
+    "url": "https://mimo-dashboard-design-jay.nativebadger32.chatgpt.site",
+    "commit": "1561e1aa7608da8e75512e91fe0e30a5edaf0701",
+    "publication": "succeeded; existing owner-only access retained"
+  },
+  "previews": [
+    "Previews/mimo-v2-released-light.png",
+    "Previews/mimo-v2-bypass-dark.png"
+  ],
+  "test_harness_notes": [
+    "A rapid launchd bootstrap initially failed while its previous registration was retiring; bounded restart retries and explicit restoration were added to the VM-only harness.",
+    "The protocol-6 harness reads baseline mode through the installed helper CLI so it can test an upgrade from protocol 5.",
+    "Installer fixtures now use mimo-gui and isolate legacy-cleanup discovery from the real VM installation.",
+    "The baseline installation requested fresh verification after restoration; its original Rule selection was re-applied before confirming recovery."
+  ],
+  "limits": [
+    "No new published or notarized app artifact.",
+    "No physical Mac or actual reboot test in this pass; --boot and core/supervisor restart were exercised.",
+    "No universal third-party VPN compatibility claim or real second VPN installed.",
+    "Bypass rules validated in models and the installed engine rules table; third-party destination connectivity was not used as a routing oracle.",
+    "Account-switch freeze and physical sleep/wake remain subject to earlier acceptance limits."
+  ]
+}

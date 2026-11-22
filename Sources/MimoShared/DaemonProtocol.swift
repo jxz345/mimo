@@ -34,7 +34,8 @@ public enum MimoService {
     public static let controlLabel = "com.mimo.core.control"
     public static let supervisorControlLabel = "com.mimo.supervisor.control"
     public static let installedAppIdentity = URL(fileURLWithPath: "/Library/Application Support/Mimo/app.cdhash")
-    public static let protocolVersion = 5
+    // Released/suspended service states require a matching 2.0 client.
+    public static let protocolVersion = 6
     public static let executable = "/Library/PrivilegedHelperTools/mimo-core"
     public static let plist = "/Library/LaunchDaemons/\(label).plist"
     public static let support = URL(fileURLWithPath: "/Library/Application Support/Mimo", isDirectory: true)
@@ -51,6 +52,8 @@ public struct MachineSettings: Codable, Equatable, Sendable {
     public var allowlist: AllowedIPList
     public var diagnostics: DiagnosticPreferences
     public var tailscaleProviderEnabled: Bool
+    public var bypassBlocks: [MimoBypassBlock]?
+    public var effectiveBypassBlocks: [MimoBypassBlock] { bypassBlocks ?? MimoBypassBlock.defaults }
 
     public init(preferences: MonitoringPreferences = MonitoringPreferences(), allowlist: AllowedIPList = AllowedIPList(),
                 diagnostics: DiagnosticPreferences = DiagnosticPreferences(), tailscaleProviderEnabled: Bool = false) {
@@ -66,8 +69,9 @@ public struct MachineSettings: Codable, Equatable, Sendable {
         MonitoringPreferences(provider: provider, providerPool: providerPool, refreshInterval: refreshInterval)
     }
 
-    public func affectsVerification(comparedTo previous: MachineSettings) -> Bool {
-        monitoring != previous.monitoring || allowlist != previous.allowlist
+    public func affectsVerification(comparedTo previous: MachineSettings, mode: ProxyMode = .rule) -> Bool {
+        monitoring != previous.monitoring || allowlist != previous.allowlist ||
+            (mode == .rule && effectiveBypassBlocks != previous.effectiveBypassBlocks)
     }
 
     public func validated() throws -> MachineSettings {
@@ -77,7 +81,9 @@ public struct MachineSettings: Codable, Equatable, Sendable {
               allowlist.addresses.allSatisfy({ IPAddressValidator.normalize($0) == $0 }) else {
             throw DaemonFailure.invalidRequest
         }
-        return self
+        var result = self
+        if let bypassBlocks { result.bypassBlocks = try MimoBypassBlock.validated(bypassBlocks) }
+        return result
     }
 }
 

@@ -60,10 +60,16 @@ final class MimoDNSConfiguration {
     }
 
     func remove() throws {
-        guard let store else { return }
+        // Also remove a persistent key left by an earlier process or build.
+        guard let store = store ?? SCDynamicStoreCreate(nil, "Mimo DNS cleanup" as CFString, nil, nil) else {
+            throw MimoRuntimeError.unavailable("Could not inspect the system DNS resolver.")
+        }
         let key = MimoRuntime.dnsStateKey as CFString
         if SCDynamicStoreCopyValue(store, key) != nil, !SCDynamicStoreRemoveValue(store, key) {
             throw MimoRuntimeError.unavailable("Could not restore the original DNS configuration.")
+        }
+        guard SCDynamicStoreCopyValue(store, key) == nil else {
+            throw MimoRuntimeError.unavailable("Mimo's DNS resolver is still installed.")
         }
         installed = false
         expected = nil

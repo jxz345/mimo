@@ -1,0 +1,64 @@
+{
+  "date": "2026-11-22",
+  "scope": "Unreleased 2.0 UI aligned with the 1.0 build 4 foundation; no app release or installed runtime qualification",
+  "baseline_commit": "d772840f4ffefc1ba9aec49b21ae8742dbdee016",
+  "source_sha256": {
+    "Sources/MimoApp/MimoViews.swift": "a685fe380f1169065da9bcc8b61aa9723f561f81559f6c35ef0f69d078393029",
+    "Design/mimo-dashboard-preview/dist/index.html": "6204f459dfc2194e519b14470814555265780df62961da4685a0c00d992bf0ae",
+    "Design/mimo-dashboard-preview/dist/app.js": "cdc09bd3683c8132a213e4bf651cdd9cbdadb31b30d24b0cae56c6abd60fc108",
+    "Design/mimo-dashboard-preview/dist/styles.css": "2d3f27508c79190e7e97de98020f600bb83b668c35b9224cd85cfcff9db94ffc",
+    "Design/mimo-dashboard-preview/scripts/check-preview.cjs": "5607ec988fc232a38b31e2f2b11ac127499fa50109924b695a9ac7e68f792a19"
+  },
+  "checks": {
+    "mockup_dom_checks": 104,
+    "native_app_assertion_groups": 12,
+    "native_app_compile": "passed",
+    "native_fixture_runtime": "mimo-vm",
+    "browser": "WKWebView in mimo-vm",
+    "browser_scenes": [
+      "dashboard-light",
+      "inactive-light",
+      "conflict-light",
+      "proxy-light",
+      "allowlist-light",
+      "monitoring-light",
+      "general-light",
+      "bypass-light",
+      "bypass-dark",
+      "general-dark",
+      "proxy-dark",
+      "narrow-dark"
+    ],
+    "service_row_heights_css_px": [
+      60,
+      60,
+      60,
+      60,
+      60,
+      60
+    ],
+    "health_columns_aligned": true,
+    "active_cleanup_description_lines": 1,
+    "horizontal_overflow": false,
+    "theme_and_inactive_state_survive_navigation": true
+  },
+  "previews": [
+    "Previews/mimo-v2-build4-native-light.png",
+    "Previews/mimo-v2-build4-web-light.png",
+    "Previews/mimo-v2-build4-proxy-dark.png",
+    "Previews/mimo-v2-build4-monitoring-light.png"
+  ],
+  "limits": [
+    "HTML approximates native AppKit controls and SF Symbols.",
+    "Browser interactions use fixture data and do not change networking or services.",
+    "Full all-daemon deactivation/reactivation still needs installed qualification; the previous engine-only runtime evidence does not qualify it.",
+    "GitHub app release remains version 1.0 build 4."
+  ],
+  "mockup_publication": {
+    "commit": "1ceaf744dd59aabbdf6b5173d67c09986076c9c8",
+    "status": "succeeded",
+    "url": "https://mimo-dashboard-design-jay.nativebadger32.chatgpt.site",
+    "delta_url": "http://delta.local:8347/",
+    "audience": "existing owner-private audience retained"
+  }
+}

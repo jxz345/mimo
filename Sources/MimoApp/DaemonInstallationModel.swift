@@ -25,11 +25,11 @@ final class DaemonInstallationModel: ObservableObject {
 
     }
 
-    func install() {
+    func install(activating: Bool = false) {
         guard !isInstalling else { return }
         // An already installed service is recovered through its fixed supervisor
         // operation. Never fall back to a password dialog during normal use.
-        if serviceInstalled || FileManager.default.fileExists(atPath: MimoService.executable) {
+        if !activating && !MimoDeactivation.isConfirmed() && (serviceInstalled || FileManager.default.fileExists(atPath: MimoService.executable)) {
             isInstalling = true
             hasError = false
             message = "Restoring the installed background service…"
@@ -95,7 +95,8 @@ final class DaemonInstallationModel: ObservableObject {
         message = "Complete macOS administrator authentication to install the background service."
         // The setup output is saved here: the outcome check reads it, and the runtime log points to it.
         let logURL = RuntimeLog.shared.directory.appendingPathComponent("daemon-setup-\(UUID().uuidString).log")
-        let appleScript = DaemonInstallation.appleScript(scriptPath: script.path, userName: NSUserName())
+        let operation: DaemonInstallation.Operation = activating || MimoDeactivation.isConfirmed() ? .activate : .install
+        let appleScript = DaemonInstallation.appleScript(scriptPath: script.path, userName: NSUserName(), operation: operation)
         RuntimeLog.shared.info("daemon_install_started", fields: ["log": logURL.path])
         Task {
             let result = await Task.detached(priority: .userInitiated) {
@@ -118,7 +119,8 @@ final class DaemonInstallationModel: ObservableObject {
             isInstalling = false
             switch outcome {
             case .succeeded:
-                message = "Background service installed. Complete shared monitoring setup below."
+                MimoAppDelegate.monitor.refreshInstallationState()
+                message = operation == .activate ? "Mimo activated. All background services enabled in Direct mode." : "Background service installed. Complete shared monitoring setup below."
                 RuntimeLog.shared.info("daemon_install_succeeded", fields: ["log": logURL.path])
             case .cancelled:
                 message = "Installation cancelled. Click Install Service to try again."
@@ -131,12 +133,43 @@ final class DaemonInstallationModel: ObservableObject {
         }
     }
 
+    func deactivate() {
+        guard !isInstalling, let script = Bundle.main.url(forResource: "daemon", withExtension: "sh") else { return }
+        isInstalling = true
+        hasError = false
+        message = "Removing Mimo services and restoring system networking…"
+        let logURL = RuntimeLog.shared.directory.appendingPathComponent("daemon-deactivate-\(UUID().uuidString).log")
+        let appleScript = DaemonInstallation.appleScript(scriptPath: script.path, userName: NSUserName(), operation: .deactivate)
+        RuntimeLog.shared.info("mimo_deactivation_started", fields: ["log": logURL.path])
+        Task {
+            let result = await Task.detached(priority: .userInitiated) {
+                Self.runInstaller(appleScript: appleScript, logURL: logURL, deactivating: true)
+            }.value
+            isInstalling = false
+            reload()
+            MimoAppDelegate.monitor.refreshInstallationState()
+            LoginItemController.shared.refresh()
+            switch result.outcome {
+            case .succeeded:
+                message = "Mimo is inactive. You can delete Mimo.app or activate it again."
+                RuntimeLog.shared.info("mimo_deactivation_succeeded", fields: ["log": logURL.path])
+            case .cancelled:
+                message = "Cleanup cancelled. Mimo has not confirmed removal."
+                RuntimeLog.shared.info("mimo_deactivation_cancelled", fields: ["log": logURL.path])
+            case .failed:
+                hasError = true
+                message = "Cleanup did not finish. Retry cleanup before deleting Mimo.app."
+                RuntimeLog.shared.error("mimo_deactivation_failed", fields: ["log": logURL.path])
+            }
+        }
+    }
+
     private struct Result: Sendable {
         let outcome: DaemonInstallation.Outcome
         let output: String
     }
 
-    nonisolated private static func runInstaller(appleScript: String, logURL: URL) -> Result {
+    nonisolated private static func runInstaller(appleScript: String, logURL: URL, deactivating: Bool = false) -> Result {
         do {
             guard FileManager.default.createFile(atPath: logURL.path, contents: nil,
                                                 attributes: [.posixPermissions: 0o600]) else {
@@ -152,6 +185,12 @@ final class DaemonInstallationModel: ObservableObject {
             process.standardError = log
             try process.run()
             process.waitUntilExit()
+            if deactivating && process.terminationStatus == 0 {
+                let removed = MimoDeactivation.isConfirmed() &&
+                    ![MimoService.label, MimoRuntime.supervisorLabel, MimoRuntime.engineLabel,
+                      "com.mimo.pf-boot", "com.mimo.infrastructure"].contains(where: jobLoaded)
+                return Result(outcome: removed ? .succeeded : .failed, output: "Cleanup verification")
+            }
             let monitorLoaded = process.terminationStatus == 0 && jobLoaded(MimoService.label)
             let responderLoaded = process.terminationStatus == 0 && jobLoaded(MimoRuntime.supervisorLabel)
             if process.terminationStatus == 0 && (!monitorLoaded || !responderLoaded) {

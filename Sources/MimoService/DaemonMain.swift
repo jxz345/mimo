@@ -18,7 +18,7 @@ enum DaemonMain {
             }
 #endif
             let runtime = MimoSystemRuntime()
-            if CommandLine.arguments.dropFirst() == ["--supervisor"] || CommandLine.arguments.dropFirst() == ["--engine"] {
+            if !runtime.networkReleaseRequested, CommandLine.arguments.dropFirst() == ["--supervisor"] || CommandLine.arguments.dropFirst() == ["--engine"] {
                 // Synchronize with the separate boot loader before any process
                 // can restore Direct or approve traffic in this boot.
                 try runtime.ensureIndependentBootGuard()
@@ -46,6 +46,14 @@ enum DaemonMain {
                 _ = try runtime.writePrivate(JSONEncoder().encode(flags), name: "services.json")
                 try runtime.writeBlockingProfile()
                 return
+            case ["--prepare-activation"]:
+                // Installer owns maintenance and has stopped every writer.
+                _ = try runtime.persistDirectRecovery(activateServices: true)
+                try runtime.saveServicePreferences(MimoServicePreferences())
+                return
+            case ["--network-release-requested"]:
+                print(runtime.networkReleaseRequested ? "released" : "managed")
+                return
             case ["--installation-mode"]:
                 print(try runtime.savedConfiguration().mode.rawValue)
                 return
@@ -71,6 +79,7 @@ enum DaemonMain {
                 try MimoIPv4Configuration.apply(restoring: true)
                 return
             case ["--engine"]:
+                guard !runtime.networkReleaseRequested else { return }
                 try runtime.closeStartupGate()
                 try runtime.checkInstallation()
                 guard let group = getgrnam(MimoRuntime.engineGroup), getegid() == group.pointee.gr_gid else {

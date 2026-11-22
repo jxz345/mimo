@@ -1,5 +1,14 @@
 # Mimo changelog
 
+## 2.0 (build 5) — 2026-11-22
+
+- Build version 2 on the version 1 build 4 UI: restore the top-toolbar mode picker, in-card route summary, existing service buttons, native Settings forms and footer. Add Bypass and Stop/Activate within that layout. Proxy and Bypass use distinct icons. Use “Stop the engine and release network controls.” on one line at normal width.
+- Add shared, editable Rule-only bypass blocks with exact/suffix domains, enable switches, Apply/Cancel drafts and revision conflict handling. Preserve existing defaults and managed Tailnet/LAN rules; Global ignores website bypass blocks.
+- Extend **Stop engine and use Direct** to full installer deactivation: remove all Mimo services/login items and restore network controls, retaining app/settings. Confirmed completion changes the same button to **Activate Mimo**, which restores all daemons in Direct and reuses installation conflict confirmation. Installed VM checks cover all three modes, app deletion, other-engine coexistence, explicit conflict consent and reboot. Reinstall preserves inactive state; activation failures restore inactive networking before returning an error.
+- Persist released intent through service restart and guard repair. Check competing engines and TCP/UDP listener conflicts before explicit startup; preserve released networking when a conflict is found. Use control protocol 6 so older clients receive an explicit compatibility error.
+- Document manual version 1 recovery and provide an inspection-first cleanup script that archives owned components, with confirmed removal and scoped network restoration.
+- Validate real HTTPS routing after bypass Apply/disable, unchanged Global routing and retained MagicDNS. Release validation is recorded in `Tests/ReleaseEvidence/mimo-build-5-v2.json`; earlier engine-only evidence remains separate.
+
 ## 1.0 (build 4) — 2026-11-22
 
 - Keep login-item status/registration calls off the GUI thread, cache their results and serialize/coalesce requests. Pause inactive-account GUI subscriptions and reconnect immediately on return; suppress inactive-window repositioning and deferred activation.

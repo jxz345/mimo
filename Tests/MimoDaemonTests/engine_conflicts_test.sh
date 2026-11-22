@@ -6,6 +6,7 @@ source "$REPO/Sources/MimoDaemon/daemon.sh"
 fixture=$(mktemp -d)
 trap '/bin/rm -rf "$fixture"' EXIT
 engine='/opt/Proxy App/mihomo'
+resource_conflict_pids() { :; }
 reset_fixture() {
     rm -f "$fixture/stopped" "$fixture/changed" "$fixture/actions" "$fixture/asked"
     installation_interactive=1
@@ -63,6 +64,15 @@ echo 'PASS: process replacement during confirmation invalidates consent'
     [ "$(cat "$fixture/actions")" = '/bin/kill -TERM 500001' ]
 )
 echo 'PASS: a standalone engine receives only a scoped TERM signal'
+(
+    reset_fixture
+    engine='/opt/Other Service/server'
+    resource_conflict_pids() { [ -e "$fixture/stopped" ] || echo 500001; }
+    engine_job_target() { return 0; }
+    check_engine_conflicts > /dev/null 2>&1
+    [ -f "$fixture/asked" ] && [ "$(cat "$fixture/actions")" = '/bin/kill -TERM 500001' ]
+)
+echo 'PASS: an occupied port uses the same explicit consent and identity checks'
 (
     reset_fixture
     engine_conflict_snapshot() { return 1; }

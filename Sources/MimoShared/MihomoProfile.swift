@@ -28,7 +28,8 @@ public enum MihomoProfile {
 
     public static func render(_ settings: ClashProxySettings, mode: ProxyMode, stage: Stage,
                               probePassword: String, controllerPath: String = MimoRuntime.controller.path,
-                              probePort: Int = MimoRuntime.probePort) throws -> String {
+                              probePort: Int = MimoRuntime.probePort,
+                              bypassBlocks: [MimoBypassBlock] = MimoBypassBlock.defaults) throws -> String {
         guard mode.requiresVerification, !settings.server.contains(":"), (1...65535).contains(probePort),
               !probePassword.isEmpty, probePassword.count <= 256,
               !probePassword.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) }),
@@ -54,7 +55,6 @@ public enum MihomoProfile {
         let end = profile.range(of: "    health-check:\n", range: start..<profile.endIndex)!.lowerBound
         profile.replaceSubrange(start..<end, with: "    type: file\n    path: ./proxy_providers/mimo-tailnet.yaml\n")
         let rulesStart = profile.range(of: "\nrules:")!.lowerBound
-        let originalRules = routingRules(in: profile)
         profile = String(profile[..<rulesStart])
         // Public DNS uses the proxy in both protected modes, even when Rule
         // intentionally sends a website directly. Keep the earlier MagicDNS
@@ -67,7 +67,8 @@ public enum MihomoProfile {
             "  proxy-server-nameserver:\n  - \"https://1.1.1.1/dns-query\"\n")
         // Global keeps inner-tailnet and native-process exceptions, but ordinary
         // visits to Tailscale's public websites must use the proxy like any website.
-        let activeRules = (mode == .rule ? originalRules : Array(originalRules.prefix(7)) + Array(originalRules.suffix(8)))
+        let activeRules = (ClashVergeProfile.nativeRules +
+            (mode == .rule ? try MimoBypassBlock.rules(bypassBlocks) : []) + ClashVergeProfile.localAndFinalRules)
             .filter { !$0.hasPrefix("IP-CIDR6,") }
         let ordinaryRules = stage == .active ? ["IP-CIDR6,::/0,REJECT,no-resolve"] + activeRules : ["MATCH,REJECT"]
         profile += "\nrules:\n" + ordinaryRules.map { "  - \($0)" }.joined(separator: "\n") + "\n"

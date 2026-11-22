@@ -7,12 +7,12 @@ fixture=$(mktemp -d)
 trap 'rm -rf "$fixture"' EXIT
 app="$fixture/root/Mimo.app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources" "$fixture/Applications/Mimo.app"
-cp /usr/bin/true "$app/Contents/MacOS/Mimo"
+cp /usr/bin/true "$app/Contents/MacOS/mimo-gui"
 cat > "$app/Contents/Info.plist" <<'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <plist version="1.0"><dict>
 <key>CFBundleIdentifier</key><string>test.mimo.reinstall</string>
-<key>CFBundleExecutable</key><string>Mimo</string>
+<key>CFBundleExecutable</key><string>mimo-gui</string>
 <key>CFBundleVersion</key><string>7</string>
 </dict></plist>
 EOF
@@ -26,7 +26,7 @@ EOF
 cat > "$app/Contents/Resources/diagnose-launch.sh" <<'EOF'
 #!/bin/bash
 echo launch >> "$TEST_ORDER"
-[ ! -e "$2/preserve" ] && [ -f "$2/Contents/MacOS/Mimo" ]
+[ ! -e "$2/preserve" ] && [ -f "$2/Contents/MacOS/mimo-gui" ]
 EOF
 codesign --force --sign - --timestamp=none "$app" > "$fixture/sign" 2>&1
 pkgbuild --root "$fixture/root" --identifier test.mimo.reinstall --version 1.0 \

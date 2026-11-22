@@ -32,7 +32,7 @@ EOF
 }
 process_alive() { [ "$1" = 12345 ]; }
 same_file() { [ "$1" = "$2" ]; }
-process_path() { printf '%s/Contents/MacOS/Mimo\n' "$app"; }
+process_path() { printf '%s/Contents/MacOS/mimo-gui\n' "$app"; }
 check() { heartbeat_matches "$record" "$app" 3 1.0 100 110; }
 reject() { if check; then echo "FAIL: $1"; exit 1; fi; }
 make_record; check
@@ -52,7 +52,7 @@ echo 'PASS: startup stalls, stale/malformed records, old builds, wrong paths, an
 # A first launch may be translocated even when the app lives in /Applications.
 translocated=/private/var/folders/test/T/AppTranslocation/test-id/d/Mimo.app
 make_record; plutil -replace bundle_path -string "$translocated" "$record"
-process_path() { printf '%s/Contents/MacOS/Mimo\n' "$translocated"; }
+process_path() { printf '%s/Contents/MacOS/mimo-gui\n' "$translocated"; }
 native_cdhash() { echo matching-code-hash; }
 bounded_command() { return 0; }
 check

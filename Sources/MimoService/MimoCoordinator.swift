@@ -105,10 +105,33 @@ final class MimoCoordinator {
         configurationChangesInFlight -= 1
     }
 
+    func adoptNetworkRelease(configuration: MimoConfiguration, revision: Int) {
+        self.configuration = configuration; self.revision = revision
+        networkGeneration &+= 1; transitionGeneration &+= 1
+        directObservation = nil
+        state.configuration = configuration
+        state.networkReleaseRequested = true
+        state.networkReleased = false
+        state.phase = .restoringDirect; state.effectiveMode = nil
+        state.verification = nil; state.blockingIP = nil
+        state.reason = "Stopping engine and restoring system networking…"
+        changed?()
+    }
+
+    func startReleasedEngine() async throws {
+        var message = MimoSupervisorRequest(.service)
+        message.service = .mihomo; message.operation = .start
+        let result = try await send(message)
+        guard result.networkReleaseRequested != true, result.phase == .active,
+              result.services.first(where: { $0.id == .mihomo })?.health == .running else {
+            throw MimoRuntimeError.unavailable(result.reason)
+        }
+    }
+
     func refreshSupervisorState() async {
         do {
             _ = try await send(MimoSupervisorRequest(.heartbeat))
-            if configuration.mode == .direct, !state.allowsTraffic, transitionsInFlight == 0 {
+            if configuration.mode == .direct, !state.allowsTraffic, state.networkReleaseRequested != true, transitionsInFlight == 0 {
                 await restoreDirect()
             }
         } catch { /* send publishes current failures; stale replies are ignored. */ }
@@ -303,12 +326,14 @@ final class MimoCoordinator {
     private static func callSupervisor(_ message: MimoSupervisorRequest, progress: @escaping Progress) async throws -> MimoRoutingState {
         var request = DaemonRequest(.supervisor)
         request.supervisor = message
-        let response = try await DaemonRPC.call(request, timeout: 20, serviceLabel: MimoRuntime.supervisorLabel,
+        let response = try await DaemonRPC.call(request, timeout: message.command == .service ? 75 : 20, serviceLabel: MimoRuntime.supervisorLabel,
+                                               returningFailures: true,
                                                progress: { response in
             guard let state = response.routing else { return }
             Task { @MainActor in progress(state) }
         })
-        guard let result = response.routing else { throw DaemonFailure.unavailable }
+        guard let result = response.routing else { throw response.failure ?? DaemonFailure.unavailable }
+        if let failure = response.failure, message.command != .service { throw failure }
         return result
     }
 

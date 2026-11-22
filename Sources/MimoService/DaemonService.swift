@@ -27,6 +27,7 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
     private var hasProxyPassword = false
     private var tailnetLifecycle: MimoTailnetLifecycle?
     private var nativeTailnetExpected: Bool?
+    private var networkReleaseRequested: Bool { routing != nil && MimoSystemRuntime().networkReleaseRequested }
 
     init(storage: FilePreferenceStorage, observeSystem: Bool = true,
          credentials: any CredentialBackend = SystemCredentials(),
@@ -46,6 +47,15 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
         if let data = storage.data(forKey: "service.routing") {
             routingConfiguration = try JSONDecoder().decode(MimoConfiguration.self, from: data).validated()
         } else { routingConfiguration = MimoConfiguration() }
+        if observeSystem, MimoSystemRuntime().networkReleaseRequested {
+            let previous = routingConfiguration
+            routingConfiguration.mode = .direct
+            routingConfiguration.mihomoEnabled = false
+            if previous != routingConfiguration {
+                try storage.update(["service.routing": try JSONEncoder().encode(routingConfiguration), "service.revision": revision + 1])
+                revision += 1
+            }
+        }
         let routing = observeSystem ? MimoCoordinator(configuration: routingConfiguration, allowlist: settings.allowlist, revision: revision) : nil
         self.routing = routing
         engine = MonitoringEngine(
@@ -83,7 +93,7 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
         }
         if initialized { _ = await engine.ipinfoCredentials.load() }
         else { engine.apply(settings.monitoring, requestRefresh: false) }
-        provider.setEnabled(settings.tailscaleProviderEnabled)
+        provider.setEnabled(settings.tailscaleProviderEnabled && !networkReleaseRequested)
         engine.start()
         if initialized { tailnetLifecycle?.start() }
         schedulePublication()
@@ -137,7 +147,7 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
             try storage.update(["service.settings": try JSONEncoder().encode(next), "service.revision": revision + 1])
             settings = next; revision += 1
             RuntimeLog.shared.info("mimo_tailnet_settings_committed", fields: ["enabled": String(enabled), "revision": String(revision)])
-            provider.setEnabled(enabled)
+            provider.setEnabled(enabled && !networkReleaseRequested)
             await routing?.update(configuration: routingConfiguration, allowlist: settings.allowlist, revision: revision,
                                   preservingAccess: true)
             if interruptsVerification {
@@ -219,7 +229,22 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
                 if !wasEnabled { RuntimeLog.shared.info("mimo_tailnet_started", fields: ["uid": String(uid)]) }
             case .networkChanged:
                 guard uid == 0 else { throw DaemonFailure.unauthorized }
-                if initialized || routingConfiguration.mode == .direct { engine.supervisorNetworkChanged() }
+                if networkReleaseRequested {
+                    guard !mutationInProgress else { throw DaemonFailure.conflict }
+                    engine.invalidatePendingLookup()
+                    var next = routingConfiguration
+                    next.mode = .direct; next.mihomoEnabled = false
+                    if next != routingConfiguration {
+                        try storage.update(["service.routing": try JSONEncoder().encode(next), "service.revision": revision + 1])
+                        routingConfiguration = next; revision += 1
+                    }
+                    provider.setEnabled(false)
+                    engine.allowlistChecksEnabled = false; engine.networkEventChecksEnabled = false
+                    routing?.adoptNetworkRelease(configuration: next, revision: revision)
+                } else {
+                    provider.setEnabled(settings.tailscaleProviderEnabled && !networkReleaseRequested)
+                    if initialized || routingConfiguration.mode == .direct { engine.supervisorNetworkChanged() }
+                }
             case .subscribe:
                 guard let session else { throw DaemonFailure.invalidRequest }
                 guard sessions.count < 128 || sessions[session.id] != nil else { throw DaemonFailure.unavailable }
@@ -252,7 +277,7 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
                     guard request.command == .initialize || initialized else { throw DaemonFailure.invalidRequest }
                     guard let next = request.migration?.settings ?? request.settings else { throw DaemonFailure.invalidRequest }
                     let validated = try next.validated()
-                    let affectsRouting = !initialized || validated.affectsVerification(comparedTo: settings) ||
+                    let affectsRouting = !initialized || validated.affectsVerification(comparedTo: settings, mode: routing?.state.configuration.mode ?? routingConfiguration.mode) ||
                         routing?.state.phase == .checking || routing?.state.phase == .validating
                     var updates: [String: Any?] = [
                         "service.settings": try JSONEncoder().encode(validated), "service.revision": revision + 1,
@@ -285,7 +310,7 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
                     engine.applyDiagnosticPreferences(settings.diagnostics)
                     RuntimeLog.shared.configure(settings.diagnostics)
                     if wasInitialized {
-                        provider.setEnabled(settings.tailscaleProviderEnabled)
+                        provider.setEnabled(settings.tailscaleProviderEnabled && !networkReleaseRequested)
                         if affectsRouting {
                             Task { [engine] in await engine.refresh(force: true, bypassMinimumInterval: true, trigger: .settingsChanged) }
                         }
@@ -347,6 +372,10 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
                 default: break
                 }
                 next = try next.validated()
+                if next.mode.requiresVerification, networkReleaseRequested {
+                    try await routing?.startReleasedEngine()
+                    next.mihomoEnabled = true
+                }
                 engine.invalidatePendingLookup()
                 await routing?.beginConfigurationChange(reason: "Shared proxy configuration is changing.",
                     selectingDirect: request.command == .configureRouting && next.mode == .direct)
@@ -406,9 +435,9 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
                            providerStatus: provider.status, providerError: provider.error, storageError: storage.lastError)
         result.routing = routing?.state ?? MimoRoutingState(configuration: routingConfiguration)
         result.routing?.hasProxyPassword = hasProxyPassword
-        result.routing?.tailnetExpected = nativeTailnetExpected
-        result.routing?.services.append(.init(id: .tailnetProvider, health: settings.tailscaleProviderEnabled ? (provider.boundPort != nil && provider.error == nil ? .running : .unavailable) : .stopped,
-                                             transport: "Loopback HTTP", address: "127.0.0.1", port: provider.boundPort, bindingConfirmed: settings.tailscaleProviderEnabled && provider.boundPort != nil && provider.error == nil,
+        result.routing?.tailnetExpected = networkReleaseRequested ? false : nativeTailnetExpected
+        result.routing?.services.append(.init(id: .tailnetProvider, health: networkReleaseRequested ? .suspended : settings.tailscaleProviderEnabled ? (provider.boundPort != nil && provider.error == nil ? .running : .unavailable) : .stopped,
+                                             transport: "Loopback HTTP", address: "127.0.0.1", port: provider.boundPort ?? 18766, bindingConfirmed: settings.tailscaleProviderEnabled && provider.boundPort != nil && provider.error == nil,
                                              checkedAt: provider.healthCheckedAt))
         return result
     }

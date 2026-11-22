@@ -127,8 +127,29 @@ public enum ClashVergeProfile {
 
     // MARK: Rendering
 
+    public static let nativeRules: [String] = [
+        "IP-CIDR,100.100.100.100/32,TS-DIRECT,no-resolve",
+        "IP-CIDR,100.64.0.0/10,TS-DIRECT,no-resolve",
+        "IP-CIDR6,fd7a:115c:a1e0::/48,TS-DIRECT,no-resolve",
+        "DOMAIN-SUFFIX,ts.net,TS-DIRECT",
+        "PROCESS-NAME,Tailscale,DIRECT",
+        "PROCESS-NAME,tailscaled,DIRECT",
+        "PROCESS-NAME,io.tailscale.ipn.macsys.network-extension,DIRECT"
+    ]
+
+    public static let localAndFinalRules: [String] = [
+        "IP-CIDR,127.0.0.0/8,DIRECT,no-resolve",
+        "IP-CIDR,10.0.0.0/8,DIRECT,no-resolve",
+        "IP-CIDR,172.16.0.0/12,DIRECT,no-resolve",
+        "IP-CIDR,192.168.0.0/16,DIRECT,no-resolve",
+        "IP-CIDR,169.254.0.0/16,DIRECT,no-resolve",
+        "IP-CIDR6,fc00::/7,DIRECT,no-resolve",
+        "IP-CIDR6,fe80::/10,DIRECT,no-resolve",
+        "MATCH,Proxy"
+    ]
+
     /// The full profile. Throws when the settings don't validate.
-    public static func render(_ settings: ClashProxySettings) throws -> String {
+    public static func render(_ settings: ClashProxySettings, bypassBlocks: [MimoBypassBlock] = MimoBypassBlock.defaults) throws -> String {
         let proxy = try settings.validated()
         var proxyLines = [
             "- name: \(quoted(proxy.name))",
@@ -228,50 +249,7 @@ public enum ClashVergeProfile {
           empty-fallback: REJECT
 
         rules:
-          - IP-CIDR,100.100.100.100/32,TS-DIRECT,no-resolve
-          - IP-CIDR,100.64.0.0/10,TS-DIRECT,no-resolve
-          - IP-CIDR6,fd7a:115c:a1e0::/48,TS-DIRECT,no-resolve
-          - DOMAIN-SUFFIX,ts.net,TS-DIRECT
-          - PROCESS-NAME,Tailscale,DIRECT
-          - PROCESS-NAME,tailscaled,DIRECT
-          - PROCESS-NAME,io.tailscale.ipn.macsys.network-extension,DIRECT
-          - DOMAIN-SUFFIX,tailscale.com,DIRECT
-          - DOMAIN-SUFFIX,tailscale.io,DIRECT
-
-          # YouTube + CDN
-          - DOMAIN-SUFFIX,youtube.com,DIRECT
-          - DOMAIN-SUFFIX,youtu.be,DIRECT
-          - DOMAIN-SUFFIX,youtube-nocookie.com,DIRECT
-          - DOMAIN-SUFFIX,googlevideo.com,DIRECT
-          - DOMAIN-SUFFIX,ytimg.com,DIRECT
-          - DOMAIN-SUFFIX,ggpht.com,DIRECT
-          - DOMAIN,youtubei.googleapis.com,DIRECT
-          # Homebrew (brew install pulls bottles from GitHub's registry)
-          - DOMAIN-SUFFIX,brew.sh,DIRECT
-          - DOMAIN,ghcr.io,DIRECT
-          - DOMAIN-SUFFIX,githubusercontent.com,DIRECT
-          - DOMAIN-SUFFIX,github.com,DIRECT
-          # Microsoft CDN
-          - DOMAIN-SUFFIX,microsoft.com,DIRECT
-          - DOMAIN-SUFFIX,msecnd.net,DIRECT
-          - DOMAIN-SUFFIX,azureedge.net,DIRECT
-          - DOMAIN-SUFFIX,azurefd.net,DIRECT
-          - DOMAIN-SUFFIX,msedge.net,DIRECT
-          - DOMAIN-SUFFIX,windowsupdate.com,DIRECT
-          - DOMAIN-SUFFIX,aka.ms,DIRECT
-          # Zoom
-          - DOMAIN-SUFFIX,zoom.us,DIRECT
-          - DOMAIN-SUFFIX,zoom.com,DIRECT
-          - DOMAIN-SUFFIX,zoomgov.com,DIRECT
-
-          - IP-CIDR,127.0.0.0/8,DIRECT,no-resolve
-          - IP-CIDR,10.0.0.0/8,DIRECT,no-resolve
-          - IP-CIDR,172.16.0.0/12,DIRECT,no-resolve
-          - IP-CIDR,192.168.0.0/16,DIRECT,no-resolve
-          - IP-CIDR,169.254.0.0/16,DIRECT,no-resolve
-          - IP-CIDR6,fc00::/7,DIRECT,no-resolve
-          - IP-CIDR6,fe80::/10,DIRECT,no-resolve
-          - MATCH,Proxy
+        \#((Self.nativeRules + (try MimoBypassBlock.rules(bypassBlocks)) + Self.localAndFinalRules).map { "  - \($0)" }.joined(separator: "\n"))
 
         """#
     }

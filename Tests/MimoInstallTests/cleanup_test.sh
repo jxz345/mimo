@@ -2,9 +2,17 @@
 # All process and privileged operations are fixtures; no installed app or service is touched.
 set -euo pipefail
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
-source "$REPO/Sources/MimoDiagnostics/cleanup-installation.sh"
 fixture=$(mktemp -d)
 trap 'rm -rf "$fixture"' EXIT
+# These fixtures exercise the legacy provider-cleanup branch. Redirect modern
+# installation discovery to empty fixture paths so an installed VM is not input
+# to the test, and its real root-owned manager can never be invoked.
+sed -e "s|/Library/PrivilegedHelperTools|$fixture/no-installed-helpers|g" \
+    -e "s|/Library/Application Support/Mimo/Service|$fixture/no-machine-service|g" \
+    -e "s|/Library/Application Support/ExitIPMonitor|$fixture/no-legacy-service|g" \
+    "$REPO/Sources/MimoDiagnostics/cleanup-installation.sh" > "$fixture/cleanup.sh"
+cp "$REPO/Sources/MimoDiagnostics/command-support.sh" "$fixture/command-support.sh"
+source "$fixture/cleanup.sh"
 
 scenario() (
     local name=$1 expected=$2 result=0
@@ -13,7 +21,7 @@ scenario() (
     owner=$(/usr/bin/id -u)
     printf '1 0 Mon Oct 19 17:59:50 2026 /sbin/launchd\n' > "$work/table"
     : > "$work/signals"; : > "$work/privileged"; echo 0 > "$work/reads"
-    add_process() { printf '%s %s Mon Oct 19 18:00:50 2026 %s/Contents/MacOS/Mimo\n' "$1" "$2" "$3" >> "$work/table"; }
+    add_process() { printf '%s %s Mon Oct 19 18:00:50 2026 %s/Contents/MacOS/mimo-gui\n' "$1" "$2" "$3" >> "$work/table"; }
     case "$name" in
         fresh|partial|installed|unload_failure|delete_failure|job_inspection_failure|worker_failure) ;;
         translocated|invalid_translocation) add_process 456 "$owner" /private/var/folders/test/T/AppTranslocation/abc/d/Mimo.app ;;
@@ -36,7 +44,7 @@ scenario() (
         reads=$(cat "$work/reads"); echo "$((reads + 1))" > "$work/reads"
         [ "$name" != inspection_failure ] || return 1
         if [ "$name" = reused_pid ] && [ "$reads" -gt 0 ]; then
-            sed 's|18:00:50 2026 .*Mimo.app/Contents/MacOS/Mimo|18:01:00 2026 /usr/bin/sleep|' "$work/table"
+            sed 's|18:00:50 2026 .*Mimo.app/Contents/MacOS/mimo-gui|18:01:00 2026 /usr/bin/sleep|' "$work/table"
         else
             cat "$work/table"
         fi
@@ -92,7 +100,7 @@ scenario() (
         hung) grep -q 'TERM 456' "$work/signals"; grep -q 'KILL 456' "$work/signals" ;;
         reused_pid|wrong_owner|invalid_translocation|inspection_failure) [ ! -s "$work/signals" ] ;;
         installed|partial)
-            [ "$(tail -1 "$work/privileged")" = '/bin/rm -f /etc/sudoers.d/mimo-tailscale-verge' ]
+            [ "$(tail -1 "$work/privileged")" = '/bin/rm -f /etc/sudoers.d/exitipmonitor-tailscale-verge' ]
             : > "$work/privileged"
             cleanup_main --app "$app" >> "$work/log" 2>&1
             [ ! -s "$work/privileged" ] ;;
@@ -152,14 +160,14 @@ int main(int argc, char **argv) {
     for (;;) pause();
 }
 EOF
-    binary="$fixture/live/Mimo.app/Contents/MacOS/Mimo"
+    binary="$fixture/live/Mimo.app/Contents/MacOS/mimo-gui"
     xcrun clang "$fixture/process.c" -o "$binary"
-    cp "$binary" "$fixture/unrelated/Mimo.app/Contents/MacOS/Mimo"
+    cp "$binary" "$fixture/unrelated/Mimo.app/Contents/MacOS/mimo-gui"
     pids=()
     trap 'for pid in "${pids[@]:-}"; do [ -z "$pid" ] || kill -KILL "$pid" 2>/dev/null || true; done; wait 2>/dev/null || true' EXIT
     "$binary" > "$fixture/normal-ready" & normal=$!; pids+=("$normal")
     "$binary" ignore-term > "$fixture/hung-ready" & hung=$!; pids+=("$hung")
-    "$fixture/unrelated/Mimo.app/Contents/MacOS/Mimo" > "$fixture/unrelated-ready" & unrelated=$!; pids+=("$unrelated")
+    "$fixture/unrelated/Mimo.app/Contents/MacOS/mimo-gui" > "$fixture/unrelated-ready" & unrelated=$!; pids+=("$unrelated")
     for file in normal-ready hung-ready unrelated-ready; do
         ticks=0
         until [ -s "$fixture/$file" ]; do

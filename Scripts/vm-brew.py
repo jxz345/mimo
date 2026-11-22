@@ -13,8 +13,8 @@ import sys
 
 
 def main():
-    if len(sys.argv) < 2 or sys.argv[1] not in {'install', 'uninstall', 'reinstall', 'test', 'list', 'info', 'fetch', 'trust', 'untrust'}:
-        sys.exit('Usage: vm-brew.py install|uninstall|reinstall|test|list|info|fetch [Homebrew arguments]')
+    if len(sys.argv) < 2 or sys.argv[1] not in {'install', 'uninstall', 'reinstall', 'upgrade', 'test', 'list', 'info', 'fetch', 'trust', 'untrust'}:
+        sys.exit('Usage: vm-brew.py install|uninstall|reinstall|upgrade|test|list|info|fetch [Homebrew arguments]')
     path = Path.home() / '.config/mimo-vm/test-admin.json'
     info = path.lstat()
     assert stat.S_ISREG(info.st_mode) and info.st_uid == os.getuid() and info.st_mode & 0o077 == 0

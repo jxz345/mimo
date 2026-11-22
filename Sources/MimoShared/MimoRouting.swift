@@ -61,9 +61,12 @@ public struct MimoServicePreferences: Codable, Equatable, Sendable {
     public var core = true
     public var engine = true
     public var profile = true
+    /// Persisted before teardown; absent in version 1 means managed networking.
+    public var releaseNetwork: Bool?
+    public var networkReleaseRequested: Bool { releaseNetwork == true }
     public init() {}
 }
-public enum MimoServiceHealth: String, Codable, Sendable { case running, stopped, restarting, unavailable, notInstalled }
+public enum MimoServiceHealth: String, Codable, Sendable { case running, stopped, suspended, restarting, unavailable, notInstalled }
 public struct MimoServiceStatus: Codable, Equatable, Sendable, Identifiable {
     public var id: MimoServiceID
     public var health: MimoServiceHealth
@@ -86,6 +89,7 @@ public struct MimoServiceStatus: Codable, Equatable, Sendable, Identifiable {
             guard let age = MimoHealthLabel.age(checkedAt: checkedAt, at: date) else { return "Unavailable" }
             return age <= 35 ? "Healthy" : "Stale"
         case .stopped: return "Stopped"
+        case .suspended: return "Suspended"
         case .restarting: return "Restarting"
         case .unavailable: return "Unavailable"
         case .notInstalled: return "Not installed"
@@ -114,9 +118,9 @@ public struct MimoIPObservation: Codable, Equatable, Sendable {
 }
 
 public enum MimoInfrastructureHealth: String, Codable, Sendable {
-    case healthy, failed, stale, unknown
+    case healthy, released, failed, stale, unknown
     public var title: String {
-        switch self { case .healthy: "Healthy"; case .failed: "Needs repair"; case .stale: "Check overdue"; case .unknown: "Unavailable" }
+        switch self { case .healthy: "Healthy"; case .released: "Released"; case .failed: "Needs repair"; case .stale: "Check overdue"; case .unknown: "Unavailable" }
     }
 }
 
@@ -147,6 +151,8 @@ public struct MimoVerification: Codable, Equatable, Sendable {
 }
 
 public struct MimoRoutingState: Codable, Equatable, Sendable {
+    public var networkReleaseRequested: Bool?
+    public var networkReleased: Bool?
     public var configuration: MimoConfiguration
     public var phase: MimoAccessPhase = .unavailable
     public var effectiveMode: ProxyMode?
@@ -183,6 +189,12 @@ public enum MimoServiceProgress {
         if current.phase == .unavailable { return true }
         if let barrier = pending.supervisorCheckedAt {
             guard let checkedAt = current.supervisorCheckedAt, checkedAt >= barrier else { return false }
+        }
+        if pending.networkReleaseRequested == true {
+            // A fresh post-operation report may also confirm that Stop was
+            // rejected before persisting intent. Do not leave stale progress up.
+            return current.networkReleased == true || current.phase == .restoringDirect ||
+                (current.networkReleaseRequested == false && (current.supervisorCheckedAt ?? .distantPast) > startedAt)
         }
         if current.configuration.mode != pending.configuration.mode { return configurationAdvanced }
         if [.blocked, .validating, .checking, .unavailable].contains(current.phase) { return true }
@@ -261,6 +273,19 @@ public struct MimoAccessPolicy: Sendable {
         state.phase = .active; state.effectiveMode = .direct
         state.reason = "IPv4 networking without a proxy. IPv6 remains disabled."
         state.verification = nil; state.blockingIP = nil; state.observedIP = nil
+    }
+
+    public mutating func releasing(configuration: MimoConfiguration, error: String? = nil) {
+        directRestored(configuration: configuration)
+        state.phase = error == nil ? .restoringDirect : .unavailable
+        state.effectiveMode = nil
+        state.reason = error.map { "Network cleanup incomplete: \($0) Retry Stop engine." }
+            ?? "Stopping engine and restoring system networking…"
+    }
+
+    public mutating func networkReleased(configuration: MimoConfiguration, reason: String = "Mimo routing is off. Other VPNs can manage networking.") {
+        directRestored(configuration: configuration)
+        state.reason = reason
     }
 
     public mutating func block(_ reason: String, confirmed: Bool = true) {

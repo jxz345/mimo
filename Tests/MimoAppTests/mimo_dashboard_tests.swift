@@ -28,7 +28,7 @@ enum MimoDashboardTests {
         ]
         for index in routing.services.indices { routing.services[index].checkedAt = now.addingTimeInterval(Double(-index - 2)) }
         for dark in [false, true] {
-            for scenario in ["direct", "rule", "background-audit", "global", "blocked", "checking", "empty", "tailnet-stopped", "long-text", "direct-checking", "direct-failed", "unqualified", "infrastructure-failed", "infrastructure-stale", "services-stale", "services-unknown"] {
+            for scenario in ["released", "releasing", "release-failed", "direct", "rule", "background-audit", "global", "blocked", "checking", "empty", "tailnet-stopped", "long-text", "direct-checking", "direct-failed", "unqualified", "infrastructure-failed", "infrastructure-stale", "services-stale", "services-unknown"] {
                 var value = routing
                 value.configuration.mode = scenario.hasPrefix("direct") ? .direct : scenario == "global" ? .global : .rule
                 value.phase = .active; value.effectiveMode = value.configuration.mode
@@ -39,6 +39,15 @@ enum MimoDashboardTests {
                     value.effectiveMode = nil
                     value.reason = scenario == "empty" ? "The allowed exit IP list is empty." : "Exit IP 198.51.100.77 is not on the allowed list."
                     if scenario != "empty" { value.blockingIP = .init(address: "198.51.100.77", checkedAt: now) }
+                }
+                if ["released", "releasing", "release-failed"].contains(scenario) {
+                    value.configuration.mode = .direct; value.networkReleaseRequested = true
+                    value.networkReleased = scenario == "released"
+                    value.phase = scenario == "released" ? .active : scenario == "releasing" ? .restoringDirect : .unavailable
+                    value.effectiveMode = scenario == "released" ? .direct : nil
+                    value.reason = scenario == "released" ? "Mimo routing is off. Other VPNs can manage networking." : scenario == "releasing" ? "Stopping engine and restoring system networking…" : "Network cleanup incomplete: DNS cleanup failed. Retry Stop engine."
+                    value.services[1].health = .stopped; value.services[2].health = .suspended; value.services[3].health = .suspended
+                    value.infrastructure = .init(pf: .released, launchd: .healthy, checkedAt: now)
                 }
                 if scenario == "tailnet-stopped" { value.services[3].health = .stopped; value.services[3].bindingConfirmed = false }
                 if scenario == "infrastructure-failed" {

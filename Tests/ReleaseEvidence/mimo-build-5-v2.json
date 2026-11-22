@@ -1,0 +1,117 @@
+{
+  "date": "2026-11-22",
+  "release": {
+    "version": "2.0",
+    "build": 5,
+    "tag": "v2.0",
+    "baseline": "1.0 build 4",
+    "baseline_commit": "d772840f4ffefc1ba9aec49b21ae8742dbdee016"
+  },
+  "scope": "Final packaged application; installed acceptance in mimo-vm. No runtime or networking tests on Delta.",
+  "artifacts_sha256": {
+    "Mimo-2.0.pkg": "95e2bc0c3f44dccb5f3b1b4d920547c6b6bdb401fd6b51324d8a9ec266114b91",
+    "Mimo-2.0.zip": "f54c25acecf68e6b6201f5ff13c367db17a9943b121e4bcc3e6f4034c36c5a3b"
+  },
+  "packaged_executables_sha256": {
+    "mimo-core": "41d798622ac5db6e4cf0fed8f57c27d0b7d04dd8045f948b2b8fd9e06aa7575b",
+    "mimo-gui": "bd6699afb86694d3c8f7313f7c8e80bbd73c65fb05017cd7d3e4db9e9ee8dd3e"
+  },
+  "source_sha256": {
+    "Sources/MimoDaemon/daemon.sh": "cff26b9ea3140957240109f4abc1a28e8f558c6996f5ed89abb90d53ab902ba2",
+    "Sources/MimoDaemon/pf-guard.pl": "f654bed55075a0b62e8834559bc33777c13a5d3929945c33b5e2fc5cac7e8540",
+    "Sources/MimoApp/MimoViews.swift": "a685fe380f1169065da9bcc8b61aa9723f561f81559f6c35ef0f69d078393029",
+    "Sources/MimoApp/MimoDeactivation.swift": "f52cac18d73bdf24158e7ca607b935b103c9b42b436230a85cd7b893f5533ec2",
+    "Sources/MimoApp/DaemonInstallationModel.swift": "ae8d38f24f2e9cb897fcc176b4db580e1c5b1b51b96ddcd9ecc5c07042db808d",
+    "Sources/MimoApp/MimoBypassView.swift": "1028beb412602a960b9829e468b2515f93a0a0287c68f661f5a316b25219f9a1",
+    "Sources/MimoApp/MimoBypassDraft.swift": "50c0477414de60fc18f9ca9a40fe5d8fa78abbca74b17c8eba07d45ff92ee9a4",
+    "Sources/MimoShared/MimoBypass.swift": "00a03a8ee1fa5608da494dfebe42511390487d64bacdc6d2fee5a2a70215694b",
+    "Sources/MimoShared/MimoRouting.swift": "1f7296d9dec4daf20a85fe6f858d752f68a2002380e029ad6b1b1bed3e84249b",
+    "Sources/MimoService/MimoSupervisor.swift": "2a876dcd5990150c1042794bb233ed98794baae0060e7238b82b87485dd126bd",
+    "Sources/MimoService/MimoSystemRuntime.swift": "dbfb277430953b8fe42f9c164896a0751b1854367a10f0e37a6d2773e431205c",
+    "Tests/MihomoRuntimeTests/release_v2_test.py": "dce52a50a42b464f2482cfe44fc960464b6dc4ce67a7229491783e392c803456",
+    "Tests/MihomoRuntimeTests/release_controls.swift": "627c00d4b000895fcf6740ab628ed65e83faaae57d1ccd44544b1996cd246dd9"
+  },
+  "checks": {
+    "shared_tests": {
+      "passed": 225,
+      "failed": 0
+    },
+    "service_suite": {
+      "status": "passed",
+      "assertion_groups": [
+        "blocked WindowServer query cannot hold session detection; account changes and stop reject old display replies",
+        "supervisor command ordering, live-core identity, heartbeat isolation and saved-revision checks",
+        "session and wake events revoke stale approvals, preserve sleep hold, and bypass Direct",
+        "power fence closes before acknowledgement, rejects late approvals and requires fresh verification after wake",
+        "shared closure identity rejects delayed confirmation after cancellation without restarting PF or controller work",
+        "native enforcement progresses while the main actor is blocked; Stop fences late updates and interface leases expire",
+        "profile preparation joins fresh native firewall/provider publication and fences stopped or stale observations",
+        "firewall maintenance waits for contention and times out without bypassing the lock",
+        "emergency Direct recovery persists mode/revision before opening access and preserves stopped-core intent",
+        "stale supervisor replies, interrupted preparation/probes, credential mutation fencing and Direct failure isolation",
+        "machine credential account separation, public-state redaction, Direct recovery without secrets and token rollback",
+        "real XPC transport, initialization, authorization, secret isolation, per-user state, concurrent refresh, revision conflicts, restart persistence and bounded subprocesses"
+      ]
+    },
+    "native_app_suite": {
+      "status": "passed",
+      "assertion_groups": [
+        "duplicate process checks and reopen notifications are scoped to the current user",
+        "startup, status, activation, refresh and Test make no Keychain calls; the profile view reads the proxy info at most once; IPinfo waits without quota use",
+        "Load proxy info, Save and Remove share one 293 pt row, within the narrowest value column",
+        "menu-bar labels retain their error, country-change and allowlist presentation",
+        "native routing icons, exact blocked IP, country/proof matching and stable menu actions",
+        "delayed Settings load, retained drafts/secrets, revision conflicts and explicit reload",
+        "native dashboard scenarios and populated Settings render in both appearances",
+        "GUI connection lifecycle, bounded/coalesced probes, obsolete callbacks, communication labels, independent supervisor status, protocol mismatch and stop",
+        "blocked login-item service leaves GUI responsive; refresh coalesces; startup and explicit choices serialize and read back off-main",
+        "Refresh now calls the provider and updates the snapshot immediately inside the five-second gap",
+        "explicit Load/Save enables cached IPinfo use; Remove clears the cache without a request",
+        "mixed pools continue anonymous monitoring without reading the saved IPinfo token"
+      ]
+    },
+    "daemon_contracts": "passed",
+    "installer_contracts": "passed",
+    "cask_and_authoritative_cleanup_contracts": "passed",
+    "release_build": "passed; arm64; ad-hoc deep signature; ZIP/package metadata and SHA256 checks",
+    "installed_package_acceptance": [
+      "Version 2.0 build 5 app, installed helper and sealed signature match",
+      "Full cleanup from Rule without controller removes all five jobs and releases networking; foreign PF survives",
+      "App can be removed after Stop while native HTTPS still works",
+      "Early and late activation failures restore full inactive networking and retain recovery settings",
+      "Reinstall preserves full inactive state without taking over the other engine",
+      "Another real mihomo serves HTTPS after cleanup; declining takeover preserves it",
+      "Confirmed takeover stops only the fixture engine and activates all Mimo services in Direct",
+      "Full cleanup and activation succeed from global",
+      "Full cleanup and activation succeed from direct",
+      "Applying an exact bypass reloads Rule and real TLS/HTTP changes from proxy to DIRECT",
+      "Disabling the block returns new real connections to the proxy",
+      "Global save leaves live rules and proxy routing unchanged; next Rule uses saved suffix bypass",
+      "Native MagicDNS still resolves after bypass updates and mode changes"
+    ],
+    "actual_vm_reboot": [
+      "Actual VM reboot preserves full inactivity and releases all listeners/network controls",
+      "Ordinary-user HTTPS works after reboot; explicit activation restores Direct services"
+    ],
+    "baseline_app_settings_services_and_networking_restored": true,
+    "ui_evidence": "Tests/ReleaseEvidence/mimo-v2-build4-ui.json",
+    "mockup_dom_checks": 104
+  },
+  "method": [
+    "Install the exact Mimo-2.0.pkg over the saved build 4 installation; compare installed helper with the sealed app.",
+    "Remove the controller before Rule cleanup; preserve an unrelated PF anchor and enable reference; verify all five jobs, owned PF/DNS/TUN, helper/manager and private IPv6 ownership are removed; bind TCP/UDP listeners after cleanup.",
+    "Temporarily remove Mimo.app after cleanup and verify native HTTPS continues.",
+    "Inject failure immediately after maintenance and runtime preparation in the bundled installer; verify full inactive rollback, retained settings and native HTTPS even with saved Rule mode.",
+    "Run another copy of the pinned mihomo after cleanup and serve real HTTPS through its SOCKS listener; exercise the actual terminal Cancel and Stop-and-Continue paths.",
+    "Use real SOCKS TCP, certificate-verified TLS and HTTP responses; inspect those same live connections in the engine to distinguish proxy, exact-domain DIRECT and suffix DIRECT routing.",
+    "Query an online native Tailnet peer and require its actual Tailnet IPv4 address after the bypass and mode checks.",
+    "Install the final package again, fully deactivate, reboot the VM, verify ports and native HTTPS, then explicitly reactivate Direct before restoring the baseline."
+  ],
+  "limits": [
+    "This release is ad-hoc signed, not Developer ID signed or notarized.",
+    "VM acceptance does not reproduce the physical fast-user-switch freeze or qualify physical sleep/wake.",
+    "Coexistence is verified with another real mihomo; arbitrary third-party VPNs and their installers are not universally qualified.",
+    "Installed takeover acceptance uses the real terminal confirmation; native GUI rendering and lifecycle behavior have separate fixture/regression coverage.",
+    "Historical engine-only development evidence is not used as proof of full all-daemon deactivation."
+  ]
+}

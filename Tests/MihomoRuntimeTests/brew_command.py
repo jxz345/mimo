@@ -14,7 +14,7 @@ def main():
     assert subprocess.check_output(['/usr/sbin/sysctl', '-n', 'hw.model']).startswith(b'VirtualMac')
     value = json.load(sys.stdin)
     arguments = value['arguments']
-    assert arguments and arguments[0] in {'install', 'uninstall', 'reinstall', 'test', 'list', 'info', 'fetch', 'trust', 'untrust'}
+    assert arguments and arguments[0] in {'install', 'uninstall', 'reinstall', 'upgrade', 'test', 'list', 'info', 'fetch', 'trust', 'untrust'}
     assert all(isinstance(x, str) and '\x00' not in x for x in arguments)
     original_umask = os.umask(0o077)
     with tempfile.TemporaryDirectory(prefix='mimo-brew-auth-') as temporary:

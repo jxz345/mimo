@@ -41,7 +41,7 @@ public struct MimoStatusPresentation: Equatable, Sendable {
             kind = .blocked
         case .active:
             if !routing.allowsTraffic { kind = .unavailable }
-            else if tailnetFailed { kind = .tailnetWarning }
+            else if tailnetFailed && routing.networkReleaseRequested != true { kind = .tailnetWarning }
             else if routing.effectiveMode == .direct {
                 switch monitoringStatus {
                 case .refreshing: kind = .checking
@@ -59,10 +59,10 @@ public struct MimoStatusPresentation: Equatable, Sendable {
         countryChanged = (kind == .direct || kind == .verified || kind == .tailnetWarning) && country != nil
             && preferences.highlightCountryChanges && (snapshot?.isCountryChangeHighlighted(at: date) ?? false)
         switch kind {
-        case .direct: title = "Direct · No proxy"
+        case .direct: title = routing.networkReleased == true ? "Direct · Engine stopped" : "Direct · No proxy"
         case .directWarning: title = "Direct · IP check unavailable"
         case .checking:
-            title = isRestoringDirect ? "Switching to Direct" : isClosing ? "\(routing.configuration.mode.title) · Closing traffic" : trafficIsBlocked
+            title = isRestoringDirect ? (routing.networkReleaseRequested == true ? "Restoring networking" : "Switching to Direct") : isClosing ? "\(routing.configuration.mode.title) · Closing traffic" : trafficIsBlocked
                 ? "\(routing.configuration.mode.title) · Blocked · \(isValidating ? "Validating profile" : isCheckingReadiness ? "Checking readiness" : "Checking exit IP")"
                 : "\(routing.configuration.mode.title) · Checking exit IP"
         case .blocked: title = "\(routing.configuration.mode.title) · Internet blocked"

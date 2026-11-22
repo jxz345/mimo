@@ -37,6 +37,18 @@ enum MimoDraftTests {
             _ = try draft.validatedProxy()
             preconditionFailure("IPv6 proxy input must be rejected")
         } catch ClashProxySettings.ValidationError.invalidServer { }
+        var bypass = MimoBypassDraft()
+        bypass.receive(state)
+        bypass.blocks[0].name = "Unfinished bypass"
+        state.revision += 1
+        bypass.receive(state)
+        precondition(bypass.conflicts(with: state) && bypass.blocks[0].name == "Unfinished bypass")
+        bypass.receive(state, discard: true)
+        precondition(!bypass.isDirty && !bypass.conflicts(with: state))
+        state.revision += 1; state.settings.bypassBlocks = []
+        bypass.receive(state)
+        precondition(bypass.blocks.isEmpty && bypass.revision == state.revision)
+        precondition(MimoSettingsSection.proxy.symbol != MimoSettingsSection.bypass.symbol)
         print("PASS: delayed Settings load, retained drafts/secrets, revision conflicts and explicit reload")
     }
 }

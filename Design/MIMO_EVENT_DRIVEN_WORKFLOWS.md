@@ -1,6 +1,6 @@
 # Mimo event-driven workflows
 
-Updated 2026-11-21 for **1.0 (build 3)**. This implementation reference includes scoped MagicDNS access, native resolver search domains and uniform monitoring ages. The integrated firewall candidate passed on the affected physical Mac; the permanent policy is packaged and installed in mimo-vm with fresh-query, revocation and recovery checks. See [build 3 evidence](../Tests/ReleaseEvidence/mimo-build-3-magicdns.json) for scope and remaining limits. The [DNS comparison](../Scripts/diagnose-magicdns.pl) and [service snapshot](../Scripts/diagnose-mimo-services.sh) remain read-only diagnostics.
+Updated 2026-11-22 for the **2.0 build 5 release**, on top of published build 4. Engine release/coexistence and editable Rule bypass workflows are described below. The following MagicDNS history remains scoped to build 3. This implementation reference includes scoped MagicDNS access, native resolver search domains and uniform monitoring ages. The integrated firewall candidate passed on the affected physical Mac; the permanent policy is packaged and installed in mimo-vm with fresh-query, revocation and recovery checks. See [build 3 evidence](../Tests/ReleaseEvidence/mimo-build-3-magicdns.json) for scope and remaining limits. The [DNS comparison](../Scripts/diagnose-magicdns.pl) and [service snapshot](../Scripts/diagnose-mimo-services.sh) remain read-only diagnostics.
 
 The [design plan](../MIMO_PLAN.md) records design decisions and earlier sequences. For current event handling, use this document and the linked source. [Failure scenarios](MIMO_FIREWALL_AND_FAILURE_SCENARIOS.md) describe the broader protection limits.
 
@@ -13,6 +13,7 @@ The [design plan](../MIMO_PLAN.md) records design decisions and earlier sequence
 - [Network changes and event coalescing](#network-changes-and-event-coalescing)
 - [Native Tailnet and provider changes](#native-tailnet-and-provider-changes)
 - [Sleep, wake and user sessions](#sleep-wake-and-user-sessions)
+- [Engine release and resumption](#engine-release-and-resumption)
 - [User commands and shared settings](#user-commands-and-shared-settings)
 - [Lookup scheduling and failures](#lookup-scheduling-and-failures)
 - [Runtime faults and background audits](#runtime-faults-and-background-audits)
@@ -32,7 +33,7 @@ The [design plan](../MIMO_PLAN.md) records design decisions and earlier sequence
 | Independent boot/infrastructure jobs | Saved PF installation and periodic PF/launchd repair | Exit-IP approval |
 | GUI and widgets | Displaying shared state and issuing authorized commands | Traffic enforcement or authoritative cached approval |
 
-**Protected** below means Rule or Global. Direct restores unproxied IPv4 without allowlist approval; IPv6 remains denied in every mode. A previously displayed IP is not a new approval. A successful IP lookup alone is not proof that the traffic gate opened.
+**Protected** below means Rule or Global. Direct restores unproxied IPv4 without allowlist approval; IPv6 remains denied during managed operation, including ordinary Direct. Explicit engine release restores owned IPv6 flags and relinquishes networking; it is a separate persisted intent, not merely a mode selection. A previously displayed IP is not a new approval. A successful IP lookup alone is not proof that the traffic gate opened.
 
 | Routing phase | Meaning |
 | --- | --- |
@@ -54,7 +55,10 @@ This inventory includes OS callbacks, polled state transitions, user commands an
 | --- | --- | --- | --- |
 | Boot, supervisor or core startup | Startup / saved configuration | Guard, respect service intent, fresh verification before release | Restore Direct; startup lookup observes IP |
 | Select Rule/Global, including switching between them | Shared routing transaction → verification | Close and verify current saved configuration | Leaving Direct arms a protected cycle |
-| Select Direct | Shared routing transaction → Direct restore | Cancel obsolete approval and restore Direct after persistence | Remain Direct |
+| Select Direct | Shared routing transaction → Direct restore | Cancel obsolete approval and restore Direct after persistence; retain engine | Remain Direct; do not restart an explicitly released engine |
+| Stop engine and use Direct | Privileged installer deactivation | Full daemon/login-item/network cleanup; retain app/settings; completion requires verified receipt and job absence | Same full cleanup |
+| Activate Mimo after deactivation | Privileged installer activation | Restore all services in Direct; later Rule/Global follows normal verification | Confirm identified conflicts using installation prompt, then restore services |
+| Apply bypass blocks | Core revision-checked settings transaction | Rule re-verifies; Global saves without changing routing | Save only, including released mode |
 | Save/remove proxy; change allowlist/provider settings or lookup credential | Settings transaction | Invalidate and verify | Refresh observation without allowlist enforcement |
 | Refresh now, Retry verification, provider Test | Monitor refresh scheduler | Run the protected verification workflow if a lookup is admitted | Observe IP without closing |
 | Periodic interval, quota/cooldown retry, queued refresh | Monitor scheduler | Same protected lookup path; no special periodic bypass of PF preparation | Observe IP |
@@ -69,7 +73,7 @@ This inventory includes OS callbacks, polled state transitions, user commands an
 | Lock/unlock, login/logout, console-user switch, display sleep/wake | Session sampler | Revoke and verify; unavailable observation is also relevant | No event-driven lookup |
 | Core heartbeat loss, engine death, unexpected gate state | Supervisor watchdog | Close; recover through fresh verification | Direct recovery remains available |
 | Missing resolver, failed readiness/native/PF audit or audit timeout | Supervisor audit/recovery | Close, invalidate reusable baseline, recover and verify | Do not let a delayed protected fault close a newer Direct selection |
-| Core/mihomo Start/Stop/Restart; profile Reload | Supervisor service workflow | Confirm closure before mutation; Start/Restart/Reload requests verification | Preserve Direct; no proxy approval needed |
+| Core Start/Stop/Restart; managed engine Start/Restart; profile Reload | Supervisor service workflow | Confirm closure before mutation; Start/Restart/Reload requests verification | Preserve Direct; no proxy approval needed |
 | PF/launchd damage or service recovery | Independent guard + supervisor repair | Repair closed, respect Stop flags, fresh verification | Maintain infrastructure and restore saved Direct when permitted |
 | GUI launch/reopen/focus, screen/session UI notification, GUI quit | Client subscription and presentation | Read/display state; no lookup solely because the dashboard opened | Same |
 | Country-only metadata change or highlight expiry | Snapshot/presentation update | No extra lookup or gate cycle | Same |
@@ -77,6 +81,8 @@ This inventory includes OS callbacks, polled state transitions, user commands an
 | Install/upgrade/repair/uninstall | Installer/cleanup | Maintenance guard and rollback/restoration workflow | Persisted mode and settings handled by installer |
 
 ## Startup, shutdown and recovery
+
+The following managed-start sequence is skipped for persisted `releaseNetwork: true`. The entry point does not close the startup guard; the engine wrapper exits, the core persists Direct/engine-disabled while retaining its settings revision ownership, and the supervisor resumes release cleanup. The independent boot/configure paths remove only Mimo’s boot block, and the health checker reports PF Released without enabling or installing PF. Job repair may restart intended core/supervisor jobs but never the stopped engine. See [engine release](#engine-release-and-resumption).
 
 1. Independent boot protection loads the saved blocking PF policy. Core/supervisor entry closes the startup guard before slower setup. Traffic before the independent guard actually loads is outside the demonstrated guarantee.
 2. Supervisor starts the power guard, checks installation, initializes native transport to a constrained state, loads saved routing and service flags, and honors maintenance mode. It starts/stops the engine and core according to persisted intent.
@@ -216,15 +222,52 @@ The same callbacks do not close Direct or schedule ordinary Direct IP checks. So
 
 Sources: [power guard](../Sources/MimoService/MimoPowerGuard.swift), [session observer](../Sources/MimoService/MimoSessionObserver.swift), [session comparison](../Sources/MimoShared/MimoSessionSnapshot.swift).
 
+## Dashboard deactivation and activation
+
+The 2.0 UI retains build 4's toolbar, Settings structure, service rows and footer. The new Stop/Activate action replaces the connection card's old uninstall-only guidance. The copy is “Stop the engine and release network controls.”
+
+`DaemonInstallationModel.deactivate()` invokes bundled `daemon.sh deactivate` with administrator authentication. The installer keeps this GUI open while removing login items for all accounts, unloading Mimo's jobs and restoring owned network settings through its uninstall recovery path. It writes `/Library/Application Support/Mimo/deactivated` only after successful cleanup. `MimoDeactivation.isConfirmed()` checks the root-owned receipt and helper/plist absence; the installer model also confirms all five jobs are absent. The monitor cancels obsolete RPC work and reports inactive, not a stale or healthy daemon. PF is Released; launchd and services are Removed. Mode and service buttons cannot reactivate piecemeal.
+
+Activate uses `daemon.sh activate`, bypasses the ordinary installed-service repair shortcut, performs the existing conflict inventory and **Cancel / Stop and Continue** confirmation, prepares Direct with service intent enabled, and installs all daemons. The inactive receipt is removed only on successful completion. Native Tailscale is not an installation conflict solely for having a tunnel. A failed or cancelled operation remains visible and cannot fabricate completion.
+
+Ordinary install/reinstall checks a confirmed inactive receipt before claiming resources and preserves inactivity. Only explicit activation proceeds. Activation rollback releases its temporary gate and restores owned networking before removing recovery files, even when the retained pre-deactivation mode was Rule or Global.
+
+Installed package checks cover full cleanup from every mode, missing-controller recovery, safe app removal, a second real engine, cancelled/confirmed takeover, inactive reinstall, early/late activation failures and a real inactive VM reboot. See [build 5 evidence](../Tests/ReleaseEvidence/mimo-build-5-v2.json) and [installed test](../Tests/MihomoRuntimeTests/release_v2_test.py). The older evidence below covers the internal engine-only path.
+
+Sources: [installer model](../Sources/MimoApp/DaemonInstallationModel.swift), [receipt](../Sources/MimoApp/MimoDeactivation.swift), [installer](../Sources/MimoDaemon/daemon.sh), [GUI state](../Sources/MimoApp/PublicIPMonitor.swift).
+
+## Internal engine-only release and resumption
+
+This internal workflow remains for service commands/recovery. The dashboard now uses full installer deactivation above; its earlier engine-only completion is not equivalent to Mimo inactive.
+
+The internal engine-release command uses the existing supervisor service queue; selecting ordinary Direct does not stop the engine. `services.json` stores `releaseNetwork: true` together with `engine: false`. Old files without this optional field keep their existing managed behavior. This intent prevents startup, repair and observers from reclaiming networking; it does not itself prove successful cleanup.
+
+1. Persist release intent before mutation. Cancel prior verification generations/readiness, enter the Direct power fence, stop/join the native writer and clear reusable profile state.
+2. Publish restoring progress. Notify core to cancel obsolete lookups, persist Direct/engine-disabled with its own revision, and suspend the diagnostic provider. When core is stopped, use the existing locked Direct-recovery writer. If core cannot acknowledge, attempt runtime cleanup anyway and retain an explicit error.
+3. Disable and unload only Mimo’s engine job; wait for its recorded PID to exit. Remove the owned resolver even when this supervisor did not create it. This path works without a controller socket or profile reload.
+4. Remove the marked Mimo boot policy, clear only Mimo’s parent PF anchor and release only recorded live PF enable references. Restore journaled IPv6 enabled flags only where Mimo’s disabled value still remains; preserve a newer enabled value from another owner. Do not disable PF globally or flush unrelated state.
+5. Confirm engine/job absence, owned TUN absence, no remaining owned engine process, no core TCP provider listener, empty Mimo PF policy and resolver removal. Remove the root-owned controller socket. Only successful completion writes the released marker and emits `mimo_network_released`.
+6. Publish `networkReleased: true` and active Direct, with engine Stopped, profile/provider Suspended and PF Released. Cleanup failures retain intent with an unavailable reason and Retry network cleanup. GUI loss displays communication interruption; it does not fabricate completion.
+
+The control protocol advances to version 6 for the new Released/Suspended states; an older GUI receives an explicit incompatible-service response and must be updated with the matching app/helper. Startup release recovery holds the service-operation queue so a simultaneous Start cannot overtake cleanup.
+
+The core and supervisor remain installed and running. Routine IP observation follows the system path, potentially through another VPN. Native Tailscale itself is untouched. Released observers/watchdog and offline Direct recovery do not reinstall network policy. Guard checks still inspect service intent and repair intended background jobs. No GUI lifetime or login item is required to retain the choice.
+
+**Start engine** first checks live known competing engines, required TCP listeners, UDP DNS port 1053 and the Mimo TUN name. An observed conflict returns an actionable failure while keeping release intent and networking intact. This internal engine-only command does not terminate another service; full activation uses installer confirmation. After successful preflight, the supervisor withdraws release intent, restores its boot policy, starts the engine and establishes ordinary Direct; the core resumes its enabled provider and native observation. Selecting Rule/Global from released mode first requests this start, then follows the normal closed-gate verification transaction. A later failure after reacquiring ownership uses the managed recovery policy and is not silently treated as released.
+
+Validation covers installed candidate cleanup from Rule with a missing controller, independent PF-owner preservation, reusable ports, TCP/UDP conflicts, released bypass saves, guard `--configure`/`--boot`/`--check`, core/supervisor restart and explicit resumption. Actual reboot, physical user switching and arbitrary third-party VPN compatibility are not established by those tests. Sources: [supervisor](../Sources/MimoService/MimoSupervisor.swift), [runtime](../Sources/MimoService/MimoSystemRuntime.swift), [core](../Sources/MimoService/DaemonService.swift), [guard](../Sources/MimoDaemon/pf-guard.pl), [installed regression](../Tests/MihomoRuntimeTests/release_networking_test.py).
+
 ## User commands and shared settings
 
 Core serializes human refresh, provider Test, routing, proxy, credential and settings commands. The supervisor separately queues service operations behind its active cycle/operation. These are per-owner queues, not a single global transaction queue. Waiting holds no PF/lifecycle lock. Read-only state, events and heartbeats bypass the user queue.
 
 Mode-only commands are rebased onto the latest configuration when their turn arrives. Full proxy/settings edits require the expected revision and report conflict if stale; they cannot overwrite another account's changes. Mutation flow is validation → invalidate affected verification → persist settings/secret and revision → update routing/provider state → schedule required refresh → publish. Secret writes are rolled back if settings persistence fails; rollback failure is reported.
 
-`MachineSettings.affectsVerification` covers provider, provider pool, refresh interval and allowlist. Presentation/diagnostic/provider-only changes preserve current public access when no verification is active. Token changes and proxy save/removal invalidate protected verification. Direct selection persists before restoration and does not preemptively close Direct just to change the selection.
+`MachineSettings.affectsVerification` covers provider, provider pool, refresh interval and allowlist, plus bypass-block changes only when the current mode is Rule. Presentation/diagnostic/provider-only changes preserve current public access when no verification is active. Token changes and proxy save/removal invalidate protected verification. Direct selection persists before restoration and does not preemptively close Direct just to change the selection.
 
-Service Start/Stop/Restart and profile Reload confirm protected blocking before launchd/controller work. If blocking cannot be confirmed, the service change is aborted. Intent is persisted before the operation; a failed Stop must not silently become automatic Start later. GUI Start/Restart/Reload requests a fresh lookup after success. Core Stop leaves the independent supervisor available for Start. Open profile reads the delivered profile without reloading it.
+Except for explicit engine release above, service Start/Stop/Restart and profile Reload confirm protected blocking before launchd/controller work. If blocking cannot be confirmed, the service change is aborted. Intent is persisted before the operation; a failed Stop must not silently become automatic Start later. GUI Start/Restart/Reload requests a fresh lookup after success. Core Stop leaves the independent supervisor available for Start. Open profile reads the delivered profile without reloading it.
+
+Bypass Apply normalizes/validates domain entries and block IDs/names before saving with the expected machine-settings revision. The optional saved block array distinguishes old settings (nil → existing defaults) from a deliberately empty list. Enabled exact/suffix rules are deduplicated and rendered after managed native rules and before LAN/final rules. Global omits the editable blocks. Rule Apply invalidates verification and prepares the new profile; Global, ordinary Direct and internal engine-only released saves retain current routing and do not start the engine. Existing connections follow the normal protected-cycle cleanup in Rule. Fully deactivated installations cannot apply shared edits until activation. Drafts survive navigation/status updates; a concurrent revision prompts reload, and Cancel discards to the latest saved state. Validation failure does not mutate settings; a later runtime failure keeps the saved desired rules but cannot claim active verified routing. Sources: [bypass model](../Sources/MimoShared/MimoBypass.swift), [profile renderer](../Sources/MimoShared/MihomoProfile.swift), [draft](../Sources/MimoApp/MimoBypassDraft.swift), [editor](../Sources/MimoApp/MimoBypassView.swift).
 
 Sources: [core transactions](../Sources/MimoService/DaemonService.swift), [control queue](../Sources/MimoService/MimoControlQueue.swift), [settings contract](../Sources/MimoShared/DaemonProtocol.swift), [GUI service commands](../Sources/MimoApp/PublicIPMonitor.swift).
 
@@ -273,15 +316,19 @@ Sources: [app lifecycle](../Sources/MimoApp/MimoApp.swift), [client](../Sources/
 
 ## Installation and release events
 
-The unreleased service-installer update adds a confirmation step before taking over from another Clash/mihomo engine. Signature, pinned checksum and staging validation finish first, under the installation lock. The installer snapshots executable names/PIDs and process start identities (not command-line arguments), maps live PIDs to system or per-user launchd jobs, and lists them for approval. A foreground terminal accepts explicit `y`/`yes`; nonterminal Homebrew/package/GUI invocations ask the installing console user with a macOS dialog. Cancel, timeout, unavailable confirmation and `install --non-interactive` stop installation without stopping competing engines. GUI outcome parsing recognizes the installer cancellation marker.
+The build 4 service installer adds a confirmation step before taking over from another Clash/mihomo engine. Signature, pinned checksum and staging validation finish first, under the installation lock. The installer snapshots executable names/PIDs and process start identities (not command-line arguments), maps live PIDs to system or per-user launchd jobs, and lists them for approval. A foreground terminal accepts explicit `y`/`yes`; nonterminal Homebrew/package/GUI invocations ask the installing console user with a macOS dialog. Cancel, timeout, unavailable confirmation and `install --non-interactive` stop installation without stopping competing engines. GUI outcome parsing recognizes the installer cancellation marker.
 
 After consent, identities and launchd PIDs are checked again. Only approved jobs are disabled and booted out; standalone processes receive TERM. The disabled state prevents automatic launchd restarts at login/reboot. A bounded rescan requires all competing engines to exit. Respawn or a newly discovered engine aborts without extending the original consent. Mimo's exact runtime/helper paths are excluded. This occurs before replacing Mimo services in both Direct and protected modes. Another application's files/settings remain; deliberately re-enabling its service can start it again. If subsequent installation fails, Mimo's rollback applies to Mimo; the installer reports the affected competitors for manual re-enabling rather than automatically opening a different network path.
 
 `daemon.sh install --app /Applications/Mimo.app` runs a downloaded installer against the existing verified app/resources, without modifying its sealed bundle or replacing its binaries with a new build. The package's outer deadline includes time for confirmation. Installer logs include the listed processes/jobs, stop/verification result and `[MIMO_INSTALL_CANCELLED]` on declined/unavailable confirmation; full process arguments are never collected. Validation: [mocked conflict contracts](../Tests/MimoDaemonTests/engine_conflicts_test.sh), [VM launchd/terminal/repair checks](../Tests/MihomoRuntimeTests/installer_conflicts_test.py), and [GUI outcome tests](../Tests/MimoSharedTests/DaemonInstallationTests.swift).
 
+In the 2.0 implementation, install/repair first reads release intent through the verified helper. An already released installation skips competing-engine takeover and preserves engine-disabled intent; guard configuration honors release rather than reinstalling blocking. Fresh managed installation retains the explicit conflict-confirmation workflow. Full upgrade/package coexistence still needs installed acceptance testing.
+
 Install/upgrade enters maintenance, preserves settings/credentials and service intent, stages the pinned engine and signed app/helper, updates launchd/PF installation and the installed-app identity, then starts the intended services. Protected access is not released just because installation completed: startup verification still applies. Failure uses the installer rollback path. Cleanup removes owned services, runtime files and PF references, removes the temporary DNS override, and restores journaled IPv6 service flags while preserving unrelated settings.
 
-Deleting `Mimo.app` alone is not this cleanup workflow. Use the documented [clean uninstall](../README.md#clean-uninstall-and-reinstall).
+Deleting `Mimo.app` alone is not this cleanup workflow. Use the documented [clean uninstall](../README.md#clean-uninstall-and-reinstall). If version 1 removal stops early or installation files are already missing, the [manual recovery procedure](../README.md#manual-recovery-after-an-incomplete-version-1-uninstall) disables and unloads all five Mimo jobs before removing the persistent boot block, clearing only Mimo's live PF parent anchor, removing its resolver and restoring saved IPv6 flags. It then archives the installed components and verifies that protection does not return after reboot. This operator procedure applies to both Direct and protected modes; it does not change the automated uninstaller or globally reset other VPNs' networking.
+
+The standalone [version 1 recovery script](../Scripts/cleanup-mimo-v1.pl) defaults to inspection. Explicit `--apply` shows the host/scope and requires typed confirmation, then repeats inspection, saves private recovery records, disables/unloads guards before the other jobs, waits for worker exit and reasserts disabled/absent job state. Only then does it remove the marked boot block, flush the owned parent anchor and remove the owned resolver. Current-boot PF references are released only when identified in the live list; saved IPv6 flags are restored before installed components are archived. A failed shutdown prevents PF/DNS changes. A later failure retains recovery material and does not restart services or restore blocking. App/package ownership, per-account login entries, the private group/right and source settings remain for the documented finishing steps. Validation uses [fixtures and mocked OS commands](../Tests/MimoDaemonTests/manual_cleanup_test.pl); actual installed cleanup is not yet qualified by that suite.
 
 For every **new GitHub build upload**, advance `Configuration/BuildNumber.txt` once even if the version remains `1.0`. Local rebuilds may reuse the unpublished candidate number. Generation propagates the number to bundles; packaging records version/build and artifact hashes in `release-build.json`. Release notes, dashboard, diagnostics and uploaded manifest must agree. Packaging does not itself publish or trigger a workflow.
 
@@ -324,6 +371,7 @@ These are configured polling intervals/deadlines, not end-to-end latency guarant
 | Was the service/observer unhealthy? | `mimo_liveness_lost`, `mimo_dns_configuration_lost`, `mimo_verification_audit_failed`, `mimo_native_transport_failed`, `network_configuration_monitor_unavailable`, `mimo_session_guard_failed` |
 | Was a human action waiting? | `mimo_control_queued` → `mimo_control_resumed`; service progress uses `mimo_service_change_begin/changed/failed` |
 | Which diagnostic port is live? | `tailscale_provider_port_conflict`, `tailscale_provider_listening.port/fallback`, `tailscale_provider_prepared` |
+| Was explicit engine cleanup completed? | `mimo_network_released`, supervisor `networkReleased: true`, stopped/suspended service reports and PF Released; intent alone is insufficient |
 | Is the log only reporting UI? | `mimo_access_presentation_changed` and `widget_reload_requested` do not establish a network cause or an open/close operation |
 
 Repeated `mimo_gate_closed` records can describe successive confirmations during one continuously closed period. Two Blocked display entries do not establish an intervening release. To prove a block-open-block cycle, locate `mimo_traffic_opened` between confirmed closures. To prove redundant verification, count distinct probe attempts and inspect the triggering events.
@@ -332,6 +380,9 @@ Repeated `mimo_gate_closed` records can describe successive confirmations during
 
 | Workflow | Relevant tests / evidence |
 | --- | --- |
+| Full dashboard deactivation/activation and bypass routing | [installed package test](../Tests/MihomoRuntimeTests/release_v2_test.py), [build 5 evidence](../Tests/ReleaseEvidence/mimo-build-5-v2.json) |
+| Internal engine release and explicit resumption | [installed candidate test](../Tests/MihomoRuntimeTests/release_networking_test.py), [guard contracts](../Tests/MimoDaemonTests/pf_guard_test.pl), [2.0 evidence](../Tests/ReleaseEvidence/mimo-v2-ui-and-release.json) |
+| Rule bypass drafts and rendering | [model/profile tests](../Tests/MimoSharedTests/MimoBypassTests.swift), [native draft tests](../Tests/MimoAppTests/mimo_draft_tests.swift), installed candidate test above |
 | Telemetry/location filtering and event ownership | [AirPort tests](../Tests/MimoSharedTests/AirPortChangeFilterTests.swift), [location tests](../Tests/MimoSharedTests/NetworkLocationChangeFilterTests.swift), [cycle tests](../Tests/MimoServiceTests/mimo_cycle_tests.swift), [installed route/location test](../Tests/MihomoRuntimeTests/release_cycle_classification_test.py) |
 | Private Tailnet and provider ordering | [policy tests](../Tests/MimoSharedTests/MimoTailnetChangePolicyTests.swift), [native observer tests](../Tests/MimoServiceTests/mimo_native_observer_tests.swift), [notification tests](../Tests/MimoServiceTests/mimo_tailnet_network_tests.swift), [installed live-update test](../Tests/MihomoRuntimeTests/release_tailnet_live_update_test.py) |
 | Power/session/late commands | [power tests](../Tests/MimoServiceTests/mimo_power_tests.swift), [session tests](../Tests/MimoSharedTests/MimoSessionSnapshotTests.swift), [command fence tests](../Tests/MimoServiceTests/mimo_command_fence_tests.swift), [coordinator tests](../Tests/MimoServiceTests/mimo_coordinator_tests.swift) |

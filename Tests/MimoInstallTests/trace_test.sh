@@ -16,8 +16,8 @@ if [ "${1:-}" = --scenario ]; then
     }
     process_alive() { [ "$1" = 12345 ]; }
     process_path() {
-        if [ "$1" = 12345 ]; then printf '%s/Contents/MacOS/Mimo\n' "$fixture/Test.app";
-        else echo '/unrelated/Mimo.app/Contents/MacOS/Mimo'; fi
+        if [ "$1" = 12345 ]; then printf '%s/Contents/MacOS/mimo-gui\n' "$fixture/Test.app";
+        else echo '/unrelated/Mimo.app/Contents/MacOS/mimo-gui'; fi
     }
     same_file() { [ "$1" = "$2" ]; }
     trace_stream_command() {

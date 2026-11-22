@@ -41,7 +41,8 @@ final class PublicIPMonitor: ObservableObject {
     @Published private(set) var displayDate = Date.now
     @Published private(set) var daemonState: DaemonState?
     @Published private(set) var connection = MimoClientConnectionStatus()
-    var connected: Bool { connection.phase == .connected }
+    @Published private(set) var installationInactive = false
+    var connected: Bool { !installationInactive && connection.phase == .connected }
     @Published private(set) var serviceMessage: String? = "Connecting to background service…"
     @Published private(set) var operationError: String?
     @Published private(set) var isChangingSettings = false
@@ -59,6 +60,7 @@ final class PublicIPMonitor: ObservableObject {
     typealias StatusReader = (DaemonRequest, TimeInterval, String) async throws -> DaemonResponse
     private let subscribe: SubscriptionFactory
     private let readStatus: StatusReader
+    private let readDeactivation: () -> Bool
     private let reconnectDelay: Duration
     private var cancelSubscription: (() -> Void)?
     private var reconnectTask: Task<Void, Never>?
@@ -80,7 +82,9 @@ final class PublicIPMonitor: ObservableObject {
         return { subscription.invalidate() }
     }, readStatus: @escaping StatusReader = { request, timeout, label in
         try await DaemonRPC.call(request, timeout: timeout, serviceLabel: label)
-    }, reconnectDelay: Duration = .seconds(3)) {
+    }, reconnectDelay: Duration = .seconds(3), readDeactivation: @escaping () -> Bool = MimoDeactivation.isConfirmed) {
+        self.readDeactivation = readDeactivation
+        self.installationInactive = readDeactivation()
         self.subscribe = subscribe
         self.readStatus = readStatus
         self.reconnectDelay = reconnectDelay
@@ -96,6 +100,7 @@ final class PublicIPMonitor: ObservableObject {
     }
 
     func serviceHealthLabel(_ id: MimoServiceID, at date: Date) -> String {
+        if installationInactive { return "Removed" }
         guard hasServiceReport(id, at: date) else { return connection.rowTitle }
         let service = routingState.services.first { $0.id == id }
         var title = serviceOperation == id ? "Working…" : service?.healthTitle(at: date) ?? "Unavailable"
@@ -146,6 +151,15 @@ final class PublicIPMonitor: ObservableObject {
     }
 
     var routingState: MimoRoutingState {
+        if installationInactive {
+            var state = MimoRoutingState(configuration: daemonState?.routing?.configuration ?? .init())
+            state.configuration.mode = .direct; state.configuration.mihomoEnabled = false
+            state.phase = .active; state.effectiveMode = .direct
+            state.networkReleased = true; state.networkReleaseRequested = true
+            state.reason = "Mimo is inactive. System networking restored; services and login items removed."
+            state.services = MimoServiceID.allCases.map { .init(id: $0, health: .notInstalled, transport: "") }
+            return state
+        }
         if let serviceRoutingProgress, connected || hasSupervisorReply() { return serviceRoutingProgress }
         // A missed supervisor reply does not erase the last saved proxy or mode.
         // Retain only configuration; live health and access still become unknown.
@@ -172,6 +186,14 @@ final class PublicIPMonitor: ObservableObject {
         return await changeShared(request)
     }
 
+    func saveBypass(_ blocks: [MimoBypassBlock], expectedRevision: Int) async -> Bool {
+        guard var settings = daemonState?.settings else { return false }
+        settings.bypassBlocks = blocks
+        var request = DaemonRequest(.configure)
+        request.settings = settings; request.expectedRevision = expectedRevision
+        return await changeShared(request)
+    }
+
     func importLegacyProxy(expectedRevision: Int) async -> Bool {
         guard await AppCredentials.proxy.load(), let text = AppCredentials.proxy.value,
               let proxy = ClashVergeProfile.decode(text) else {
@@ -193,10 +215,16 @@ final class PublicIPMonitor: ObservableObject {
         serviceOperationID = operationID
         serviceRPCFinished = false
         serviceOperation = service
-        if service != .tailnetProvider, routingState.configuration.mode.requiresVerification {
+        let releasing = service == .mihomo && operation == .stop
+        if releasing || (service != .tailnetProvider && routingState.configuration.mode.requiresVerification) {
             var pending = routingState
             pending.phase = .closing; pending.effectiveMode = nil
             pending.reason = "Blocking internet access before changing \(service.title)…"
+            if releasing {
+                pending.phase = .restoringDirect
+                pending.networkReleaseRequested = true; pending.networkReleased = false
+                pending.reason = "Stopping engine and restoring system networking…"
+            }
             serviceRoutingProgress = pending
             serviceOperationStartedAt = .now
             serviceOperationRevision = daemonState?.revision ?? 0
@@ -243,7 +271,10 @@ final class PublicIPMonitor: ObservableObject {
                     if serviceRoutingProgress != nil { serviceRoutingProgress = serviceProgressState(routing) }
                     else { daemonState?.routing = routing }
                 }
-                if let failure = response.failure { throw failure }
+                if let failure = response.failure {
+                    operationError = response.routing?.reason ?? failure.localizedDescription
+                    return
+                }
                 succeeded = true
                 operationError = nil
                 if service == .core, operation == .stop { disconnected() }
@@ -253,7 +284,7 @@ final class PublicIPMonitor: ObservableObject {
                 if !serviceRPCFinished, serviceRoutingProgress != nil {
                     serviceRoutingProgress?.phase = .unavailable
                     serviceRoutingProgress?.supervisorCheckedAt = .now
-                    serviceRoutingProgress?.reason = "Blocking could not be confirmed. The service operation did not complete."
+                    serviceRoutingProgress?.reason = releasing ? "Network cleanup could not be confirmed. Reconnect and retry Stop engine." : "Blocking could not be confirmed. The service operation did not complete."
                 }
             }
         }
@@ -275,6 +306,10 @@ final class PublicIPMonitor: ObservableObject {
         var provider = daemonState?.routing?.services.first(where: { $0.id == .tailnetProvider })
             ?? MimoServiceStatus(id: .tailnetProvider, health: .stopped, transport: "Loopback HTTP",
                                  address: "127.0.0.1")
+        if state.networkReleaseRequested == true {
+            provider.health = .suspended; provider.bindingConfirmed = false
+            state.tailnetExpected = false
+        }
         if state.services.first(where: { $0.id == .core })?.health != .running {
             provider.health = .stopped; provider.bindingConfirmed = false
         }
@@ -324,6 +359,7 @@ final class PublicIPMonitor: ObservableObject {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(15))
                 guard !Task.isCancelled, let self else { return }
+                self.refreshInstallationState()
                 if self.connected { self.requestStatus() }
             }
         }
@@ -366,7 +402,8 @@ final class PublicIPMonitor: ObservableObject {
     }
 
     private func connect() {
-        guard started, sessionActive else { return }
+        refreshInstallationState()
+        guard started, sessionActive, !installationInactive else { return }
         connectionGeneration += 1
         let generation = connectionGeneration
         connectionStartedAt = .now
@@ -395,7 +432,8 @@ final class PublicIPMonitor: ObservableObject {
     }
 
     private func disconnected(failure: DaemonFailure = .unavailable, source: String = "subscription") {
-        guard started, sessionActive else { return }
+        refreshInstallationState()
+        guard started, sessionActive, !installationInactive else { return }
         connectionGeneration += 1
         cancelSubscription?(); cancelSubscription = nil
         statusTask?.cancel(); statusTask = nil
@@ -432,7 +470,8 @@ final class PublicIPMonitor: ObservableObject {
     }
 
     func receive(_ state: DaemonState) {
-        guard sessionActive else { return }
+        refreshInstallationState()
+        guard sessionActive, !installationInactive else { return }
         guard state.protocolVersion == MimoService.protocolVersion else {
             disconnected(failure: .incompatible); return
         }
@@ -507,7 +546,30 @@ final class PublicIPMonitor: ObservableObject {
         updatePresentation(presentation)
     }
 
+    func refreshInstallationState() {
+        let inactive = readDeactivation()
+        guard inactive != installationInactive else { return }
+        installationInactive = inactive
+        if inactive {
+            connectionGeneration += 1
+            cancelSubscription?(); cancelSubscription = nil
+            reconnectTask?.cancel(); reconnectTask = nil
+            statusTask?.cancel(); statusTask = nil
+            serviceRoutingProgress = nil; supervisorState = nil; supervisorReplyAt = nil
+            connection.phase = .inactive
+            serviceOperation = nil; serviceOperationID = nil
+            snapshot = nil; status = .idle; operationError = nil
+            serviceMessage = "Mimo is inactive. Services removed and networking restored."
+        } else if started && sessionActive {
+            reconnectTask = Task { [weak self] in
+                self?.reconnectTask = nil
+                self?.connect()
+            }
+        }
+    }
+
     func applicationDidBecomeActive() {
+        refreshInstallationState()
         guard started, sessionActive else { return }
         if !connected { reconnect() }
         else { requestStatus() }
@@ -540,7 +602,7 @@ final class PublicIPMonitor: ObservableObject {
 
     /// Read-only probes have their own short deadline and are coalesced per connection.
     func requestStatus() {
-        guard started, sessionActive, statusTask == nil else { return }
+        guard started, sessionActive, !installationInactive, statusTask == nil else { return }
         let generation = connectionGeneration
         let requestedAt = Date.now
         statusTask = Task { [weak self] in

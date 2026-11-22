@@ -340,7 +340,7 @@ sub begin_job_repair {
 }
 
 sub repair_jobs {
-    my ($id) = @_;
+    my ($id, $released) = @_;
     my $preferences = decode_json(read_file("$runtime/services.json"));
     for my $key ('core', 'engine') {
         die "Invalid saved service intent\n" unless exists($preferences->{$key}) && JSON::PP::is_bool($preferences->{$key});
@@ -357,7 +357,7 @@ sub repair_jobs {
     for my $job (@jobs) {
         my ($label, $path, $program, $argument, $keepalive, $wanted) = @$job;
         if ($wanted && !(eval { secure($program, 0); -x $program })) {
-            begin_job_repair($id);
+            begin_job_repair($id) unless $released;
             die "Missing or unsafe executable for launchd job $label; repair installation\n";
         }
         my $file_changed = restore_file("$guard/$label.plist", $path, 0644);
@@ -368,7 +368,7 @@ sub repair_jobs {
         next if !$file_changed && ($wanted ? defined($state) && !$wrong && !$is_disabled && !$not_running : !defined($state));
         # A launchd repair never restores active permissions. Supervision must
         # recover and perform a new verification; Direct can recover normally.
-        begin_job_repair($id) unless $changed;
+        begin_job_repair($id) unless $changed || $released;
         if (defined($state) && (!$wanted || $wrong)) { required('/bin/launchctl', 'bootout', "system/$label"); $state = undef; }
         if ($wanted) {
             required('/bin/launchctl', 'enable', "system/$label");
@@ -383,6 +383,20 @@ sub repair_jobs {
         print STDERR "mimo_launchd_repaired label=$label enabled=" . ($wanted ? 'true' : 'false') . "\n";
     }
     return $changed;
+}
+
+sub network_release_requested {
+    return 0 unless -e "$runtime/services.json";
+    return release_intent(decode_json(read_file("$runtime/services.json")));
+}
+
+sub release_intent {
+    my ($intent) = @_;
+    return 0 unless exists $intent->{releaseNetwork};
+    die "Invalid network release intent\n" unless JSON::PP::is_bool($intent->{releaseNetwork});
+    die "Invalid released engine intent\n" if $intent->{releaseNetwork} &&
+        (!JSON::PP::is_bool($intent->{engine}) || $intent->{engine});
+    return $intent->{releaseNetwork} ? 1 : 0;
 }
 
 sub run {
@@ -403,7 +417,11 @@ sub run {
     sysopen(my $lock, "$runtime/firewall.lock", O_RDWR | O_CREAT | O_NOFOLLOW, 0600) or die "Cannot open firewall lock\n";
     my $deadline = time() + 12;
     until (flock($lock, LOCK_EX | LOCK_NB)) { die "Firewall is busy\n" if time() >= $deadline; sleep 0.05; }
-    if ($operation eq '--configure') { configure(); return; }
+    if ($operation eq '--configure') {
+        if (network_release_requested()) { atomic_write($configuration, managed_configuration(read_file($configuration), 0), 0644); }
+        else { configure(); }
+        return;
+    }
     my $id = boot_id();
     $current_boot = $id;
     if ($operation eq '--remove') {
@@ -416,6 +434,18 @@ sub run {
             required('/sbin/pfctl', '-X', $reference->{token}) if ($reference->{boot} // '') eq $id && reference_live($reference->{token}, $references);
             unlink($path) or die "Cannot remove independent PF reference\n";
         }
+        return;
+    }
+    # An explicit Stop relinquishes network enforcement across boots and repairs.
+    # Keep control services repairable without acquiring PF or a traffic barrier.
+    if (network_release_requested()) {
+        atomic_write($configuration, managed_configuration(read_file($configuration), 0), 0644);
+        return if $operation eq '--boot' || -e "$runtime/maintenance";
+        my $changed = repair_jobs($id, 1);
+        my $policy = required('/sbin/pfctl', '-a', $anchor, '-sr');
+        atomic_write("$guard/health.json", encode_json({boot => $id, checkedAt => time(),
+            status => 'healthy', pf => $policy =~ /\S/ ? 'unavailable' : 'released', launchd => 'healthy'}));
+        print "repaired\n" if $changed;
         return;
     }
     my $fresh = -e "$guard/boot.id" && read_file("$guard/boot.id") eq $id;

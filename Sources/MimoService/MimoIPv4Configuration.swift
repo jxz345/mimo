@@ -35,6 +35,8 @@ enum MimoIPv4Configuration {
             guard let identifier = SCNetworkServiceGetServiceID(service) as String?,
                   let proto = SCNetworkServiceCopyProtocol(service, kSCNetworkProtocolTypeIPv6) else { continue }
             let enabled = SCNetworkProtocolGetEnabled(proto)
+            // Mimo only wrote false. Preserve a later owner's explicit enable.
+            if restoring, enabled { continue }
             if !restoring, saved[identifier] == nil { saved[identifier] = enabled }
             guard let target = restoring ? saved[identifier] : false, enabled != target else { continue }
             guard SCNetworkProtocolSetEnabled(proto, target) else {
