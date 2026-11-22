@@ -1,0 +1,22 @@
+{
+  "date": "2026-11-22",
+  "version": "2.0",
+  "build": 6,
+  "release_url": "https://github.com/jxz345/mimo/releases/tag/v2.0-build.6",
+  "release_commit": "24ebbb3c5b73443e675243049fc9e6742e1699ff",
+  "homebrew_tap_commit": "bca94a4a33089eb253b13a5a7e227a576a45fea2",
+  "homebrew_version": "2.0,6",
+  "published_artifacts_sha256": {
+    "Mimo-2.0.pkg": "2881b142f9d0a5aa1ca3f61c5e8fdbbe39127ba237f88853555fb84d7ea9910b",
+    "Mimo-2.0.zip": "14ebedbc64a781642691501499e9e94c99d326d3cb758e1671fba609322f6a31"
+  },
+  "checks": [
+    "Release is public and latest",
+    "GitHub asset digests match the qualified PKG and ZIP",
+    "Downloaded public ZIP and manifest match local release artifacts",
+    "Published Homebrew cask matches the version/build, immutable release URL, ZIP checksum and cleanup implementation",
+    "Real Homebrew candidate installation and uninstall from closed Rule passed before publication; only the local candidate download URL differed",
+    "Scoped VM Homebrew directory modes and the temporarily staged local cask were restored"
+  ],
+  "scope": "Published distribution verification; installed network and cleanup results are in mimo-build-6.json. No runtime/network changes on Delta."
+}
