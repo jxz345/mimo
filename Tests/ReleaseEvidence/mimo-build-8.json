@@ -105,6 +105,21 @@
     "Sources/MimoShared/MimoLocalSettings.swift": "cd57e0ca776d3639641a803e73612600881100a91de3a51481e9b16f47fbcdf7",
     "Sources/MimoShared/MimoManualRefresh.swift": "43e16e142ef27aebf658602c9f117efdc8457344547d3ece5ed67f95fe8e0cf4",
     "Tests/MihomoRuntimeTests/release_v21_test.py": "08f0afd240620a6eab03f6dded9276af48aeb2bdb77ec21c86f2e13464fefff8",
-    "Tests/MihomoRuntimeTests/release_v21_controls.swift": "0a84ca80c2543356e313cfe87d3a1286999d46987e3b3a15830701e9c4950afa"
+    "Tests/MihomoRuntimeTests/release_v21_controls.swift": "0a84ca80c2543356e313cfe87d3a1286999d46987e3b3a15830701e9c4950afa",
+    "Packaging/mimo.rb.in": "7ebbb99a34b4875fa3f81cf1660623ba60042642cb6d625c05ce977cc40b81d3"
+  },
+  "distribution": {
+    "published_at_utc": "2026-11-22T18:42:06Z",
+    "release_url": "https://github.com/jxz345/mimo/releases/tag/v2.1-build.8",
+    "source_commit": "de670416b9be88c52a4c2cbdbfa3dd3202b6913d",
+    "tap_commit": "d5fc3438c26bca06e42188a6427bc74a2e686654",
+    "public_zip_sha256": "2426aeee4e2173da53a997dbcb79888fe013a2b04188c91019f2b4d0a6f9678b",
+    "all_five_uploaded_assets_match_local": true,
+    "public_cask_matches_generated_cask": true,
+    "homebrew_version": "2.1",
+    "public_cask_install": "passed; required startup service health check passed; installed build 8 and Homebrew receipt verified",
+    "public_cask_uninstall": "passed; app, five jobs, helper, controller socket, PF parent rules and protected resolver absent; saved machine state retained",
+    "vm_orchestration": "The initial foreground SSH runner was interrupted during startup. A detached VM runner completed install and uninstall with exit status 0. Temporary shared Homebrew directory permissions were restored.",
+    "higher_version_brew_upgrade": "Not separately exercised; package migration and the common mandatory install path were tested."
   }
 }
