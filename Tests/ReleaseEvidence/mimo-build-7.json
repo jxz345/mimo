@@ -59,5 +59,15 @@
     "Tests/MihomoRuntimeTests/install_reactivation_test.py": "43736dc19ff57497c3d1ad532184fa2902422a3be82c632a05bfce6a2c86bbf1",
     "Tests/MihomoRuntimeTests/installation_events_client.swift": "0f57fda49deb52ad718560bc5e7f292a4dfc9c76a9b299fad244eaf6d1a074f7",
     "Tests/MimoServiceTests/mimo_installation_tests.swift": "48cce74b5b62b1930d32603ef33726a43d71c8171ac4af064545398ee9f51b8f"
+  },
+  "distribution": {
+    "published_at_utc": "2026-11-22T16:18:22Z",
+    "release_url": "https://github.com/jxz345/mimo/releases/tag/v2.0-build.7",
+    "source_commit": "76ef29b76a5837005283fa3249a9180cff1171b0",
+    "tap_commit": "3fa17ad709794ae69f0b8392e8799ac06354de52",
+    "public_zip_sha256": "18c4e92ca638ba2983618d37316d4082cc95a218e66f4cd2e972955f343cba08",
+    "all_five_uploaded_assets_match_local": true,
+    "public_cask_matches_generated_cask": true,
+    "homebrew_version": "2.0"
   }
 }
