@@ -4,6 +4,12 @@ Release: [v3.0 build 10](https://github.com/jxz345/mimo/releases/tag/v3.0-build.
 installed in `mimo-vm`. The final tested package is published unchanged; earlier
 local candidate identities remain attached to their respective measurements.
 
+Publication checks passed: GitHub's five asset digests match the tested files,
+Homebrew still reports version 3.0, and its public build-10 ZIP downloads and
+verifies successfully. The fetched GUI, core and engine hashes match the final
+tested installation. See [distribution evidence](../Tests/ReleaseEvidence/v3-build10/distribution.json).
+These are distribution checks, not a new full Homebrew lifecycle campaign.
+
 ## Observed failure and corrected behavior
 
 Build 9 had a healthy Screen Sharing listener, running core/engine and an empty
