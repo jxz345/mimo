@@ -1,0 +1,18 @@
+{
+  "phase": "reinstall-after-uninstall",
+  "expected": "installed",
+  "checks": {
+    "app_3_0_build_9": true,
+    "sealed_signature": true,
+    "pinned_engine_hash": true,
+    "active_direct": true,
+    "all_reported_services_running": true,
+    "roles_loaded": true,
+    "empty_com.apple/000.mimo": true,
+    "empty_com.apple/000.mimo/build9-legacy-fixture": true,
+    "protected_dns_removed": true,
+    "mimo_tun_removed": true,
+    "native_network_verified": true
+  },
+  "result": "PASS"
+}

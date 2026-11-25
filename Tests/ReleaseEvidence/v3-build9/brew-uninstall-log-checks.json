@@ -1,0 +1,10 @@
+{
+  "exit": 0,
+  "cleanupStages": {
+    "firewall_removed": true,
+    "resolver_removed": true,
+    "tailnet_verified": true,
+    "uninstall_completed": true
+  },
+  "foreignRulePreserved": true
+}

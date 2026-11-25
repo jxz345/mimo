@@ -838,3 +838,12 @@ verified after restoration, all test controls and the host fixture were removed,
 and certificate/key were retained. See
 [the corrected fault results](MIMO_V3_CORRELATED_FAULT_RESULTS.md).
 See the live lifecycle record and its separate sanitized evidence for each scope.
+
+### Public build 9 Homebrew and UI continuation
+
+Mimo 3.0 build 9 is published. Real Homebrew install/uninstall/reinstall, bundled
+Stop/Activate, deletion of the app after cleanup, old PF cleanup and restoration
+passed on mimo-vm. Native button inspection is partial because desktop automation
+lost access to all host windows. These lifecycle checks do not replace the traffic
+matrix or qualify the remaining buttons. See [the release check inventory and
+evidence](MIMO_V3_BUILD9_RELEASE_CHECKS.md).

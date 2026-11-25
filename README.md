@@ -101,10 +101,10 @@ cleanup, removing current and legacy rules, owned DNS and jobs while preserving
 foreign rules. Independent checks require the exact active guard in protected
 mode and an empty policy in Direct. Event Log records active guard installation.
 
-The active guard revision is undergoing VM qualification after the earlier empty
-active policy admitted five native attempts during fault testing. Do not treat
-its source implementation as completed leak qualification. Native VPN public
-transport and socket identity require explicit compatibility checks. Boot traffic
+The active guard revision passed the scoped VM checks documented below, after
+the earlier empty active policy admitted five native attempts during fault
+testing. Source implementation alone is not leak qualification. Native VPN public
+transport and socket identity have separately recorded compatibility checks. Boot traffic
 before PF loads, intentional native exceptions and privileged PF tampering are
 outside the fallback-containment claim. See the [v3 plan](Design/MIMO_3_0_PLAN.md),
 [current workflows](Design/MIMO_EVENT_DRIVEN_WORKFLOWS.md) and
@@ -282,6 +282,14 @@ cases: actual both-family echo attempts during every fault, zero public echo
 replies or native bypass, and recovery after all 28 faults. Original VM state and
 native Tailnet access were verified after cleanup. These are scoped VM results;
 the physical/native-UI and sleep qualifications above remain separate.
+
+The published **3.0 build 9** passed real Homebrew install, uninstall and reinstall,
+the bundled Stop/Activate scripts, and app deletion after cleanup. Old Mimo PF
+fixtures were removed while an unrelated rule was preserved; the VM was restored
+to healthy Direct. Native dashboard and Settings click-through is **partial**:
+desktop automation lost access to every host window before the remaining buttons
+could be checked. See [the build 9 release checks](Design/MIMO_V3_BUILD9_RELEASE_CHECKS.md)
+for exact completed and outstanding controls, evidence and test cleanup.
 
 ## Build and test
 

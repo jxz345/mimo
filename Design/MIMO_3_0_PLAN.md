@@ -964,4 +964,11 @@ Label v3 behavior as proposed until implemented; do not present preview simulati
 as app or physical-Mac validation. Use marketing version 3.0 for the eventual
 candidate. Advance `Configuration/BuildNumber.txt` only for a newly published
 build, after checking the next unused number; include the matching release
-manifest and checksums. This plan makes no app-release claim.
+manifest and checksums.
+
+Publication update, 2026-11-25: Mimo 3.0 build 9 and its matching artifacts are
+published through GitHub and Homebrew. The public build passed install/uninstall,
+bundled Stop/Activate, app deletion after cleanup and reinstall. Native UI
+inspection remains partial after loss of desktop automation access; it is not
+counted as complete. See [the release checks](MIMO_V3_BUILD9_RELEASE_CHECKS.md)
+for the exact inventory, evidence and restored VM state.

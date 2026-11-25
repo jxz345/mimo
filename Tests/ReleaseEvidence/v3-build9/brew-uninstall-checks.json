@@ -1,0 +1,16 @@
+{
+  "phase": "brew-uninstall",
+  "expected": "deleted",
+  "checks": {
+    "roles_absent": true,
+    "app_expected": true,
+    "controller_absent": true,
+    "engine_removed": true,
+    "empty_com.apple/000.mimo": true,
+    "empty_com.apple/000.mimo/build9-legacy-fixture": true,
+    "protected_dns_removed": true,
+    "mimo_tun_removed": true,
+    "native_network_verified": true
+  },
+  "result": "PASS"
+}
