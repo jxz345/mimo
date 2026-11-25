@@ -2,6 +2,25 @@ import XCTest
 @testable import MimoShared
 
 final class MimoV3Tests: XCTestCase {
+    func testRejectedIPv6RetainsBothObservationsAndEmptyListHasRecoveryMessage() throws {
+        for allowed in [AllowedIPList(), AllowedIPList(addresses: ["203.0.113.10"]) ] {
+            var configuration = MimoConfiguration(); configuration.mode = .rule; configuration.networkFamily = .dual
+            configuration.proxy = MimoProxy(proxy)
+            var policy = MimoAccessPolicy()
+            let check = policy.begin(configuration: configuration, revision: 1, networkGeneration: 1)
+            policy.checking(check)
+            let v4 = MimoSnapshot(ipAddress: "203.0.113.10", countryCode: "SG", countryName: "Singapore", provider: .ipWhois, checkedAt: .now)
+            let v6 = MimoSnapshot(ipAddress: "2001:db8::10", countryCode: "US", countryName: "United States", provider: .ipWhois, checkedAt: .now)
+            XCTAssertFalse(policy.approve(observations: .init(verification: check, ipv4: v4, ipv6: v6), allowlist: allowed, verification: check, runtimeMatches: true))
+            XCTAssertEqual(policy.state.observation(for: .ipv4)?.address, v4.ipAddress)
+            XCTAssertEqual(policy.state.observation(for: .ipv6)?.address, v6.ipAddress)
+            XCTAssertEqual(policy.state.rejectedExit?.address, allowed.isEmpty ? v4.ipAddress : v6.ipAddress)
+            XCTAssertTrue(policy.state.reason.contains("Review Allowed IPs"))
+            policy.directRestored(configuration: .init())
+            XCTAssertNil(policy.state.rejectedExit)
+        }
+    }
+
     private let proxy = ClashProxySettings(name: "Fixture", type: .socks5, server: "192.0.2.10", port: 1080,
         username: "fixture", password: "quoted\"#credential")
 

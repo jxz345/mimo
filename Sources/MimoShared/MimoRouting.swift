@@ -209,6 +209,13 @@ public struct MimoRoutingState: Codable, Equatable, Sendable {
     public var mihomoVersion: String?
     public init(configuration: MimoConfiguration = MimoConfiguration()) { self.configuration = configuration }
     public var allowsTraffic: Bool { phase == .active && effectiveMode == configuration.mode }
+    public var rejectedExit: MimoIPObservation? {
+        guard configuration.mode.requiresVerification, phase == .blocked else { return nil }
+        return blockingIP
+    }
+    public func observation(for family: MimoAddressFamily) -> MimoIPObservation? {
+        family == .ipv4 ? observedIP : ipv6Observation
+    }
     public var displayedIP: MimoIPObservation? {
         guard ![.unavailable, .closing, .restoringDirect].contains(phase) else { return nil }
         return blockingIP ?? observedIP
@@ -288,7 +295,8 @@ public struct MimoAccessPolicy: Sendable {
         for observation in [state.observedIP, state.ipv6Observation].compactMap({ $0 }) {
             guard allowlist.contains(observation.address) else {
                 state.blockingIP = observation
-                block(allowlist.isEmpty ? "The allowed exit IP list is empty." : "An observed exit IP is not on the allowed list.")
+                block(allowlist.isEmpty ? "No exit IPs are approved. Review Allowed IPs in Settings."
+                    : "The observed \(observation.address.contains(":") ? "IPv6" : "IPv4") exit IP is not approved. Review Allowed IPs or select another proxy.")
                 return false
             }
         }

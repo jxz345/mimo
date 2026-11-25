@@ -1,5 +1,13 @@
 # Mimo changelog
 
+## 3.0 (build 10) — 2026-11-26
+
+- Preserve peer-initiated TCP service replies and tracked incoming sessions while rejecting an exit IP. Keep outgoing grants and loopback stateless; selectively revoke original outbound states in core, the independent guard and cleanup.
+- Retain verified native VPN transport during a settled block without granting application egress. Keep recovery under the shared core/supervisor ownership.
+- Explain empty, IPv4 and IPv6 exit rejection accurately, preserve paired observations, offer explicit recovery actions, avoid focus-stealing warnings, and distinguish a successful lookup from denied access in Refresh now and Event Log.
+- Align the native dashboard with the approved mock's address rows, typography, spacing, compact service controls and Stop/uninstall layout. Show provider pause deadlines and recovery choices; test failure stability, repair and explicit Direct escape in both protected modes.
+- Pass 60 failure/recovery simulations, four pending-lookup Direct cancellation cases and 22 installed exception/repair cases. Record incoming TCP, fault regression and remaining qualification scope in `Design/MIMO_V3_INBOUND_ACCESS_FIX.md`.
+
 ## 3.0 (build 9) — 2026-11-25
 
 - Add strict IPv4 and dual-stack traffic policies for Rule and Global, using a bundled, pinned Mihomo engine. Capture IPv6 in both policies; strict IPv4 rejects public IPv6 destinations, while dual-stack carries supported IPv6 TCP/UDP through the selected proxy. Block public ping/ping6 silently while preserving native LAN/Tailnet echo and necessary network-control traffic.

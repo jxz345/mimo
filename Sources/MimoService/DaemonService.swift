@@ -78,6 +78,10 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
             try self.engine.accountActualRequest(provider)
         }
         routing?.changed = { [weak self] in self?.schedulePublication() }
+        engine.accessBlockReason = { [weak routing] in
+            guard let state = routing?.state, state.rejectedExit != nil else { return nil }
+            return state.reason
+        }
         if let routing {
             engine.networkConfigurationChanged = { routing.supervisorNetworkChanged() }
             engine.requiredCheckUnavailable = { reason in Task { await routing.invalidate(reason: reason) } }
@@ -356,7 +360,7 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
         })
         var result = DaemonState(instanceID: instanceID, build: "3.0", initialized: initialized, revision: revision,
                            settings: settings, presentation: presentation, snapshot: engine.snapshot, status: engine.status,
-                           indicators: engine.indicators, authorizationState: engine.authorizationState,
+                           indicators: engine.indicators, authorizationState: currentAuthorization,
                            providerHealth: engine.providerHealth, budget: engine.lookupBudget, nextProvider: engine.preferences.provider, cooldowns: cooldowns,
                            hasIPinfoToken: !engine.isIPinfoTokenUnavailable, credentialError: engine.ipinfoCredentials.errorMessage ?? credentialMigrationWarning,
                            allowlistEventID: allowlistEventID, errorEventID: errorEventID,
@@ -373,11 +377,16 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
         DispatchQueue.main.async { [weak self] in self?.publish() }
     }
 
+    private var currentAuthorization: MimoAuthorizationState {
+        if let rejected = routing?.state.rejectedExit { return .notAllowed(rejected.address) }
+        return engine.authorizationState
+    }
+
     private func publish() {
         publicationPending = false
-        if engine.authorizationState != lastAuthorization {
-            lastAuthorization = engine.authorizationState
-            allowlistEventID = engine.authorizationState.isNotAllowed ? UUID() : nil
+        if currentAuthorization != lastAuthorization {
+            lastAuthorization = currentAuthorization
+            allowlistEventID = currentAuthorization.isNotAllowed ? UUID() : nil
         }
         if engine.indicators.errorMessage != lastError {
             lastError = engine.indicators.errorMessage

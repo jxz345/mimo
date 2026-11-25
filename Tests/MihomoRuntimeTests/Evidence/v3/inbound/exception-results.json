@@ -1,0 +1,466 @@
+[
+  {
+    "id": "ipv4-direct-to-rule-refused",
+    "result": "PASS",
+    "reason": "A fresh required IP check is unavailable.",
+    "lookup_status": {
+      "coolingDown": {
+        "_0": 817318942.709746
+      }
+    },
+    "lookup_error": "Unable to check the exit IP with IPinfo Lite: IPinfo HTTPS request failed.",
+    "settled_poll_seconds": 12,
+    "automatic_lookup_or_open_events": 0,
+    "incoming_ssh": true,
+    "incoming_screen_sharing": true,
+    "same_core_instance": true,
+    "repaired_and_verified": true,
+    "direct_seconds": 11.214,
+    "native_http4": true,
+    "native_http6": true,
+    "empty_pf": true,
+    "dns_released": true
+  },
+  {
+    "id": "ipv4-direct-to-rule-auth",
+    "result": "PASS",
+    "reason": "A fresh required IP check is unavailable.",
+    "lookup_status": {
+      "coolingDown": {
+        "_0": 817319034.954204
+      }
+    },
+    "lookup_error": "Unable to check the exit IP with IPinfo Lite: IPinfo HTTPS request failed.",
+    "settled_poll_seconds": 12,
+    "automatic_lookup_or_open_events": 0,
+    "incoming_ssh": true,
+    "incoming_screen_sharing": true,
+    "same_core_instance": true,
+    "repaired_and_verified": true,
+    "direct_seconds": 9.903,
+    "native_http4": true,
+    "native_http6": true,
+    "empty_pf": true,
+    "dns_released": true
+  },
+  {
+    "id": "ipv4-direct-to-rule-provider503",
+    "result": "PASS",
+    "reason": "A fresh required IP check is unavailable.",
+    "lookup_status": {
+      "coolingDown": {
+        "_0": 817319121.276528
+      }
+    },
+    "lookup_error": "Unable to check the exit IP with IPinfo Lite: The IP-location service returned HTTP 503.",
+    "settled_poll_seconds": 12,
+    "automatic_lookup_or_open_events": 0,
+    "incoming_ssh": true,
+    "incoming_screen_sharing": true,
+    "same_core_instance": true,
+    "repaired_and_verified": true,
+    "direct_seconds": 11.487,
+    "native_http4": true,
+    "native_http6": true,
+    "empty_pf": true,
+    "dns_released": true
+  },
+  {
+    "id": "ipv4-direct-to-rule-empty",
+    "result": "PASS",
+    "reason": "No exit IPs are approved. Review Allowed IPs in Settings.",
+    "lookup_status": {
+      "ready": {}
+    },
+    "lookup_error": null,
+    "settled_poll_seconds": 12,
+    "automatic_lookup_or_open_events": 0,
+    "incoming_ssh": true,
+    "incoming_screen_sharing": true,
+    "same_core_instance": true,
+    "repaired_and_verified": true,
+    "direct_seconds": 11.938,
+    "native_http4": true,
+    "native_http6": true,
+    "empty_pf": true,
+    "dns_released": true
+  },
+  {
+    "id": "ipv4-direct-to-rule-reject4",
+    "result": "PASS",
+    "reason": "The observed IPv4 exit IP is not approved. Review Allowed IPs or select another proxy.",
+    "lookup_status": {
+      "ready": {}
+    },
+    "lookup_error": null,
+    "settled_poll_seconds": 12,
+    "automatic_lookup_or_open_events": 0,
+    "incoming_ssh": true,
+    "incoming_screen_sharing": true,
+    "same_core_instance": true,
+    "repaired_and_verified": true,
+    "direct_seconds": 12.271,
+    "native_http4": true,
+    "native_http6": true,
+    "empty_pf": true,
+    "dns_released": true
+  },
+  {
+    "id": "ipv4-direct-to-global-refused",
+    "result": "PASS",
+    "reason": "A fresh required IP check is unavailable.",
+    "lookup_status": {
+      "coolingDown": {
+        "_0": 817319394.023776
+      }
+    },
+    "lookup_error": "Unable to check the exit IP with IPinfo Lite: IPinfo HTTPS request failed.",
+    "settled_poll_seconds": 12,
+    "automatic_lookup_or_open_events": 0,
+    "incoming_ssh": true,
+    "incoming_screen_sharing": true,
+    "same_core_instance": true,
+    "repaired_and_verified": true,
+    "direct_seconds": 11.105,
+    "native_http4": true,
+    "native_http6": true,
+    "empty_pf": true,
+    "dns_released": true
+  },
+  {
+    "id": "ipv4-direct-to-global-auth",
+    "result": "PASS",
+    "reason": "A fresh required IP check is unavailable.",
+    "lookup_status": {
+      "coolingDown": {
+        "_0": 817319477.692887
+      }
+    },
+    "lookup_error": "Unable to check the exit IP with IPinfo Lite: IPinfo HTTPS request failed.",
+    "settled_poll_seconds": 12,
+    "automatic_lookup_or_open_events": 0,
+    "incoming_ssh": true,
+    "incoming_screen_sharing": true,
+    "same_core_instance": true,
+    "repaired_and_verified": true,
+    "direct_seconds": 11.106,
+    "native_http4": true,
+    "native_http6": true,
+    "empty_pf": true,
+    "dns_released": true
+  },
+  {
+    "id": "ipv4-direct-to-global-provider503",
+    "result": "PASS",
+    "reason": "A fresh required IP check is unavailable.",
+    "lookup_status": {
+      "coolingDown": {
+        "_0": 817319569.26291
+      }
+    },
+    "lookup_error": "Unable to check the exit IP with IPinfo Lite: The IP-location service returned HTTP 503.",
+    "settled_poll_seconds": 12,
+    "automatic_lookup_or_open_events": 0,
+    "incoming_ssh": true,
+    "incoming_screen_sharing": true,
+    "same_core_instance": true,
+    "repaired_and_verified": true,
+    "direct_seconds": 11.195,
+    "native_http4": true,
+    "native_http6": true,
+    "empty_pf": true,
+    "dns_released": true
+  },
+  {
+    "id": "ipv4-direct-to-global-empty",
+    "result": "PASS",
+    "reason": "No exit IPs are approved. Review Allowed IPs in Settings.",
+    "lookup_status": {
+      "ready": {}
+    },
+    "lookup_error": null,
+    "settled_poll_seconds": 12,
+    "automatic_lookup_or_open_events": 0,
+    "incoming_ssh": true,
+    "incoming_screen_sharing": true,
+    "same_core_instance": true,
+    "repaired_and_verified": true,
+    "direct_seconds": 11.578,
+    "native_http4": true,
+    "native_http6": true,
+    "empty_pf": true,
+    "dns_released": true
+  },
+  {
+    "id": "ipv4-direct-to-global-reject4",
+    "result": "PASS",
+    "reason": "The observed IPv4 exit IP is not approved. Review Allowed IPs or select another proxy.",
+    "lookup_status": {
+      "ready": {}
+    },
+    "lookup_error": null,
+    "settled_poll_seconds": 12,
+    "automatic_lookup_or_open_events": 0,
+    "incoming_ssh": true,
+    "incoming_screen_sharing": true,
+    "same_core_instance": true,
+    "repaired_and_verified": true,
+    "direct_seconds": 11.321,
+    "native_http4": true,
+    "native_http6": true,
+    "empty_pf": true,
+    "dns_released": true
+  },
+  {
+    "id": "dual-direct-to-rule-refused",
+    "result": "PASS",
+    "reason": "A fresh required IP check is unavailable.",
+    "lookup_status": {
+      "coolingDown": {
+        "_0": 817319841.38445
+      }
+    },
+    "lookup_error": "Unable to check the exit IP with IPinfo Lite: IPinfo HTTPS request failed.",
+    "settled_poll_seconds": 12,
+    "automatic_lookup_or_open_events": 0,
+    "incoming_ssh": true,
+    "incoming_screen_sharing": true,
+    "same_core_instance": true,
+    "repaired_and_verified": true,
+    "direct_seconds": 11.404,
+    "native_http4": true,
+    "native_http6": true,
+    "empty_pf": true,
+    "dns_released": true
+  },
+  {
+    "id": "dual-direct-to-rule-auth",
+    "result": "PASS",
+    "reason": "A fresh required IP check is unavailable.",
+    "lookup_status": {
+      "coolingDown": {
+        "_0": 817319928.473214
+      }
+    },
+    "lookup_error": "Unable to check the exit IP with IPinfo Lite: IPinfo HTTPS request failed.",
+    "settled_poll_seconds": 12,
+    "automatic_lookup_or_open_events": 0,
+    "incoming_ssh": true,
+    "incoming_screen_sharing": true,
+    "same_core_instance": true,
+    "repaired_and_verified": true,
+    "direct_seconds": 12.378,
+    "native_http4": true,
+    "native_http6": true,
+    "empty_pf": true,
+    "dns_released": true
+  },
+  {
+    "id": "dual-direct-to-rule-provider503",
+    "result": "PASS",
+    "reason": "A fresh required IP check is unavailable.",
+    "lookup_status": {
+      "coolingDown": {
+        "_0": 817320021.835141
+      }
+    },
+    "lookup_error": "Unable to check the exit IP with IPinfo Lite: The IP-location service returned HTTP 503.",
+    "settled_poll_seconds": 12,
+    "automatic_lookup_or_open_events": 0,
+    "incoming_ssh": true,
+    "incoming_screen_sharing": true,
+    "same_core_instance": true,
+    "repaired_and_verified": true,
+    "direct_seconds": 11.453,
+    "native_http4": true,
+    "native_http6": true,
+    "empty_pf": true,
+    "dns_released": true
+  },
+  {
+    "id": "dual-direct-to-rule-empty",
+    "result": "PASS",
+    "reason": "No exit IPs are approved. Review Allowed IPs in Settings.",
+    "lookup_status": {
+      "ready": {}
+    },
+    "lookup_error": null,
+    "settled_poll_seconds": 12,
+    "automatic_lookup_or_open_events": 0,
+    "incoming_ssh": true,
+    "incoming_screen_sharing": true,
+    "same_core_instance": true,
+    "repaired_and_verified": true,
+    "direct_seconds": 11.467,
+    "native_http4": true,
+    "native_http6": true,
+    "empty_pf": true,
+    "dns_released": true
+  },
+  {
+    "id": "dual-direct-to-rule-reject4",
+    "result": "PASS",
+    "reason": "The observed IPv4 exit IP is not approved. Review Allowed IPs or select another proxy.",
+    "lookup_status": {
+      "ready": {}
+    },
+    "lookup_error": null,
+    "settled_poll_seconds": 12,
+    "automatic_lookup_or_open_events": 0,
+    "incoming_ssh": true,
+    "incoming_screen_sharing": true,
+    "same_core_instance": true,
+    "repaired_and_verified": true,
+    "direct_seconds": 11.622,
+    "native_http4": true,
+    "native_http6": true,
+    "empty_pf": true,
+    "dns_released": true
+  },
+  {
+    "id": "dual-direct-to-rule-reject6",
+    "result": "PASS",
+    "reason": "The observed IPv6 exit IP is not approved. Review Allowed IPs or select another proxy.",
+    "lookup_status": {
+      "refreshing": {}
+    },
+    "lookup_error": null,
+    "settled_poll_seconds": 12,
+    "automatic_lookup_or_open_events": 0,
+    "incoming_ssh": true,
+    "incoming_screen_sharing": true,
+    "same_core_instance": true,
+    "repaired_and_verified": true,
+    "direct_seconds": 11.785,
+    "native_http4": true,
+    "native_http6": true,
+    "empty_pf": true,
+    "dns_released": true
+  },
+  {
+    "id": "dual-direct-to-global-refused",
+    "result": "PASS",
+    "reason": "A fresh required IP check is unavailable.",
+    "lookup_status": {
+      "coolingDown": {
+        "_0": 817320388.336454
+      }
+    },
+    "lookup_error": "Unable to check the exit IP with IPinfo Lite: IPinfo HTTPS request failed.",
+    "settled_poll_seconds": 12,
+    "automatic_lookup_or_open_events": 0,
+    "incoming_ssh": true,
+    "incoming_screen_sharing": true,
+    "same_core_instance": true,
+    "repaired_and_verified": true,
+    "direct_seconds": 11.112,
+    "native_http4": true,
+    "native_http6": true,
+    "empty_pf": true,
+    "dns_released": true
+  },
+  {
+    "id": "dual-direct-to-global-auth",
+    "result": "PASS",
+    "reason": "Network or configuration changed. Verification is required.",
+    "lookup_status": {
+      "coolingDown": {
+        "_0": 817320481.000137
+      }
+    },
+    "lookup_error": "Unable to check the exit IP with IPinfo Lite: IPinfo HTTPS request failed.",
+    "settled_poll_seconds": 12,
+    "automatic_lookup_or_open_events": 0,
+    "incoming_ssh": true,
+    "incoming_screen_sharing": true,
+    "same_core_instance": true,
+    "repaired_and_verified": true,
+    "direct_seconds": 11.499,
+    "native_http4": true,
+    "native_http6": true,
+    "empty_pf": true,
+    "dns_released": true
+  },
+  {
+    "id": "dual-direct-to-global-provider503",
+    "result": "PASS",
+    "reason": "A fresh required IP check is unavailable.",
+    "lookup_status": {
+      "coolingDown": {
+        "_0": 817320573.388682
+      }
+    },
+    "lookup_error": "Unable to check the exit IP with IPinfo Lite: The IP-location service returned HTTP 503.",
+    "settled_poll_seconds": 12,
+    "automatic_lookup_or_open_events": 0,
+    "incoming_ssh": true,
+    "incoming_screen_sharing": true,
+    "same_core_instance": true,
+    "repaired_and_verified": true,
+    "direct_seconds": 12.492,
+    "native_http4": true,
+    "native_http6": true,
+    "empty_pf": true,
+    "dns_released": true
+  },
+  {
+    "id": "dual-direct-to-global-empty",
+    "result": "PASS",
+    "reason": "No exit IPs are approved. Review Allowed IPs in Settings.",
+    "lookup_status": {
+      "ready": {}
+    },
+    "lookup_error": null,
+    "settled_poll_seconds": 12,
+    "automatic_lookup_or_open_events": 0,
+    "incoming_ssh": true,
+    "incoming_screen_sharing": true,
+    "same_core_instance": true,
+    "repaired_and_verified": true,
+    "direct_seconds": 11.521,
+    "native_http4": true,
+    "native_http6": true,
+    "empty_pf": true,
+    "dns_released": true
+  },
+  {
+    "id": "dual-direct-to-global-reject4",
+    "result": "PASS",
+    "reason": "The observed IPv4 exit IP is not approved. Review Allowed IPs or select another proxy.",
+    "lookup_status": {
+      "ready": {}
+    },
+    "lookup_error": null,
+    "settled_poll_seconds": 12,
+    "automatic_lookup_or_open_events": 0,
+    "incoming_ssh": true,
+    "incoming_screen_sharing": true,
+    "same_core_instance": true,
+    "repaired_and_verified": true,
+    "direct_seconds": 11.245,
+    "native_http4": true,
+    "native_http6": true,
+    "empty_pf": true,
+    "dns_released": true
+  },
+  {
+    "id": "dual-direct-to-global-reject6",
+    "result": "PASS",
+    "reason": "The observed IPv6 exit IP is not approved. Review Allowed IPs or select another proxy.",
+    "lookup_status": {
+      "ready": {}
+    },
+    "lookup_error": null,
+    "settled_poll_seconds": 12,
+    "automatic_lookup_or_open_events": 0,
+    "incoming_ssh": true,
+    "incoming_screen_sharing": true,
+    "same_core_instance": true,
+    "repaired_and_verified": true,
+    "direct_seconds": 11.191,
+    "native_http4": true,
+    "native_http6": true,
+    "empty_pf": true,
+    "dns_released": true
+  }
+]

@@ -78,6 +78,8 @@ final class MonitoringEngine: ObservableObject {
     }
     var networkConfigurationChanged: (() -> Void)?
     var requiredCheckUnavailable: ((String) -> Void)?
+    /// A successful provider response can still be rejected by the supervisor.
+    var accessBlockReason: (() -> String?)?
     private var activeLookupID: UUID?
     private var activeLookupTask: Task<MimoSnapshot, Error>?
     @Published private(set) var preferences: MonitoringPreferences
@@ -353,8 +355,13 @@ final class MonitoringEngine: ObservableObject {
         guard var operation = manualRefresh, operation.pending else { return }
         switch status {
         case .ready:
-            operation.phase = .succeeded
-            operation.message = "Exit IP refreshed."
+            if let reason = accessBlockReason?() {
+                operation.phase = .failed
+                operation.message = "Exit IP checked. Outbound access remains blocked. \(reason)"
+            } else {
+                operation.phase = .succeeded
+                operation.message = "Exit IP refreshed."
+            }
         case .coolingDown(let date), .waitingForMinimumInterval(let date), .providerPaused(_, let date):
             operation.phase = operation.startedAt == nil ? .deferred : .failed
             let prefix = operation.startedAt == nil ? "No lookup ran." : "Refresh failed."
@@ -370,7 +377,7 @@ final class MonitoringEngine: ObservableObject {
         }
         operation.finishedAt = currentDate
         manualRefresh = operation
-        RuntimeLog.shared.info("manual_refresh_finished", fields: ["outcome": operation.phase.rawValue])
+        RuntimeLog.shared.info("manual_refresh_finished", fields: ["outcome": accessBlockReason?() != nil && status == .ready ? "blocked" : operation.phase.rawValue])
     }
 
     func loadIPinfoToken() async -> Bool {

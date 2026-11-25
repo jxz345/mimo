@@ -18,6 +18,13 @@ enum MonitoringV21Tests {
         await monitor.refresh(force: true, bypassMinimumInterval: true)
         require(monitor.manualRefresh?.phase == .succeeded && monitor.snapshot!.checkedAt > original,
                 "same-IP manual refresh must advance checked time and publish success")
+        monitor.accessBlockReason = { "The observed IPv4 exit IP is not approved." }
+        clock.advance(1)
+        await monitor.refresh(force: true, bypassMinimumInterval: true)
+        require(monitor.status == .ready && monitor.manualRefresh?.phase == .failed &&
+                monitor.manualRefresh?.message.contains("Exit IP checked. Outbound access remains blocked.") == true,
+                "a successful lookup with a rejected exit must report the access rejection, not a provider failure or access success")
+        monitor.accessBlockReason = nil
         var preferences = monitor.preferences; preferences.refreshInterval = .sixtyMinutes
         monitor.apply(preferences, requestRefresh: false)
         require(monitor.periodicRefreshScheduled, "selecting an interval enables the timer")

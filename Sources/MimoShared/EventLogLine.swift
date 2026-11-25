@@ -92,6 +92,7 @@ public enum EventLogLine {
         case "manual_refresh_finished":
             switch fields["outcome"] {
             case "succeeded": return "Refresh now completed · exit IP updated"
+            case "blocked": return "Exit IP checked · outbound access remains blocked by Allowed IPs"
             case "deferred": return "Refresh now deferred · no lookup ran; see provider availability"
             case "cancelled": return "Refresh now cancelled · networking or services changed"
             default: return "Refresh now failed · last successful IP retained"
@@ -109,6 +110,8 @@ public enum EventLogLine {
         case "mimo_transition_firewall_released": return "Verification passed; transition firewall released to profile routing"
         case "mimo_active_firewall_installed": return "Verification passed; active firewall blocks native application fallback"
         case "mimo_native_egress_updated": return "Updated verified native VPN transport permissions"
+        case "mimo_blocked_native_transport_updated": return "Outbound blocked · verified native VPN transport retained for incoming connections"
+        case "mimo_blocked_native_transport_failed": return "Blocked-mode native VPN transport update failed" + detail(fields["reason"])
         case "mimo_liveness_lost":
             if fields["heartbeatExpired"] == "true" { return "Check trigger · core heartbeat expired" }
             if fields["engineRunning"] == "false" { return "Check trigger · mihomo stopped" }
@@ -117,6 +120,7 @@ public enum EventLogLine {
         case "mimo_direct_restored", "mimo_direct_recovery_saved": return "Direct networking restored"
         case "mimo_traffic_opened": return "Exit approved · \(fields["mode"] ?? "protected")"
         case "mimo_exit_rejected": return "Exit IP rejected · traffic remains blocked"
+        case "mimo_exit_ip_rejected": return "Exit IP rejected · outbound access remains blocked" + detail(fields["reason"])
         case "mimo_private_probe_ready": return "Checking exit IP · application traffic blocked"
         case "mimo_service_changed": return "\(fields["service"] ?? "Service") · \(fields["operation"] ?? "changed")"
         case "mimo_routing_changed": return "Routing changed · \(fields["mode"] ?? "unknown")"

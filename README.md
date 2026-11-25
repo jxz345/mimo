@@ -1,9 +1,13 @@
 # Mimo for macOS
 
-**Mimo 3.0 (build 9)** provides strict IPv4 or dual-stack proxy routing and exit-IP
+**Mimo 3.0 (build 10)** provides strict IPv4 or dual-stack proxy routing and exit-IP
 monitoring. The [current implementation record](Design/MIMO_3_0_IMPLEMENTATION.md)
 separates code, executed tests and remaining qualification. Each published build
 has a distinct build number, including updates with the same marketing version.
+
+Build 10 preserves incoming TCP services while outbound access is blocked and
+improves failure messages, recovery actions and the dashboard layout. See the
+[fix and qualification record](Design/MIMO_V3_INBOUND_ACCESS_FIX.md).
 
 Requires Apple silicon and macOS 14 or later; Control Center integration requires
 macOS 26. V3 bundles the pinned, patched Mihomo engine described in
@@ -17,6 +21,13 @@ For the published release:
 ```sh
 brew install --cask jxz345/tap/mimo
 open /Applications/Mimo.app
+```
+
+To replace an existing 3.0 installation with the latest build of the same version:
+
+```sh
+brew update
+brew reinstall --cask jxz345/tap/mimo
 ```
 
 For a built v3 app, copy the complete bundle to `/Applications/Mimo.app`, then run:
@@ -75,8 +86,8 @@ private resolvers return a local negative answer. Public DoH goes through Proxy
 with no fallback. A hostname proxy needs a narrowly permitted encrypted bootstrap
 lookup; a literal proxy does not. See [the canonical profiles](#profile-templates).
 
-PF uses one flat, labeled anchor. Closed permits local control, DHCP and IPv6
-link control; Verification additionally permits the dedicated runtime group to
+PF uses one flat, labeled anchor. Closed permits local control, DHCP, IPv6
+link control and tracked incoming TCP replies; Verification additionally permits the dedicated runtime group to
 reach exact proxy TCP endpoints (or the fixed bootstrap DoH endpoint). Approved
 Rule/Global installs a persistent **active guard**: owned TUN/loopback, engine
 TCP/UDP sockets, intentional native LAN ranges, Tailnet destinations on a verified
@@ -134,16 +145,17 @@ Activate uses the same installation/conflict-consent process and restores all ro
 
 | Feature | Behavior |
 | --- | --- |
-| Native app, menu bar, widgets | Dashboard/Settings, country flags, Direct/Allowed/blocked indicators, Event Log, widgets and macOS 26 Control Center entry. |
+| Native app, menu bar, widgets | Dashboard/Settings aligned with the approved mock: fixed address rows with country flags and family verdict/time, compact equal service rows, Stop/Activate and uninstall controls. Default 1040×660 window; minimum 880×520 keeps routing controls visible. Direct/Allowed/blocked indicators, Event Log, widgets and macOS 26 Control Center entry. |
 | Shared state and ownership | Core serializes shared settings, credentials, routing, quotas, service actions and revisions across accounts. GUI clients only request actions and display results. |
 | Proxy catalog | Multiple HTTP/SOCKS5 entries; one active or None. Inactive edits save without reload. Active edits reverify protected modes; removal/None restores Direct. |
 | Local credentials | Owner-only shared password/token storage; legacy migration/import only uses Keychain. No credentials in public snapshots or artifacts. |
 | Modes and family control | Direct, Rule, Global; strict IPv4 and dual stack as described above. Family control appears only on the dashboard. |
 | Editable bypass | Add/edit/remove/reorder domain blocks and toggle each block. Apply reloads and verifies Rule; Global/Direct save for future Rule use. |
 | Allowlist and verification | Fresh family-specific observations, same-attempt/revision/generation binding, full profile/process/DNS/readiness checks and stale-result rejection. |
+| Failure and recovery | Clear exit-rejection/lookup-error messages and provider pause deadlines; relevant settings, retry and explicit Direct actions. Core owns bounded scheduling and cancellation; polling does not retry a failed lookup. Direct does not require an approved exit or working IP provider. |
 | Canonical private profiles | Annotated templates and installed profiles from one typed renderer; escaped credentials, stdin syntax checks, private controller reload; credential-free startup profile. |
 | Native/private DNS | Core-owned temporary override, search/split-scope preservation, Quad100 policy, private negative answers and no public fallback. Disconnected suffix knowledge is retained without retaining stale resolver addresses. |
-| Firewall protection | Flat closed/probe/active guard, exact readback and close epochs; native application fallback denied in protected modes, no floating Mimo states; scoped signed Tailscale transport including pre-interface startup; private Tailnet traffic requires its verified native interface. Direct/cleanup releases filtering. Independent boot/power/session/health handling; no utun provider. |
+| Firewall protection | Flat closed/probe/active guard, exact readback and close epochs; native application fallback denied in protected modes; incoming TCP services use interface-bound states, while outbound grants remain stateless; scoped signed Tailscale transport including pre-interface startup; private Tailnet traffic requires its verified native interface. Direct/cleanup releases filtering. Independent boot/power/session/health handling; no utun provider. |
 | Failure recovery | Detected process/profile/DNS/route failures close and reverify. Stopped-service intent and completed release prevent unwanted restart/reblocking. |
 | Monitoring | One-hour default, Never disables periodic checks only; manual/startup/event/recovery checks, provider rotation, ten-minute failure cooldown and server Retry-After. |
 | Providers and quotas | IPinfo Lite, ipapi.co, IPWho.is, ipapi.is; per-provider daily caps and shared cooldown/budget. Managed IPv4/IPv6 observations each count as actual HTTP requests. |
@@ -204,7 +216,7 @@ Older builds need the current installer to receive the updated cleanup behavior.
 
 ### Recover leftover network controls
 
-The updated cleanup enumerates **all descendants of `com.apple/000.mimo`**, including old or unreferenced child anchors. It clears Mimo's filter/NAT rules and tables, verifies the remaining policies are empty, removes the persistent boot entry and resolver, releases only Mimo's recorded PF references, and restores saved IPv6 flags. Final release does not disable PF globally or change another VPN’s rules. Before teardown, the transition guard closes and flushes connection states so an existing connection cannot bypass the guard.
+The updated cleanup enumerates **all descendants of `com.apple/000.mimo`**, including old or unreferenced child anchors. It clears Mimo's filter/NAT rules and tables, verifies the remaining policies are empty, removes the persistent boot entry and resolver, releases only Mimo's recorded PF references, and restores saved IPv6 flags. Final release does not disable PF globally or change another VPN’s rules. Before teardown, the transition guard closes and revokes original outbound PF states so existing outbound connections cannot bypass it. Tracked incoming TCP service connections are retained; cleanup does not globally flush the state table.
 
 After refreshing system DNS caches, cleanup checks the native route to Tailscale's Quad100 resolver and makes a fresh TCP MagicDNS reverse lookup for this Mac's Tailnet address. A connected Tailnet that fails this check prevents a successful completion receipt; logs distinguish that failure from Tailscale being disconnected. This verifies native routing/DNS, not every peer's reachability or access policy.
 
@@ -321,10 +333,39 @@ installed VM recovery/removal and failed-verification tests are
 `v3_lifecycle_test.py` and `v3_failure_test.py` in the same directory. These require
 the named disposable test VM and are not host cleanup commands.
 
+## Unapproved exit IPs and incoming access
+
+Rule/Global keeps outbound application traffic blocked when the allowlist is empty
+or either required exit is unapproved. It never adds the observed address to the
+allowlist or silently selects Direct. The dashboard retains separate IPv4/IPv6
+observations and offers **Review allowed IPs**, **Change proxy**, **Retry verification**
+and **Use Direct**. A successful IP lookup with denied access reports that distinction
+in Refresh now and Event Log; it is not a provider failure. The warning does not
+activate the app or steal keyboard focus from another app.
+
+Mimo tracks peer-initiated TCP connections on interfaces other than its own TUN or loopback,
+so SSH, Screen Sharing and TCP web servers can send replies during a block.
+Loopback connections remain stateless so public proxy/DNS sessions cannot bypass closure.
+The rule is not `quick`: administrator ingress restrictions still apply. Verified
+Tailscale transport is retained in a settled blocked state for incoming Tailnet
+connections. This is not a blanket outbound or UDP exemption. Connections already
+established before Mimo began tracking them, UDP server protocols and public
+asymmetric return routes require separate qualification. See
+[the incoming-access regression record](Design/MIMO_V3_INBOUND_ACCESS_FIX.md).
+
+If the proxy or IP provider fails, the dashboard retains the failure reason and
+shows the provider pause deadline. Use **Change proxy** or **Check IP provider**
+to correct it, then retry when the provider permits. **Use Direct** restores
+native networking without an approved exit or a successful lookup, including
+when verification is pending. A failed cleanup is shown as an error rather than
+claiming Direct is ready. Core owns scheduling and cancellation; opening multiple
+dashboards or polling health does not create additional verification loops.
+
 ## Runtime diagnostics
 
 Event Log includes `mimo_installation`, `mimo_pf_policy_installed`,
-`mimo_gate_closed`, `mimo_private_probe_ready`, `mimo_readiness_passed`,
+`mimo_gate_closed`, `mimo_exit_ip_rejected`, `mimo_blocked_native_transport_updated`,
+`mimo_blocked_native_transport_failed`, `manual_refresh_finished` (including `blocked`), `mimo_private_probe_ready`, `mimo_readiness_passed`,
 `mimo_traffic_opened`, `mimo_active_firewall_installed`, `mimo_native_egress_updated` (scope counts only; historically `mimo_transition_firewall_released`),
 `mimo_dns_removed_and_drained`, `mimo_direct_network_released`,
 `mimo_native_release_checked`, `mimo_native_release_check_failed`,

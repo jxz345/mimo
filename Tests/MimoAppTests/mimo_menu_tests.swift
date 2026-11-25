@@ -40,20 +40,12 @@ enum MimoMenuTests {
         var mismatch = policy.state
         mismatch.observedIP = MimoIPObservation(address: "198.51.100.23", checkedAt: now)
         require(presentation(mismatch).country == nil, "a cached country for another IP cannot represent the approved exit")
-        var tailnet = policy.state
-        tailnet.services = [.init(id: .tailnetProvider, health: .stopped, transport: "HTTP")]
-        require(presentation(tailnet).kind == .verified,
-                "an intentionally stopped optional provider must not warn about approved public access")
-        tailnet.services = [.init(id: .tailnetProvider, health: .unavailable, transport: "HTTP")]
-        let warning = presentation(tailnet)
-        require(warning.kind == .tailnetWarning && warning.country == snapshot.countryFlag,
-                "a failed enabled provider must warn without calling approved public access blocked")
         var blocked = policy.state
         blocked.phase = .blocked; blocked.effectiveMode = nil
         blocked.blockingIP = MimoIPObservation(address: "198.51.100.77", checkedAt: now)
         blocked.reason = "The exit IP is not on the allowed list."
         let rejected = presentation(blocked)
-        require(rejected.kind == .blocked && rejected.country == snapshot.countryFlag, "blocked state retains the last known country beside its stop icon")
+        require(rejected.kind == .blocked && rejected.country == nil, "blocked state must not attribute the prior IP country to a different rejected IP")
         require(rejected.address == "198.51.100.77" && rejected.accessibilityText.contains("198.51.100.77"),
                 "the exact triggering IPv4 address must be accessible")
         blocked.phase = .checking
@@ -149,7 +141,7 @@ enum MimoMenuTests {
 
         let directChecking = MimoMenuPresentation(routing: locatedDirect, snapshot: snapshot, preferences: preferences, date: now, monitoringStatus: .refreshing)
         let directFailed = MimoMenuPresentation(routing: locatedDirect, snapshot: snapshot, preferences: preferences, date: now, monitoringStatus: .failed("Offline"))
-        let scenarios = [presentation(locatedDirect), unknownDirect, directChecking, directFailed, startup, verified, unknownVerified, rejected, warning, unavailable]
+        let scenarios = [presentation(locatedDirect), unknownDirect, directChecking, directFailed, startup, verified, unknownVerified, rejected, unavailable]
         for dark in [false, true] {
             for scenario in scenarios {
                 let label = MimoMenuBarLabel(presentation: scenario)

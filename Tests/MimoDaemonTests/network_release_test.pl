@@ -92,6 +92,7 @@ for my $status (0, 1, 124) {
         my $command = join(' ', @_[2..$#_]);
         push @steps, $command;
         return "block drop out quick all label \"mimo:transition:deny\"\n" if $command =~ /-sr$/;
+        return "en0 tcp 192.0.2.10:22 <- 192.0.2.20:50001 ESTABLISHED:ESTABLISHED\nen0 tcp 192.0.2.10:50000 -> 203.0.113.10:443 ESTABLISHED:ESTABLISHED\n" if $command =~ /-ss$/;
         return '';
     };
     prepare_network();
@@ -100,6 +101,8 @@ for my $status (0, 1, 124) {
     my ($denial) = grep { $steps[$_] =~ /-sr$/ } 0..$#steps;
     my ($dns) = grep { $steps[$_] eq 'dns-remove' } 0..$#steps;
     ok($denial < $dns, 'cleanup confirms the guard before draining DNS');
+    ok((grep { /-k 192\.0\.2\.10$/ } @steps) && !(grep { /-k (?:0\.0\.0\.0|::)/ } @steps),
+       'cleanup revokes outbound sources without a global state flush');
     @steps = ();
     local *required = sub { '' };
     ok(!eval { prepare_network(); 1 }, 'failed close readback aborts cleanup');

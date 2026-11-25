@@ -75,7 +75,9 @@ def active_guard(rules):
     lines = rules.splitlines()
     return (bool(lines) and lines[-1] == 'block drop out quick all label "mimo:active:deny-native-fallback"'
             and 'mimo:active:tunnel' in rules and 'mimo:active:engine' in rules
-            and all('no state' in line for line in lines if line.startswith('pass '))
+            and all('no state' in line for line in lines if line.startswith('pass out '))
+            and 'pass in on ! utun239 proto tcp all flags S/SA keep state (if-bound) label "mimo:inbound:tcp"' in lines
+            and 'pass in on lo0 all no state label "mimo:inbound:loopback"' in lines
             and not any(line.startswith('anchor ') for line in lines))
 
 

@@ -85,7 +85,6 @@ enum ClientConnectionTests {
         try await settle()
         require(monitor.hasSupervisorReply(), "A fresh supervisor reply must remain distinguishable")
         require(monitor.serviceHealthLabel(.core, at: .now).hasPrefix("Running("), "Process running must not claim healthy core communication")
-        require(monitor.serviceHealthLabel(.tailnetProvider, at: .now) == "No connection", "Supervisor cannot establish provider health")
         require(!monitor.hasSupervisorReply(at: Date.now.addingTimeInterval(11)), "Supervisor replies must expire")
         require(monitor.serviceHealthLabel(.core, at: Date.now.addingTimeInterval(11)) == "No connection", "Expired supervisor data must not imply live health")
         for dark in [false, true] {

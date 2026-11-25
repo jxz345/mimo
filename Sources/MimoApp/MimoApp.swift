@@ -182,10 +182,10 @@ final class DashboardWindowController: NSObject, NSWindowDelegate {
         // Content scrolls when needed, while the footer remains available.
         let hostingController = fixedSizeHostingController(
             DashboardView(monitor: monitor)
-                .frame(minWidth: 520, minHeight: 380)
+                .frame(minWidth: 880, minHeight: 520)
         )
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 1100, height: 760),
+            contentRect: NSRect(x: 0, y: 0, width: 1040, height: 660),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
@@ -193,8 +193,10 @@ final class DashboardWindowController: NSObject, NSWindowDelegate {
         window.identifier = NSUserInterfaceItemIdentifier("mimo-dashboard")
         window.title = "Mimo"
         window.contentViewController = hostingController
-        window.setContentSize(NSSize(width: 1100, height: 760))
-        window.contentMinSize = NSSize(width: 520, height: 380)
+        window.setContentSize(NSSize(width: 1040, height: 660))
+        // Keep all mode controls visible. Narrower sizes clip the shared
+        // toolbar, including the recovery controls, before content can scroll.
+        window.contentMinSize = NSSize(width: 880, height: 520)
         window.isReleasedWhenClosed = false
         window.level = .normal
         window.hidesOnDeactivate = false

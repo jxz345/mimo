@@ -20,7 +20,131 @@ enum MimoCoordinatorTests {
         try await approvalProgressWaitsAndCannotUndoDirect()
         try await failedPreparationCannotProbe()
         try await supervisorEventInvalidatesWithoutDuplicateClose()
+        try await exceptionRecoveryMatrix()
+        try await directCancelsPendingLookupMatrix()
         print("PASS: stale supervisor replies, interrupted preparation/probes, credential mutation fencing and Direct failure isolation")
+    }
+
+    private static func directCancelsPendingLookupMatrix() async throws {
+        for mode in [ProxyMode.rule, .global] {
+            for family in [MimoNetworkFamily.ipv4, .dual] {
+                let fixture = Fixture(mode: mode, family: family)
+                let coordinator = fixture.coordinator()
+                fixture.holdLookup = true
+                let pending = Task { try await coordinator.lookup(Fixture.lookupConfiguration) }
+                try await wait { fixture.lookupGate.waiting }
+                var direct = fixture.configuration; direct.mode = .direct
+                // This must return before the pending network request does.
+                await coordinator.update(configuration: direct, allowlist: fixture.allowed, revision: 2)
+                require(coordinator.state.allowsTraffic && coordinator.state.effectiveMode == .direct,
+                        "Direct must restore access without waiting for the stalled HTTP lookup")
+                fixture.lookupGate.resume(Fixture.snapshot)
+                try await cancelled(pending)
+                require(fixture.approvals.isEmpty && coordinator.state.effectiveMode == .direct,
+                        "The late lookup must not undo Direct or authorize a partial-family result")
+            }
+        }
+        print("PASS: 4 pending-lookup Direct cancellation cases across Rule/Global and IPv4/dual")
+    }
+
+    private static func exceptionRecoveryMatrix() async throws {
+        let failures: [(String, LookupError)] = [
+            ("proxy refused", .transport("Proxy connection refused")),
+            ("proxy timed out", .transport("Proxy connection timed out")),
+            ("proxy authentication", .httpStatus(407, retryAfter: nil)),
+            ("IP provider unavailable", .httpStatus(503, retryAfter: nil)),
+            ("invalid IP provider response", .invalidResponse)
+        ]
+        var rows = 0
+        for mode in [ProxyMode.rule, .global] {
+            for family in [MimoNetworkFamily.ipv4, .dual] {
+                for startInDirect in [false, true] {
+                    for (name, failure) in failures {
+                        let fixture = Fixture(mode: startInDirect ? .direct : mode, family: family)
+                        let coordinator = fixture.coordinator()
+                        if startInDirect {
+                            await coordinator.update(configuration: fixture.configuration, allowlist: fixture.allowed, revision: 1)
+                        } else {
+                            _ = try await coordinator.lookup(Fixture.lookupConfiguration)
+                        }
+                        require(coordinator.state.allowsTraffic, "\(name): establish the starting mode")
+                        let count = fixture.approvals.count
+                        fixture.lookupFailure = failure
+                        // A successful IPv4 leg must never authorize a failed IPv6 leg.
+                        fixture.failureFamily = family == .dual ? .ipv6 : .ipv4
+                        var protected = fixture.configuration; protected.mode = mode
+                        if startInDirect {
+                            await coordinator.update(configuration: protected, allowlist: fixture.allowed, revision: 2)
+                            require(!coordinator.state.allowsTraffic && coordinator.state.effectiveMode == nil &&
+                                    fixture.lookupCount == 0 && fixture.closeRequests > 0,
+                                    "Direct→\(mode): close before attempting a potentially failing lookup")
+                        }
+                        do {
+                            _ = try await coordinator.lookup(Fixture.lookupConfiguration)
+                            fatalError("\(name): failure was swallowed")
+                        } catch let error as LookupError {
+                            require(error == failure, "\(name): preserve the lookup error for monitoring feedback")
+                        }
+                        require(coordinator.state.phase == .blocked && !coordinator.state.allowsTraffic &&
+                                coordinator.state.effectiveMode == nil && fixture.approvals.count == count &&
+                                coordinator.state.configuration.mode == mode,
+                                "\(name): no cached approval, partial-family approval or automatic Direct fallback")
+                        let failedCalls = fixture.lookupCount
+                        for _ in 0..<5 { await coordinator.refreshSupervisorState() }
+                        require(fixture.lookupCount == failedCalls && !coordinator.state.allowsTraffic,
+                                "Status polling must not trigger a failure/retry loop")
+                        var direct = protected; direct.mode = .direct
+                        await coordinator.update(configuration: direct, allowlist: fixture.allowed, revision: 3)
+                        require(coordinator.state.allowsTraffic && coordinator.state.effectiveMode == .direct &&
+                                fixture.lookupCount == failedCalls,
+                                "Use Direct must restore networking while the failure still exists, without an IP lookup")
+                        await coordinator.update(configuration: protected, allowlist: fixture.allowed, revision: 4)
+                        fixture.lookupFailure = nil
+                        _ = try await coordinator.lookup(Fixture.lookupConfiguration)
+                        require(coordinator.state.allowsTraffic && coordinator.state.effectiveMode == mode &&
+                                fixture.approvals.count == count + 1,
+                                "\(name): fresh successful verification restores the selected mode")
+                        rows += 1
+                    }
+                    var rejectedLists = [AllowedIPList(addresses: []), AllowedIPList(addresses: ["192.0.2.99"])]
+                    if family == .dual { rejectedLists.append(AllowedIPList(addresses: ["192.0.2.10"])) }
+                    for rejected in rejectedLists {
+                        let fixture = Fixture(mode: startInDirect ? .direct : mode, family: family)
+                        let coordinator = fixture.coordinator()
+                        if startInDirect {
+                            await coordinator.update(configuration: fixture.configuration, allowlist: fixture.allowed, revision: 1)
+                        } else {
+                            _ = try await coordinator.lookup(Fixture.lookupConfiguration)
+                        }
+                        require(coordinator.state.allowsTraffic, "Establish the allowlist test's starting mode")
+                        fixture.allowed = rejected
+                        var protected = fixture.configuration; protected.mode = mode
+                        await coordinator.update(configuration: protected, allowlist: rejected, revision: 2)
+                        require(!coordinator.state.allowsTraffic && coordinator.state.effectiveMode == nil,
+                                "Changing mode or allowlist must close before fresh verification")
+                        _ = try await coordinator.lookup(Fixture.lookupConfiguration)
+                        require(coordinator.state.phase == .blocked && coordinator.state.rejectedExit != nil &&
+                                coordinator.state.effectiveMode == nil && coordinator.state.configuration.mode == mode,
+                                "Unapproved exit: successful lookup remains a policy rejection in the chosen mode")
+                        let failedCalls = fixture.lookupCount
+                        for _ in 0..<5 { await coordinator.refreshSupervisorState() }
+                        require(fixture.lookupCount == failedCalls, "Rejection must not create a polling-triggered lookup loop")
+                        var direct = protected; direct.mode = .direct
+                        await coordinator.update(configuration: direct, allowlist: rejected, revision: 3)
+                        require(coordinator.state.allowsTraffic && coordinator.state.effectiveMode == .direct &&
+                                fixture.lookupCount == failedCalls,
+                                "Direct remains usable even with an empty or incorrect allowlist")
+                        fixture.allowed = AllowedIPList(addresses: ["192.0.2.10", "2001:db8::10"])
+                        await coordinator.update(configuration: protected, allowlist: fixture.allowed, revision: 4)
+                        _ = try await coordinator.lookup(Fixture.lookupConfiguration)
+                        require(coordinator.state.allowsTraffic, "Allowlist correction requires fresh verification")
+                        rows += 1
+                    }
+                }
+            }
+        }
+        require(rows == 60, "All failure, starting-mode and recovery combinations must execute")
+        print("PASS: 60 exception/recovery simulations across Direct→Rule/Global and active Rule/Global, IPv4/dual (unapproved/empty/IPv6-only exits, proxy refusal/timeout/authentication, provider outage and invalid responses)")
     }
 
     private static func directFamilySurvivesSupervisorPoll() async throws {
@@ -321,6 +445,9 @@ enum MimoCoordinatorTests {
             MimoSnapshot(ipAddress: "192.0.2.10", countryCode: "SG", countryName: "Singapore", provider: .ipWhois)
         }
         let configuration: MimoConfiguration
+        var allowed = Fixture.allowed
+        var lookupFailure: LookupError?
+        var failureFamily: MimoAddressFamily?
         var policy: MimoAccessPolicy
         var holdHeartbeat = false
         var failHeartbeat = false
@@ -343,23 +470,29 @@ enum MimoCoordinatorTests {
         let approvalGate = Gate<MimoRoutingState>()
         let lookupGate = Gate<MimoSnapshot>()
 
-        init(mode: ProxyMode = .rule) {
+        init(mode: ProxyMode = .rule, family: MimoNetworkFamily = .ipv4) {
             var configuration = MimoConfiguration()
             configuration.mode = mode
+            configuration.networkFamily = family
             configuration.proxy = MimoProxy(ClashProxySettings(name: "Test", type: .socks5,
                                                                server: "192.0.2.20", port: 1080))
             self.configuration = configuration
+            if family == .dual { allowed = AllowedIPList(addresses: ["192.0.2.10", "2001:db8::10"]) }
             policy = MimoAccessPolicy(configuration: configuration)
         }
 
         func coordinator() -> MimoCoordinator {
-            MimoCoordinator(configuration: configuration, allowlist: Self.allowed, revision: 1,
-                            transport: { try await self.handle($0, progress: $1) }, lookup: { _, protected in
+            MimoCoordinator(configuration: configuration, allowlist: allowed, revision: 1,
+                            transport: { try await self.handle($0, progress: $1) }, lookup: { request, protected in
                 require(protected, "fixture probes must use the protected path")
                 self.lookupCount += 1
+                if let failure = self.lookupFailure, self.failureFamily == nil || request.family == self.failureFamily { throw failure }
                 if self.holdLookup {
                     self.holdLookup = false
                     return await self.lookupGate.wait()
+                }
+                if request.family == .ipv6 {
+                    return MimoSnapshot(ipAddress: "2001:db8::10", countryCode: "SG", countryName: "Singapore", provider: request.provider)
                 }
                 return Self.snapshot
             })
@@ -413,7 +546,7 @@ enum MimoCoordinatorTests {
                     return await approvalGate.wait()
                 }
                 approvals.append(message.verification!)
-                _ = policy.approve(address: message.address!, at: .now, allowlist: Self.allowed,
+                _ = policy.approve(observations: message.exitObservations!, allowlist: allowed,
                                    verification: message.verification!, runtimeMatches: true)
             case .service, .profile: throw DaemonFailure.invalidRequest
             }

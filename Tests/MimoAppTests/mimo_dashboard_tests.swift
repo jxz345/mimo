@@ -7,7 +7,6 @@ enum MimoDashboardTests {
         let now = Date()
         var settings = MachineSettings()
         settings.allowlist = AllowedIPList(addresses: ["192.0.2.10"])
-        settings.tailscaleProviderEnabled = true
         var presentation = UserPresentationPreferences(); presentation.imported = true
         var state = DaemonState(instanceID: UUID(), build: "UI acceptance fixture", initialized: true, revision: 1,
             settings: settings, presentation: presentation,
@@ -27,12 +26,11 @@ enum MimoDashboardTests {
         routing.services = [
             .init(id: .core, health: .running, transport: "XPC / Mach"),
             .init(id: .mihomo, health: .running, transport: "HTTP / SOCKS · Unix controller", address: "127.0.0.1", port: 7890, bindingConfirmed: true),
-            .init(id: .profileHosting, health: .running, transport: "Private file delivery"),
-            .init(id: .tailnetProvider, health: .running, transport: "HTTP", address: "127.0.0.1", port: 18766, bindingConfirmed: true)
+            .init(id: .profileHosting, health: .running, transport: "Private file delivery")
         ]
         for index in routing.services.indices { routing.services[index].checkedAt = now.addingTimeInterval(Double(-index - 2)) }
         for dark in [false, true] {
-            for scenario in ["released", "releasing", "release-failed", "direct", "rule", "background-audit", "global", "blocked", "checking", "empty", "tailnet-stopped", "long-text", "direct-checking", "direct-failed", "unqualified", "infrastructure-failed", "infrastructure-stale", "services-stale", "services-unknown"] {
+            for scenario in ["released", "releasing", "release-failed", "direct", "rule", "background-audit", "global", "blocked", "checking", "empty", "long-text", "proxy-failed", "provider-paused", "direct-checking", "direct-failed", "unqualified", "infrastructure-failed", "infrastructure-stale", "services-stale", "services-unknown"] {
                 var value = routing
                 value.configuration.mode = scenario.hasPrefix("direct") ? .direct : scenario == "global" ? .global : .rule
                 value.phase = .active; value.effectiveMode = value.configuration.mode
@@ -41,8 +39,8 @@ enum MimoDashboardTests {
                 if ["blocked", "checking", "empty", "long-text"].contains(scenario) {
                     value.phase = scenario == "checking" ? .checking : .blocked
                     value.effectiveMode = nil
-                    value.reason = scenario == "empty" ? "The allowed exit IP list is empty." : "Exit IP 198.51.100.77 is not on the allowed list."
-                    if scenario != "empty" { value.blockingIP = .init(address: "198.51.100.77", checkedAt: now) }
+                    value.reason = scenario == "empty" ? "No exit IPs are approved. Review Allowed IPs in Settings." : "Exit IP 198.51.100.77 is not on the allowed list."
+                    value.blockingIP = .init(address: "198.51.100.77", checkedAt: now)
                 }
                 if ["released", "releasing", "release-failed"].contains(scenario) {
                     value.configuration.mode = .direct; value.networkReleaseRequested = true
@@ -50,10 +48,9 @@ enum MimoDashboardTests {
                     value.phase = scenario == "released" ? .active : scenario == "releasing" ? .restoringDirect : .unavailable
                     value.effectiveMode = scenario == "released" ? .direct : nil
                     value.reason = scenario == "released" ? "Mimo routing is off. Other VPNs can manage networking." : scenario == "releasing" ? "Stopping engine and restoring system networking…" : "Network cleanup incomplete: DNS cleanup failed. Retry Stop engine."
-                    value.services[1].health = .stopped; value.services[2].health = .suspended; value.services[3].health = .suspended
+                    value.services[1].health = .stopped; value.services[2].health = .suspended
                     value.infrastructure = .init(pf: .released, launchd: .healthy, checkedAt: now)
                 }
-                if scenario == "tailnet-stopped" { value.services[3].health = .stopped; value.services[3].bindingConfirmed = false }
                 if scenario == "infrastructure-failed" {
                     value.infrastructure = .init(pf: .failed, launchd: .failed, checkedAt: now)
                     value.phase = .unavailable; value.effectiveMode = nil
@@ -67,6 +64,15 @@ enum MimoDashboardTests {
                     value.reason += " Open Settings to review the proxy configuration and add the expected exit address before retrying."
                 }
                 state.status = scenario == "direct-checking" ? .refreshing : scenario == "direct-failed" ? .failed("The network connection was lost. Check Wi-Fi and try again.") : .ready
+                if ["proxy-failed", "provider-paused"].contains(scenario) {
+                    value.phase = .blocked; value.effectiveMode = nil; value.observedIP = nil
+                    value.reason = "Network or configuration changed. Verification is required."
+                    state.status = scenario == "proxy-failed"
+                        ? .failed("The proxy connection failed. Review the proxy server and credentials, or use Direct.")
+                        : .providerPaused(.ipinfoLite, now.addingTimeInterval(600))
+                }
+                state.indicators = MonitorIndicatorState(errorMessage: scenario == "provider-paused"
+                    ? "Unable to check the exit IP with IPinfo Lite: The proxy connection timed out." : nil)
                 if scenario == "unqualified" {
                     value.phase = .blocked; value.effectiveMode = nil; value.observedIP = nil
                     value.reason = "Network or configuration changed. Verification is required."
@@ -75,8 +81,23 @@ enum MimoDashboardTests {
                 state.routing = value
                 state.settings.allowlist = scenario == "empty" ? AllowedIPList() : settings.allowlist
                 let monitor = PublicIPMonitor(readDeactivation: { false }); monitor.receive(state)
+                if ["blocked", "checking", "empty", "proxy-failed", "provider-paused"].contains(scenario) {
+                    CredentialAppTests.require(monitor.canChangeSharedSettings,
+                        "Blocked/pending verification must leave the Direct mode action enabled")
+                }
+                if scenario == "provider-paused" {
+                    CredentialAppTests.require(monitor.statusPresentation.detail.contains("proxy connection timed out") &&
+                        monitor.statusPresentation.detail.contains("paused until") && monitor.statusPresentation.detail.contains("use Direct"),
+                        "Dashboard must retain the cause, deadline and Direct escape during cooldown")
+                }
                 try CredentialAppTests.render(DashboardView(monitor: monitor), size: NSSize(width: 1040, height: 660), dark: dark,
                     to: output.appendingPathComponent("dashboard-\(scenario)-\(dark ? "dark" : "light").png"), padding: 0)
+                if scenario == "blocked" && !dark {
+                    for width in [880] {
+                        try CredentialAppTests.render(DashboardView(monitor: monitor), size: NSSize(width: width, height: 760), dark: false,
+                            to: output.appendingPathComponent("dashboard-blocked-width-\(width).png"), padding: 0)
+                    }
+                }
             }
             state.routing = routing
             let monitor = PublicIPMonitor(readDeactivation: { false }); monitor.receive(state)

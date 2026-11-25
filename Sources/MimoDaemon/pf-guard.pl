@@ -8,6 +8,7 @@ use POSIX qw(WNOHANG);
 use JSON::PP;
 use File::Temp qw(tempfile);
 use Time::HiRes qw(time sleep);
+use Socket qw(AF_INET AF_INET6 inet_pton);
 
 my $support = '/Library/Application Support/Mimo';
 my $runtime = "$support/Runtime";
@@ -255,6 +256,33 @@ sub inspect_pf_snapshot {
     };
 }
 
+# pfctl's arrow records the original connection direction. Kill only original
+# outbound sources, never the wildcard that also destroys inbound server states.
+# Parsing is deliberately strict: an unfamiliar format must fail the close,
+# not silently report protection or fall back to flushing everyone's sessions.
+sub outbound_state_sources {
+    my ($text) = @_;
+    my %sources;
+    for my $line (split /\n/, $text) {
+        next unless $line =~ /\S/;
+        next if $line =~ / <- /;
+        die "Unrecognized PF state direction\n" unless $line =~ /^\S+\s+\S+\s+(\S+).* -> /;
+        my $source = $1;
+        $source =~ s/\[\d+\]$//; # IPv6 port notation
+        $source =~ s/^(\d+\.\d+\.\d+\.\d+):\d+$/$1/;
+        $source =~ s/%[a-zA-Z0-9]+$//;
+        die "Unrecognized PF state source\n" unless inet_pton(AF_INET, $source) || inet_pton(AF_INET6, $source);
+        $sources{$source} = 1;
+    }
+    die "Too many PF state sources\n" if keys(%sources) > 256;
+    return sort keys %sources;
+}
+
+sub revoke_outbound_states {
+    my @sources = outbound_state_sources(required('/sbin/pfctl', '-ss'));
+    required('/sbin/pfctl', '-k', $_) for @sources;
+}
+
 sub close_gate {
     my ($id) = @_;
     return with_pf_mutation(sub { close_gate_locked($id); }, 1);
@@ -277,8 +305,7 @@ sub close_gate_locked {
     }
     required('/sbin/pfctl', '-a', $anchor, '-f', $rules);
     ensure_reference($id);
-    required('/sbin/pfctl', '-k', '0.0.0.0/0');
-    required('/sbin/pfctl', '-k', '::/0');
+    revoke_outbound_states();
     my $actual = required('/sbin/pfctl', '-a', $anchor, '-sr');
     die "Independent blocking anchor is empty\n" unless $actual =~ /^block drop out quick all label "mimo:transition:deny"$/m;
     atomic_write("$runtime/guard.expected", $actual);

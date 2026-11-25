@@ -282,14 +282,15 @@ def setup():
     t.request('selectProxy',proxyID=entry['id'])
 
 
-def main():
+def main(prepared=False, faults=FAULTS):
+    assert faults and set(faults) <= set(FAULTS)
     containment()
     try:
         # A Direct positive control proves the native-attempt detector works.
         traffic=Traffic('detector-direct-control');time.sleep(2);packets=traffic.finish()
         assert {x['family'] for x in packets}=={4,6}, 'Detector lacks a family positive control'
         (ROOT/'detector.json').write_text(json.dumps({'both_families_detected':True,'native_attempts':len(packets)}))
-        setup()
+        if not prepared: setup()
         for family,mode in itertools.product(('ipv4','dual'),('rule','global')):
             t.route(mode,family);approved(mode,family)
             label=family+'-'+mode+'-baseline'; traffic=Traffic(label);time.sleep(3);packets=traffic.finish()
@@ -306,7 +307,7 @@ def main():
                             'echo_send_attempts':echo_attempts});save()
             print(label+': '+RESULTS[-1]['result'],flush=True)
             assert valid,label
-            for fault in FAULTS: run_case(family,mode,fault)
+            for fault in faults: run_case(family,mode,fault)
     finally:
         try: t.route('direct'); t.wait_active('direct')
         finally: t.run(['/sbin/pfctl','-a',LAB,'-F','rules'])

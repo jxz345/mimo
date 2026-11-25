@@ -1,0 +1,237 @@
+[
+  {
+    "id": "ipv4-rule-active",
+    "result": "PASS",
+    "fresh_http4": true,
+    "fresh_http6": true,
+    "ssh_banner": true,
+    "screen_sharing_banner": true,
+    "existing_stream4": true,
+    "existing_stream6": true
+  },
+  {
+    "id": "ipv4-rule-local-proxy-closed",
+    "result": "PASS",
+    "fresh_http4": true,
+    "fresh_http6": true,
+    "ssh_banner": true,
+    "screen_sharing_banner": true,
+    "existing_stream4": true,
+    "existing_stream6": true
+  },
+  {
+    "id": "ipv4-rule-empty-allowlist",
+    "result": "PASS",
+    "fresh_http4": true,
+    "fresh_http6": true,
+    "ssh_banner": true,
+    "screen_sharing_banner": true,
+    "existing_stream4": true,
+    "existing_stream6": true
+  },
+  {
+    "id": "ipv4-rule-rejected-refresh",
+    "result": "PASS",
+    "fresh_http4": true,
+    "fresh_http6": true,
+    "ssh_banner": true,
+    "screen_sharing_banner": true,
+    "existing_stream4": true,
+    "existing_stream6": true
+  },
+  {
+    "id": "ipv4-rule-rejected-ipv4",
+    "result": "PASS",
+    "fresh_http4": true,
+    "fresh_http6": true,
+    "ssh_banner": true,
+    "screen_sharing_banner": true,
+    "existing_stream4": true,
+    "existing_stream6": true
+  },
+  {
+    "id": "ipv4-global-active",
+    "result": "PASS",
+    "fresh_http4": true,
+    "fresh_http6": true,
+    "ssh_banner": true,
+    "screen_sharing_banner": true,
+    "existing_stream4": true,
+    "existing_stream6": true
+  },
+  {
+    "id": "ipv4-global-local-proxy-closed",
+    "result": "PASS",
+    "fresh_http4": true,
+    "fresh_http6": true,
+    "ssh_banner": true,
+    "screen_sharing_banner": true,
+    "existing_stream4": true,
+    "existing_stream6": true
+  },
+  {
+    "id": "ipv4-global-empty-allowlist",
+    "result": "PASS",
+    "fresh_http4": true,
+    "fresh_http6": true,
+    "ssh_banner": true,
+    "screen_sharing_banner": true,
+    "existing_stream4": true,
+    "existing_stream6": true
+  },
+  {
+    "id": "ipv4-global-rejected-refresh",
+    "result": "PASS",
+    "fresh_http4": true,
+    "fresh_http6": true,
+    "ssh_banner": true,
+    "screen_sharing_banner": true,
+    "existing_stream4": true,
+    "existing_stream6": true
+  },
+  {
+    "id": "ipv4-global-rejected-ipv4",
+    "result": "PASS",
+    "fresh_http4": true,
+    "fresh_http6": true,
+    "ssh_banner": true,
+    "screen_sharing_banner": true,
+    "existing_stream4": true,
+    "existing_stream6": true
+  },
+  {
+    "id": "dual-rule-active",
+    "result": "PASS",
+    "fresh_http4": true,
+    "fresh_http6": true,
+    "ssh_banner": true,
+    "screen_sharing_banner": true,
+    "existing_stream4": true,
+    "existing_stream6": true
+  },
+  {
+    "id": "dual-rule-local-proxy-closed",
+    "result": "PASS",
+    "fresh_http4": true,
+    "fresh_http6": true,
+    "ssh_banner": true,
+    "screen_sharing_banner": true,
+    "existing_stream4": true,
+    "existing_stream6": true
+  },
+  {
+    "id": "dual-rule-empty-allowlist",
+    "result": "PASS",
+    "fresh_http4": true,
+    "fresh_http6": true,
+    "ssh_banner": true,
+    "screen_sharing_banner": true,
+    "existing_stream4": true,
+    "existing_stream6": true
+  },
+  {
+    "id": "dual-rule-rejected-refresh",
+    "result": "PASS",
+    "fresh_http4": true,
+    "fresh_http6": true,
+    "ssh_banner": true,
+    "screen_sharing_banner": true,
+    "existing_stream4": true,
+    "existing_stream6": true
+  },
+  {
+    "id": "dual-rule-rejected-ipv4",
+    "result": "PASS",
+    "fresh_http4": true,
+    "fresh_http6": true,
+    "ssh_banner": true,
+    "screen_sharing_banner": true,
+    "existing_stream4": true,
+    "existing_stream6": true
+  },
+  {
+    "id": "dual-rule-rejected-ipv6",
+    "result": "PASS",
+    "fresh_http4": true,
+    "fresh_http6": true,
+    "ssh_banner": true,
+    "screen_sharing_banner": true,
+    "existing_stream4": true,
+    "existing_stream6": true
+  },
+  {
+    "id": "dual-global-active",
+    "result": "PASS",
+    "fresh_http4": true,
+    "fresh_http6": true,
+    "ssh_banner": true,
+    "screen_sharing_banner": true,
+    "existing_stream4": true,
+    "existing_stream6": true
+  },
+  {
+    "id": "dual-global-local-proxy-closed",
+    "result": "PASS",
+    "fresh_http4": true,
+    "fresh_http6": true,
+    "ssh_banner": true,
+    "screen_sharing_banner": true,
+    "existing_stream4": true,
+    "existing_stream6": true
+  },
+  {
+    "id": "dual-global-empty-allowlist",
+    "result": "PASS",
+    "fresh_http4": true,
+    "fresh_http6": true,
+    "ssh_banner": true,
+    "screen_sharing_banner": true,
+    "existing_stream4": true,
+    "existing_stream6": true
+  },
+  {
+    "id": "dual-global-rejected-refresh",
+    "result": "PASS",
+    "fresh_http4": true,
+    "fresh_http6": true,
+    "ssh_banner": true,
+    "screen_sharing_banner": true,
+    "existing_stream4": true,
+    "existing_stream6": true
+  },
+  {
+    "id": "dual-global-rejected-ipv4",
+    "result": "PASS",
+    "fresh_http4": true,
+    "fresh_http6": true,
+    "ssh_banner": true,
+    "screen_sharing_banner": true,
+    "existing_stream4": true,
+    "existing_stream6": true
+  },
+  {
+    "id": "dual-global-rejected-ipv6",
+    "result": "PASS",
+    "fresh_http4": true,
+    "fresh_http6": true,
+    "ssh_banner": true,
+    "screen_sharing_banner": true,
+    "existing_stream4": true,
+    "existing_stream6": true
+  },
+  {
+    "id": "dual-global-outbound-states-revoked",
+    "result": "PASS",
+    "fresh_http4": true,
+    "fresh_http6": true,
+    "ssh_banner": true,
+    "screen_sharing_banner": true,
+    "existing_stream4": true,
+    "existing_stream6": true
+  },
+  {
+    "id": "saved-settings-restored",
+    "result": "PASS",
+    "phase": "blocked"
+  }
+]

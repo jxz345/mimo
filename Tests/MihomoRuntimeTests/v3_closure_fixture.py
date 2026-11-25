@@ -12,6 +12,8 @@ from dualstack_fixture import socks_address
 class ClosureFixture(InstalledFixture):
     def __init__(self, *args):
         super().__init__(*args)
+        # Reserve a real non-listening endpoint for connection-refused tests.
+        self.refused = self.bind(socket.AF_INET, socket.SOCK_STREAM, self.bridge4)
         first = self.bind(socket.AF_INET, socket.SOCK_STREAM, self.data4)
         self.stream_port = first.getsockname()[1]
         second = self.bind(socket.AF_INET6, socket.SOCK_STREAM, self.data6, self.stream_port)
@@ -53,7 +55,7 @@ class ClosureFixture(InstalledFixture):
         return super().target(host, port, protocol)
 
     def manifest(self):
-        return dict(super().manifest(), stream_port=self.stream_port,
+        return dict(super().manifest(), stream_port=self.stream_port, refused_port=self.refused.getsockname()[1],
                     public4='203.0.113.70', public6='2001:db8:33::10',
                     dns4='203.0.113.53', dns6='2001:db8:33::53')
 

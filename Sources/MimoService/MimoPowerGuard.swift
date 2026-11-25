@@ -243,10 +243,19 @@ final class MimoPowerGuard: @unchecked Sendable {
             // One atomic root replacement also revokes private-probe access.
             try command(["-a", anchor, "-f", "-"], input: Data(MimoFirewallPolicy.startupBlocking.utf8))
             timing.record("deny_barrier")
-            try command(["-k", "0.0.0.0/0"])
-            try command(["-k", "::/0"])
+            try revokeOutboundStates()
             timing.record("deny_states")
             return try confirm()
+        }
+    }
+
+    static func revokeOutboundStates() throws {
+        let result = BoundedProcess.run("/sbin/pfctl", ["-ss"], timeout: 2, outputLimit: 1_048_576)
+        guard result.status == 0 else {
+            throw MimoRuntimeError.unavailable("Outbound connection revocation could not be confirmed. Incoming sessions were retained.")
+        }
+        for source in try MimoFirewallPolicy.outboundStateSources(result.text) {
+            try command(["-k", source])
         }
     }
 

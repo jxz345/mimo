@@ -138,6 +138,7 @@ class Fixture:
         self.lock = threading.RLock()
         self.done = threading.Event()
         self.proxy_off = False
+        self.provider_status = 200
         self.start_http(False)
         self.start_http(True)
         self.start_udp()
@@ -231,7 +232,7 @@ class Fixture:
                     value = provider(self.headers.get('Host', '').split(':')[0], parsed.path, family)
                     if value is not None:
                         data = json.dumps(value).encode()
-                        self.send_response(200); self.send_header('Content-Type', 'application/json')
+                        self.send_response(fixture.provider_status); self.send_header('Content-Type', 'application/json')
                         self.send_header('Content-Length', str(len(data))); self.end_headers(); self.wfile.write(data)
                         return
                 parts = parsed.path.strip('/').split('/')
@@ -340,6 +341,10 @@ class Fixture:
             client.settimeout(6)
             version, count = exact(client, 2)
             methods = exact(client, count)
+            if self.fault == 'stall':
+                self.record('proxy_stalled')
+                self.done.wait(60)
+                return
             if self.fault == 'require_auth' and version == 5 and 2 in methods:
                 client.sendall(b'\x05\x02')
                 auth_version, user_len = exact(client, 2)
@@ -501,7 +506,7 @@ class Fixture:
                         assert value['mode'] in MODES
                         fixture.mode = value['mode']
                     if 'fault' in value:
-                        assert value['fault'] in ('', 'auth', 'require_auth', 'no_udp', 'no_domain', 'drop_udp', 'relay_unavailable', 'association_close', 'reset', 'reply_3', 'reply_7', 'reply_8')
+                        assert value['fault'] in ('', 'auth', 'require_auth', 'stall', 'no_udp', 'no_domain', 'drop_udp', 'relay_unavailable', 'association_close', 'reset', 'reply_3', 'reply_7', 'reply_8')
                         fixture.fault = value['fault']
                     if 'dns_fault' in value:
                         assert value['dns_fault'] in ('', 'nodata6', 'servfail', 'nxdomain', 'timeout')
@@ -514,6 +519,9 @@ class Fixture:
                                 pass
                     if 'proxy_off' in value:
                         fixture.proxy_off = bool(value['proxy_off'])
+                    if 'provider_status' in value:
+                        assert value['provider_status'] in (200, 503)
+                        fixture.provider_status = value['provider_status']
                     if value.get('stop'):
                         fixture.done.set()
                 self.send_response(204)

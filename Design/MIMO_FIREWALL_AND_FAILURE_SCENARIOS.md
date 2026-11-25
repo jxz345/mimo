@@ -22,6 +22,16 @@ This is a trusted-native-service exception, not protection against malicious roo
 or a compromised native VPN. The Settings Maintenance reference describes the
 current policies and copyable inspection/release/uninstall commands.
 
+The incoming-access correction adds interface-bound state for peer-initiated TCP
+on non-Mimo, non-loopback interfaces to every protected policy. Outbound-only denial must not
+silently deny TCP server replies. Original inbound states survive selective
+outbound-source revocation; global state purges are removed from core, independent
+guard and teardown. Settled blocked mode retains verified signed VPN transport,
+not general application/native access. Empty/mismatched allowlists remain a
+visible access rejection, with explicit recovery actions. The scoped evidence
+and unqualified protocol/route cases are in
+[MIMO_V3_INBOUND_ACCESS_FIX.md](MIMO_V3_INBOUND_ACCESS_FIX.md).
+
 The 2026-11-25 installed Release fault campaign has now **measured** the active
 empty-policy limitation: public fixture attempts reached native egress after all
 four engine-kill cases and one more-specific route change. An independent lab

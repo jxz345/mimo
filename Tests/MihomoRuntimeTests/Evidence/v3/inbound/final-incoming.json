@@ -1,0 +1,22 @@
+[
+  {
+    "family": "ipv4",
+    "service": "ssh",
+    "result": "PASS"
+  },
+  {
+    "family": "ipv4",
+    "service": "screen_sharing",
+    "result": "PASS"
+  },
+  {
+    "family": "ipv6",
+    "service": "ssh",
+    "result": "PASS"
+  },
+  {
+    "family": "ipv6",
+    "service": "screen_sharing",
+    "result": "PASS"
+  }
+]

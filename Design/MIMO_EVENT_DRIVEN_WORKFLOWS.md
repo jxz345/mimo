@@ -1,6 +1,6 @@
 # Mimo event-driven workflows
 
-Current v3 implementation, updated 2026-11-25. Qualification is tracked separately
+Current v3 implementation, updated 2026-11-26. Qualification is tracked separately
 in [MIMO_3_0_IMPLEMENTATION.md](MIMO_3_0_IMPLEMENTATION.md); this document is not a
 claim that every physical scenario has passed. The v3 plan contains its own
 adapted workflow specification and does not depend on historical versions of
@@ -40,11 +40,57 @@ a `mimo:` context label. Old child anchors are removed on migration/release.
 
 | Phase | Packet policy |
 | --- | --- |
-| Closed | Block public local proxy/DNS listeners; permit other loopback control, DHCP, IPv6 neighbor/router link control; deny other outbound traffic. |
+| Closed | Block public local proxy/DNS listeners; permit other loopback control, DHCP, IPv6 neighbor/router link control and replies in tracked incoming TCP connections; deny other outbound traffic. Settled blocked state may retain verified signed VPN transport for incoming Tailnet access. |
 | Verification | Closed controls plus literal IPv4 TCP proxy endpoint/port for the runtime GID. Hostname bootstrap briefly uses only the fixed encrypted bootstrap resolver. No native Tailnet, broad root/user, LAN or TUN exception. |
 | Active Rule/Global | Persistent fallback guard: owned TUN/loopback, engine TCP/UDP, intentional native destinations and link control; drop other native egress. Profile owns routing/DNS/family. |
 | Managed Direct | Empty root; no Mimo TUN/system DNS. Engine remains available with an idle profile. |
 | Released | All owned rules/children, boot references, jobs and resolver ownership removed; other owners’ PF rules/references remain. |
+
+
+Every protected policy starts with `mimo:inbound:tcp`: a non-quick incoming TCP
+SYN rule on interfaces other than `utun239`, using `keep state (if-bound)`.
+The following non-quick `mimo:inbound:loopback` rule overrides state creation on
+`lo0`. Local proxy/DNS clients cannot retain an inbound state across closure.
+Only that peer-initiated connection gains reply permission, on its interface.
+Outbound grants remain `no state`. Closure loads denial before inspecting the
+state table and revoking originating sources of outbound (`->`) states; incoming
+(`<–`, printed by pfctl as `<-`) states are retained. Unknown/oversized state
+output fails the close rather than falling back to a global purge. The core,
+independent Perl guard and standalone teardown follow this contract.
+
+After exit rejection, the supervisor publishes Blocked with both observations
+and the rejected family. Core derives authorization from that routing result,
+including an empty allowlist; a successful provider lookup cannot imply allowed
+traffic. Refresh now reports checked-but-blocked, and the GUI offers recovery
+without automatically approving the address. Its warning uses `orderFront`
+without application activation. `mimo_exit_ip_rejected` records the reason.
+
+Proxy/provider errors enter the existing bounded failure cooldown/rotation path.
+The last lookup-error indicator remains visible alongside the pause deadline;
+entering cooldown must not erase the failure cause. A successful check clears the
+indicator. Exit-policy rejection takes precedence over an unrelated old lookup
+error. State subscriptions and health polls do not request another lookup.
+Explicit retry still observes provider restrictions; it does not spin until an
+exit becomes approved. Event Log distinguishes lookup failure, provider pause,
+manual deferral and policy rejection.
+
+Explicit Direct supersedes preparation, HTTP verification and readiness. Late
+results cannot reopen the old mode. Restoring native networking requires no
+provider success or allowlist approval; core confirms DNS/TUN/PF release before
+publishing Active Direct. A failed restore remains an error, with cleanup/repair
+available. The dashboard keeps recovery actions visible during blocked/checking
+states. See the failure/recovery acceptance contract in
+[the test plan](MIMO_DUALSTACK_TEST_PLAN.md) and its source/installed results in
+[the incoming-access record](MIMO_V3_INBOUND_ACCESS_FIX.md).
+
+The existing supervisor watchdog also samples signed native VPN transport while
+settled Blocked. It verifies the close epoch and exact previous readback under
+the mutation lock before replacing the closed policy and `guard.expected`.
+This grants no application/engine egress or approval and never reopens the gate.
+A newer close cancels the update. Counts are logged as
+`mimo_blocked_native_transport_updated`; failures remain blocked. Direct skips
+this path and keeps an empty policy. Incoming UDP and preexisting untracked
+connections are not covered by the new TCP-state guarantee.
 
 Managed Direct and released Direct are distinct. The first retains a running idle
 engine and shared services. Stop engine enters the second while keeping Mimo.app
@@ -53,10 +99,10 @@ the engine. Both states passed service/network qualification. Released GUI IP
 refresh and native button appearance remain separate UI checks.
 
 PF mutations are serialized, and a revocation epoch invalidates older probes.
-Close flushes old connection states; open does not. Readback verifies expanded
+Close revokes sources of original outbound PF states, retaining original incoming TCP states; open does not flush states. The staged core implements this directly, so upgrading from an older guard does not require the new helper to be installed first. Readback verifies expanded
 rule contents, not just labels. Independent checks require the exact active
 guard; an empty protected root is a fault. An ineffective or bypassed closed policy is a failure, not an
-acknowledged block. The active guard preserves explicit native exceptions; there are no such exceptions while closed.
+acknowledged block. The active guard preserves explicit native destination exceptions; closed mode does not grant application LAN/Tailnet/TUN egress.
 Tailnet destination permissions bind to a live native tunnel snapshot. Missing or
 changed native interfaces invalidate that preparation; Quad100 and Tailnet ULA
 are denied on other paths before engine and generic native grants. This is PF

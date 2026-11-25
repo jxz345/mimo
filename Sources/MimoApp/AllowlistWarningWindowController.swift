@@ -19,9 +19,8 @@ final class AllowlistWarningWindowController: NSObject, NSWindowDelegate {
                 self?.dismiss()
             }
         )
-        NSApp.activate(ignoringOtherApps: true)
         panel.center()
-        panel.makeKeyAndOrderFront(nil)
+        panel.orderFront(nil)
     }
 
     func dismiss() {
@@ -65,14 +64,14 @@ private struct AllowlistWarningView: View {
             Text(address)
                 .font(.title2.monospaced())
                 .textSelection(.enabled)
-            Text("Rule and Global block an exit IP that is not allowed. Direct bypasses this check. Review the address in Mimo before changing the allowed list.")
+            Text("Outbound access is blocked because this exit IP is not approved. Review the allowed list or select another proxy. Direct bypasses exit-IP approval.")
                 .fixedSize(horizontal: false, vertical: true)
                 .foregroundStyle(.secondary)
             Spacer()
             HStack {
-                Button("Open Dashboard") {
+                Button("Review allowed IPs") {
                     dismiss()
-                    MimoAppDelegate.showDashboard()
+                    MimoSettingsNavigation.open(.allowedIPs)
                 }
                 Spacer()
                 Button("Close", action: dismiss)

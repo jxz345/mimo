@@ -476,6 +476,32 @@ final class MimoSystemRuntime {
 
     func revokeBaseline() { verifiedBaseline = nil }
 
+    private var blockedNativeEgress = MimoNativeEgress()
+
+    /// Keep signed Tailnet transport available for inbound management. Public
+    /// application/engine flows remain denied and this cannot open the gate.
+    func refreshBlockedNativeTransport() async throws {
+        guard closed, gateState == "blocked", !maintenanceActive, !infrastructureRepairPending else { return }
+        let epoch = try String(contentsOf: directory.appendingPathComponent("pf-close.epoch"), encoding: .utf8)
+        guard let native = await firewallPreparationQueue.run({ MimoNativeEgressProbe.snapshot() }) else { return }
+        let rules = try MimoFirewallPolicy.blockedPolicy(nativeEgress: native)
+        try MimoFirewallLock.mutate {
+            guard closed, gateState == "blocked", !maintenanceActive, !infrastructureRepairPending,
+                  epoch == (try String(contentsOf: directory.appendingPathComponent("pf-close.epoch"), encoding: .utf8)) else { return }
+            let live = BoundedProcess.run("/sbin/pfctl", ["-a", MimoFirewallPolicy.anchor, "-sr"])
+            guard live.status == 0,
+                  live.text == (try String(contentsOf: directory.appendingPathComponent("guard.expected"), encoding: .utf8)),
+                  MimoFirewallPolicy.isClosedReadback(live.text) || MimoFirewallPolicy.isBlockedReadback(live.text, nativeEgress: blockedNativeEgress) else { return }
+            guard !MimoFirewallPolicy.isBlockedReadback(live.text, nativeEgress: native) else { return }
+            try command("/sbin/pfctl", ["-a", MimoFirewallPolicy.anchor, "-f", "-"], input: Data(rules.utf8))
+            let readback = BoundedProcess.run("/sbin/pfctl", ["-a", MimoFirewallPolicy.anchor, "-sr"])
+            guard readback.status == 0, MimoFirewallPolicy.isBlockedReadback(readback.text, nativeEgress: native) else { throw DaemonFailure.conflict }
+            _ = try writePrivate(Data(readback.text.utf8), name: "guard.expected")
+            blockedNativeEgress = native
+            RuntimeLog.shared.info("mimo_blocked_native_transport_updated", fields: ["udpScopes": String(native.datagrams.count), "httpsScopes": String(native.https.count)])
+        }
+    }
+
     func acceptBaseline(_ receipt: MimoReadinessReceipt) throws {
         try confirmReadiness(receipt)
         guard receiptIsCurrent(receipt) else { throw DaemonFailure.conflict }
@@ -656,8 +682,7 @@ final class MimoSystemRuntime {
             }
             try command("/sbin/pfctl", ["-a", MimoFirewallPolicy.anchor, "-f", "-"], input: bytes)
             if rules == MimoFirewallPolicy.startupBlocking {
-                try command("/sbin/pfctl", ["-k", "0.0.0.0/0"])
-                try command("/sbin/pfctl", ["-k", "::/0"])
+                try MimoPowerGuard.revokeOutboundStates()
             }
             let readback = BoundedProcess.run("/sbin/pfctl", ["-a", MimoFirewallPolicy.anchor, "-sr"])
             let matches = rules.isEmpty ? readback.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty :

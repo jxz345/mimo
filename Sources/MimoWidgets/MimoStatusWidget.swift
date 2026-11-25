@@ -9,7 +9,7 @@ struct MimoWidgetEntry: TimelineEntry, Sendable {
     var routing = MimoRoutingState()
     var monitoringStatus: MonitoringStatus = .ready
     var presentation: MimoStatusPresentation {
-        MimoStatusPresentation(routing: routing, snapshot: snapshot, preferences: MonitoringPreferences(), date: date, monitoringStatus: monitoringStatus)
+        MimoStatusPresentation(routing: routing, snapshot: snapshot, preferences: MonitoringPreferences(), date: date, monitoringStatus: monitoringStatus, lookupError: indicators.errorMessage)
     }
 }
 

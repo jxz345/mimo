@@ -1,0 +1,8 @@
+{
+  "version": "3.0",
+  "build": "10",
+  "sha256": {
+    "core": "30af58810522b8916802faab54991a52b1cd42990915a10b2f25353960159d0e",
+    "engine": "6925603de8a31decb3919c607a97cee2845afc5ea70aa4c2797620e775f143ca"
+  }
+}

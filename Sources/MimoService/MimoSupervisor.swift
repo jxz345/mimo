@@ -168,6 +168,10 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                             "The firewall gate changed. Verification is required.")
                     }
                 }
+                if self.policy.state.phase == .blocked, self.policy.state.configuration.mode.requiresVerification {
+                    do { try await self.runtime.refreshBlockedNativeTransport() }
+                    catch { RuntimeLog.shared.error("mimo_blocked_native_transport_failed", fields: ["reason": error.localizedDescription]) }
+                }
                 if self.policy.state.phase == .active, self.policy.state.configuration.mode.requiresVerification {
                     let inspectedGeneration = self.generation
                     do {
@@ -576,6 +580,9 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                     (observations.ipv6.map { !allowlist.contains($0.ipAddress) } ?? false) {
                     _ = policy.approve(observations: observations, allowlist: allowlist, verification: check, runtimeMatches: false)
                     try runtime.holdApplicationGate()
+                    RuntimeLog.shared.info("mimo_exit_ip_rejected", fields: ["attempt": check.id.uuidString,
+                        "family": policy.state.configuration.networkFamily.rawValue,
+                        "emptyAllowlist": String(allowlist.isEmpty), "reason": policy.state.reason])
                     finishEventCycle(); return response()
                 }
                 let activationGeneration = generation

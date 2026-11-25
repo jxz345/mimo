@@ -9,6 +9,40 @@ public enum MimoFirewallPolicy {
     public static let direct = ""
     public static let bootstrapResolver = "1.1.1.1"
 
+    // Only a peer's initial SYN creates this permission. Interface binding
+    // prevents an ingress state from authorizing an application on another path.
+    // Do not use quick: later administrator ingress rules retain their veto.
+    public static let inboundTCP = "pass in on ! utun239 proto tcp all flags S/SA keep state (if-bound) label \"mimo:inbound:tcp\""
+    // Last-match override: local clients of Mimo's public proxy/DNS listeners
+    // must not keep an ingress state that bypasses closure of those listeners.
+    public static let inboundLoopback = "pass in on lo0 all no state label \"mimo:inbound:loopback\""
+
+    /// Apple pfctl -k selects the originating host. Preserve inbound server
+    /// states; revoke only sources of original outbound connections. This is
+    /// also used by the staged installer before a new guard script is installed.
+    public static func outboundStateSources(_ text: String) throws -> [String] {
+        var sources = Set<String>()
+        for line in text.split(separator: "\n") where !line.trimmingCharacters(in: .whitespaces).isEmpty {
+            if line.contains(" <- ") { continue }
+            let fields = line.split(whereSeparator: \.isWhitespace)
+            guard fields.count >= 5, fields.contains("->") else { throw DaemonFailure.invalidRequest }
+            var source = String(fields[2])
+            if let bracket = source.lastIndex(of: "["), source.hasSuffix("]") {
+                guard Int(source[source.index(after: bracket)..<source.index(before: source.endIndex)]) != nil else { throw DaemonFailure.invalidRequest }
+                source = String(source[..<bracket])
+            } else if source.contains("."), let colon = source.lastIndex(of: ":"),
+                      source.filter({ $0 == ":" }).count == 1 {
+                guard Int(source[source.index(after: colon)...]) != nil else { throw DaemonFailure.invalidRequest }
+                source = String(source[..<colon])
+            }
+            if let zone = source.firstIndex(of: "%") { source = String(source[..<zone]) }
+            guard let address = IPAddressValidator.normalize(source) else { throw DaemonFailure.invalidRequest }
+            sources.insert(address)
+        }
+        guard sources.count <= 256 else { throw DaemonFailure.invalidRequest }
+        return sources.sorted()
+    }
+
     /// No floating PF states: a permission on the TUN must never authorize the
     /// same application flow on a physical interface after tunnel destruction.
     /// Native destinations are intentional exceptions, not public transport grants.
@@ -18,7 +52,7 @@ public enum MimoFirewallPolicy {
                   name != MihomoProfile.tunnelDevice && name.hasPrefix("utun") &&
                   !name.dropFirst(4).isEmpty && name.dropFirst(4).allSatisfy({ $0.isASCII && $0.isNumber })
               }) else { throw DaemonFailure.invalidRequest }
-        var lines = [
+        var lines = [inboundTCP, inboundLoopback,
             "pass out quick on lo0 all no state label \"mimo:active:loopback\"",
             "pass out quick on \(MihomoProfile.tunnelDevice) all no state label \"mimo:active:tunnel\"",
             "block drop out quick inet from any to 198.18.0.0/16 label \"mimo:active:fake-address\"",
@@ -58,19 +92,28 @@ public enum MimoFirewallPolicy {
     }
 
     private static let localControl = """
+    \(inboundTCP)
+    \(inboundLoopback)
     block return out quick on lo0 proto { tcp, udp } to { 127.0.0.1, ::1 } port { \(MimoRuntime.mixedPort), \(MimoRuntime.dnsPort) } label "mimo:transition:public-listeners"
     pass out quick on lo0 all no state label "mimo:transition:local-control"
     pass out quick inet proto udp from any port 68 to 255.255.255.255 port 67 no state label "mimo:transition:dhcp"
     pass out quick inet6 proto icmp6 to { fe80::/10, ff02::/16 } icmp6-type { neighbrsol, neighbradv, routersol, routeradv } no state label "mimo:transition:ipv6-link-control"
 
     """
-    /// No application/TUN/LAN/native-VPN exception while a transition is closed.
+    /// Deny new outbound application flows, retaining replies to inbound TCP.
     public static let startupBlocking = localControl + "block drop out quick all label \"mimo:transition:deny\"\n"
+
+    /// Independently verified native VPN transport keeps inbound Tailnet services
+    /// reachable while the public exit is rejected. It never grants engine egress.
+    public static func blockedPolicy(nativeEgress: MimoNativeEgress) throws -> String {
+        localControl + (try nativeEgress.rules()).map { $0 + "\n" }.joined()
+            + "block drop out quick all label \"mimo:transition:deny\"\n"
+    }
 
     // pfctl expands lists. Compare every expanded control rule, not just labels:
     // a malicious extra pass carrying a copied label must never qualify a close.
     private static var controlReadback: [String] {
-        var lines: [String] = []
+        var lines: [String] = [inboundTCP, inboundLoopback]
         for transport in ["tcp", "udp"] {
             for (family, address) in [("inet", "127.0.0.1"), ("inet6", "::1")] {
                 for port in [MimoRuntime.mixedPort, MimoRuntime.dnsPort] {
@@ -90,6 +133,12 @@ public enum MimoFirewallPolicy {
 
     public static func isClosedReadback(_ value: String) -> Bool {
         value.split(separator: "\n").map(String.init) == controlReadback + ["block drop out quick all label \"mimo:transition:deny\""]
+    }
+
+    public static func isBlockedReadback(_ value: String, nativeEgress: MimoNativeEgress) -> Bool {
+        guard let native = try? nativeEgress.rules() else { return false }
+        return value.split(separator: "\n").map(String.init) == controlReadback + native
+            + ["block drop out quick all label \"mimo:transition:deny\""]
     }
 
     public static func isVerificationReadback(_ value: String) -> Bool {

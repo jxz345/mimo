@@ -1,0 +1,8 @@
+{
+  "version": "3.0",
+  "build": "10",
+  "sha256": {
+    "Mimo-3.0.pkg": "019a897451c5550f4fa9ddf7920f12c0f19d85ef681f047dc6418e0165fcc16a",
+    "Mimo-3.0.zip": "bf349094706e413d71cf539efe613671ceb6eeb8bdee7cabb847c54c09efa5e4"
+  }
+}

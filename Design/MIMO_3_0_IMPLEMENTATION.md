@@ -1,9 +1,10 @@
 # Mimo 3.0 implementation record
 
-Authorized 2026-11-25: implement `MIMO_3_0_PLAN.md`, install a local candidate in
-`mimo-vm`, and execute the relevant dual-stack and installed-app campaigns.
-GitHub publication is outside this instruction. Existing evidence and frozen
-working profiles remain historical inputs, not v3 test results.
+Initial authorization on 2026-11-25 covered implementation of `MIMO_3_0_PLAN.md`,
+installation in `mimo-vm` and the relevant dual-stack/installed-app campaigns.
+Publication was subsequently authorized: build 9 shipped on 25 November and
+the incoming-access/recovery correction ships as 3.0 build 10 on 26 November.
+Existing evidence and frozen working profiles retain their original scope.
 
 ## Work sequence
 
@@ -17,6 +18,15 @@ working profiles remain historical inputs, not v3 test results.
 
 ## Current state
 
+Current release: **3.0 build 10**. See the
+[incoming-access and recovery record](MIMO_V3_INBOUND_ACCESS_FIX.md) for its
+219 shared tests, 60 failure/recovery simulations, four pending-lookup Direct
+cancellation cases, 22 installed exception/repair cases, incoming TCP checks
+and 16 baseline/fault regressions. The native dashboard now follows the approved
+mock; rendered UI checks and actual desktop click-through remain distinct.
+
+### Earlier v3 qualification checkpoint
+
 Implemented and installed locally. The persistent active guard and recovery retry
 correction passed **68/68 VM qualification rows**, including 32 traffic/fault rows
 with zero native attempts and successful recovery. Both managed Direct with its
@@ -25,8 +35,8 @@ checks. The earlier empty-active policy's five bypass and four core-resume failu
 remain historical evidence. Native GUI and physical-Mac qualification are still
 incomplete; this is not a blanket release qualification.
 See [the active-guard results](MIMO_V3_ACTIVE_GUARD_RESULTS.md) and preserve the
-[earlier closure evidence](MIMO_V3_QUALIFICATION_CLOSURE.md). No GitHub publication
-requested or performed.
+[earlier closure evidence](MIMO_V3_QUALIFICATION_CLOSURE.md). Publication had not
+yet been requested or performed at this checkpoint.
 
 - Removed native utun provider service/models/UI/control commands, provider files,
   publication/observer code and the legacy dashboard exporter. Only explicit old-version

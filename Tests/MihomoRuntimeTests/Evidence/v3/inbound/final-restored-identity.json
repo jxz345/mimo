@@ -1,0 +1,25 @@
+{
+  "version": "3.0",
+  "build": "10",
+  "sha256": {
+    "core": "a6ea3a02701f5ed4e05f83c7feeba2fa379d17ceac295b0a072c41dc936893c9",
+    "engine": "6925603de8a31decb3919c607a97cee2845afc5ea70aa4c2797620e775f143ca",
+    "gui": "1e3e6150a22a0560cb1f31983c57fb3df5ef4854ddbfd5c31e06e414db1eea78"
+  },
+  "original_settings_restored": true,
+  "original_proxy_catalog_restored": true,
+  "original_routing_restored": true,
+  "disposable_token_removed": true,
+  "mode": "rule",
+  "phase": "blocked",
+  "reason": "No exit IPs are approved. Review Allowed IPs in Settings.",
+  "services": {
+    "core": "running",
+    "supervisor": "running",
+    "mihomo": "running"
+  },
+  "controller_responding": true,
+  "incoming_rules_present": true,
+  "temporary_lab_rules_removed": true,
+  "app_signature_verified": true
+}

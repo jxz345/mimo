@@ -18,7 +18,7 @@ public struct MimoStatusPresentation: Equatable, Sendable {
     public let isRestoringDirect: Bool
     public let isBackgroundVerification: Bool
 
-    public init(routing: MimoRoutingState, snapshot: MimoSnapshot?, preferences: MonitoringPreferences, date: Date, monitoringStatus: MonitoringStatus = .ready) {
+    public init(routing: MimoRoutingState, snapshot: MimoSnapshot?, preferences: MonitoringPreferences, date: Date, monitoringStatus: MonitoringStatus = .ready, lookupError: String? = nil) {
         isDirect = routing.phase == .active && routing.allowsTraffic && routing.effectiveMode == .direct
         trafficIsBlocked = routing.phase == .blocked || (routing.configuration.mode.requiresVerification
             && [.validating, .checking].contains(routing.phase))
@@ -47,9 +47,11 @@ public struct MimoStatusPresentation: Equatable, Sendable {
         }
         address = kind == .unavailable ? nil : routing.displayedIP?.address
         let locationIsCurrent = snapshot?.ipAddress == routing.observedIP?.address
-        country = snapshot?.hasValidCountryCode == true &&
-            (kind == .blocked || ((isDirect || kind == .verified) && locationIsCurrent))
-            ? snapshot?.menuBarLabel(style: preferences.menuBarDisplayStyle) : nil
+        let shownAddress = address
+        let shownSnapshot = routing.exitObservations?.ipv6.flatMap { $0.ipAddress == shownAddress ? $0 : nil } ?? snapshot
+        country = shownSnapshot?.hasValidCountryCode == true &&
+            ((kind == .blocked && shownSnapshot?.ipAddress == address) || ((isDirect || kind == .verified) && locationIsCurrent))
+            ? shownSnapshot?.menuBarLabel(style: preferences.menuBarDisplayStyle) : nil
         countryChanged = (kind == .direct || kind == .verified) && country != nil
             && preferences.highlightCountryChanges && (snapshot?.isCountryChangeHighlighted(at: date) ?? false)
         switch kind {
@@ -59,7 +61,7 @@ public struct MimoStatusPresentation: Equatable, Sendable {
             title = isRestoringDirect ? (routing.networkReleaseRequested == true ? "Restoring networking" : "Switching to Direct") : isClosing ? "\(routing.configuration.mode.title) · Closing traffic" : trafficIsBlocked
                 ? "\(routing.configuration.mode.title) · Blocked · \(isValidating ? "Validating profile" : isCheckingReadiness ? "Checking readiness" : "Checking exit IP")"
                 : "\(routing.configuration.mode.title) · Checking exit IP"
-        case .blocked: title = "\(routing.configuration.mode.title) · Internet blocked"
+        case .blocked: title = "\(routing.configuration.mode.title) · Outbound access blocked"
         case .verified: title = "\(routing.configuration.mode.title) · Allowed"
         case .unavailable: title = "Mimo · Status unavailable"
         }
@@ -77,6 +79,13 @@ public struct MimoStatusPresentation: Equatable, Sendable {
             detail = "Checking the exit IP. Direct remains selected."
         } else if kind == .unavailable, routing.phase != .unavailable {
             detail = "The routing state could not be confirmed. Open Dashboard to reconnect."
+        } else if kind == .blocked, routing.rejectedExit == nil,
+                  let paused = Self.blockedLookupMessage(monitoringStatus) {
+            // Monitoring enters its bounded cooldown immediately after a lookup
+            // failure. Retain the current error instead of replacing its cause
+            // with only a generic deadline. A successful lookup clears this
+            // indicator; an exit-policy rejection takes precedence above it.
+            detail = lookupError.map { "\($0) \(paused)" } ?? paused
         } else if kind == .blocked, case .failed(let message) = monitoringStatus {
             // A later gate-close notification may have a generic reason. Keep
             // the failed verification's actionable cause visible in every UI.
@@ -87,6 +96,18 @@ public struct MimoStatusPresentation: Equatable, Sendable {
             detail = routing.reason.contains(rejected.address) ? routing.reason
                 : "IP that triggered blocking: \(rejected.address). \(routing.reason)"
         } else { detail = routing.reason }
+    }
+
+    private static func blockedLookupMessage(_ status: MonitoringStatus) -> String? {
+        switch status {
+        case .coolingDown(let until), .waitingForMinimumInterval(let until):
+            return "Exit-IP checking is paused until \(until.formatted(date: .omitted, time: .shortened)). Review the proxy and IP provider, or use Direct."
+        case .providerPaused(let provider, let until):
+            return "\(provider.displayName) is paused until \(until.formatted(date: .omitted, time: .shortened)). Choose another IP provider, or use Direct."
+        case .waitingForIPinfoToken:
+            return "IPinfo needs a token in Settings → Monitoring. Choose another IP provider, or use Direct."
+        default: return nil
+        }
     }
 
     /// Remains visible after a fast check, without delaying the real firewall or

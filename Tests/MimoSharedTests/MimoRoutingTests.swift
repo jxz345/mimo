@@ -2,6 +2,33 @@ import XCTest
 @testable import MimoShared
 
 final class MimoRoutingTests: XCTestCase {
+    func testRevocationKeepsInboundStatesAndKillsOnlyOutboundSources() throws {
+        let states = """
+        en0 tcp 192.0.2.5:22 <- 192.0.2.9:54000 ESTABLISHED:ESTABLISHED
+        en0 tcp 192.0.2.5:54001 -> 203.0.113.5:443 ESTABLISHED:ESTABLISHED
+        en0 udp 2001:db8::5[54002] -> 2001:db8::9[443] MULTIPLE:SINGLE
+        utun8 tcp 100.64.0.5:5900 <- 100.64.0.9:54003 ESTABLISHED:ESTABLISHED
+        """
+        XCTAssertEqual(try MimoFirewallPolicy.outboundStateSources(states), ["192.0.2.5", "2001:db8::5"])
+        XCTAssertEqual(try MimoFirewallPolicy.outboundStateSources(""), [])
+        XCTAssertThrowsError(try MimoFirewallPolicy.outboundStateSources("unknown state format"))
+        XCTAssertThrowsError(try MimoFirewallPolicy.outboundStateSources("en0 tcp bad:123 -> 192.0.2.9:443"))
+    }
+
+    func testBlockedPolicyKeepsInboundTCPAndVerifiedVPNTransportOnly() throws {
+        var native = MimoNativeEgress()
+        native.datagrams.insert(.init(ipv6: false, source: nil, port: 41641))
+        native.https.insert("192.0.2.8")
+        let blocked = try MimoFirewallPolicy.blockedPolicy(nativeEgress: native)
+        XCTAssertTrue(blocked.hasPrefix(MimoFirewallPolicy.inboundTCP))
+        XCTAssertTrue(blocked.hasPrefix(MimoFirewallPolicy.inboundTCP + "\n" + MimoFirewallPolicy.inboundLoopback))
+        XCTAssertFalse(blocked.contains("pass in quick"), "Mimo must not override administrator ingress rules")
+        XCTAssertFalse(blocked.contains("flags any"), "An outbound SYN-ACK must not create an ingress permission")
+        XCTAssertTrue(blocked.contains("keep state (if-bound)"))
+        XCTAssertFalse(blocked.contains("mimo:active:engine"))
+        XCTAssertFalse(blocked.contains("mimo:active:tunnel"))
+        XCTAssertTrue(blocked.hasSuffix("block drop out quick all label \"mimo:transition:deny\"\n"))
+    }
     func testEveryGeneratedPacketRuleHasAnIdentifiablePersistentLabel() throws {
         let policies = [MimoFirewallPolicy.startupBlocking,
             try MimoFirewallPolicy.render(group: 400),
@@ -22,7 +49,7 @@ final class MimoRoutingTests: XCTestCase {
             XCTAssertTrue(active.contains("on utun239 all no state"))
             XCTAssertTrue(active.contains("group = 400 no state"))
             XCTAssertFalse(active.contains("user 0"))
-            XCTAssertFalse(active.contains("keep state"))
+            XCTAssertTrue(active.contains(MimoFirewallPolicy.inboundTCP))
             let tunnel = try XCTUnwrap(active.range(of: "mimo:active:tunnel")?.lowerBound)
             let fake = try XCTUnwrap(active.range(of: "fdfe:dcba:9876::/48")?.lowerBound)
             let native = try XCTUnwrap(active.range(of: "fc00::/7")?.lowerBound)
@@ -31,7 +58,7 @@ final class MimoRoutingTests: XCTestCase {
             XCTAssertTrue(active.hasSuffix("block drop out quick all label \"mimo:active:deny-native-fallback\"\n"))
             for line in active.split(separator: "\n") {
                 XCTAssertTrue(line.contains("label \"mimo:"))
-                if line.hasPrefix("pass ") { XCTAssertTrue(line.contains("no state")) }
+                if line.hasPrefix("pass out ") { XCTAssertTrue(line.contains("no state")) }
             }
         }
         XCTAssertThrowsError(try MimoFirewallPolicy.activePolicy(group: 0))
@@ -42,7 +69,7 @@ final class MimoRoutingTests: XCTestCase {
         let rules = try MimoFirewallPolicy.preparedPolicy(group: 400, endpoints: ["192.0.2.10"], proxyPort: 1080)
         XCTAssertTrue(rules.contains("pass out quick inet proto tcp to 192.0.2.10 port 1080 group 400 no state"))
         XCTAssertTrue(rules.hasSuffix("block drop out quick all label \"mimo:probe:deny\"\n"))
-        for bypass in ["native-transport", "utun239", "100.64.0.0/10", "10.0.0.0/8", "group !=", "1.1.1.1", "proto udp to 192.0.2.10"] {
+        for bypass in ["native-transport", "on utun239 all", "100.64.0.0/10", "10.0.0.0/8", "group !=", "1.1.1.1", "proto udp to 192.0.2.10"] {
             XCTAssertFalse(rules.contains(bypass), bypass)
         }
         XCTAssertTrue(MimoFirewallPolicy.permissionParent.hasSuffix(MimoFirewallPolicy.startupBlocking))
@@ -273,7 +300,7 @@ final class MimoRoutingTests: XCTestCase {
 
     func testStartupGuardDoesNotTrustRuntimeOrNativeTransportBeforeValidation() {
         let policy = MimoFirewallPolicy.startupBlocking
-        XCTAssertTrue(policy.hasPrefix("block return out quick on lo0"))
+        XCTAssertTrue(policy.hasPrefix(MimoFirewallPolicy.inboundTCP))
         XCTAssertTrue(policy.contains("port { \(MimoRuntime.mixedPort), \(MimoRuntime.dnsPort) }"))
         XCTAssertFalse(policy.contains("block return out quick inet6 all"))
         XCTAssertTrue(policy.hasSuffix("block drop out quick all label \"mimo:transition:deny\"\n"))

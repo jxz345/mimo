@@ -158,7 +158,7 @@ final class PublicIPMonitor: ObservableObject {
 
     var statusPresentation: MimoStatusPresentation {
         MimoStatusPresentation(routing: routingState, snapshot: snapshot ?? daemonState?.snapshot,
-            preferences: preferences, date: displayDate, monitoringStatus: status)
+            preferences: preferences, date: displayDate, monitoringStatus: status, lookupError: indicators.errorMessage)
     }
 
     var routingState: MimoRoutingState {

@@ -1,5 +1,46 @@
 # Dual-stack profile and proxy test plan
 
+## Current failure/recovery acceptance contract (26 November)
+
+These are required outcomes, not merely successful packet-denial checks:
+
+| Requirement | Pass condition | Evidence |
+| --- | --- | --- |
+| Clear feedback | Distinguish an unapproved exit (including empty list and IPv6-only rejection) from proxy/provider failure. Show a pause deadline when applicable, retain the selected mode, and offer a relevant settings action plus Direct. Never describe blocked traffic as connected/approved. | Shared presentation tests, native failure renders, installed state and Event Log |
+| No event loop | One verification attempt has one terminal outcome. Polling does not start another lookup, restart healthy services or reopen the gate. Legitimate explicit repair/network events remain possible; provider cooldowns and budgets still apply. | Coordinator simulations, monitoring scheduler tests, 12-second installed settled-failure observation spanning an independent service audit |
+| Responsive system | Core state/control requests remain bounded during failure. Incoming tracked TCP service replies remain available. GUI work stays off the main thread; warnings do not activate or seize focus. | XPC/GUI lifecycle tests, measured installed response times, fresh SSH/RFB/HTTP and existing-stream probes |
+| Repair works | Editing the proxy/provider/allowlist leads to a fresh check. Successful IPv4 alone cannot approve a failed required IPv6 observation. No auto-approval and no silent fallback to Direct. | Direct→Rule/Global and already-active Rule/Global failure/recovery simulations; installed repair checks |
+| Direct is an escape | Explicit Direct cancels/supersedes verification and late results cannot reopen protected mode. It does not require a successful lookup. Confirm owned PF/TUN/DNS release before reporting normal networking. A failed release must show an actionable error, not false success. | Coordinator cancellation/failure tests, installed Direct PF/DNS readback and native IPv4/IPv6 HTTP |
+
+Exercise Rule and Global separately, each with strict IPv4 and dual-stack. The
+60 coordinator rows cover proxy refusal, timeout, authentication failure,
+provider outage, malformed responses, empty/wrong allowlists and IPv6-only
+rejection from both starting states. Four additional cancellation cases hold the
+HTTP lookup pending across Direct in Rule/Global × IPv4/dual-stack; Direct returns
+before the held response and the late result cannot reopen. Existing
+preparation/readiness tests cover the other activation stages. The 22 installed
+Direct→protected cases cover refusal/authentication/provider-503 and the
+allowlist variants; they complement rather than replace those simulations.
+
+The installed credential fixture removes its disposable test token before
+Direct, preventing any public provider request with that token. It therefore
+does **not** qualify Direct-during-pending-HTTP cancellation; that is measured by
+the coordinator tests. Neither short settled observation nor bounded RPC tests
+prove absence of every possible macOS freeze. Physical sleep/wake, arbitrary
+incoming UDP servers, untracked preexisting Direct sessions and asymmetric
+public return paths retain their separate qualification limits.
+
+Current results and candidate identity:
+[incoming-access and recovery record](MIMO_V3_INBOUND_ACCESS_FIX.md).
+The 60 exception/recovery simulations, four pending-HTTP Direct cancellation
+cases and 22 installed exception rows passed. Installed state queries completed
+within 1.597 seconds (564 samples, including Tart overhead); Direct restored
+native IPv4/IPv6 HTTP in 9.903–12.492 seconds. All rows retained incoming SSH/RFB
+access and had no extra lookup/open events during the 12-second settled window.
+See [installed exception evidence](../Tests/MihomoRuntimeTests/Evidence/v3/inbound/exception-results.json)
+and [responsiveness measurements](../Tests/MihomoRuntimeTests/Evidence/v3/inbound/exception-responsiveness.json).
+Historical campaigns below remain unchanged and are not added to these counts.
+
 Original Global experiment: **executed, with results and qualification limits recorded**. Prepared
 and run 2026-11-24 on Delta and `mimo-vm`. All 48 core cells/6,240 cases matched
 expectations; the optional `redir-host` diagnostic retained one functional

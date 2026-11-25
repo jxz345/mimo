@@ -464,11 +464,30 @@ failed stage. Recovery must not rely on a saved gate marker or matching file has
 alone. Repeated already-closed requests can join the current confirmed operation;
 reusing a profile never skips checking the live barrier.
 
-Existing PF states can bypass new rules. Initially retain the existing IPv4/IPv6
-state clear when entering closure from released or permitted verification access;
-it is global and can interrupt unrelated connections. Keep transition/probe pass
-rules `no state`, and avoid redundant flushes for preparation stages that remain
-confirmed closed. Selective revocation is not assumed safe without evidence.
+Existing PF states can bypass new rules. The incoming-access correction supersedes
+the original global purge: install denial first, inspect PF state directions,
+then revoke originating sources of original outbound states only. Track incoming
+TCP SYNs on non-Mimo interfaces with interface-bound state, preserving replies
+for SSH, Screen Sharing and TCP servers. Override loopback with `no state` so
+public proxy/DNS clients cannot retain access after closure. Never use broad `flags any` recovery or
+floating states. Outbound grants stay `no state`; malformed/truncated inspection
+makes closure unconfirmed. Settled blocked mode retains only independently
+verified native VPN transport so Tailnet incoming connections can continue.
+
+Failure/recovery acceptance is part of this correction: user-visible cause and
+recovery actions; bounded retries with no polling-triggered event loop; responsive
+core/GUI controls and incoming TCP; repair followed by fresh verification; and
+explicit Direct restoring native networking without requiring a successful IP
+lookup. Test both Direct→Rule/Global and faults in an already-active protected
+mode, for IPv4 and dual-stack. Preserve the lookup error when a provider enters
+cooldown, show its deadline, and reject late verification after Direct. Source
+simulation, installed networking and native UI rendering are separate evidence
+scopes; see `MIMO_DUALSTACK_TEST_PLAN.md` and `MIMO_V3_INBOUND_ACCESS_FIX.md`.
+The local build-10 campaign passed 60 exception/recovery simulations, four
+pending-lookup Direct cancellation cases and 22 installed exception/repair rows.
+Installed state queries took at most 1.597 seconds; explicit Direct restored
+native IPv4/IPv6 HTTP in 9.903–12.492 seconds. Those measured bounds and the short
+settled-state observations are evidence, not a guarantee against every OS hang.
 Final cleanup/release must not globally flush states, disable PF, flush foreign
 rules or release another owner's enable reference.
 

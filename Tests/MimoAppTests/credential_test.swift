@@ -84,8 +84,6 @@ enum CredentialAppTests {
         await monitor.refresh(force: true, trigger: .periodic)
         await monitor.testProvider(.ipinfoLite)
 
-        let profileBackend = MemoryCredentials()
-        let profile = CredentialSession(service: CredentialService(backend: profileBackend), account: "profile")
         for dark in [false, true] {
             let mode = dark ? "dark" : "light"
             try render(DashboardView(monitor: PublicIPMonitor(readDeactivation: { false })),
@@ -98,23 +96,13 @@ enum CredentialAppTests {
                            to: output.appendingPathComponent("mimo-settings-\(section.symbol)-\(mode).png"))
             }
             MimoSettingsNavigation.shared.section = .general
-            try render(ClashVergeProfileSection(providerInstalled: false, credentials: profile),
-                       size: NSSize(width: 500, height: 640), dark: dark,
-                       to: output.appendingPathComponent("profile-\(mode).png"))
-            try render(SettingsView(monitor: PublicIPMonitor(readDeactivation: { false })), size: NSSize(width: 560, height: 1300), dark: dark,
-                       to: output.appendingPathComponent("settings-\(mode).png"))
-            try render(BackgroundServiceSection(monitor: PublicIPMonitor(readDeactivation: { false }), installer: DaemonInstallationModel()),
-                       size: NSSize(width: 640, height: 270), dark: dark,
-                       to: output.appendingPathComponent("service-\(mode).png"))
+
         }
         try await settle()
         require(backend.calls.isEmpty, "Rendering Settings and the dashboard must not read the IPinfo token")
-        require(profileBackend.calls.count <= 1 && profileBackend.calls.allSatisfy { $0 == "read" },
-                "Opening the profile view may read the proxy info once, and only read it")
         require(await client.calls.isEmpty, "Refresh and Test must not load credentials implicitly")
-        print("PASS: startup, status, activation, refresh and Test make no Keychain calls; the profile view reads the proxy info at most once; IPinfo waits without quota use")
+        print("PASS: startup, status, activation, refresh and Test make no Keychain calls; IPinfo waits without quota use")
 
-        try profileButtonRowChecks()
         try menuBarLabelChecks(output: output)
         try await MimoMenuTests.run(output: output)
         try MimoDraftTests.run()
@@ -177,19 +165,6 @@ enum CredentialAppTests {
         require(mixedBackend.calls.isEmpty, "Mixed rotation must not query Keychain")
         mixed.stop()
         print("PASS: mixed pools continue anonymous monitoring without reading the saved IPinfo token")
-    }
-
-    /// Load proxy info, Save and Remove form one row (an HStack with no fallback) that fits the
-    /// profile form's narrowest value column: about 472 pt column − GroupBox insets − 110 pt label
-    /// − 12 pt spacing ≈ 326 pt. 320 pt leaves a margin.
-    @MainActor
-    static func profileButtonRowChecks() throws {
-        let host = NSHostingView(rootView: ProxyInfoActionRow(load: {}, save: {}, remove: {}))
-        let size = host.fittingSize
-        require(size.width > 200 && size.width <= 320,
-                "The proxy-info button row must fit the 320 pt value column in one row (needs \(size.width) pt)")
-        require(size.height < 40, "The proxy-info buttons must share one row (height \(size.height) pt)")
-        print("PASS: Load proxy info, Save and Remove share one \(Int(size.width)) pt row, within the narrowest value column")
     }
 
     /// Render the menu-bar labels and retain error/allowlist presentation coverage.

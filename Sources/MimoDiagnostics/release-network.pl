@@ -11,6 +11,7 @@ use IO::Select;
 use JSON::PP qw(decode_json);
 use POSIX qw(WNOHANG);
 use Time::HiRes qw(time sleep);
+use Socket qw(AF_INET AF_INET6 inet_pton);
 
 our $support = '/Library/Application Support/Mimo';
 our $helper = '/Library/PrivilegedHelperTools/mimo-core';
@@ -291,6 +292,26 @@ sub remove_owned_resolver {
     print "MIMO_CLEANUP resolver_removed\n";
 }
 
+# Kept standalone for manual cleanup of older installations, where the installed
+# guard may not support selective revocation. Same parser as pf-guard.pl.
+sub outbound_state_sources {
+    my ($text) = @_;
+    my %sources;
+    for my $line (split /\n/, $text) {
+        next unless $line =~ /\S/;
+        next if $line =~ / <- /;
+        die "Unrecognized PF state direction\n" unless $line =~ /^\S+\s+\S+\s+(\S+).* -> /;
+        my $source = $1;
+        $source =~ s/\[\d+\]$//; # IPv6 port notation
+        $source =~ s/^(\d+\.\d+\.\d+\.\d+):\d+$/$1/;
+        $source =~ s/%[a-zA-Z0-9]+$//;
+        die "Unrecognized PF state source\n" unless inet_pton(AF_INET, $source) || inet_pton(AF_INET6, $source);
+        $sources{$source} = 1;
+    }
+    die "Too many PF state sources\n" if keys(%sources) > 256;
+    return sort keys %sources;
+}
+
 sub prepare_network {
     # Serialize with both normal lifecycle writers and independent power denial.
     # Keep the same inodes and lock order as the installed core/guard.
@@ -313,6 +334,8 @@ sub prepare_network {
     }
     # This fixed closed policy has no provider, process or native-TUN exception.
     my $rules = <<'PF';
+pass in on ! utun239 proto tcp all flags S/SA keep state (if-bound) label "mimo:inbound:tcp"
+pass in on lo0 all no state label "mimo:inbound:loopback"
 block return out quick on lo0 proto { tcp, udp } to { 127.0.0.1, ::1 } port { 7890, 1053 } label "mimo:transition:public-listeners"
 pass out quick on lo0 all no state label "mimo:transition:local-control"
 pass out quick inet proto udp from any port 68 to 255.255.255.255 port 67 no state label "mimo:transition:dhcp"
@@ -320,8 +343,8 @@ pass out quick inet6 proto icmp6 to { fe80::/10, ff02::/16 } icmp6-type { neighb
 block drop out quick all label "mimo:transition:deny"
 PF
     required(5, $rules, '/sbin/pfctl', '-a', $anchor, '-f', '-');
-    required(5, undef, '/sbin/pfctl', '-k', '0.0.0.0/0');
-    required(5, undef, '/sbin/pfctl', '-k', '::/0');
+    my @sources = outbound_state_sources(required(5, undef, '/sbin/pfctl', '-ss'));
+    required(5, undef, '/sbin/pfctl', '-k', $_) for @sources;
     my $actual = required(5, undef, '/sbin/pfctl', '-a', $anchor, '-sr');
     die "Cleanup barrier could not be confirmed\n" unless $actual =~ /^block drop out quick all label "mimo:transition:deny"$/m;
     remove_owned_resolver();

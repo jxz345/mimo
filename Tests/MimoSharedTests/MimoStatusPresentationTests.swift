@@ -2,6 +2,28 @@ import XCTest
 @testable import MimoShared
 
 final class MimoStatusPresentationTests: XCTestCase {
+    func testBlockedProviderFailuresOfferRecoveryWithoutHidingRejection() {
+        var routing = MimoRoutingState()
+        routing.configuration.mode = .rule
+        routing.phase = .blocked
+        routing.reason = "Verification required"
+        let until = Date().addingTimeInterval(600)
+        for status in [MonitoringStatus.coolingDown(until), .providerPaused(.ipWhois, until), .waitingForIPinfoToken] {
+            let display = MimoStatusPresentation(routing: routing, snapshot: nil, preferences: .init(), date: .now, monitoringStatus: status)
+            XCTAssertEqual(display.kind, .blocked)
+            XCTAssertTrue(display.detail.contains("use Direct"))
+            XCTAssertNotEqual(display.detail, routing.reason)
+        }
+        let paused = MimoStatusPresentation(routing: routing, snapshot: nil, preferences: .init(), date: .now,
+            monitoringStatus: .coolingDown(until), lookupError: "The proxy connection timed out.")
+        XCTAssertTrue(paused.detail.contains("proxy connection timed out"))
+        XCTAssertTrue(paused.detail.contains("paused until"))
+        XCTAssertTrue(paused.detail.contains("use Direct"))
+        routing.blockingIP = .init(address: "192.0.2.1", checkedAt: .now)
+        routing.reason = "The observed IPv4 exit IP is not approved. Review Allowed IPs or select another proxy."
+        let rejected = MimoStatusPresentation(routing: routing, snapshot: nil, preferences: .init(), date: .now, monitoringStatus: .coolingDown(until))
+        XCTAssertTrue(rejected.detail.contains("not approved"))
+    }
     func testBackgroundAuditKeepsAllowedPresentationStableAndFailureRemainsVisible() {
         var routing = MimoRoutingState()
         routing.configuration.mode = .rule

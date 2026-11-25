@@ -6,6 +6,13 @@ use JSON::PP;
 use File::Temp qw(tempfile);
 require $ARGV[0];
 
+is_deeply([main::outbound_state_sources("en0 tcp 192.0.2.5:22 <- 192.0.2.8:51234 ESTABLISHED:ESTABLISHED\n")], [], 'inbound SSH is never selected for revocation');
+is_deeply([main::outbound_state_sources("all tcp 192.0.2.5:51234 -> 203.0.113.4:443 ESTABLISHED:ESTABLISHED\nen0 tcp 192.0.2.5:5900 <- 192.0.2.8:51234 ESTABLISHED:ESTABLISHED\nall udp 2001:db8::5[51515] -> 2001:db8::8[443] MULTIPLE:MULTIPLE\n")], ['192.0.2.5', '2001:db8::5'], 'only original outbound IPv4 and IPv6 sources are revoked');
+is_deeply([main::outbound_state_sources('')], [], 'empty state table requires no kill');
+for my $invalid ('unrecognized output', 'all tcp malicious:4 -> 192.0.2.1:3 CLOSED:CLOSED') {
+    eval { main::outbound_state_sources($invalid) }; ok($@, 'unknown state format cannot silently confirm closure');
+}
+
 my $original = "# administrator rules\nscrub-anchor \"com.apple/*\"\nanchor \"com.apple/*\"\nload anchor \"com.apple\" from \"/etc/pf.anchors/com.apple\"\n";
 my $installed = main::managed_configuration($original, 1);
 like($installed, qr/^load anchor "com.apple\/000.mimo" from "\/etc\/pf.anchors\/com.mimo.boot"$/m, 'persistent blocking policy is loaded by the system PF configuration');
