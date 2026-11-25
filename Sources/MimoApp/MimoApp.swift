@@ -185,7 +185,7 @@ final class DashboardWindowController: NSObject, NSWindowDelegate {
                 .frame(minWidth: 520, minHeight: 380)
         )
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 1040, height: 660),
+            contentRect: NSRect(x: 0, y: 0, width: 1100, height: 760),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
@@ -193,7 +193,7 @@ final class DashboardWindowController: NSObject, NSWindowDelegate {
         window.identifier = NSUserInterfaceItemIdentifier("mimo-dashboard")
         window.title = "Mimo"
         window.contentViewController = hostingController
-        window.setContentSize(NSSize(width: 1040, height: 660))
+        window.setContentSize(NSSize(width: 1100, height: 760))
         window.contentMinSize = NSSize(width: 520, height: 380)
         window.isReleasedWhenClosed = false
         window.level = .normal

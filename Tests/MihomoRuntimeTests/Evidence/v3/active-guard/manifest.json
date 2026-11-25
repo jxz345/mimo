@@ -1,0 +1,32 @@
+{
+  "source_sha256": {
+    "Sources/MimoShared/MihomoProfile.swift": "c0ca59b8521cbdc83f51c3b0151b17ad8634360a0fba5833af40728ff8c75431",
+    "Sources/MimoShared/MimoFirewallPolicy.swift": "427e940426458a2d443621831563101ea3a0b24b4031b813fcff8dff6319ae43",
+    "Sources/MimoShared/MimoNativeEgress.swift": "c268cacab93c66367692d2bfd48f3f4a29f9d2a045b5ff0c14bf92feb17113a7",
+    "Sources/MimoShared/MimoRouting.swift": "e32f332c10cebea214fbf4d1f5d2798efcf81c640f6118d42e59b45324430c83",
+    "Sources/MimoService/MimoNativeEgressProbe.swift": "3c09466b780ecdf139823dffb8be8e3f88d10f879d3b232f925c74a156b7d325",
+    "Sources/MimoService/MimoSystemRuntime.swift": "d3abc22c0f18a633d3750d7d93e8968260ea89ee84564a73b8a35c0d9327ba19",
+    "Sources/MimoService/MimoSupervisor.swift": "1f822316a3222dec654d408479aa32b5b8c009f41bc878aeb7bc2fb6da6ec4ba",
+    "Sources/MimoService/BoundedProcess.swift": "33f847fc0da1920291122ff484c429e077a554cb0557632202f9e3d6c12ff547",
+    "Sources/MimoDaemon/pf-guard.pl": "99d8b4cfb02e02fbc9919cf9ee5ca5af5f1042079076aa57be96a47cdb490769",
+    "Sources/MimoApp/MimoViews.swift": "5b18228abcb299b0cbc414cc3ee8d10cdace910171b8546d9859ce934bd72d0d",
+    "Patches/mihomo-1.19.34-v3.patch": "8970c459f41901788ebade6afb9edf989e81afb066bcc6c24c5b808ece087d78",
+    "Configuration/MihomoDependency.plist": "9e03b983e68df30d9ac49f78c5ca2d8207c6942f3d2a33d67902a575949bf2bc",
+    "Tests/MihomoRuntimeTests/v3_fault_traffic_test.py": "9b4dba10cccdf17a049053a469552489ce46d7798997f0f2c2ed728b8003e952",
+    "Tests/MihomoRuntimeTests/v3_active_guard_compat_test.py": "00a9d3533e1f2121e93bd9fbf982c6422c85a44bb22ade943ea210f9f96cb0a7",
+    "Tests/MihomoRuntimeTests/v3_native_wrong_path_test.py": "ee997b6b3529e80a0bf6e68b1f51e0c2cafcab79a2e5288b35f916263e441b00",
+    "Tests/MihomoRuntimeTests/v3_ipv6_control_test.py": "d5f33a8000d6612d686f1671121e5f54d33b8b02eae4b8efb93faeb4f1aa26c1",
+    "Tests/MihomoRuntimeTests/v3_firewall_failure_test.py": "f631e8112a0846dd8dd436407028ae757c68302b76729819e39847f34c1e4765",
+    "Tests/MihomoRuntimeTests/v3_package_closure_test.py": "541bcc9bb54b9530ae1c8da6bde86f7f02c2f00eff0acc7e0746b878f6c1134f",
+    "Tests/MihomoRuntimeTests/v3_closure_restore.py": "25a223cae7e8a6b563654aabcaceef7fd60a35948257217f9cd7acbb7701e7ab"
+  },
+  "local_only": true,
+  "native_settings_visual_inspection": false,
+  "shared_tests_passed": 214,
+  "independent_pf_assertions_passed": 31,
+  "engine_version": "v1.19.34-mimo-v3.2",
+  "engine_sha256": "6925603de8a31decb3919c607a97cee2845afc5ea70aa4c2797620e775f143ca",
+  "frozen_profile_sha256": "75f18599e9a7bf333915c6a0341bf7b36e482cccf87541295afb09c9e303ef8a",
+  "error_fields_exported_as_presence_boolean": true,
+  "executed_utc_date": "2026-11-25"
+}

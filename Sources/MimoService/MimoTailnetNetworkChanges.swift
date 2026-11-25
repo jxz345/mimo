@@ -130,7 +130,7 @@ final class MimoTailnetNetworkChanges: @unchecked Sendable {
             let service = String(key.dropFirst("Setup:/Network/Service/".count).dropLast("/Interface".count))
             let prefix = "State:/Network/Service/\(service)/"
             let interface = ["IPv4", "IPv6", "DNS"].compactMap { values[prefix + $0]?["InterfaceName"] as? String }
-                .first { TailscaleVergeStatus.isUtun($0) && $0 != MihomoProfile.tunnelDevice }
+                .first { $0.hasPrefix("utun") && $0.dropFirst(4).allSatisfy(\.isNumber) && $0 != MihomoProfile.tunnelDevice }
             knownServices[service] = interface ?? knownServices[service] ?? ""
         }
         for (key, value) in values where key.hasPrefix("State:/Network/Service/") && key.hasSuffix("/DNS") {

@@ -1,0 +1,24 @@
+{
+  "version": "v1.19.34-mimo-no-ping.1",
+  "purpose": "Standalone no-synthetic-ping VM test; not an app release",
+  "upstream_commit": "0455d0d28c4526937380505153e65a843d8612e8",
+  "sing_tun_version": "v0.4.29",
+  "sing_tun_module_sum": "h1:KIULEuW0iFXxLegOgrW8orq5Sx4TCBBhwo6j8+CIFBs=",
+  "toolchain": "go1.26.11",
+  "platform": "darwin/arm64",
+  "tags": [
+    "with_gvisor"
+  ],
+  "engine_sha256": "ff21dbbad799783de14f4a13684b35531b455beff0335dc2e9d468e5bcbe52bd",
+  "source_files_sha256": {
+    "Patches/mihomo-1.19.34-no-ping.patch": "53ab083c71ba465e33d5b062abead83b65f4ccf68367148b0e05289011bc9a51",
+    "Patches/sing-tun-0.4.29-no-ping.patch": "f57cc8c6905f9b0b535bb0ec106dd4000d324b609bd35fde85427827c24d330e",
+    "Scripts/build-no-ping-test-engine.sh": "791c25574debb66b536a77abdd3391abe7c699aa98a986db2678438c4fa00a59"
+  },
+  "unit_tests": [
+    "TestNoPingStackRoundTrip",
+    "TestBlockEchoWithoutForwardingOrSyntheticReply",
+    "TestBlockEchoPreservesControlAndErrorHandling"
+  ],
+  "unit_tests_passed": true
+}

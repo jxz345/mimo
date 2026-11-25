@@ -16,7 +16,7 @@ enum MimoFirewallLock {
             return try withExtendedLifetime(admission) {
                 let lock = try acquire(at: mutation, timeout: .seconds(30))
                 return try withExtendedLifetime(lock) {
-                    try stampMutation()
+                    try stampMutation(revoking: true)
                     return try operation()
                 }
             }
@@ -43,7 +43,12 @@ enum MimoFirewallLock {
     /// Written under mutation before touching PF. The checker reads rules without
     /// holding the lock, then rejects its snapshot if this token changed. Kernel
     /// flock plus the token also detects a writer that crashes during its operation.
-    private static func stampMutation() throws {
+    private static func stampMutation(revoking: Bool = false) throws {
+        if revoking {
+            let closed = MimoRuntime.directory.appendingPathComponent("pf-close.epoch")
+            try Data(UUID().uuidString.utf8).write(to: closed, options: .atomic)
+            try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: closed.path)
+        }
         let url = MimoRuntime.directory.appendingPathComponent("pf-mutation.epoch")
         try Data(UUID().uuidString.utf8).write(to: url, options: .atomic)
         try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)

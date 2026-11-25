@@ -8,20 +8,18 @@ import SwiftUI
 final class DaemonInstallationModel: ObservableObject {
     @Published private(set) var monitorInstalled = false
     @Published private(set) var responderInstalled = false
-    @Published private(set) var status: TailscaleVergeStatus?
     @Published private(set) var isInstalling = false
     @Published private(set) var message: String?
     @Published private(set) var hasError = false
 
     var serviceInstalled: Bool { monitorInstalled }
-    var isInstalled: Bool { serviceInstalled && MimoAppDelegate.monitor.daemonState?.settings.tailscaleProviderEnabled == true }
+    var isInstalled: Bool { serviceInstalled }
 
     init() { reload() }
 
     func reload() {
         monitorInstalled = FileManager.default.fileExists(atPath: MimoRuntime.supervisorPlist)
         responderInstalled = monitorInstalled
-        status = MimoAppDelegate.monitor.daemonState?.providerStatus
 
     }
 
@@ -49,39 +47,9 @@ final class DaemonInstallationModel: ObservableObject {
             }
             return
         }
-        #if arch(arm64)
-        let dependency = "/opt/homebrew/opt/mihomo@1.19.34/bin/mihomo"
-        #else
-        let dependency = "/usr/local/opt/mihomo@1.19.34/bin/mihomo"
-        #endif
-        if !FileManager.default.isExecutableFile(atPath: dependency) {
-            guard let setup = Bundle.main.url(forResource: "setup", withExtension: "command"),
-                  NSWorkspace.shared.open(setup) else {
-                hasError = true
-                message = "Dependency setup could not open. Reinstall the app and retry."
-                return
-            }
-            isInstalling = true
-            hasError = false
-            message = "Complete Homebrew and service setup in Terminal. Administrator authentication may be requested there."
-            RuntimeLog.shared.info("mimo_dependency_setup_opened")
-            Task {
-                for _ in 0..<600 {
-                    try? await Task.sleep(for: .seconds(1))
-                    if FileManager.default.isExecutableFile(atPath: dependency),
-                       let response = try? await DaemonRPC.call(DaemonRequest(.state), timeout: 1), let state = response.state {
-                        reload()
-                        guard monitorInstalled else { continue }
-                        MimoAppDelegate.monitor.receive(state)
-                        isInstalling = false
-                        message = "Dependencies and background services installed."
-                        return
-                    }
-                }
-                isInstalling = false
-                hasError = true
-                message = "Setup is incomplete. Finish or retry the setup command in Terminal, then retry installation."
-            }
+        guard Bundle.main.url(forResource: "mihomo-v3", withExtension: "bin") != nil else {
+            hasError = true
+            message = "The bundled engine is missing. Reinstall the complete Mimo app."
             return
         }
         guard let script = Bundle.main.url(forResource: "daemon", withExtension: "sh") else {

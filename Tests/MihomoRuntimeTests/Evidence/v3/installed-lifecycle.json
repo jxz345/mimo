@@ -1,0 +1,157 @@
+{
+  "scope": "Installed v3 in isolated mimo-vm; managed Direct role recovery, full Stop, reinstall, uninstall and native release checks. Initial role presence did not independently require controller version; strengthened repetition is recorded separately.",
+  "cases": [
+    {
+      "id": "baseline-direct",
+      "passed": true
+    },
+    {
+      "id": "roles-000",
+      "passed": true
+    },
+    {
+      "id": "roles-001",
+      "passed": true
+    },
+    {
+      "id": "roles-010",
+      "passed": true
+    },
+    {
+      "id": "roles-011",
+      "passed": true
+    },
+    {
+      "id": "roles-100",
+      "passed": true
+    },
+    {
+      "id": "roles-101",
+      "passed": true
+    },
+    {
+      "id": "roles-110",
+      "passed": true
+    },
+    {
+      "id": "roles-111",
+      "passed": true
+    },
+    {
+      "id": "deactivate-completed",
+      "passed": true
+    },
+    {
+      "id": "stop-jobs-absent",
+      "passed": true
+    },
+    {
+      "id": "stop-owned-resolver-absent",
+      "passed": true
+    },
+    {
+      "id": "stop-tunnel-absent",
+      "passed": true
+    },
+    {
+      "id": "stop-000.mimo-sr",
+      "passed": true
+    },
+    {
+      "id": "stop-000.mimo-sn",
+      "passed": true
+    },
+    {
+      "id": "stop-000.mimo-sT",
+      "passed": true
+    },
+    {
+      "id": "stop-v3-test-legacy-sr",
+      "passed": true
+    },
+    {
+      "id": "stop-v3-test-legacy-sn",
+      "passed": true
+    },
+    {
+      "id": "stop-v3-test-legacy-sT",
+      "passed": true
+    },
+    {
+      "id": "stop-boot-stanza-absent",
+      "passed": true
+    },
+    {
+      "id": "stop-native-check",
+      "passed": true
+    },
+    {
+      "id": "stop-monitoring-only-marker",
+      "passed": true
+    },
+    {
+      "id": "install-completed",
+      "passed": true
+    },
+    {
+      "id": "reinstall-restores-all-roles",
+      "passed": true
+    },
+    {
+      "id": "uninstall-completed",
+      "passed": true
+    },
+    {
+      "id": "uninstall-jobs-absent",
+      "passed": true
+    },
+    {
+      "id": "uninstall-owned-resolver-absent",
+      "passed": true
+    },
+    {
+      "id": "uninstall-tunnel-absent",
+      "passed": true
+    },
+    {
+      "id": "uninstall-000.mimo-sr",
+      "passed": true
+    },
+    {
+      "id": "uninstall-000.mimo-sn",
+      "passed": true
+    },
+    {
+      "id": "uninstall-000.mimo-sT",
+      "passed": true
+    },
+    {
+      "id": "uninstall-v3-test-legacy-sr",
+      "passed": true
+    },
+    {
+      "id": "uninstall-v3-test-legacy-sn",
+      "passed": true
+    },
+    {
+      "id": "uninstall-v3-test-legacy-sT",
+      "passed": true
+    },
+    {
+      "id": "uninstall-boot-stanza-absent",
+      "passed": true
+    },
+    {
+      "id": "uninstall-native-check",
+      "passed": true
+    },
+    {
+      "id": "install-completed",
+      "passed": true
+    },
+    {
+      "id": "final-installed-direct",
+      "passed": true
+    }
+  ]
+}

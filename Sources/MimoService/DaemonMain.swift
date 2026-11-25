@@ -77,7 +77,9 @@ enum DaemonMain {
                 try MimoFirewallLock.mutate {
                     _ = try runtime.writePrivate(Data(), name: "maintenance")
                 }
-                try runtime.closeGate()
+                // Revoke promptly through the short PF lock. The lifecycle
+                // owner may still be draining DNS or inspecting native access.
+                try runtime.holdApplicationGate()
                 return
             case ["--restore-direct-offline"]:
                 try runtime.restoreDirect(maintenanceRecovery: true)
@@ -119,10 +121,10 @@ enum DaemonMain {
                         async let core = try? DaemonRPC.call(DaemonRequest(.state), timeout: 10)
                         let (response, coreResponse) = await (supervisor, core)
                         guard let flags = try? runtime.servicePreferences() else { break }
-                        problems = MimoInstallationReadiness.problems(flags: flags, supervisor: response?.routing,
-                            provider: coreResponse?.state?.routing?.services.first(where: { $0.id == .tailnetProvider }))
+                        problems = MimoInstallationReadiness.problems(flags: flags, supervisor: response?.routing)
+                        if coreResponse?.state == nil { problems.append("core_communication") }
                         if problems.isEmpty, (try? runtime.checkInstalledController()) != nil {
-                            print("All Mimo services, provider endpoint, engine controller and infrastructure monitors are healthy.")
+                            print("All Mimo services, engine controller and infrastructure monitors are healthy.")
                             exit(0)
                         }
                         if problems.isEmpty { problems = ["engine_controller"] }

@@ -1,0 +1,73 @@
+{
+  "checks": [
+    {
+      "profile": "mimo-ipv4-template.yaml",
+      "mode": "rule",
+      "engine_configuration_parse_passed": true
+    },
+    {
+      "profile": "mimo-ipv4-template.yaml",
+      "mode": "global",
+      "engine_configuration_parse_passed": true
+    },
+    {
+      "profile": "mimo-dualstack-template.yaml",
+      "mode": "rule",
+      "engine_configuration_parse_passed": true
+    },
+    {
+      "profile": "mimo-dualstack-template.yaml",
+      "mode": "global",
+      "engine_configuration_parse_passed": true
+    }
+  ],
+  "vm_dns_and_interface_inventory_unchanged": true,
+  "planned_behavioral_cases": 3620,
+  "runtime_cases_executed": 0,
+  "status": "native_dns_templates_prepared_runtime_not_tested",
+  "checked_at_utc": "2026-11-24T10:10:36.393670+00:00",
+  "engine_version": "v1.19.34-mimo-no-ping.1",
+  "engine_sha256": "ff21dbbad799783de14f4a13684b35531b455beff0335dc2e9d468e5bcbe52bd",
+  "source_sha256": {
+    "mimo-ipv4-template.yaml": "589b6585432f8fcbd855b14162c0d3797c9cdaeacd9dbe830ea9c817de42bf4c",
+    "mimo-dualstack-template.yaml": "cba6adf0b9205c0c1b5550b90ba721d2b5f3d2a4b51f34e560edac69f20fcbcc"
+  },
+  "source_checks": {
+    "mimo-ipv4-template.yaml": {
+      "baseline": "mimo-global-ipv6-test.yaml",
+      "only_semantic_differences": [
+        "mode",
+        "rules",
+        "tun.dns-mode"
+      ],
+      "dns_mode": "native"
+    },
+    "mimo-dualstack-template.yaml": {
+      "baseline": "mimo-global-dualstack-test.yaml",
+      "only_semantic_differences": [
+        "mode",
+        "rules",
+        "tun.dns-mode"
+      ],
+      "dns_mode": "native"
+    }
+  },
+  "mode_variant_changes_only_mode": true,
+  "existing_working_profiles_unchanged": true,
+  "temporary_vm_directory_removed": true,
+  "dns_registration": "native",
+  "qualification_pending": [
+    "Rule/Global behavioral campaign",
+    "search-domain and native split-DNS preservation",
+    "Tailscale disconnect/reconnect",
+    "final-template system DNS and cleanup lifecycle"
+  ],
+  "limitation": "IPv4-oriented template suppresses client AAAA but permits proxy-carried IPv6 in Global and for remotely resolved SOCKS hostnames.",
+  "preliminary_attempts": [
+    {
+      "stage": "cleanup_readback",
+      "outcome": "harness_error",
+      "detail": "The first parser run reached cleanup but used nonexistent /usr/bin/test on macOS. Repeated with /bin/test and verified both temporary directories were removed; no runtime cases ran."
+    }
+  ]
+}

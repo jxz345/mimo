@@ -1,0 +1,136 @@
+[
+  {
+    "run": 1,
+    "cases": [
+      {
+        "id": "ipv4-rule-approved",
+        "passed": true
+      },
+      {
+        "id": "ipv4-rule-fresh-family-observations",
+        "passed": true
+      },
+      {
+        "id": "ipv4-rule-actual-engine-mode",
+        "passed": true
+      },
+      {
+        "id": "ipv4-rule-empty-active-pf",
+        "passed": true
+      },
+      {
+        "id": "ipv4-rule-owned-dns",
+        "passed": true
+      },
+      {
+        "id": "ipv4-rule-no-provider",
+        "passed": false
+      }
+    ],
+    "error": "ipv4-rule-no-provider",
+    "resolution": "Harness correction: Mihomo represents inline proxies as a built-in Compatible provider; this is not the removed native provider."
+  },
+  {
+    "run": 2,
+    "cases": [
+      {
+        "id": "ipv4-rule-approved",
+        "passed": true
+      },
+      {
+        "id": "ipv4-rule-fresh-family-observations",
+        "passed": true
+      },
+      {
+        "id": "ipv4-rule-actual-engine-mode",
+        "passed": true
+      },
+      {
+        "id": "ipv4-rule-empty-active-pf",
+        "passed": true
+      },
+      {
+        "id": "ipv4-rule-owned-dns",
+        "passed": true
+      },
+      {
+        "id": "ipv4-rule-no-external-native-provider",
+        "passed": true
+      },
+      {
+        "id": "ipv4-rule-https4",
+        "passed": true,
+        "exit_status": 0
+      },
+      {
+        "id": "ipv4-rule-https6",
+        "passed": true,
+        "exit_status": 35
+      },
+      {
+        "id": "ipv4-rule-refresh-fresh",
+        "passed": true
+      },
+      {
+        "id": "ipv4-rule-direct-empty-pf",
+        "passed": true
+      },
+      {
+        "id": "ipv4-rule-direct-dns-removed",
+        "passed": true
+      },
+      {
+        "id": "ipv4-global-approved",
+        "passed": true
+      },
+      {
+        "id": "ipv4-global-fresh-family-observations",
+        "passed": true
+      },
+      {
+        "id": "ipv4-global-actual-engine-mode",
+        "passed": true
+      },
+      {
+        "id": "ipv4-global-empty-active-pf",
+        "passed": true
+      },
+      {
+        "id": "ipv4-global-owned-dns",
+        "passed": true
+      },
+      {
+        "id": "ipv4-global-no-external-native-provider",
+        "passed": true
+      },
+      {
+        "id": "ipv4-global-https4",
+        "passed": true,
+        "exit_status": 0
+      },
+      {
+        "id": "ipv4-global-https6",
+        "passed": true,
+        "exit_status": 35
+      },
+      {
+        "id": "ipv4-global-refresh-fresh",
+        "passed": true
+      },
+      {
+        "id": "ipv4-global-direct-empty-pf",
+        "passed": true
+      },
+      {
+        "id": "ipv4-global-direct-dns-removed",
+        "passed": true
+      },
+      {
+        "id": "dual-rule-approved",
+        "passed": false
+      }
+    ],
+    "error": "dual-rule-approved",
+    "resolution": "Implementation fix: core persists requested networkFamily and invalidates protected approval; coordinator preserves it across supervisor state merging. Regression service tests and all 44 installed HTTPS assertions pass."
+  }
+]

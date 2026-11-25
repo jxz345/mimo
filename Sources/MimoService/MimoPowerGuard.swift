@@ -139,10 +139,10 @@ final class MimoPowerFence: @unchecked Sendable {
 struct MimoDeferredNetworkChange: Error {}
 
 /// IOKit delivery has its own queue. Profile loading and core XPC cannot delay
-/// the pre-sleep barrier. The sub-anchor remains closed on wake until a new
+/// the pre-sleep barrier. The flat transition anchor remains closed on wake until a new
 /// verification explicitly releases it under the same power-state lock.
 final class MimoPowerGuard: @unchecked Sendable {
-    static let anchor = MimoFirewallPolicy.anchor + "/power-guard"
+    static let anchor = MimoFirewallPolicy.anchor
     let fence = MimoPowerFence()
     private let queue = DispatchQueue(label: "app.mimo.power-guard", qos: .userInitiated)
     private var port: IONotificationPortRef?
@@ -222,12 +222,15 @@ final class MimoPowerGuard: @unchecked Sendable {
         }
     }
 
-    static func clear() throws {
-        try MimoFirewallLock.mutate { try command(["-a", anchor, "-F", "rules"]) }
-    }
-
     static func closeBarrier(request: MimoGateRequest? = nil) throws {
-        try closeBarrier(request: request, confirm: {})
+        try closeBarrier(request: request) {
+            let live = BoundedProcess.run("/sbin/pfctl", ["-a", anchor, "-sr"])
+            let status = BoundedProcess.run("/sbin/pfctl", ["-s", "info"])
+            guard live.status == 0, MimoFirewallPolicy.isClosedReadback(live.text),
+                  status.status == 0, status.text.contains("Status: Enabled") else {
+                throw MimoRuntimeError.unavailable("The transition barrier could not be confirmed.")
+            }
+        }
     }
 
     /// Keep priority and mutation through the caller's readback/publication.
@@ -237,12 +240,9 @@ final class MimoPowerGuard: @unchecked Sendable {
         return try MimoFirewallLock.mutate(revoking: true) {
             timing.record("deny_mutation_wait")
             guard request?.isCancelled != true else { throw CancellationError() }
-            // Active mode has only this passive anchor. Fill it first, then
-            // revoke any private probe left over from the preceding transition.
+            // One atomic root replacement also revokes private-probe access.
             try command(["-a", anchor, "-f", "-"], input: Data(MimoFirewallPolicy.startupBlocking.utf8))
             timing.record("deny_barrier")
-            try command(["-a", MimoFirewallPolicy.permissionAnchor, "-F", "rules"])
-            timing.record("deny_permission")
             try command(["-k", "0.0.0.0/0"])
             try command(["-k", "::/0"])
             timing.record("deny_states")

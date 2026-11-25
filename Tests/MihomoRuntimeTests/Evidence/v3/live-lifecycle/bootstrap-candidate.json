@@ -1,0 +1,13 @@
+{
+  "version": "3.0",
+  "build": "8",
+  "sha256": {
+    "Mimo-3.0.pkg": "f97dbabbd4e96e9c4dd4a1a369d31a4952a4f412e82f380eb04d6e8d100bf19a",
+    "Mimo-3.0.zip": "da3c45651718f6f08a0f15512d3f5aeffc34767771d2d093ec15e1ad21ecf8c7"
+  },
+  "shared_tests_passed": 215,
+  "service_tests_passed": true,
+  "helper_sha256": "d04b44fe9645512bc1d5e15e09c4ab020f1745d666050872e11c2bd7b8529351",
+  "scope": "local bootstrap-corrected candidate, not published",
+  "live_reconnect": "pending"
+}

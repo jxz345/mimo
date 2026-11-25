@@ -1,0 +1,531 @@
+{
+  "planned_scenarios": 54,
+  "automated_scenarios": 42,
+  "automated_outcomes": {
+    "FAIL_NATIVE_BYPASS": 5,
+    "FAIL_RECOVERY": 4,
+    "PASS": 33
+  },
+  "native_ui": "NOT RUN: Screen Sharing AX action/observation timed out; no native Mimo UI pass claimed",
+  "physical_mac": "NOT RUN: user-operated checks pending; instructions in closure record",
+  "release_qualified": false,
+  "cases": [
+    {
+      "id": "ipv4-rule-baseline",
+      "result": "PASS",
+      "native_attempts": 0,
+      "successes": {
+        "4-tcp": 12,
+        "4-stream": 11,
+        "4-udp": 12,
+        "4-echo": 0,
+        "6-tcp": 0,
+        "6-stream": 0,
+        "6-udp": 0,
+        "6-echo": 0
+      }
+    },
+    {
+      "id": "ipv4-rule-engine-kill",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 2,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 2
+      },
+      "first_native_attempt_seconds": 0.0337,
+      "first_sampled_closed_seconds": 0.0967,
+      "recovered": true,
+      "error": null,
+      "result": "FAIL_NATIVE_BYPASS"
+    },
+    {
+      "id": "ipv4-rule-engine-stall",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 0,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 0
+      },
+      "first_native_attempt_seconds": null,
+      "first_sampled_closed_seconds": 3.2251,
+      "recovered": true,
+      "error": null,
+      "result": "PASS"
+    },
+    {
+      "id": "ipv4-rule-core-stall",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 0,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 0
+      },
+      "first_native_attempt_seconds": null,
+      "first_sampled_closed_seconds": 6.5003,
+      "recovered": false,
+      "error": "Effective recovery timed out: The core heartbeat expired. Verification is required.",
+      "result": "FAIL_RECOVERY"
+    },
+    {
+      "id": "ipv4-rule-supervisor-stall",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 0,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 0
+      },
+      "first_native_attempt_seconds": null,
+      "first_sampled_closed_seconds": 14.8324,
+      "recovered": true,
+      "error": null,
+      "result": "PASS"
+    },
+    {
+      "id": "ipv4-rule-owners-stall",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 0,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 0
+      },
+      "first_native_attempt_seconds": null,
+      "first_sampled_closed_seconds": 14.5332,
+      "recovered": true,
+      "error": null,
+      "result": "PASS"
+    },
+    {
+      "id": "ipv4-rule-native-route",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 0,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 0
+      },
+      "first_native_attempt_seconds": null,
+      "first_sampled_closed_seconds": 0.3071,
+      "recovered": true,
+      "error": null,
+      "result": "PASS"
+    },
+    {
+      "id": "ipv4-global-baseline",
+      "result": "PASS",
+      "native_attempts": 0,
+      "successes": {
+        "4-tcp": 12,
+        "4-stream": 13,
+        "4-udp": 12,
+        "4-echo": 0,
+        "6-tcp": 0,
+        "6-stream": 0,
+        "6-udp": 0,
+        "6-echo": 0
+      }
+    },
+    {
+      "id": "ipv4-global-engine-kill",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 3,
+      "native_attempts_by_family": {
+        "4": 1,
+        "6": 2
+      },
+      "first_native_attempt_seconds": 0.0379,
+      "first_sampled_closed_seconds": 0.4238,
+      "recovered": true,
+      "error": null,
+      "result": "FAIL_NATIVE_BYPASS"
+    },
+    {
+      "id": "ipv4-global-engine-stall",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 0,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 0
+      },
+      "first_native_attempt_seconds": null,
+      "first_sampled_closed_seconds": 3.1764,
+      "recovered": true,
+      "error": null,
+      "result": "PASS"
+    },
+    {
+      "id": "ipv4-global-core-stall",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 0,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 0
+      },
+      "first_native_attempt_seconds": null,
+      "first_sampled_closed_seconds": 5.7181,
+      "recovered": false,
+      "error": "Effective recovery timed out: The core heartbeat expired. Verification is required.",
+      "result": "FAIL_RECOVERY"
+    },
+    {
+      "id": "ipv4-global-supervisor-stall",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 0,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 0
+      },
+      "first_native_attempt_seconds": null,
+      "first_sampled_closed_seconds": 14.6805,
+      "recovered": true,
+      "error": null,
+      "result": "PASS"
+    },
+    {
+      "id": "ipv4-global-owners-stall",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 0,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 0
+      },
+      "first_native_attempt_seconds": null,
+      "first_sampled_closed_seconds": 15.1145,
+      "recovered": true,
+      "error": null,
+      "result": "PASS"
+    },
+    {
+      "id": "ipv4-global-native-route",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 2,
+      "native_attempts_by_family": {
+        "4": 1,
+        "6": 1
+      },
+      "first_native_attempt_seconds": 0.0994,
+      "first_sampled_closed_seconds": 0.5046,
+      "recovered": true,
+      "error": null,
+      "result": "FAIL_NATIVE_BYPASS"
+    },
+    {
+      "id": "dual-rule-baseline",
+      "result": "PASS",
+      "native_attempts": 0,
+      "successes": {
+        "4-tcp": 12,
+        "4-stream": 13,
+        "4-udp": 12,
+        "4-echo": 0,
+        "6-tcp": 12,
+        "6-stream": 13,
+        "6-udp": 12,
+        "6-echo": 0
+      }
+    },
+    {
+      "id": "dual-rule-engine-kill",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 1,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 1
+      },
+      "first_native_attempt_seconds": 0.0555,
+      "first_sampled_closed_seconds": 0.3714,
+      "recovered": true,
+      "error": null,
+      "result": "FAIL_NATIVE_BYPASS"
+    },
+    {
+      "id": "dual-rule-engine-stall",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 0,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 0
+      },
+      "first_native_attempt_seconds": null,
+      "first_sampled_closed_seconds": 4.0263,
+      "recovered": true,
+      "error": null,
+      "result": "PASS"
+    },
+    {
+      "id": "dual-rule-core-stall",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 0,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 0
+      },
+      "first_native_attempt_seconds": null,
+      "first_sampled_closed_seconds": 5.7783,
+      "recovered": false,
+      "error": "Effective recovery timed out: The core heartbeat expired. Verification is required.",
+      "result": "FAIL_RECOVERY"
+    },
+    {
+      "id": "dual-rule-supervisor-stall",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 0,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 0
+      },
+      "first_native_attempt_seconds": null,
+      "first_sampled_closed_seconds": 14.576,
+      "recovered": true,
+      "error": null,
+      "result": "PASS"
+    },
+    {
+      "id": "dual-rule-owners-stall",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 0,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 0
+      },
+      "first_native_attempt_seconds": null,
+      "first_sampled_closed_seconds": null,
+      "recovered": true,
+      "error": null,
+      "result": "PASS"
+    },
+    {
+      "id": "dual-rule-native-route",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 0,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 0
+      },
+      "first_native_attempt_seconds": null,
+      "first_sampled_closed_seconds": 0.329,
+      "recovered": true,
+      "error": null,
+      "result": "PASS"
+    },
+    {
+      "id": "dual-global-baseline",
+      "result": "PASS",
+      "native_attempts": 0,
+      "successes": {
+        "4-tcp": 13,
+        "4-stream": 12,
+        "4-udp": 13,
+        "4-echo": 0,
+        "6-tcp": 12,
+        "6-stream": 14,
+        "6-udp": 13,
+        "6-echo": 0
+      }
+    },
+    {
+      "id": "dual-global-engine-kill",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 4,
+      "native_attempts_by_family": {
+        "4": 2,
+        "6": 2
+      },
+      "first_native_attempt_seconds": 0.0218,
+      "first_sampled_closed_seconds": 0.1658,
+      "recovered": true,
+      "error": null,
+      "result": "FAIL_NATIVE_BYPASS"
+    },
+    {
+      "id": "dual-global-engine-stall",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 0,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 0
+      },
+      "first_native_attempt_seconds": null,
+      "first_sampled_closed_seconds": 3.8655,
+      "recovered": true,
+      "error": null,
+      "result": "PASS"
+    },
+    {
+      "id": "dual-global-core-stall",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 0,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 0
+      },
+      "first_native_attempt_seconds": null,
+      "first_sampled_closed_seconds": 6.0104,
+      "recovered": false,
+      "error": "Effective recovery timed out: The core heartbeat expired. Verification is required.",
+      "result": "FAIL_RECOVERY"
+    },
+    {
+      "id": "dual-global-supervisor-stall",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 0,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 0
+      },
+      "first_native_attempt_seconds": null,
+      "first_sampled_closed_seconds": 14.7155,
+      "recovered": true,
+      "error": null,
+      "result": "PASS"
+    },
+    {
+      "id": "dual-global-owners-stall",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 0,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 0
+      },
+      "first_native_attempt_seconds": null,
+      "first_sampled_closed_seconds": 14.9356,
+      "recovered": true,
+      "error": null,
+      "result": "PASS"
+    },
+    {
+      "id": "dual-global-native-route",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 0,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 0
+      },
+      "first_native_attempt_seconds": null,
+      "first_sampled_closed_seconds": 0.0793,
+      "recovered": true,
+      "error": null,
+      "result": "PASS"
+    },
+    {
+      "id": "dual-rule-live-ptb",
+      "result": "PASS",
+      "injected_packets": 1,
+      "payload_ok": true,
+      "before_max": 3113,
+      "after_max": 1252,
+      "error": null
+    },
+    {
+      "id": "dual-rule-native-control-and-payload",
+      "result": "PASS",
+      "native_ping_status": 0,
+      "tls_status": 0,
+      "response_bytes": 262246,
+      "response_sha256": "fabcaa8db89f426ff673af196ba0b5009300a7615bb30a94571b2d9b786930fc",
+      "scope": "Real native IPv6 echo/neighbor path and proxied TLS; no injected neighbor-advertisement attack"
+    },
+    {
+      "id": "dual-global-live-ptb",
+      "result": "PASS",
+      "injected_packets": 1,
+      "payload_ok": true,
+      "before_max": 3113,
+      "after_max": 1252,
+      "error": null
+    },
+    {
+      "id": "dual-global-native-control-and-payload",
+      "result": "PASS",
+      "native_ping_status": 0,
+      "tls_status": 0,
+      "response_bytes": 262248,
+      "response_sha256": "f798bcf678bec81cae57c1f9fcfab99ffd61bcd9ca1c4b62427fed192ee13f46",
+      "scope": "Real native IPv6 echo/neighbor path and proxied TLS; no injected neighbor-advertisement attack"
+    },
+    {
+      "id": "pf-held-mutation",
+      "result": "PASS",
+      "error": null,
+      "native_attempts": 0,
+      "false_closed_confirmation": false,
+      "samples": [
+        {
+          "marker": "active",
+          "actual_closed": false
+        },
+        {
+          "marker": "active",
+          "actual_closed": false
+        },
+        {
+          "marker": "active",
+          "actual_closed": false
+        },
+        {
+          "marker": "active",
+          "actual_closed": false
+        },
+        {
+          "marker": "active",
+          "actual_closed": false
+        },
+        {
+          "marker": "active",
+          "actual_closed": false
+        }
+      ],
+      "scope": "Eight-second external lock hold; effective state after release"
+    },
+    {
+      "id": "pf-invalid-guard-input",
+      "result": "PASS",
+      "error": null,
+      "native_attempts": 0,
+      "observed": {
+        "status": 1,
+        "reported_health": "failed",
+        "gate": "pending",
+        "actual_closed": false,
+        "parser_rejection_status": 1,
+        "parser_error": true
+      },
+      "scope": "Real pfctl parser rejection during independent repair; NOT a kernel load/state-flush failure"
+    },
+    {
+      "id": "release-package-identity",
+      "result": "PASS",
+      "version": "3.0",
+      "build": "8",
+      "engine_sha256": "9103954f5cb48c2e93826ba1f61e6c2677d9363680eecdf00b09b94c3a4253d8"
+    },
+    {
+      "id": "release-package-upgrade",
+      "result": "PASS"
+    },
+    {
+      "id": "release-cleans-legacy-preserves-foreign",
+      "result": "PASS"
+    },
+    {
+      "id": "occupied-port-refusal",
+      "result": "PASS"
+    },
+    {
+      "id": "explicit-fixture-takeover",
+      "result": "PASS",
+      "scope": "Real terminal consent, test-owned standalone listener only"
+    },
+    {
+      "id": "reinstall-after-release",
+      "result": "PASS"
+    },
+    {
+      "id": "release-package-uninstall",
+      "result": "PASS"
+    },
+    {
+      "id": "release-package-final-healthy",
+      "result": "PASS"
+    }
+  ]
+}

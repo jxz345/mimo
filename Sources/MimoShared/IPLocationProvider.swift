@@ -87,10 +87,12 @@ public enum LookupError: Error, LocalizedError, Sendable, Equatable {
 public struct LookupConfiguration: Sendable {
     public let provider: ProviderID
     public let ipinfoToken: String?
+    public let family: MimoAddressFamily?
 
-    public init(provider: ProviderID, ipinfoToken: String?) {
+    public init(provider: ProviderID, ipinfoToken: String?, family: MimoAddressFamily? = nil) {
         self.provider = provider
         self.ipinfoToken = ipinfoToken
+        self.family = family
     }
 }
 
@@ -98,12 +100,14 @@ public struct LookupConfiguration: Sendable {
 public protocol PublicIPLookupClientProtocol: Sendable {
     /// Includes any managed routing preparation/activation around the HTTP lookup.
     var lookupTimeout: Duration { get }
+    var accountsActualRequests: Bool { get }
     func lookup(configuration: LookupConfiguration) async throws -> MimoSnapshot
     func confirmCountryChange(primaryProvider: ProviderID, ipinfoToken: String?) async throws -> MimoSnapshot
 }
 
 public extension PublicIPLookupClientProtocol {
     var lookupTimeout: Duration { .seconds(15) }
+    var accountsActualRequests: Bool { false }
 }
 
 /// A confirmation request occurs only after a successful primary lookup reports a country change.
@@ -143,7 +147,7 @@ public struct PublicIPLookupClient: Sendable, PublicIPLookupClientProtocol {
         let provider: any IPLocationProvider
         switch configuration.provider {
         case .ipinfoLite:
-            provider = IPinfoLiteProvider(session: session)
+            provider = IPinfoLiteProvider(session: session, family: configuration.family)
         case .ipapiCo:
             provider = IpapiCoProvider(session: session)
         case .ipWhois:
@@ -185,9 +189,11 @@ public struct IPinfoLiteProvider: IPLocationProvider {
     public let id: ProviderID = .ipinfoLite
 
     private let session: URLSession
+    private let family: MimoAddressFamily?
 
-    public init(session: URLSession = .shared) {
+    public init(session: URLSession = .shared, family: MimoAddressFamily? = nil) {
         self.session = session
+        self.family = family
     }
 
     public func lookup(ipinfoToken: String?) async throws -> MimoSnapshot {
@@ -196,7 +202,7 @@ public struct IPinfoLiteProvider: IPLocationProvider {
         }
 
         let response: IPinfoLiteResponse = try await JSONHTTPClient.get(
-            URL(string: "https://api.ipinfo.io/lite/me")!, session: session, bearerToken: ipinfoToken)
+            URL(string: "https://\(family.map { $0 == .ipv4 ? "v4." : "v6." } ?? "")api.ipinfo.io/lite/me")!, session: session, bearerToken: ipinfoToken)
         guard !response.ip.isEmpty else { throw LookupError.invalidResponse }
 
         return MimoSnapshot(
@@ -322,7 +328,7 @@ private enum JSONHTTPClient {
         request.setValue("Mimo/1.0", forHTTPHeaderField: "User-Agent")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         if let bearerToken {
-            guard url.scheme == "https", url.host == "api.ipinfo.io", url.query == nil,
+            guard url.scheme == "https", ["api.ipinfo.io", "v4.api.ipinfo.io", "v6.api.ipinfo.io"].contains(url.host ?? ""), url.query == nil,
                   !bearerToken.isEmpty, bearerToken.utf8.count <= 4096,
                   !bearerToken.unicodeScalars.contains(where: { CharacterSet.whitespacesAndNewlines.union(.controlCharacters).contains($0) }) else {
                 throw LookupError.invalidResponse

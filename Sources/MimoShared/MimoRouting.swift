@@ -39,6 +39,7 @@ public struct MimoSavedProxy: Codable, Equatable, Sendable, Identifiable {
 
 public struct MimoConfiguration: Codable, Equatable, Sendable {
     public var mode: ProxyMode = .direct
+    public var networkFamily: MimoNetworkFamily = .ipv4
     /// Selected metadata, retained for runtime consumers and legacy-state migration.
     public var proxy: MimoProxy?
     /// nil identifies the pre-2.1 single-proxy format. An empty list is intentional.
@@ -47,6 +48,19 @@ public struct MimoConfiguration: Codable, Equatable, Sendable {
     public var profileHostingEnabled = true
     public var mihomoEnabled = true
     public init() {}
+    private enum CodingKeys: String, CodingKey {
+        case mode, networkFamily, proxy, proxies, activeProxyID, profileHostingEnabled, mihomoEnabled
+    }
+    public init(from decoder: Decoder) throws {
+        let value = try decoder.container(keyedBy: CodingKeys.self)
+        mode = try value.decodeIfPresent(ProxyMode.self, forKey: .mode) ?? .direct
+        networkFamily = try value.decodeIfPresent(MimoNetworkFamily.self, forKey: .networkFamily) ?? .ipv4
+        proxy = try value.decodeIfPresent(MimoProxy.self, forKey: .proxy)
+        proxies = try value.decodeIfPresent([MimoSavedProxy].self, forKey: .proxies)
+        activeProxyID = try value.decodeIfPresent(UUID.self, forKey: .activeProxyID)
+        profileHostingEnabled = try value.decodeIfPresent(Bool.self, forKey: .profileHostingEnabled) ?? true
+        mihomoEnabled = try value.decodeIfPresent(Bool.self, forKey: .mihomoEnabled) ?? true
+    }
     public func validated() throws -> Self {
         var result = self
         if let proxy { result.proxy = MimoProxy(try proxy.settings()) }
@@ -63,14 +77,13 @@ public struct MimoConfiguration: Codable, Equatable, Sendable {
 }
 
 public enum MimoServiceID: String, CaseIterable, Codable, Sendable, Identifiable {
-    case core, mihomo, profileHosting, tailnetProvider
+    case core, mihomo, profileHosting
     public var id: String { rawValue }
     public var title: String {
         switch self {
         case .core: "mimo-core"
         case .mihomo: "mihomo"
         case .profileHosting: "Profile hosting"
-        case .tailnetProvider: "Tailnet provider"
         }
     }
 }
@@ -166,8 +179,9 @@ public struct MimoVerification: Codable, Equatable, Sendable {
     public let id: UUID
     public let revision: Int
     public let networkGeneration: UInt64
+    public let startedAt: Date?
     public init(revision: Int, networkGeneration: UInt64) {
-        id = UUID(); self.revision = revision; self.networkGeneration = networkGeneration
+        id = UUID(); self.revision = revision; self.networkGeneration = networkGeneration; startedAt = .now
     }
 }
 
@@ -179,14 +193,15 @@ public struct MimoRoutingState: Codable, Equatable, Sendable {
     public var effectiveMode: ProxyMode?
     public var reason = "The traffic supervisor is unavailable."
     public var observedIP: MimoIPObservation?
+    public var ipv6Observation: MimoIPObservation?
+    public var exitObservations: MimoExitObservations?
     public var blockingIP: MimoIPObservation?
     public var verification: MimoVerification?
     /// Traffic is allowed after optimistic checks while the full audit runs.
     /// Optional for compatibility with earlier stored snapshots.
     public var backgroundVerification: Bool?
     public var services: [MimoServiceStatus] = []
-    /// Native Tailscale is starting/running. Nil means it has not been observed yet.
-    public var tailnetExpected: Bool?
+    /// Independent PF/launchd health. Nil means no audit has been observed yet.
     public var infrastructure: MimoInfrastructureStatus?
     /// Time the supervisor produced this state; retained through core/UI caches.
     public var supervisorCheckedAt: Date?
@@ -241,6 +256,7 @@ public struct MimoAccessPolicy: Sendable {
         state.effectiveMode = nil
         state.reason = "Validating the profile. Internet remains blocked."
         state.observedIP = nil
+        state.ipv6Observation = nil; state.exitObservations = nil
         state.verification = verification
         return verification
     }
@@ -259,9 +275,34 @@ public struct MimoAccessPolicy: Sendable {
     }
 
     @discardableResult
+    public mutating func approve(observations: MimoExitObservations, allowlist: AllowedIPList,
+                                 verification: MimoVerification, runtimeMatches: Bool) -> Bool {
+        guard state.verification == verification, state.phase == .checking,
+              state.configuration.mode.requiresVerification,
+              state.configuration.proxy != nil, state.configuration.profileHostingEnabled, state.configuration.mihomoEnabled,
+              let since = verification.startedAt,
+              observations.isValid(for: verification, family: state.configuration.networkFamily, since: since) else { return false }
+        state.observedIP = .init(address: observations.ipv4.ipAddress, checkedAt: observations.ipv4.checkedAt)
+        state.ipv6Observation = observations.ipv6.map { .init(address: $0.ipAddress, checkedAt: $0.checkedAt) }
+        state.exitObservations = observations
+        for observation in [state.observedIP, state.ipv6Observation].compactMap({ $0 }) {
+            guard allowlist.contains(observation.address) else {
+                state.blockingIP = observation
+                block(allowlist.isEmpty ? "The allowed exit IP list is empty." : "An observed exit IP is not on the allowed list.")
+                return false
+            }
+        }
+        guard runtimeMatches else { block("The effective profile does not match the verified candidate."); return false }
+        state.phase = .active; state.effectiveMode = state.configuration.mode
+        state.reason = state.configuration.networkFamily == .dual ? "IPv4 and IPv6 exit IPs approved." : "IPv4 exit IP approved."
+        state.blockingIP = nil; state.verification = nil
+        return true
+    }
+
+    @discardableResult
     public mutating func approve(address: String, at date: Date, allowlist: AllowedIPList,
                                  verification: MimoVerification, runtimeMatches: Bool) -> Bool {
-        guard state.configuration.mode.requiresVerification,
+        guard state.configuration.networkFamily == .ipv4, state.configuration.mode.requiresVerification,
               state.configuration.proxy != nil, state.configuration.profileHostingEnabled, state.configuration.mihomoEnabled,
               state.verification == verification,
               state.phase == .checking,
@@ -287,13 +328,14 @@ public struct MimoAccessPolicy: Sendable {
         return true
     }
 
-    public mutating func directRestored(configuration: MimoConfiguration) {
+    public mutating func directRestored(configuration: MimoConfiguration, nativeIssue: String? = nil) {
         state.backgroundVerification = nil
         state.configuration = configuration
         state.configuration.mode = .direct
         state.phase = .active; state.effectiveMode = .direct
-        state.reason = "System networking without Mimo proxy routing or firewall restrictions."
+        state.reason = nativeIssue ?? "System networking without Mimo proxy routing or firewall restrictions."
         state.verification = nil; state.blockingIP = nil; state.observedIP = nil
+        state.ipv6Observation = nil; state.exitObservations = nil
     }
 
     public mutating func releasing(configuration: MimoConfiguration, error: String? = nil) {
@@ -352,6 +394,7 @@ public struct MimoSupervisorRequest: Codable, Sendable {
     public var verification: MimoVerification?
     public var allowlist: AllowedIPList?
     public var address: String?
+    public var exitObservations: MimoExitObservations?
     public var revision: Int?
     public var networkGeneration: UInt64?
     public var service: MimoServiceID?
@@ -361,7 +404,7 @@ public struct MimoSupervisorRequest: Codable, Sendable {
 }
 
 public enum MimoRuntime {
-    public static let version = "1.19.34"
+    public static let version = "1.19.34-mimo-v3.2"
     public static let proxyPasswordAccount = "mimo-machine-proxy-password"
     public static let supervisorLabel = "com.mimo.supervisor"
     public static let engineLabel = "com.mimo.mihomo"
@@ -386,5 +429,5 @@ public enum MimoRuntime {
     public static let dnsPort = 1053
     public static let dnsStateKey = "State:/Network/Service/com.mimo.dns/DNS"
     public static let probeUser = "mimo-core"
-    public static let lookupHosts = ["api.ipinfo.io", "ipapi.co", "ipwho.is", "api.ipapi.is"]
+    public static let lookupHosts = ["api.ipinfo.io", "v4.api.ipinfo.io", "v6.api.ipinfo.io", "ipapi.co", "ipwho.is", "api.ipapi.is", "api4.ipify.org", "api6.ipify.org"]
 }

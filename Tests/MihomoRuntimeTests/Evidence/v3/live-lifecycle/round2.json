@@ -1,0 +1,163 @@
+{
+  "scope": "human-operated Tailscale reconnect, old v3 active guard, Rule/dual",
+  "result": "FAIL",
+  "starting_with_want_running_true": true,
+  "signed_socket_observation": {
+    "at": 1795596954.1720629,
+    "candidate_count": 1,
+    "root_owned": true,
+    "signature_valid": true,
+    "lsof_status": 0,
+    "lsof_bytes": 1397,
+    "udp_unconnected": 2,
+    "https_candidate_sockets": 15,
+    "tcp_states": {
+      "ST=LISTEN": 1,
+      "ST=SYN_SENT": 15,
+      "ST=ESTABLISHED": 1
+    }
+  },
+  "connected_baseline": {
+    "A-fresh-1": true,
+    "A-fresh-2": true,
+    "A-fresh-3": true,
+    "AAAA-fresh-1": true,
+    "AAAA-fresh-2": true,
+    "AAAA-fresh-3": true,
+    "local-tcp": true,
+    "local-notcp": true,
+    "native-ping4": true,
+    "native-ping6": true
+  },
+  "disconnected_checks_matching_connected_baseline": {
+    "A-fresh-1": false,
+    "A-fresh-2": false,
+    "A-fresh-3": false,
+    "AAAA-fresh-1": false,
+    "AAAA-fresh-2": false,
+    "AAAA-fresh-3": false,
+    "local-tcp": false,
+    "local-notcp": false,
+    "native-ping4": false,
+    "native-ping6": false
+  },
+  "temporary_probe": {
+    "grants": 13,
+    "started_at": 1795597198.0779572,
+    "samples": [
+      {
+        "at": 1795597198.107253,
+        "backend": "Starting",
+        "online": false
+      },
+      {
+        "at": 1795597198.580775,
+        "backend": "Starting",
+        "online": false
+      },
+      {
+        "at": 1795597199.039388,
+        "backend": "Starting",
+        "online": false
+      },
+      {
+        "at": 1795597199.483266,
+        "backend": "Starting",
+        "online": false
+      },
+      {
+        "at": 1795597199.9585001,
+        "backend": "Starting",
+        "online": false
+      },
+      {
+        "at": 1795597200.412523,
+        "backend": "Starting",
+        "online": false
+      },
+      {
+        "at": 1795597200.829831,
+        "backend": "Starting",
+        "online": false
+      },
+      {
+        "at": 1795597201.2952168,
+        "backend": "Starting",
+        "online": false
+      },
+      {
+        "at": 1795597201.6239638,
+        "backend": "Starting",
+        "online": false
+      },
+      {
+        "at": 1795597202.084679,
+        "backend": "Starting",
+        "online": false
+      },
+      {
+        "at": 1795597202.43664,
+        "backend": "Starting",
+        "online": false
+      },
+      {
+        "at": 1795597202.876469,
+        "backend": "Starting",
+        "online": false
+      },
+      {
+        "at": 1795597203.344564,
+        "backend": "Starting",
+        "online": false
+      },
+      {
+        "at": 1795597203.793754,
+        "backend": "Starting",
+        "online": false
+      },
+      {
+        "at": 1795597204.256806,
+        "backend": "Starting",
+        "online": false
+      },
+      {
+        "at": 1795597204.616642,
+        "backend": "Starting",
+        "online": false
+      },
+      {
+        "at": 1795597205.0242188,
+        "backend": "Starting",
+        "online": false
+      },
+      {
+        "at": 1795597205.4956899,
+        "backend": "Starting",
+        "online": false
+      },
+      {
+        "at": 1795597205.9595242,
+        "backend": "Starting",
+        "online": false
+      }
+    ],
+    "restored_original_policy": true,
+    "owners_resumed": true,
+    "connected_during_probe": false,
+    "matched_packets": 10
+  },
+  "traffic": {
+    "native_attempts": 0,
+    "by_family": {
+      "4": 0,
+      "6": 0
+    }
+  },
+  "restoration": {
+    "at": 1795597347.0601301,
+    "settings": true,
+    "configuration": true
+  },
+  "running_observed_after_direct_restoration": true,
+  "sleep_attempted": false
+}

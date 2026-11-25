@@ -1,0 +1,25 @@
+{
+  "result": "NOT_QUALIFIED_SKIPPED",
+  "reason": "Operator reported the VM would not sleep and requested skipping further sleep attempts",
+  "before_stats": {
+    "Sleep Count": 0,
+    "Dark Wake Count": 0,
+    "User Wake Count": 0
+  },
+  "after_stats": {
+    "Sleep Count": 0,
+    "Dark Wake Count": 0,
+    "User Wake Count": 0
+  },
+  "events": [],
+  "traffic": {
+    "native_attempts": 0,
+    "by_family": {
+      "4": 0,
+      "6": 0
+    }
+  },
+  "after_mode": "rule",
+  "after_phase": "active",
+  "sleep_recovery_qualified": false
+}

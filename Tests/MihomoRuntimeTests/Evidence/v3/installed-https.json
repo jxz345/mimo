@@ -1,0 +1,190 @@
+{
+  "scope": "installed production v3 app",
+  "cases": [
+    {
+      "id": "ipv4-rule-approved",
+      "passed": true
+    },
+    {
+      "id": "ipv4-rule-fresh-family-observations",
+      "passed": true
+    },
+    {
+      "id": "ipv4-rule-actual-engine-mode",
+      "passed": true
+    },
+    {
+      "id": "ipv4-rule-empty-active-pf",
+      "passed": true
+    },
+    {
+      "id": "ipv4-rule-owned-dns",
+      "passed": true
+    },
+    {
+      "id": "ipv4-rule-no-external-native-provider",
+      "passed": true
+    },
+    {
+      "id": "ipv4-rule-https4",
+      "passed": true,
+      "exit_status": 0
+    },
+    {
+      "id": "ipv4-rule-https6",
+      "passed": true,
+      "exit_status": 35
+    },
+    {
+      "id": "ipv4-rule-refresh-fresh",
+      "passed": true
+    },
+    {
+      "id": "ipv4-rule-direct-empty-pf",
+      "passed": true
+    },
+    {
+      "id": "ipv4-rule-direct-dns-removed",
+      "passed": true
+    },
+    {
+      "id": "ipv4-global-approved",
+      "passed": true
+    },
+    {
+      "id": "ipv4-global-fresh-family-observations",
+      "passed": true
+    },
+    {
+      "id": "ipv4-global-actual-engine-mode",
+      "passed": true
+    },
+    {
+      "id": "ipv4-global-empty-active-pf",
+      "passed": true
+    },
+    {
+      "id": "ipv4-global-owned-dns",
+      "passed": true
+    },
+    {
+      "id": "ipv4-global-no-external-native-provider",
+      "passed": true
+    },
+    {
+      "id": "ipv4-global-https4",
+      "passed": true,
+      "exit_status": 0
+    },
+    {
+      "id": "ipv4-global-https6",
+      "passed": true,
+      "exit_status": 35
+    },
+    {
+      "id": "ipv4-global-refresh-fresh",
+      "passed": true
+    },
+    {
+      "id": "ipv4-global-direct-empty-pf",
+      "passed": true
+    },
+    {
+      "id": "ipv4-global-direct-dns-removed",
+      "passed": true
+    },
+    {
+      "id": "dual-rule-approved",
+      "passed": true
+    },
+    {
+      "id": "dual-rule-fresh-family-observations",
+      "passed": true
+    },
+    {
+      "id": "dual-rule-actual-engine-mode",
+      "passed": true
+    },
+    {
+      "id": "dual-rule-empty-active-pf",
+      "passed": true
+    },
+    {
+      "id": "dual-rule-owned-dns",
+      "passed": true
+    },
+    {
+      "id": "dual-rule-no-external-native-provider",
+      "passed": true
+    },
+    {
+      "id": "dual-rule-https4",
+      "passed": true,
+      "exit_status": 0
+    },
+    {
+      "id": "dual-rule-https6",
+      "passed": true,
+      "exit_status": 0
+    },
+    {
+      "id": "dual-rule-refresh-fresh",
+      "passed": true
+    },
+    {
+      "id": "dual-rule-direct-empty-pf",
+      "passed": true
+    },
+    {
+      "id": "dual-rule-direct-dns-removed",
+      "passed": true
+    },
+    {
+      "id": "dual-global-approved",
+      "passed": true
+    },
+    {
+      "id": "dual-global-fresh-family-observations",
+      "passed": true
+    },
+    {
+      "id": "dual-global-actual-engine-mode",
+      "passed": true
+    },
+    {
+      "id": "dual-global-empty-active-pf",
+      "passed": true
+    },
+    {
+      "id": "dual-global-owned-dns",
+      "passed": true
+    },
+    {
+      "id": "dual-global-no-external-native-provider",
+      "passed": true
+    },
+    {
+      "id": "dual-global-https4",
+      "passed": true,
+      "exit_status": 0
+    },
+    {
+      "id": "dual-global-https6",
+      "passed": true,
+      "exit_status": 0
+    },
+    {
+      "id": "dual-global-refresh-fresh",
+      "passed": true
+    },
+    {
+      "id": "dual-global-direct-empty-pf",
+      "passed": true
+    },
+    {
+      "id": "dual-global-direct-dns-removed",
+      "passed": true
+    }
+  ],
+  "completed_at": 1795569530.182799
+}

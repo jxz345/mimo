@@ -1,0 +1,154 @@
+{
+  "tested_at_utc": "2026-11-24T05:20:44.396817+00:00",
+  "engine_sha256": "ff21dbbad799783de14f4a13684b35531b455beff0335dc2e9d468e5bcbe52bd",
+  "engine_version": "Mihomo Meta v1.19.34-mimo-no-ping.1 darwin arm64 with go1.26.11 2026-11-24\nUse tags: with_gvisor",
+  "scope": "Real Delta IPv6 services; local forwarding proxy; no public IPv6 dependency.",
+  "instrumentation": "One temporary /128 VM route forces the connected-LAN target into TUN.",
+  "checks": {
+    "native_https_baseline": true,
+    "native_udp_baseline": true,
+    "connected_lan_normally_native": true,
+    "test_target_captured": true,
+    "global_zero_rules": true,
+    "no_ping_stack": true,
+    "selected_proxy": true,
+    "dns_unchanged": true,
+    "https_through_proxy": true,
+    "udp_through_proxy": true,
+    "proxy_used_real_ipv6_tcp_socket": true,
+    "proxy_used_real_ipv6_udp_socket": true,
+    "proxy_stopped": true,
+    "https_fails_without_proxy": true,
+    "udp_fails_without_proxy": true,
+    "no_direct_fallback_to_service": true,
+    "native_ipv6_tcp_zero": true,
+    "native_ipv6_udp_zero": true,
+    "tcp_and_udp_entered_tun": true,
+    "vm_used_proxy_transport": true,
+    "native_route_restored": true,
+    "tun_removed": true,
+    "dns_restored": true,
+    "native_https_after_cleanup": true,
+    "native_udp_after_cleanup": true
+  },
+  "native_https_before": {
+    "curl_status": 0,
+    "http_status": "200",
+    "body_bytes": 233472,
+    "body_sha256": "c99241c37e331ff850bcc5f1c49f5d7b9238eb1c7c9cf04171592ad0743cc69e"
+  },
+  "proxied_https": {
+    "curl_status": 0,
+    "http_status": "200",
+    "body_bytes": 233472,
+    "body_sha256": "c99241c37e331ff850bcc5f1c49f5d7b9238eb1c7c9cf04171592ad0743cc69e"
+  },
+  "udp_sizes": {
+    "64": true,
+    "1200": true,
+    "8192": true
+  },
+  "host_events": [
+    {
+      "kind": "https_service",
+      "socket_family": "AF_INET6",
+      "tls": "TLSv1.2",
+      "local_address": "<lan-ipv6>",
+      "peer_address": "fd11:43d5:4bfa:7aaa:c0f:3969:4395:14a7",
+      "body_bytes": 233472
+    },
+    {
+      "kind": "udp_service",
+      "socket_family": "AF_INET6",
+      "local_address": "<lan-ipv6>",
+      "peer_address": "fd11:43d5:4bfa:7aaa:c0f:3969:4395:14a7",
+      "received_bytes": 96
+    },
+    {
+      "kind": "https_service",
+      "socket_family": "AF_INET6",
+      "tls": "TLSv1.2",
+      "local_address": "<lan-ipv6>",
+      "peer_address": "<lan-ipv6>",
+      "body_bytes": 233472
+    },
+    {
+      "kind": "proxy_tcp",
+      "destination": "<lan-ipv6>",
+      "port": 50932,
+      "upstream_family": "AF_INET6",
+      "request_bytes": 548,
+      "response_bytes": 235221
+    },
+    {
+      "kind": "udp_service",
+      "socket_family": "AF_INET6",
+      "local_address": "<lan-ipv6>",
+      "peer_address": "<lan-ipv6>",
+      "received_bytes": 96
+    },
+    {
+      "kind": "proxy_udp",
+      "destination": "<lan-ipv6>",
+      "port": 63374,
+      "upstream_family": "AF_INET6",
+      "request_bytes": 96,
+      "response_bytes": 151
+    },
+    {
+      "kind": "udp_service",
+      "socket_family": "AF_INET6",
+      "local_address": "<lan-ipv6>",
+      "peer_address": "<lan-ipv6>",
+      "received_bytes": 1232
+    },
+    {
+      "kind": "proxy_udp",
+      "destination": "<lan-ipv6>",
+      "port": 63374,
+      "upstream_family": "AF_INET6",
+      "request_bytes": 1232,
+      "response_bytes": 1287
+    },
+    {
+      "kind": "udp_service",
+      "socket_family": "AF_INET6",
+      "local_address": "<lan-ipv6>",
+      "peer_address": "<lan-ipv6>",
+      "received_bytes": 8224
+    },
+    {
+      "kind": "proxy_udp",
+      "destination": "<lan-ipv6>",
+      "port": 63374,
+      "upstream_family": "AF_INET6",
+      "request_bytes": 8224,
+      "response_bytes": 8279
+    }
+  ],
+  "proxy_off_https": {
+    "curl_status": 35,
+    "http_status": "000",
+    "body_bytes": 0,
+    "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "en0_ipv6_tcp_packets": 0,
+  "en0_ipv6_udp_packets": 0,
+  "en0_proxy_ipv4_packets": 202,
+  "utun238_ipv6_tcp_packets": 36,
+  "utun238_ipv6_udp_packets": 4,
+  "utun238_proxy_ipv4_packets": 0,
+  "native_https_after": {
+    "curl_status": 0,
+    "http_status": "200",
+    "body_bytes": 233472,
+    "body_sha256": "c99241c37e331ff850bcc5f1c49f5d7b9238eb1c7c9cf04171592ad0743cc69e"
+  },
+  "passed": true,
+  "profile_template_sha256": "7d1ab49f11060367b6f690a2559a25e21355d3f1b456f314d627a19c7a271ba1",
+  "test_files_sha256": {
+    "ipv6_local_service_test.py": "55a94ed27e2a42ed20fb9dc7b7a542fceaf44dbea5702941122a0333e95d85bc",
+    "ipv6_global_profile_test.py": "c08ea03c5637432d8b5c2dc064eca13b1abb9951ea478111662aa78c19061ea3"
+  },
+  "host_fixture_stopped": true
+}

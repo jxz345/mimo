@@ -608,6 +608,7 @@ final class MonitoringEngine: ObservableObject {
             budget: &budget,
             lastSuccess: snapshot?.checkedAt,
             bypassLimits: bypassMinimumInterval,
+            recordAtAdmission: !client.accountsActualRequests,
             now: currentDate
         )
         lookupBudgetStore.save(budget)
@@ -870,6 +871,20 @@ final class MonitoringEngine: ObservableObject {
     /// Ordinary HTTP clients have a 15-second deadline. A managed-routing client
     /// also budgets its bounded preparation/activation; its HTTP session still
     /// independently limits provider resource time to 15 seconds.
+    /// Managed clients account each actual HTTP request after preparation,
+    /// including both family observations and country confirmation.
+    func accountActualRequest(_ provider: ProviderID) throws {
+        let now = currentDate
+        var budget = lookupBudgetStore.load(now: now)
+        guard !budget.isExhausted(provider, now: now),
+              (cooldownStore.retryNotBefore(for: provider) ?? .distantPast) <= now else {
+            throw LookupError.rateLimited(retryAfter: cooldownStore.retryNotBefore(for: provider))
+        }
+        budget.recordCall(to: provider, now: now)
+        lookupBudgetStore.save(budget); lookupBudget = budget
+        RuntimeLog.shared.info("lookup_http_request", fields: ["provider": provider.rawValue])
+    }
+
     private func lookup(configuration: LookupConfiguration) async throws -> MimoSnapshot {
         let providerClient = client
         return try await withThrowingTaskGroup(of: MimoSnapshot.self) { group in

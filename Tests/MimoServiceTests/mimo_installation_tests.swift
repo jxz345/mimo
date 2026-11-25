@@ -13,14 +13,14 @@ enum MimoInstallationTests {
             var routing = MimoConfiguration()
             routing.mode = .global; routing.mihomoEnabled = false; routing.profileHostingEnabled = false
             routing.proxy = MimoProxy(ClashProxySettings(name: "Saved", type: .http, server: "127.0.0.1", port: 8080))
-            let settings = MachineSettings(allowlist: AllowedIPList(addresses: ["203.0.113.1"]), tailscaleProviderEnabled: false)
+            let settings = MachineSettings(allowlist: AllowedIPList(addresses: ["203.0.113.1"]))
             try storage.update(["service.routing": try JSONEncoder().encode(routing),
                                 "service.settings": try JSONEncoder().encode(settings), "service.revision": 42, "quota": 17])
             let installed = try MimoRecoveryState.commitInstallation(storage: storage, startingInDirect: direct)
             let saved = try JSONDecoder().decode(MachineSettings.self, from: storage.data(forKey: "service.settings")!)
             require(installed.mode == (direct ? .direct : .global), "only reactivation resets routing to Direct")
-            require(installed.mihomoEnabled && installed.profileHostingEnabled && saved.tailscaleProviderEnabled,
-                    "installation restores engine, profile and provider despite saved stop flags")
+            require(installed.mihomoEnabled && installed.profileHostingEnabled,
+                    "installation restores engine and profile despite saved stop flags")
             require(installed.proxy == routing.proxy && saved.allowlist == settings.allowlist && storage.integer(forKey: "quota") == 17,
                     "installation preserves proxy, allowlist and unrelated settings")
             require(storage.integer(forKey: "service.revision") == 43, "other GUI clients must observe a new revision")
@@ -31,9 +31,8 @@ enum MimoInstallationTests {
         routing.supervisorCheckedAt = now
         routing.services = [.core, .mihomo, .profileHosting].map { MimoServiceStatus(id: $0, health: .running, transport: "test", checkedAt: now) }
         routing.infrastructure = .init(pf: .healthy, launchd: .healthy, checkedAt: now)
-        let provider = MimoServiceStatus(id: .tailnetProvider, health: .running, transport: "HTTP", port: 18766, bindingConfirmed: true, checkedAt: now)
-        func problems(_ state: MimoRoutingState? = nil, _ flags: MimoServicePreferences = .init(), _ report: MimoServiceStatus? = provider) -> [String] {
-            MimoInstallationReadiness.problems(flags: flags, supervisor: state ?? routing, provider: report, now: now)
+        func problems(_ state: MimoRoutingState? = nil, _ flags: MimoServicePreferences = .init()) -> [String] {
+            MimoInstallationReadiness.problems(flags: flags, supervisor: state ?? routing, now: now)
         }
         require(problems().isEmpty, "all services may be healthy while protected verification remains blocked")
         for index in routing.services.indices {
@@ -46,7 +45,6 @@ enum MimoInstallationTests {
         require(problems(nil, flags).contains("service_intent"), "old release intent cannot pass")
         var stale = routing; stale.supervisorCheckedAt = now.addingTimeInterval(-30)
         require(problems(stale).contains("supervisor"), "cached GUI/core health cannot pass")
-        require(problems(nil, .init(), nil).contains("tailnetProvider"), "the core must answer with a bound provider")
         stale = routing; stale.infrastructure?.checkedAt = now.addingTimeInterval(-40)
         require(problems(stale).contains("launchd_monitor"), "stale infrastructure cannot pass")
 

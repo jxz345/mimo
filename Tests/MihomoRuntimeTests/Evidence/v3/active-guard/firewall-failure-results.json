@@ -1,0 +1,51 @@
+[
+  {
+    "id": "pf-held-mutation",
+    "result": "PASS",
+    "error": false,
+    "native_attempts": 0,
+    "false_closed_confirmation": false,
+    "samples": [
+      {
+        "marker": "active",
+        "actual_closed": false
+      },
+      {
+        "marker": "active",
+        "actual_closed": false
+      },
+      {
+        "marker": "active",
+        "actual_closed": false
+      },
+      {
+        "marker": "active",
+        "actual_closed": false
+      },
+      {
+        "marker": "active",
+        "actual_closed": false
+      },
+      {
+        "marker": "active",
+        "actual_closed": false
+      }
+    ],
+    "scope": "Eight-second external lock hold; effective state after release"
+  },
+  {
+    "id": "pf-invalid-guard-input",
+    "result": "PASS",
+    "error": false,
+    "native_attempts": 0,
+    "observed": {
+      "status": 1,
+      "reported_health": "failed",
+      "gate": "pending",
+      "actual_closed": false,
+      "parser_rejection_status": 1,
+      "parser_error": true
+    },
+    "scope": "Real pfctl parser rejection during independent repair; NOT a kernel load/state-flush failure"
+  }
+]

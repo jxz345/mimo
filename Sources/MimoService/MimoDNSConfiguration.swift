@@ -9,6 +9,50 @@ final class MimoDNSConfiguration {
     private var store: SCDynamicStore?
     private(set) var installed = false
     private var expected: NSDictionary?
+    private var loadedPrivateNames = false
+    private var knownPrivateRules: [String: MimoPrivateDNSRule] = [:]
+
+    func nativeRules() throws -> [MimoPrivateDNSRule] {
+        let journal = MimoRuntime.directory.appendingPathComponent("private-dns-suffixes.json")
+        if !loadedPrivateNames {
+            if FileManager.default.fileExists(atPath: journal.path) {
+                let attributes = try FileManager.default.attributesOfItem(atPath: journal.path)
+                guard attributes[.type] as? FileAttributeType == .typeRegular,
+                      (attributes[.ownerAccountID] as? NSNumber)?.uint32Value == 0,
+                      (attributes[.posixPermissions] as? NSNumber)?.intValue == 0o600,
+                      (attributes[.size] as? NSNumber)?.intValue ?? Int.max <= 65536 else { throw DaemonFailure.unavailable }
+                let names = try JSONDecoder().decode([String].self, from: Data(contentsOf: journal))
+                guard names.count <= MimoProtectedDNS.maximumDomains else { throw DaemonFailure.invalidRequest }
+                for name in names { knownPrivateRules[name] = try MimoPrivateDNSRule(suffix: name, servers: []) }
+            }
+            loadedPrivateNames = true
+        }
+        guard let snapshot = nativeSnapshot() else { throw DaemonFailure.unavailable }
+        let current = try MimoNativeDNSPolicy.rules(services: snapshot.services, primary: snapshot.primary)
+        let names = Set(current.map(\.suffix))
+        // A disconnected private resolver does not authorize public forwarding.
+        for name in Array(knownPrivateRules.keys) where !names.contains(name) {
+            knownPrivateRules[name] = try MimoPrivateDNSRule(suffix: name, servers: [])
+        }
+        for rule in current { knownPrivateRules[rule.suffix] = rule }
+        guard knownPrivateRules.count <= MimoProtectedDNS.maximumDomains else { throw DaemonFailure.invalidRequest }
+        try JSONEncoder().encode(knownPrivateRules.keys.sorted()).write(to: journal, options: .atomic)
+        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: journal.path)
+        return knownPrivateRules.values.sorted { $0.suffix < $1.suffix }
+    }
+
+    private func nativeSnapshot() -> (services: [String: [String: Any]], primary: [String: Any]?)? {
+        guard let source = store ?? SCDynamicStoreCreate(nil, "Mimo native DNS snapshot" as CFString, nil, nil) else { return nil }
+        var values = SCDynamicStoreCopyMultiple(source, nil, ["State:/Network/Service/.*/DNS"] as CFArray) as? [String: [String: Any]] ?? [:]
+        values.removeValue(forKey: MimoRuntime.dnsStateKey)
+        var primary: [String: Any]?
+        if let service = (SCDynamicStoreCopyValue(source, "State:/Network/Global/IPv4" as CFString) as? [String: Any])?["PrimaryService"] as? String,
+           !service.isEmpty, !service.contains("/") {
+            let saved = SCDynamicStoreCopyValue(source, "Setup:/Network/Service/\(service)/DNS" as CFString) as? [String: Any] ?? [:]
+            primary = (values["State:/Network/Service/\(service)/DNS"] ?? [:]).merging(saved) { $1 }
+        }
+        return (values, primary)
+    }
 
     var matches: Bool {
         guard installed, let store, let expected,
@@ -19,16 +63,8 @@ final class MimoDNSConfiguration {
     func install(willChange: (() -> Void)? = nil, didChange: (() -> Void)? = nil) throws {
         if store == nil { store = SCDynamicStoreCreate(nil, "Mimo protected DNS" as CFString, nil, nil) }
         guard let store else { throw MimoRuntimeError.unavailable("Could not configure the protected DNS resolver.") }
-        var values = SCDynamicStoreCopyMultiple(store, nil, ["State:/Network/Service/.*/DNS"] as CFArray) as? [String: [String: Any]] ?? [:]
-        values.removeValue(forKey: MimoRuntime.dnsStateKey)
-        // Saved search domains override DHCP values, as they do for configd.
-        var primary: [String: Any]?
-        if let service = (SCDynamicStoreCopyValue(store, "State:/Network/Global/IPv4" as CFString) as? [String: Any])?["PrimaryService"] as? String,
-           !service.isEmpty, !service.contains("/") {
-            let saved = SCDynamicStoreCopyValue(store, "Setup:/Network/Service/\(service)/DNS" as CFString) as? [String: Any] ?? [:]
-            primary = (values["State:/Network/Service/\(service)/DNS"] ?? [:]).merging(saved) { $1 }
-        }
-        guard let value = MimoProtectedDNS.resolver(services: values, primary: primary) else {
+        guard let snapshot = nativeSnapshot(),
+              let value = MimoProtectedDNS.resolver(services: snapshot.services, primary: snapshot.primary) else {
             throw MimoRuntimeError.unavailable("Too many supplemental DNS domains to safely override.")
         }
         let key = MimoRuntime.dnsStateKey as CFString
@@ -57,6 +93,26 @@ final class MimoDNSConfiguration {
         guard success else { throw MimoRuntimeError.unavailable("Could not install the protected DNS resolver.") }
         installed = true
         expected = value as NSDictionary
+    }
+
+    /// Unregister and drain queued resolver work before destroying the TUN.
+    /// The caller keeps the transition barrier closed throughout this operation.
+    func removeAndDrain() throws {
+        try remove()
+        for (tool, arguments) in [("/usr/bin/dscacheutil", ["-flushcache"]),
+                                  ("/usr/bin/killall", ["-HUP", "mDNSResponder"])] {
+            guard BoundedProcess.run(tool, arguments, timeout: 3).status == 0 else {
+                throw MimoRuntimeError.unavailable("System DNS could not be drained before tunnel removal.")
+            }
+        }
+        // A bounded settling interval runs off GUI processes. PF still denies
+        // newly queued application lookups until the native state is restored.
+        Thread.sleep(forTimeInterval: 0.3)
+        let check = BoundedProcess.run("/usr/sbin/scutil", ["--dns"], timeout: 3)
+        guard check.status == 0, !check.text.contains("port     : 1053") else {
+            throw MimoRuntimeError.unavailable("The system still advertises Mimo's DNS listener.")
+        }
+        RuntimeLog.shared.info("mimo_dns_removed_and_drained")
     }
 
     func remove() throws {

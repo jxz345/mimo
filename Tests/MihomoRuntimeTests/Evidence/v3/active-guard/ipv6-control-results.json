@@ -1,0 +1,38 @@
+[
+  {
+    "id": "dual-rule-live-ptb",
+    "result": "PASS",
+    "injected_packets": 1,
+    "payload_ok": true,
+    "before_max": 3113,
+    "after_max": 1252,
+    "error": false
+  },
+  {
+    "id": "dual-rule-native-control-and-payload",
+    "result": "PASS",
+    "native_ping_status": 0,
+    "tls_status": 0,
+    "response_bytes": 262246,
+    "response_sha256": "3f4f7ec3eb4ed4084fb5649ebfc9a259ac5e8f909070877d179ff5234afa8a13",
+    "scope": "Real native IPv6 echo/neighbor path and proxied TLS; no injected neighbor-advertisement attack"
+  },
+  {
+    "id": "dual-global-live-ptb",
+    "result": "PASS",
+    "injected_packets": 1,
+    "payload_ok": true,
+    "before_max": 3113,
+    "after_max": 1252,
+    "error": false
+  },
+  {
+    "id": "dual-global-native-control-and-payload",
+    "result": "PASS",
+    "native_ping_status": 0,
+    "tls_status": 0,
+    "response_bytes": 262248,
+    "response_sha256": "d1d4a63dd6e9d45fbb4453e0d6fb273317924f3ed99ef02534bc8376ddbe5737",
+    "scope": "Real native IPv6 echo/neighbor path and proxied TLS; no injected neighbor-advertisement attack"
+  }
+]

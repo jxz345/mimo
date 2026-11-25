@@ -1,0 +1,77 @@
+# Standalone candidate for mimo-vm. This is not Mimo's managed runtime profile.
+# Supply your proxy privately in a local copy; never commit credentials.
+# Global mode proxies TCP/UDP, including captured IPv6. No routing rules apply.
+# The GLOBAL group has no DIRECT fallback. An unavailable proxy must fail closed.
+mode: global
+ipv6: true
+mixed-port: 7890
+allow-lan: false
+bind-address: 127.0.0.1
+log-level: info
+external-controller: ''
+profile:
+  store-selected: false
+  store-fake-ip: false
+
+tun:
+  enable: true
+  # Requires the patched test engine; stock Mihomo rejects this stack name.
+  stack: gvisor-no-ping
+  auto-route: true
+  auto-detect-interface: true
+  strict-route: false
+  # Use the engine's default IPv6 TUN address; no inet6-address override.
+  # Captured IPv4/IPv6 echo requests are dropped without forwarding or replies.
+  # Native LAN/Tailnet routes bypass TUN and keep real ping available.
+  disable-icmp-forwarding: true
+  route-address:
+    - "::/1"
+    - "8000::/1"
+  route-exclude-address:
+    - "100.64.0.0/10"
+    - "fd7a:115c:a1e0::/48"
+  dns-hijack:
+    - any:53
+    - tcp://any:53
+  # No macOS resolver mutation by this standalone test; query the listener below.
+  dns-mode: disabled
+
+dns:
+  enable: true
+  listen: 127.0.0.1:1053
+  ipv6: false
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  fake-ip-filter:
+    - '*.lan'
+    - '+.local'
+    - '+.ts.net'
+    - '+.tailscale.com'
+  nameserver-policy:
+    '+.ts.net':
+      - 100.100.100.100
+  nameserver:
+    - 'https://1.1.1.1/dns-query#Proxy'
+  proxy-server-nameserver:
+    - https://1.1.1.1/dns-query
+
+proxies:
+  - name: TEST-PROXY
+    type: socks5
+    # Documentation-only placeholder: replace privately before normal use.
+    server: 192.0.2.1
+    port: 1080
+    udp: true
+    ip-version: ipv4
+
+proxy-groups:
+  - name: Proxy
+    type: select
+    proxies:
+      - TEST-PROXY
+  - name: GLOBAL
+    type: select
+    proxies:
+      - Proxy
+
+rules: []

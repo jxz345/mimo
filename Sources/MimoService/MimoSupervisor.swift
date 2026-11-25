@@ -22,9 +22,6 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
     private var profilePreparation: Task<PreparedCandidate, Error>?
     private var profileInspection: Task<MimoReadinessReceipt, Error>?
     private var completedReadiness: MimoReadinessReceipt?
-    private var optimisticCandidate: MimoReadinessReceipt?
-    private var auditTask: Task<Void, Never>?
-    private var auditDeadline: MimoAuditDeadline?
     private var cachedServices: (at: Date, values: [MimoServiceStatus])?
     private var readinessCheck: Task<MimoReadinessReceipt, Error>?
     nonisolated let heartbeatLease = MimoHeartbeatLease()
@@ -32,8 +29,6 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
     private var infrastructureMonitor: Task<Void, Never>?
     private var infrastructureRecoveryPending = false
     private var verificationRecoveryPending = false
-    private var nativeRecoveryPending = false
-    private var nativeRecoveryRequested = false
     private var profileEnabled = true
     private var engineEnabled = true
     private var coreEnabled = true
@@ -53,21 +48,6 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
     private lazy var powerGuard = MimoPowerGuard { [weak self] reason in self?.networkChanged(reason) }
     private lazy var sessionObserver = MimoSessionObserver(powerGuard: powerGuard) { [weak self] reason in self?.networkChanged(reason) }
     private var verificationPowerEpoch: UInt64?
-    private var tailnetEnabled = false
-    private lazy var nativeTransportObserver = MimoNativeTransportObserver { [weak self, runtime = self.runtime] transport in
-        do { try runtime.updateNativeTransport(transport) }
-        catch {
-            let reason = "Native Tailscale transport could not be constrained: \(error.localizedDescription)"
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-                RuntimeLog.shared.error("mimo_native_transport_failed", fields: ["reason": reason])
-                // Direct does not use this sub-anchor. A delayed worker error
-                // from the preceding protected mode must not close Direct.
-                self.nativeFailed(reason)
-            }
-        }
-    }
-
     func start() {
         powerGuard.start()
 #if MIMO_VM_ACCEPTANCE
@@ -82,7 +62,6 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
             try runtime.closeStartupGate()
             try runtime.checkInstallation()
             try runtime.migrateLegacyNetworkControls()
-            try runtime.updateNativeTransport(.init())
             try runtime.closeGate()
             let flags = try runtime.servicePreferences()
             profileEnabled = flags.profile; engineEnabled = flags.engine; coreEnabled = flags.core
@@ -113,7 +92,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 try runtime.service(.mihomo, operation: engineEnabled ? .start : .stop)
                 if policy.state.configuration.mode == .direct {
                     try runtime.restoreDirect()
-                    policy.directRestored(configuration: policy.state.configuration)
+                    policy.directRestored(configuration: policy.state.configuration, nativeIssue: runtime.nativeReleaseIssue)
                 }
             }
             try runtime.service(.core, operation: coreEnabled ? .start : .stop)
@@ -122,13 +101,11 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
         networkObserver.tailnetChanged = { [weak self] in
             guard let self, self.policy.state.configuration.mode.requiresVerification,
                   self.activeProfile != nil else { return }
-            do { try self.runtime.configureProtectedDNS() }
-            catch { self.close("Tailnet DNS could not be updated: \(error.localizedDescription)") }
+            self.forceProfileReload = true
+            self.networkChanged("native_dns_changed")
         }
         networkObserver.start()
         sessionObserver.start()
-        tailnetEnabled = (try? runtime.savedTailnetEnabled()) ?? false
-        if !runtime.networkReleaseRequested { nativeTransportObserver.start(tailnetEnabled: tailnetEnabled) }
         // Infrastructure commands can wait for launchd or the firewall lock.
         // Keep them off the main actor and separate from the liveness watchdog.
         infrastructureMonitor = Task { [weak self] in
@@ -140,7 +117,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                         if checked {
                             let recovered = self.infrastructureRecoveryPending || self.verificationRecoveryPending
                             self.infrastructureRecoveryPending = false
-                            if recovered, self.runtime.nativeTransportIsHealthy, self.policy.state.phase == .blocked {
+                            if recovered, self.policy.state.phase == .blocked {
                                 self.networkChanged("infrastructure_recovered")
                             }
                         }
@@ -159,22 +136,9 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 try? await Task.sleep(for: .seconds(1))
                 guard let self, !Task.isCancelled else { return }
                 if self.runtime.networkReleaseRequested { continue }
-                self.refreshTailnetPolicy()
                 if self.runtime.maintenanceActive {
                     if self.policy.state.phase != .blocked { self.close("Service installation is in progress.") }
                     continue
-                }
-                if self.policy.state.configuration.mode.requiresVerification {
-                    if !self.runtime.nativeTransportIsHealthy {
-                        self.nativeFailed("Native transport rules need recovery.")
-                        continue
-                    }
-                    if self.nativeRecoveryPending, !self.nativeRecoveryRequested,
-                       !self.infrastructureRecoveryPending {
-                        self.nativeRecoveryRequested = true
-                        RuntimeLog.shared.info("mimo_native_recovery_started")
-                        self.networkChanged("native_recovered")
-                    }
                 }
                 if self.configurationKnown, self.directRestorationAllowed,
                    self.policy.state.configuration.mode == .direct, self.runtime.gateState != "direct" {
@@ -183,7 +147,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                             try self.runtime.waitForBlockingEngine()
                         }
                         try self.runtime.restoreDirect()
-                        self.policy.directRestored(configuration: self.policy.state.configuration)
+                        self.policy.directRestored(configuration: self.policy.state.configuration, nativeIssue: self.runtime.nativeReleaseIssue)
                     } catch { self.policy.block(error.localizedDescription, confirmed: self.runtime.closed) }
                 }
                 if self.policy.state.configuration.mode.requiresVerification,
@@ -193,6 +157,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                     let gate = self.runtime.gateState ?? "unknown"
                     let gateChanged = self.policy.state.phase == .active && gate != "active"
                     if heartbeatExpired || !engineRunning || gateChanged {
+                        self.verificationRecoveryPending = true
                         RuntimeLog.shared.error("mimo_liveness_lost", fields: self.heartbeatLease.diagnostics().merging([
                             "heartbeatExpired": String(heartbeatExpired),
                             "heartbeatAgeSeconds": self.heartbeatLease.ageSeconds().map { String($0) } ?? "unregistered",
@@ -203,7 +168,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                             "The firewall gate changed. Verification is required.")
                     }
                 }
-                if self.policy.state.phase == .active, self.policy.state.configuration.mode.requiresVerification, self.auditTask == nil {
+                if self.policy.state.phase == .active, self.policy.state.configuration.mode.requiresVerification {
                     let inspectedGeneration = self.generation
                     do {
                         guard self.networkObserver.isRunning, self.powerGuard.isRunning, self.sessionObserver.isRunning,
@@ -226,8 +191,8 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
 
     func stop() {
         stopping = true
+        sessionObserver.stop(); networkObserver.stop(); powerGuard.stop()
         watchdog?.cancel(); infrastructureMonitor?.cancel()
-        sessionObserver.stop(); networkObserver.stop(); nativeTransportObserver.stop(); powerGuard.stop()
         if policy.state.configuration.mode.requiresVerification { close("The supervisor is restarting.") }
     }
 
@@ -355,7 +320,6 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                     return response
                 }
             case .heartbeat:
-                refreshTailnetPolicy()
                 checkActiveDNSConfiguration()
             case .close:
                 directRestorationAllowed = false
@@ -372,7 +336,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                    !runtime.closed, runtime.gateState == "direct" {
                     // A startup request may arrive after startup already restored
                     // Direct. Acknowledge it without reloading the same profile.
-                    policy.directRestored(configuration: message.configuration ?? policy.state.configuration)
+                    policy.directRestored(configuration: message.configuration ?? policy.state.configuration, nativeIssue: runtime.nativeReleaseIssue)
                     return response()
                 }
                 deferredNetworkReasons.removeAll()
@@ -381,7 +345,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 try powerGuard.fence.direct {
                     try runtime.restoreDirect()
                 }
-                policy.directRestored(configuration: message.configuration ?? policy.state.configuration)
+                policy.directRestored(configuration: message.configuration ?? policy.state.configuration, nativeIssue: runtime.nativeReleaseIssue)
                 configurationKnown = true
                 directRestorationAllowed = true
                 proxy = nil; endpoint = nil; activeProfile = nil
@@ -411,7 +375,6 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 guard coreEnabled, engineEnabled, profileEnabled else { throw MimoRuntimeError.unavailable("A required background service is stopped.") }
                 guard let metadata = validated.proxy else { throw MimoRuntimeError.unavailable("Save a proxy in Settings.") }
                 let runtime = self.runtime
-                let mayReuseAudit = !forceProfileReload && runtime.hasVerifiedBaseline
                 let policyMode = validated.mode
                 let literalAddress = IPAddressValidator.normalize(metadata.server)
                 let cachedPolicy = try runtime.cachedProbePolicy(endpoints: literalAddress.map { [$0] } ?? [],
@@ -427,12 +390,14 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 }
                 firewallPreparation = initialPolicy
                 let installation = Task.detached {
-                    if !mayReuseAudit { try await runtime.readinessChecks.validateInstallation { try runtime.checkInstallation() } }
+                    try await runtime.readinessChecks.validateInstallation { try runtime.checkInstallation() }
                 }
                 installationCheck = installation
                 let password = try probePassword()
                 let mode = validated.mode
+                let family = validated.networkFamily
                 let bypassBlocks = try runtime.savedBypassBlocks()
+                let privateDNS = try runtime.nativeDNSRules()
                 let mustReload = forceProfileReload
                 let cleanup = runtime.requestConnectionCleanup()
                 let preparation = Task { () throws -> PreparedCandidate in
@@ -440,7 +405,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                         var preparationTiming = MimoTransitionTiming("preparation")
                         let candidate = try runtime.savedProxy(configuration: configuration, revision: revision)
                         let profile = IPAddressValidator.normalize(candidate.server) == nil ? nil :
-                            try MihomoProfile.render(candidate, mode: mode, stage: .active, probePassword: password, bypassBlocks: bypassBlocks)
+                            try MihomoProfile.render(candidate, mode: mode, stage: .active, probePassword: password, bypassBlocks: bypassBlocks, family: family, privateDNS: privateDNS)
                         preparationTiming.record("credentials_and_render")
                         return (candidate, profile)
                     } }) else { throw CancellationError() }
@@ -450,7 +415,6 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                     var preflightTiming = MimoTransitionTiming("profile")
                     let reused = profile.map { !mustReload && runtime.canReuseProfile($0) } ?? false
                     if reused, let profile {
-                        optimisticCandidate = mayReuseAudit ? runtime.optimisticReceipt(profile: profile) : nil
                     }
                     preflightTiming.record("profile_preflight")
                     return PreparedCandidate(proxy: proxy, profile: profile, reused: reused)
@@ -489,7 +453,6 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                     throw error
                 }
                 guard epoch == generation, check == policy.state.verification else { throw CancellationError() }
-                if !runtime.hasVerifiedBaseline { optimisticCandidate = nil }
                 var proxy = candidate.proxy
                 var reused = candidate.reused
                 var finalProfile = candidate.profile
@@ -529,7 +492,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 proxy.server = address
                 networkObserver.setProxyEndpoint(address)
                 if finalProfile == nil {
-                    let rendered = try MihomoProfile.render(proxy, mode: mode, stage: .active, probePassword: password, bypassBlocks: bypassBlocks)
+                    let rendered = try MihomoProfile.render(proxy, mode: mode, stage: .active, probePassword: password, bypassBlocks: bypassBlocks, family: family, privateDNS: privateDNS)
                     finalProfile = rendered
                     reused = !mustReload && runtime.canReuseProfile(rendered)
                 }
@@ -555,34 +518,10 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                     timing.record("endpoint_probe_policy")
                 }
                 if !hostname { try await joinCleanup() }
-                refreshTailnetPolicy()
-                // Native rules/provider data are maintained ahead of this cycle.
-                // Only a cold or stale observation needs a synchronous join.
-                let native: MimoNativeTransport
-                if let prepared = runtime.preparedNativeTransport { native = prepared }
-                else { native = try await nativeTransportObserver.prepareForProfile(tailnetEnabled: tailnetEnabled) }
-                guard epoch == generation, check == policy.state.verification, !runtime.maintenanceActive else { throw CancellationError() }
-                guard runtime.nativeTransportIsHealthy else {
-                    throw MimoRuntimeError.unavailable("Native provider data could not be prepared.")
-                }
-                timing.record("native_provider_ready")
-                RuntimeLog.shared.info("mimo_profile_prerequisites_ready", fields: [
-                    "attempt": check.id.uuidString, "interface": native.interface ?? "", "provider": native.interface == nil ? "reject" : "direct"
-                ])
                 if !reused { try runtime.loadProfile(finalProfile) }
                 forceProfileReload = false
                 try runtime.configureProtectedDNS()
-                if mayReuseAudit, optimisticCandidate == nil {
-                    // The preflight invalidated a baseline we initially hoped
-                    // to reuse. Cold verification must include installation.
-                    profileInspection?.cancel()
-                    let fullInstallation = Task.detached {
-                        try await runtime.readinessChecks.validateInstallation { try runtime.checkInstallation() }
-                    }
-                    installationCheck = fullInstallation
-                    profileInspection = try runtime.startReadiness(profile: finalProfile, proxy: proxy, installation: fullInstallation)
-                }
-                if profileInspection == nil, optimisticCandidate == nil {
+                if profileInspection == nil {
                     profileInspection = try runtime.startReadiness(profile: finalProfile, proxy: proxy, installation: installation)
                 }
                 self.proxy = proxy; endpoint = address; activeProfile = finalProfile
@@ -629,35 +568,23 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 guard let check = message.verification, check == policy.state.verification,
                       policy.state.phase == .checking, let address = message.address,
                       let activeProfile, let proxy, endpoint != nil else { throw DaemonFailure.conflict }
-                guard !allowlist.isEmpty, allowlist.contains(address) else {
-                    _ = policy.approve(address: address, at: .now, allowlist: allowlist, verification: check, runtimeMatches: false)
-                    RuntimeLog.shared.info("mimo_exit_rejected", fields: ["ip": address])
-                    finishEventCycle()
-                    return response()
+                guard let observations = message.exitObservations, let since = check.startedAt,
+                      observations.isValid(for: check, family: policy.state.configuration.networkFamily, since: since) else {
+                    throw MimoRuntimeError.unavailable("Fresh exit observations for every selected family are required.")
+                }
+                if !allowlist.contains(observations.ipv4.ipAddress) ||
+                    (observations.ipv6.map { !allowlist.contains($0.ipAddress) } ?? false) {
+                    _ = policy.approve(observations: observations, allowlist: allowlist, verification: check, runtimeMatches: false)
+                    try runtime.holdApplicationGate()
+                    finishEventCycle(); return response()
                 }
                 let activationGeneration = generation
-                let optimistic = optimisticCandidate != nil
-                RuntimeLog.shared.info("mimo_exit_ip_approved", fields: ["attempt": check.id.uuidString])
-                let receipt: MimoReadinessReceipt
-                if let candidate = optimisticCandidate {
-                    guard let current = runtime.optimisticReceipt(profile: activeProfile),
-                          current.process == candidate.process, current.profileDigest == candidate.profileDigest,
-                          !heartbeatLease.expired(), !infrastructureRecoveryPending,
-                          !verificationRecoveryPending, !nativeRecoveryPending else {
-                        throw MimoRuntimeError.unavailable("The optimistic baseline changed. Full verification is required.")
-                    }
-                    receipt = current
-                } else {
-                    guard let readinessCheck else { throw DaemonFailure.conflict }
-                    policy.waitingForReadiness(address: address, verification: check)
-                    if completedReadiness == nil { progress?(response()) }
-                    do { receipt = try await readinessCheck.value }
-                    catch {
-                        guard activationGeneration == generation, check == policy.state.verification else { throw CancellationError() }
-                        throw error
-                    }
-                    try runtime.acceptBaseline(receipt)
-                }
+                RuntimeLog.shared.info("mimo_exits_approved", fields: ["attempt": check.id.uuidString, "family": policy.state.configuration.networkFamily.rawValue])
+                guard let readinessCheck else { throw DaemonFailure.conflict }
+                policy.waitingForReadiness(address: address, verification: check)
+                if completedReadiness == nil { progress?(response()) }
+                let receipt = try await readinessCheck.value
+                try runtime.acceptBaseline(receipt)
                 guard activationGeneration == generation, check == policy.state.verification,
                       self.activeProfile == activeProfile, runtime.receiptMatchesLoadedProfile(receipt),
                       networkObserver.isRunning, powerGuard.isRunning, sessionObserver.isRunning,
@@ -666,44 +593,21 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 }
                 timing.record("opening_join")
                 RuntimeLog.shared.info("mimo_opening_barrier_ready", fields: ["attempt": check.id.uuidString])
-                guard policy.approve(address: address, at: .now, allowlist: allowlist, verification: check, runtimeMatches: true) else {
+                guard policy.approve(observations: observations, allowlist: allowlist, verification: check, runtimeMatches: true) else {
                     close("The active profile did not match the verified candidate."); return response()
                 }
                 guard let powerEpoch = verificationPowerEpoch else { throw CancellationError() }
-                let deadline = MimoAuditDeadline()
-                let fence = powerGuard.fence
-                if optimistic {
-                    auditDeadline = deadline
-                    try deadline.grant({
-                        try fence.completeCycle(epoch: powerEpoch) { try runtime.openGate(receipt: receipt) }
-                    }, onTimeout: { [weak self] in
-                        var elapsed = MimoTransitionTiming("audit_deadline")
-                        RuntimeLog.shared.error("mimo_background_audit_timeout", fields: ["attempt": check.id.uuidString])
-                        do { try fence.activate(epoch: powerEpoch) { try MimoPowerGuard.closeBarrier() } }
-                        catch { RuntimeLog.shared.error("mimo_audit_deadline_close_failed") }
-                        elapsed.record("audit_timeout_block")
-                        Task { @MainActor [weak self] in
-                            guard let self, self.generation == activationGeneration else { return }
-                            self.failAudit("Background verification exceeded three seconds.")
-                        }
-                    })
-                    policy.auditing(true)
-                } else {
-                    try fence.completeCycle(epoch: powerEpoch) { try runtime.openGate(receipt: receipt) }
-                    verifiedRecovery()
-                }
+                try powerGuard.fence.completeCycle(epoch: powerEpoch) { try runtime.openGate(receipt: receipt) }
+                verifiedRecovery()
                 self.readinessCheck = nil; installationCheck = nil
                 firewallPreparation = nil; profilePreparation = nil; profileInspection = nil; completedReadiness = nil
-                optimisticCandidate = nil
                 timing.record("open_gate")
                 RuntimeLog.shared.info("mimo_traffic_opened", fields: ["mode": policy.state.configuration.mode.rawValue,
-                    "ip": address, "optimistic": String(optimistic), "attempt": check.id.uuidString])
+                    "ip": address, "family": policy.state.configuration.networkFamily.rawValue, "attempt": check.id.uuidString])
                 deferredNetworkReasons.removeAll()
-                if optimistic { startAudit(profile: activeProfile, proxy: proxy, epoch: activationGeneration, attempt: check.id) }
             case .service:
                 guard !operationPending, let service = message.service, let operation = message.operation else { throw DaemonFailure.conflict }
                 operationPending = true; defer { operationPending = false }
-                guard service != .tailnetProvider else { throw DaemonFailure.invalidRequest }
                 if service == .mihomo, operation == .stop {
                     try await releaseEngine(progress: progress)
                     return response()
@@ -717,9 +621,8 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                     try runtime.ensureIndependentBootGuard()
                     try runtime.service(.mihomo, operation: .start)
                     try runtime.restoreDirect()
-                    policy.directRestored(configuration: policy.state.configuration)
+                    policy.directRestored(configuration: policy.state.configuration, nativeIssue: runtime.nativeReleaseIssue)
                     directRestorationAllowed = true
-                    nativeTransportObserver.start(tailnetEnabled: tailnetEnabled)
                     _ = try? await DaemonRPC.call(DaemonRequest(.networkChanged), timeout: 5)
                     return response()
                 }
@@ -762,9 +665,6 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                     if operation != .stop, policy.state.configuration.mode == .direct {
                         try runtime.loadProfile(MihomoProfile.blocking())
                     }
-                case .tailnetProvider:
-                    // Provider changes require core's authorized settings transaction.
-                    throw DaemonFailure.invalidRequest
                 }
                 RuntimeLog.shared.info("mimo_service_changed", fields: ["service": service.rawValue, "operation": operation.rawValue])
             }
@@ -807,7 +707,6 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
         engineEnabled = false; cachedServices = nil
         generation &+= 1; cancelReadiness()
         try powerGuard.fence.direct {}
-        nativeTransportObserver.stop()
         deferredNetworkReasons.removeAll()
         activeProfile = nil; proxy = nil; endpoint = nil
         networkObserver.setProxyEndpoint(nil)
@@ -831,40 +730,6 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
         progress?(response())
     }
 
-    private func startAudit(profile: String, proxy: ClashProxySettings, epoch: UInt64, attempt: UUID) {
-        let runtime = self.runtime
-        let installation = Task.detached {
-            try await runtime.readinessChecks.validateInstallation { try runtime.checkInstallation() }
-        }
-        installationCheck = installation
-        auditTask = Task { [weak self] in
-            guard let self else { return }
-            var timing = MimoTransitionTiming("background_audit")
-            RuntimeLog.shared.info("mimo_background_audit_started", fields: ["attempt": attempt.uuidString])
-            do {
-                async let policies: Void = runtime.auditPolicies()
-                async let native: Void = runtime.auditNative(since: .now)
-                let receipt = try await runtime.inspectReadiness(profile: profile, proxy: proxy, installation: installation)
-                try await policies
-                try await native
-                try Task.checkCancellation()
-                guard epoch == self.generation, self.policy.state.allowsTraffic else { throw CancellationError() }
-                try runtime.acceptBaseline(receipt)
-                guard self.auditDeadline?.finish() == true else { throw CancellationError() }
-                self.verifiedRecovery()
-                self.policy.auditing(false)
-                self.auditDeadline = nil; self.auditTask = nil; self.installationCheck = nil
-                timing.record("background_audit")
-                RuntimeLog.shared.info("mimo_background_audit_passed", fields: ["attempt": attempt.uuidString])
-            } catch {
-                if !(error is CancellationError), epoch == self.generation {
-                    RuntimeLog.shared.error("mimo_background_audit_failed", fields: ["attempt": attempt.uuidString, "reason": error.localizedDescription])
-                    self.failAudit(error.localizedDescription)
-                }
-            }
-        }
-    }
-
     private func failAudit(_ reason: String) {
         RuntimeLog.shared.error("mimo_verification_audit_failed", fields: ["reason": reason])
         runtime.revokeBaseline()
@@ -882,32 +747,11 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
         failAudit("Protected DNS resolver disappeared or changed. Verification is required.")
     }
 
-    private func nativeFailed(_ reason: String) {
-        guard policy.state.configuration.mode.requiresVerification else { return }
-        // A pending unrelated fault must never suppress a new native failure
-        // while active/checking. Repeated failures while already blocked coalesce.
-        let mustClose = !nativeRecoveryPending || policy.state.phase != .blocked || !runtime.closed
-        nativeRecoveryPending = true
-        nativeRecoveryRequested = false
-        runtime.revokeBaseline()
-        if mustClose { close(reason, strictOnly: true) }
-    }
-
     private func verifiedRecovery() {
-        // Called only for the current generation after full verification. Actual
-        // infrastructure faults are cleared solely by its successful checker.
-        guard runtime.nativeTransportIsHealthy else { return }
-        let recovered = nativeRecoveryPending || verificationRecoveryPending
-        nativeRecoveryPending = false
-        nativeRecoveryRequested = false
         verificationRecoveryPending = false
-        if recovered { RuntimeLog.shared.info("mimo_verification_recovery_completed") }
     }
 
     private func cancelReadiness() {
-        auditDeadline?.finish(); auditDeadline = nil
-        auditTask?.cancel(); auditTask = nil
-        optimisticCandidate = nil
         runtime.cancelConnectionCleanup()
         firewallPreparation?.cancel(); firewallPreparation = nil
         profilePreparation?.cancel(); profilePreparation = nil
@@ -956,15 +800,6 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
         }
     }
 
-    private func refreshTailnetPolicy() {
-        guard !runtime.networkReleaseRequested else { return }
-        let enabled = (try? runtime.savedTailnetEnabled()) ?? false
-        guard enabled != tailnetEnabled else { return }
-        tailnetEnabled = enabled
-        // Clearing the sub-anchor is synchronous, before acknowledging Stop.
-        nativeTransportObserver.start(tailnetEnabled: enabled)
-    }
-
     private func response() -> DaemonResponse {
         var state = policy.state
         state.supervisorCheckedAt = .now
@@ -993,7 +828,6 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
         case .core: flags.core = enabled
         case .mihomo: flags.engine = enabled
         case .profileHosting: flags.profile = enabled
-        case .tailnetProvider: throw DaemonFailure.invalidRequest
         }
         cachedServices = nil
         runtime.revokeBaseline()

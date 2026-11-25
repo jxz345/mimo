@@ -1,8 +1,49 @@
-# Mimo firewall and failure scenarios — TUN-enabled baseline
+# Firewall and failure scenarios
 
-> **Historical analysis, superseded by 2.0 build 6.** This document discusses the older steady PF policy and a hypothetical startup TUN. Current Rule/Global leave only an empty emergency anchor, Direct has no Mimo packet rules, and the profile captures then rejects IPv6. See [current workflows](MIMO_EVENT_DRIVEN_WORKFLOWS.md) and [current protection limits](../README.md#modes-and-protection). Older claims about active IPv6 denial, native transport exceptions and permanent DNS blocks do not describe build 6.
+Current v3 candidate revision: flat Closed/Verification/Active root, empty Direct
+policy, no provider machinery or optimistic opening. Active PF contains native
+application fallback; the profile and pinned engine own destination-family and
+routing decisions. The user approved this revision after the measured failures
+below. Scoped VM evidence and remaining limits are recorded below. See [current workflows](MIMO_EVENT_DRIVEN_WORKFLOWS.md)
+and [the revised v3 contract](MIMO_3_0_PLAN.md#6-simplified-firewall-and-cleanup-ordering).
 
-Hostname bootstrap implementation: while PF remains closed, Mimo retires the previous TUN using the credential-free blocking profile and confirms the tunnel is absent. Only then does it permit the runtime group’s fixed HTTPS DNS resolver. Failure stays blocked; after an A record is obtained, bootstrap access is closed before endpoint policy installation and final-profile verification. This prevents a routing deadlock through the previous proxy; it does not change pre-loader boot protection.
+The active revision scopes Tailnet destinations to observed native tunnels and
+denies those destinations on other paths before the engine-group grant. Native
+Tailscale transport uses bounded socket observations of its verified signed
+system extension, with root-only UDP source-port and HTTPS destination scopes.
+Core's existing audit replaces those scopes under the same mutation lock; no
+provider service, profile interface binding or child-anchor hierarchy returns.
+Transport discovery does not require a native interface: that interface can only
+appear after the VPN's public startup transport succeeds. Private Tailnet passes
+still require an observed native interface, and wrong-path denials stay before
+all transport grants. Socket disappearance or invalid signature/identity revokes
+the transport scopes; a disconnected signed VPN may still hold control sockets.
+This is a trusted-native-service exception, not protection against malicious root
+or a compromised native VPN. The Settings Maintenance reference describes the
+current policies and copyable inspection/release/uninstall commands.
+
+The 2026-11-25 installed Release fault campaign has now **measured** the active
+empty-policy limitation: public fixture attempts reached native egress after all
+four engine-kill cases and one more-specific route change. An independent lab
+rule contained them; it is not shipped behavior. This is not just a theoretical
+gap or a passing recovery result. That earlier candidate did not satisfy zero native
+fallback during those faults. [Timing and evidence](MIMO_V3_QUALIFICATION_CLOSURE.md).
+
+The corrected active-guard/native-bootstrap candidate subsequently passed real
+dual-stack Rule/Global Tailscale reconnects and a separate **32/32** corrected
+baseline/fault campaign, with zero measured native bypass or public echo replies
+and recovery after all 28 faults. The new sender recorded actual echo attempts
+during every fault, closing the historical harness's ICMP gap for those cases.
+See [live lifecycle results](MIMO_V3_LIVE_LIFECYCLE_RESULTS.md) and
+[corrected fault results](MIMO_V3_CORRELATED_FAULT_RESULTS.md). Sleep was skipped
+because the VM would not sleep; physical/native-UI and PF kernel-operation failure
+qualification remain open. These measured VM results are not a release claim.
+
+The analysis below is historical. Its permanent active filtering/startup-TUN
+assumptions do not describe v3. Boot-before-loader, asynchronous detection,
+more-specific route/interface bypass and native-relay limitations still apply.
+
+## Historical analysis
 
 Updated: 2026-11-20. Scope: Apple silicon, IPv4-only Mimo + pinned mihomo, **assuming TUN is already enabled in the protected startup profile**, plus the conditional Developer ID / Network Extension assessment in section 13. The independent PF boot loader, active infrastructure repair and dashboard health reporting described below are current implementation changes. Startup TUN remains an analysis assumption, not a new release qualification.
 

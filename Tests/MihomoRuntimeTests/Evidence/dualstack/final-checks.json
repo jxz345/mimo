@@ -1,0 +1,26 @@
+{
+  "tested_date": "2026-11-24",
+  "checks": {
+    "working_profile_fingerprint_unchanged": true,
+    "private_candidate_mode_0600": true,
+    "private_candidate_ignored": true,
+    "candidate_only_three_intended_changes": true,
+    "host_fixture_processes_stopped": true,
+    "host_fixture_tcp_listeners_removed": true,
+    "temporary_tls_private_keys_removed": true,
+    "vm_owned_temporary_directories_removed": true,
+    "vm_test_tun_removed": true,
+    "vm_test_engine_and_capture_stopped": true,
+    "vm_native_ipv4_route_restored": true,
+    "vm_native_ipv6_route_restored": true,
+    "vm_test_dns_registration_removed": true,
+    "native_lan_ipv4_ping": true,
+    "native_lan_ipv6_ping": true,
+    "native_tailnet_ipv4_ping": true,
+    "native_tailnet_ipv6_ping": true,
+    "vm_lab_browser_tabs_removed": true,
+    "exact_public_candidate_engine_validation": true,
+    "working_profile_fingerprint_still_unchanged": true
+  },
+  "all_passed": true
+}

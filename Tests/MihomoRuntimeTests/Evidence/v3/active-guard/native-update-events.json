@@ -1,0 +1,47 @@
+[
+  {
+    "timestamp": "2026-11-25T06:16:21Z",
+    "udp_scopes": "2",
+    "https_scopes": "55"
+  },
+  {
+    "timestamp": "2026-11-25T06:16:26Z",
+    "udp_scopes": "2",
+    "https_scopes": "56"
+  },
+  {
+    "timestamp": "2026-11-25T06:16:58Z",
+    "udp_scopes": "2",
+    "https_scopes": "55"
+  },
+  {
+    "timestamp": "2026-11-25T06:17:18Z",
+    "udp_scopes": "2",
+    "https_scopes": "82"
+  },
+  {
+    "timestamp": "2026-11-25T06:20:19Z",
+    "udp_scopes": "2",
+    "https_scopes": "84"
+  },
+  {
+    "timestamp": "2026-11-25T06:20:23Z",
+    "udp_scopes": "2",
+    "https_scopes": "57"
+  },
+  {
+    "timestamp": "2026-11-25T06:24:01Z",
+    "udp_scopes": "2",
+    "https_scopes": "57"
+  },
+  {
+    "timestamp": "2026-11-25T06:24:34Z",
+    "udp_scopes": "2",
+    "https_scopes": "57"
+  },
+  {
+    "timestamp": "2026-11-25T06:24:44Z",
+    "udp_scopes": "4",
+    "https_scopes": "57"
+  }
+]

@@ -1,0 +1,3461 @@
+[
+  {
+    "run": "T4R-S00-focus-main-47e71e",
+    "status": "complete",
+    "profile": "T4R",
+    "proxy_mode": "S00",
+    "scope": "focus-main",
+    "tested_at_utc": "2026-11-24T17:50:09.738602+00:00",
+    "engine_sha256": "9103954f5cb48c2e93826ba1f61e6c2677d9363680eecdf00b09b94c3a4253d8",
+    "runner_sha256": "4592a1af9a7a9a7df772ebed6a332c60d252778acfa7dff3b31de00379b1f5ab",
+    "profile_sha256": "2d982c05dfd50fdf53f71ddae0fb552cc86ec40ba3a39553edbbc200450d816e",
+    "checks": {
+      "native_before_4_http": true,
+      "native_before_4_https_verified": true,
+      "native_before_4_udp_nonce": true,
+      "fixture_4_https_verified": true,
+      "fixture_4_udp_nonce": true,
+      "native_before_6_http": true,
+      "native_before_6_https_verified": true,
+      "native_before_6_udp_nonce": true,
+      "fixture_6_https_verified": true,
+      "fixture_6_udp_nonce": true,
+      "data_routes_captured": true,
+      "control_route_native": true,
+      "live_mode_and_rule_count": true,
+      "live_proxy_selection": true,
+      "live_no_ping_stack": true,
+      "dns_unchanged_active": true,
+      "no_native_data_egress": true,
+      "no_native_fake_egress": true,
+      "both_data_families_entered_tun": true,
+      "no_native_nat64_egress": true,
+      "no_native_bootstrap_egress": true,
+      "captured_echo_requests_seen": true,
+      "no_synthetic_echo_replies": true,
+      "no_native_echo_forwarding": true,
+      "native_echoes_bypass_tun": true,
+      "native_echoes_real": true,
+      "tailscale_restored": true,
+      "engine_stopped": true,
+      "tun_removed": true,
+      "routes_restored": true,
+      "dns_restored": true,
+      "native_after_4_https_verified": true,
+      "native_after_4_udp_nonce": true,
+      "native_after_6_https_verified": true,
+      "native_after_6_udp_nonce": true
+    },
+    "cases": [
+      {
+        "id": "base-4-http",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "expected_policy_allowed": true,
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 616,
+          "body_sha256": "f5e17933d280c2f15560e5096530da978bf087f13f49b7a95b445e72dee330a9",
+          "elapsed_ms": 11
+        }
+      },
+      {
+        "id": "base-4-https_verified",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "expected_policy_allowed": true,
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 626,
+          "body_sha256": "637e9865ee7167458c8bb13a02c496d92767dd500b804d45fdce87246a18d4fd",
+          "elapsed_ms": 14
+        }
+      },
+      {
+        "id": "base-4-udp_nonce",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "expected_policy_allowed": true,
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 162,
+          "body_sha256": "bdf7d235e8430835999568eafa8bd7a7da941490149bb777c9d48de437188efa",
+          "elapsed_ms": 4
+        }
+      },
+      {
+        "id": "base-6-http",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "expected_policy_allowed": false,
+          "ok": false,
+          "error": "ConnectionResetError: [Errno 54] Connection reset by peer",
+          "elapsed_ms": 1
+        }
+      },
+      {
+        "id": "base-6-https_verified",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "expected_policy_allowed": false,
+          "ok": false,
+          "error": "SSLEOFError: EOF occurred in violation of protocol (_ssl.c:1129)",
+          "elapsed_ms": 1
+        }
+      },
+      {
+        "id": "base-6-udp_nonce",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "expected_policy_allowed": false,
+          "ok": false,
+          "error": "timeout: timed out",
+          "elapsed_ms": 2007
+        }
+      },
+      {
+        "id": "F01-doh4-S00",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "value": {
+            "AD": false,
+            "Answer": [
+              {
+                "TTL": 2,
+                "data": "<DATA6>",
+                "name": "aaaaonly-9b2a16-doh4s00-a899.mimo-lab.test.",
+                "type": 28
+              }
+            ],
+            "CD": false,
+            "Question": [
+              {
+                "Name": "aaaaonly-9b2a16-doh4s00-a899.mimo-lab.test.",
+                "Qtype": 28,
+                "Qclass": 1
+              }
+            ],
+            "RA": true,
+            "RD": true,
+            "Status": 0,
+            "TC": false
+          }
+        }
+      },
+      {
+        "id": "F01-doh4-S04",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "value": {
+            "AD": false,
+            "Answer": [
+              {
+                "TTL": 2,
+                "data": "<DATA6>",
+                "name": "aaaaonly-9b2a16-doh4s04-b454.mimo-lab.test.",
+                "type": 28
+              }
+            ],
+            "CD": false,
+            "Question": [
+              {
+                "Name": "aaaaonly-9b2a16-doh4s04-b454.mimo-lab.test.",
+                "Qtype": 28,
+                "Qclass": 1
+              }
+            ],
+            "RA": true,
+            "RD": true,
+            "Status": 0,
+            "TC": false
+          }
+        }
+      },
+      {
+        "id": "F01-doh6-S00",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "value": {
+            "AD": false,
+            "Answer": [
+              {
+                "TTL": 2,
+                "data": "<DATA6>",
+                "name": "aaaaonly-9b2a16-doh6s00-c129.mimo-lab.test.",
+                "type": 28
+              }
+            ],
+            "CD": false,
+            "Question": [
+              {
+                "Name": "aaaaonly-9b2a16-doh6s00-c129.mimo-lab.test.",
+                "Qtype": 28,
+                "Qclass": 1
+              }
+            ],
+            "RA": true,
+            "RD": true,
+            "Status": 0,
+            "TC": false
+          }
+        }
+      },
+      {
+        "id": "F01-doh6-S04",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "value": {
+            "message": "all DNS requests failed, first error: requesting https://[<DATA6>]:59162/dns-query: Get \"https://[<DATA6>]:59162/dns-query?dns=AAABAAABAAAAAAAAHGFhYWFvbmx5LTliMmExNi1kb2g2czA0LWY0OGQIbWltby1sYWIEdGVzdAAAHAAB\": EOF (resErr:<nil>)"
+          }
+        }
+      },
+      {
+        "id": "F02-nodata6",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "value": {
+            "AD": false,
+            "CD": false,
+            "Question": [
+              {
+                "Name": "aaaaonly-9b2a16-nodata6-5ea7.mimo-lab.test.",
+                "Qtype": 28,
+                "Qclass": 1
+              }
+            ],
+            "RA": true,
+            "RD": true,
+            "Status": 0,
+            "TC": false
+          }
+        }
+      },
+      {
+        "id": "F02-recover-nodata6",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "value": {
+            "AD": false,
+            "Answer": [
+              {
+                "TTL": 2,
+                "data": "<DATA6>",
+                "name": "aaaaonly-9b2a16-recovery-nodata6-3e3c.mimo-lab.test.",
+                "type": 28
+              }
+            ],
+            "CD": false,
+            "Question": [
+              {
+                "Name": "aaaaonly-9b2a16-recovery-nodata6-3e3c.mimo-lab.test.",
+                "Qtype": 28,
+                "Qclass": 1
+              }
+            ],
+            "RA": true,
+            "RD": true,
+            "Status": 0,
+            "TC": false
+          }
+        }
+      },
+      {
+        "id": "F02-servfail",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "value": {
+            "message": "all DNS requests failed, first error: server failure: SERVFAIL"
+          }
+        }
+      },
+      {
+        "id": "F02-recover-servfail",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "value": {
+            "AD": false,
+            "Answer": [
+              {
+                "TTL": 2,
+                "data": "<DATA6>",
+                "name": "aaaaonly-9b2a16-recovery-servfail-7c69.mimo-lab.test.",
+                "type": 28
+              }
+            ],
+            "CD": false,
+            "Question": [
+              {
+                "Name": "aaaaonly-9b2a16-recovery-servfail-7c69.mimo-lab.test.",
+                "Qtype": 28,
+                "Qclass": 1
+              }
+            ],
+            "RA": true,
+            "RD": true,
+            "Status": 0,
+            "TC": false
+          }
+        }
+      },
+      {
+        "id": "F02-nxdomain",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "value": {
+            "AD": false,
+            "CD": false,
+            "Question": [
+              {
+                "Name": "aaaaonly-9b2a16-nxdomain-c72d.mimo-lab.test.",
+                "Qtype": 28,
+                "Qclass": 1
+              }
+            ],
+            "RA": true,
+            "RD": true,
+            "Status": 3,
+            "TC": false
+          }
+        }
+      },
+      {
+        "id": "F02-recover-nxdomain",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "value": {
+            "AD": false,
+            "Answer": [
+              {
+                "TTL": 2,
+                "data": "<DATA6>",
+                "name": "aaaaonly-9b2a16-recovery-nxdomain-ac41.mimo-lab.test.",
+                "type": 28
+              }
+            ],
+            "CD": false,
+            "Question": [
+              {
+                "Name": "aaaaonly-9b2a16-recovery-nxdomain-ac41.mimo-lab.test.",
+                "Qtype": 28,
+                "Qclass": 1
+              }
+            ],
+            "RA": true,
+            "RD": true,
+            "Status": 0,
+            "TC": false
+          }
+        }
+      },
+      {
+        "id": "F02-timeout",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "error": "timeout: timed out"
+        }
+      },
+      {
+        "id": "F02-recover-timeout",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "value": {
+            "AD": false,
+            "Answer": [
+              {
+                "TTL": 2,
+                "data": "<DATA6>",
+                "name": "aaaaonly-9b2a16-recovery-timeout-0bf3.mimo-lab.test.",
+                "type": 28
+              }
+            ],
+            "CD": false,
+            "Question": [
+              {
+                "Name": "aaaaonly-9b2a16-recovery-timeout-0bf3.mimo-lab.test.",
+                "Qtype": 28,
+                "Qclass": 1
+              }
+            ],
+            "RA": true,
+            "RD": true,
+            "Status": 0,
+            "TC": false
+          }
+        }
+      },
+      {
+        "id": "F02-tls-untrusted",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "value": {
+            "message": "all DNS requests failed, first error: requesting https://<DATA4>:59162/dns-query: Get \"https://<DATA4>:59162/dns-query?dns=AAABAAABAAAAAAAAG2FhYWFvbmx5LTliMmExNi1iYWQtY2EtMDg3OAhtaW1vLWxhYgR0ZXN0AAAcAAE\": tls: failed to verify certificate: x509: certificate signed by unknown authority (resErr:<nil>)"
+          }
+        }
+      },
+      {
+        "id": "F02-tls-recovery",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "value": {
+            "AD": false,
+            "Answer": [
+              {
+                "TTL": 2,
+                "data": "<DATA6>",
+                "name": "aaaaonly-9b2a16-tls-recovered-1473.mimo-lab.test.",
+                "type": 28
+              }
+            ],
+            "CD": false,
+            "Question": [
+              {
+                "Name": "aaaaonly-9b2a16-tls-recovered-1473.mimo-lab.test.",
+                "Qtype": 28,
+                "Qclass": 1
+              }
+            ],
+            "RA": true,
+            "RD": true,
+            "Status": 0,
+            "TC": false
+          }
+        }
+      },
+      {
+        "id": "F03-F05-no_domain",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "error": "SSLEOFError: EOF occurred in violation of protocol (_ssl.c:1129)",
+          "elapsed_ms": 9
+        }
+      },
+      {
+        "id": "F03-F05-control-no_domain",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 622,
+          "body_sha256": "062bf30bcf51c450f993c798fa47ec742e41503e011785626bf2f2fdd4f2d322",
+          "elapsed_ms": 7
+        }
+      },
+      {
+        "id": "F03-F05-reply_3",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "error": "SSLEOFError: EOF occurred in violation of protocol (_ssl.c:1129)",
+          "elapsed_ms": 2
+        }
+      },
+      {
+        "id": "F03-F05-reply_7",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "error": "SSLEOFError: EOF occurred in violation of protocol (_ssl.c:1129)",
+          "elapsed_ms": 2
+        }
+      },
+      {
+        "id": "F03-F05-reply_8",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "error": "SSLEOFError: EOF occurred in violation of protocol (_ssl.c:1129)",
+          "elapsed_ms": 2
+        }
+      },
+      {
+        "id": "F03-F05-no_udp",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "error": "timeout: timed out",
+          "elapsed_ms": 2004
+        }
+      },
+      {
+        "id": "F03-F05-control-no_udp",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 619,
+          "body_sha256": "77b5acb7d650b652eabc4c5df08a2672684208f09c2884e4a8e78daaf6a9c8ff",
+          "elapsed_ms": 14
+        }
+      },
+      {
+        "id": "F03-F05-drop_udp",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "error": "timeout: timed out",
+          "elapsed_ms": 2005
+        }
+      },
+      {
+        "id": "F03-F05-control-drop_udp",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 621,
+          "body_sha256": "6cdb863a72b07fb173918ff8610d7606c8581acaa69cee8385b58470c427d929",
+          "elapsed_ms": 16
+        }
+      },
+      {
+        "id": "F03-F05-relay_unavailable",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "error": "timeout: timed out",
+          "elapsed_ms": 2005
+        }
+      },
+      {
+        "id": "F03-F05-control-relay_unavailable",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 630,
+          "body_sha256": "5d016a10b5e8142e94c7c7c289d935ec5aa0029456dc92efb27caed24e65a21e",
+          "elapsed_ms": 15
+        }
+      },
+      {
+        "id": "F03-F05-association_close",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "error": "timeout: timed out",
+          "elapsed_ms": 2009
+        }
+      },
+      {
+        "id": "F03-F05-control-association_close",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 630,
+          "body_sha256": "41b401410be1ef6aebe853efa62518390a39757fdde0edda84c1fc948beb5b87",
+          "elapsed_ms": 17
+        }
+      },
+      {
+        "id": "F03-F05-auth",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "error": "SSLEOFError: EOF occurred in violation of protocol (_ssl.c:1129)",
+          "elapsed_ms": 2
+        }
+      },
+      {
+        "id": "F03-F05-reset",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "error": "SSLEOFError: EOF occurred in violation of protocol (_ssl.c:1129)",
+          "elapsed_ms": 3
+        }
+      },
+      {
+        "id": "F05-password-False",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "error": "SSLEOFError: EOF occurred in violation of protocol (_ssl.c:1129)",
+          "elapsed_ms": 2233
+        }
+      },
+      {
+        "id": "F05-password-True",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 608,
+          "body_sha256": "53dfb0521c379a2b136a6da8815cf883f13739e77f59b257693042d76cd47653",
+          "elapsed_ms": 12
+        }
+      },
+      {
+        "id": "F05-off-4-http",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "error": "RemoteDisconnected: Remote end closed connection without response",
+          "elapsed_ms": 3240
+        }
+      },
+      {
+        "id": "F05-off-4-udp_nonce",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "error": "timeout: timed out",
+          "elapsed_ms": 2011
+        }
+      },
+      {
+        "id": "F05-off-6-http",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "error": "ConnectionResetError: [Errno 54] Connection reset by peer",
+          "elapsed_ms": 2
+        }
+      },
+      {
+        "id": "F05-off-6-udp_nonce",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "error": "timeout: timed out",
+          "elapsed_ms": 2007
+        }
+      },
+      {
+        "id": "F06-warm-S00-initial",
+        "kind": "focused",
+        "result": "FAIL_FUNCTIONAL",
+        "observation": {
+          "ok": false,
+          "error": "SSLEOFError: EOF occurred in violation of protocol (_ssl.c:1129)",
+          "elapsed_ms": 15
+        }
+      },
+      {
+        "id": "F06-warm-S04-unavailable",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "error": "SSLEOFError: EOF occurred in violation of protocol (_ssl.c:1129)",
+          "elapsed_ms": 10
+        }
+      },
+      {
+        "id": "F06-warm-S00-recovered",
+        "kind": "focused",
+        "result": "FAIL_FUNCTIONAL",
+        "observation": {
+          "ok": false,
+          "error": "SSLEOFError: EOF occurred in violation of protocol (_ssl.c:1129)",
+          "elapsed_ms": 8
+        }
+      },
+      {
+        "id": "F07-auto-S04",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "client_status": 35,
+          "note": "Automatic IPv4 retry is measured, not assumed after a successful local TUN TCP handshake."
+        }
+      },
+      {
+        "id": "F07-explicit-retry-S04",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ipv6": {
+            "ok": false,
+            "error": "SSLEOFError: EOF occurred in violation of protocol (_ssl.c:1129)",
+            "elapsed_ms": 1
+          },
+          "ipv4": {
+            "ok": true,
+            "upstream_family": 4,
+            "bytes": 609,
+            "body_sha256": "7dbab4344290297e1f8e35eed2ded144d8f3b0e140296bbffda65088736e8ae2",
+            "elapsed_ms": 6
+          }
+        }
+      },
+      {
+        "id": "F07-auto-S02",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "client_status": 35,
+          "note": "Automatic IPv4 retry is measured, not assumed after a successful local TUN TCP handshake."
+        }
+      },
+      {
+        "id": "F07-explicit-retry-S02",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ipv6": {
+            "ok": false,
+            "error": "SSLEOFError: EOF occurred in violation of protocol (_ssl.c:1129)",
+            "elapsed_ms": 0
+          },
+          "ipv4": {
+            "ok": true,
+            "upstream_family": 4,
+            "bytes": 609,
+            "body_sha256": "17d48d4f113d8ecab99e678ddf010742d6da98fb67a1cbfedaa9ccd5f75c2483",
+            "elapsed_ms": 4
+          }
+        }
+      },
+      {
+        "id": "F09-udp-4-96",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "expected_policy_allowed": true,
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 150,
+          "body_sha256": "8a460d18b821e36ee2453c8730800088077c88defa8b0c63ee49bc19c78bec32",
+          "elapsed_ms": 1
+        }
+      },
+      {
+        "id": "F09-udp-4-1232",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "expected_policy_allowed": true,
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 1288,
+          "body_sha256": "8fa09059252782cb663821f0033aa913f197f0fea8c5cf0d8fafe6741bbac4c4",
+          "elapsed_ms": 1
+        }
+      },
+      {
+        "id": "F09-udp-4-8224",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "expected_policy_allowed": true,
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 8280,
+          "body_sha256": "961ad73b7f1355659796d5281c99f97567d2ff8d1cdaea63bcd1b245fb1d6cf6",
+          "elapsed_ms": 1
+        }
+      },
+      {
+        "id": "F09-https-4",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "expected_policy_allowed": true,
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 233565,
+          "body_sha256": "70a5dab9a449e71d27aab36e2be0b7425f6da9ac513e9ad7bd8fc7ea93699564",
+          "elapsed_ms": 6
+        }
+      },
+      {
+        "id": "F09-udp-6-96",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "expected_policy_allowed": false,
+          "ok": false,
+          "error": "timeout: timed out",
+          "elapsed_ms": 2003
+        }
+      },
+      {
+        "id": "F09-udp-6-1232",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "expected_policy_allowed": false,
+          "ok": false,
+          "error": "timeout: timed out",
+          "elapsed_ms": 2001
+        }
+      },
+      {
+        "id": "F09-udp-6-8224",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "expected_policy_allowed": false,
+          "ok": false,
+          "error": "timeout: timed out",
+          "elapsed_ms": 2009
+        }
+      },
+      {
+        "id": "F09-https-6",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "expected_policy_allowed": false,
+          "ok": false,
+          "error": "SSLEOFError: EOF occurred in violation of protocol (_ssl.c:1129)",
+          "elapsed_ms": 2
+        }
+      },
+      {
+        "id": "F10-ping-0",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "exit_status": "timeout"
+        }
+      },
+      {
+        "id": "F10-ping-1",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "exit_status": "timeout"
+        }
+      },
+      {
+        "id": "F10-ping-2",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "exit_status": "timeout"
+        }
+      },
+      {
+        "id": "F10-ping-3",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "exit_status": "timeout"
+        }
+      },
+      {
+        "id": "F10-ping-4",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "exit_status": "timeout"
+        }
+      },
+      {
+        "id": "F10-ping-5",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "exit_status": "timeout"
+        }
+      },
+      {
+        "id": "F10-ping-6",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "exit_status": "timeout"
+        }
+      },
+      {
+        "id": "F11-native-ping-0",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "exit_status": 0
+        }
+      },
+      {
+        "id": "F11-native-ping-1",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "exit_status": 0
+        }
+      },
+      {
+        "id": "F12-0-S00-http",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "note": "Fixture mapping qualifies transport, not actual NAT64 translation.",
+          "ok": false,
+          "error": "ConnectionResetError: [Errno 54] Connection reset by peer",
+          "elapsed_ms": 1
+        }
+      },
+      {
+        "id": "F12-0-S00-udp_nonce",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "note": "Fixture mapping qualifies transport, not actual NAT64 translation.",
+          "ok": false,
+          "error": "timeout: timed out",
+          "elapsed_ms": 2012
+        }
+      },
+      {
+        "id": "F12-0-S04-http",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "note": "Fixture mapping qualifies transport, not actual NAT64 translation.",
+          "ok": false,
+          "error": "ConnectionResetError: [Errno 54] Connection reset by peer",
+          "elapsed_ms": 0
+        }
+      },
+      {
+        "id": "F12-0-S04-udp_nonce",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "note": "Fixture mapping qualifies transport, not actual NAT64 translation.",
+          "ok": false,
+          "error": "timeout: timed out",
+          "elapsed_ms": 2003
+        }
+      },
+      {
+        "id": "F12-1-S00-http",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "note": "Fixture mapping qualifies transport, not actual NAT64 translation.",
+          "ok": false,
+          "error": "ConnectionResetError: [Errno 54] Connection reset by peer",
+          "elapsed_ms": 0
+        }
+      },
+      {
+        "id": "F12-1-S00-udp_nonce",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "note": "Fixture mapping qualifies transport, not actual NAT64 translation.",
+          "ok": false,
+          "error": "timeout: timed out",
+          "elapsed_ms": 2003
+        }
+      },
+      {
+        "id": "F12-1-S04-http",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "note": "Fixture mapping qualifies transport, not actual NAT64 translation.",
+          "ok": false,
+          "error": "ConnectionResetError: [Errno 54] Connection reset by peer",
+          "elapsed_ms": 0
+        }
+      },
+      {
+        "id": "F12-1-S04-udp_nonce",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "note": "Fixture mapping qualifies transport, not actual NAT64 translation.",
+          "ok": false,
+          "error": "timeout: timed out",
+          "elapsed_ms": 2007
+        }
+      },
+      {
+        "id": "F14-reload-0",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {}
+      },
+      {
+        "id": "F14-reload-1",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {}
+      },
+      {
+        "id": "F14-reload-2",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {}
+      },
+      {
+        "id": "F14-reload-3",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {}
+      },
+      {
+        "id": "F14-stock-rejected",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {}
+      },
+      {
+        "id": "F14-occupied-port-preflight",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {}
+      }
+    ],
+    "template": {
+      "file": "mimo-v3-ipv4-template.yaml",
+      "sha256": "416256dc9295ad2a286d0dbf7185566e3e7fed8f10fb83b08e98ee964ddf0233",
+      "engine_mode": "rule"
+    },
+    "engine_mode": "rule",
+    "live_rules": [
+      {
+        "index": 0,
+        "type": "IPCIDR",
+        "payload": "::/0",
+        "proxy": "REJECT",
+        "size": -1,
+        "extra": {
+          "disabled": false,
+          "hitCount": 0,
+          "hitAt": "1970-01-01T07:30:00+07:30",
+          "missCount": 0,
+          "missAt": "1970-01-01T07:30:00+07:30"
+        }
+      },
+      {
+        "index": 1,
+        "type": "Match",
+        "payload": "",
+        "proxy": "Proxy",
+        "size": -1,
+        "extra": {
+          "disabled": false,
+          "hitCount": 0,
+          "hitAt": "1970-01-01T07:30:00+07:30",
+          "missCount": 0,
+          "missAt": "1970-01-01T07:30:00+07:30"
+        }
+      },
+      {
+        "index": 2,
+        "type": "Match",
+        "payload": "",
+        "proxy": "REJECT",
+        "size": -1,
+        "extra": {
+          "disabled": false,
+          "hitCount": 0,
+          "hitAt": "1970-01-01T07:30:00+07:30",
+          "missCount": 0,
+          "missAt": "1970-01-01T07:30:00+07:30"
+        }
+      }
+    ],
+    "blocked_ping_targets": [
+      "198.51.100.37",
+      "198.18.55.10",
+      "2001:db8::37",
+      "fdfe:dcba:9876::2",
+      "fdfe:dcba:9876:1::55",
+      "64:ff9b::c000:225",
+      "64:ff9b:1::c000:225"
+    ],
+    "native_ping_targets": [
+      "<BRIDGE4>",
+      "<DATA6>"
+    ],
+    "focused_limits": [
+      "Host packet capture unavailable: /dev/bpf is root-only; VM captures and real host socket/service records used.",
+      "No crafted ICMPv6 Packet Too Big injection; control preservation has existing packet-handler unit tests.",
+      "Wrong-hash rejection is enforced in preflight; no replacement binary executed."
+    ],
+    "packets": {
+      "en0_all_data4": 0,
+      "en0_data4": 0,
+      "en0_all_data6": 0,
+      "en0_data6": 0,
+      "en0_all_fake": 2,
+      "en0_fake": 0,
+      "en0_bootstrap": 0,
+      "en0_nat64": 0,
+      "en0_blocked_0_request": 0,
+      "en0_blocked_0_reply": 0,
+      "en0_blocked_1_request": 0,
+      "en0_blocked_1_reply": 0,
+      "en0_blocked_2_request": 0,
+      "en0_blocked_2_reply": 0,
+      "en0_blocked_3_request": 0,
+      "en0_blocked_3_reply": 0,
+      "en0_blocked_4_request": 0,
+      "en0_blocked_4_reply": 0,
+      "en0_blocked_5_request": 0,
+      "en0_blocked_5_reply": 0,
+      "en0_blocked_6_request": 0,
+      "en0_blocked_6_reply": 0,
+      "en0_native_0_request": 2,
+      "en0_native_0_reply": 2,
+      "en0_native_1_request": 2,
+      "en0_native_1_reply": 2,
+      "utun238_all_data4": 165,
+      "utun238_data4": 165,
+      "utun238_all_data6": 39,
+      "utun238_data6": 39,
+      "utun238_all_fake": 308,
+      "utun238_fake": 68,
+      "utun238_bootstrap": 0,
+      "utun238_nat64": 17,
+      "utun238_blocked_0_request": 2,
+      "utun238_blocked_0_reply": 0,
+      "utun238_blocked_1_request": 2,
+      "utun238_blocked_1_reply": 0,
+      "utun238_blocked_2_request": 2,
+      "utun238_blocked_2_reply": 0,
+      "utun238_blocked_3_request": 2,
+      "utun238_blocked_3_reply": 0,
+      "utun238_blocked_4_request": 2,
+      "utun238_blocked_4_reply": 0,
+      "utun238_blocked_5_request": 2,
+      "utun238_blocked_5_reply": 0,
+      "utun238_blocked_6_request": 2,
+      "utun238_blocked_6_reply": 0,
+      "utun238_native_0_request": 0,
+      "utun238_native_0_reply": 0,
+      "utun238_native_1_request": 0,
+      "utun238_native_1_reply": 0
+    },
+    "counts": {
+      "PASS_FOCUSED": 77,
+      "FAIL_FUNCTIONAL": 2
+    },
+    "passed": false
+  },
+  {
+    "run": "T4G-S00-matrix-9b2533",
+    "status": "complete",
+    "profile": "T4G",
+    "proxy_mode": "S00",
+    "scope": "matrix",
+    "tested_at_utc": "2026-11-24T17:42:19.874743+00:00",
+    "engine_sha256": "9103954f5cb48c2e93826ba1f61e6c2677d9363680eecdf00b09b94c3a4253d8",
+    "runner_sha256": "4592a1af9a7a9a7df772ebed6a332c60d252778acfa7dff3b31de00379b1f5ab",
+    "profile_sha256": "3fb65f80bd777859824b50db588d20dbedeb80db54e413b620919285ac93b293",
+    "checks": {
+      "native_before_4_http": true,
+      "native_before_4_https_verified": true,
+      "native_before_4_udp_nonce": true,
+      "fixture_4_https_verified": true,
+      "fixture_4_udp_nonce": true,
+      "native_before_6_http": true,
+      "native_before_6_https_verified": true,
+      "native_before_6_udp_nonce": true,
+      "fixture_6_https_verified": true,
+      "fixture_6_udp_nonce": true,
+      "data_routes_captured": true,
+      "control_route_native": true,
+      "live_mode_and_rule_count": true,
+      "live_proxy_selection": true,
+      "live_no_ping_stack": true,
+      "dns_unchanged_active": true,
+      "no_native_data_egress": true,
+      "no_native_fake_egress": true,
+      "both_data_families_entered_tun": true,
+      "tailscale_restored": true,
+      "engine_stopped": true,
+      "tun_removed": true,
+      "routes_restored": true,
+      "dns_restored": true,
+      "native_after_4_https_verified": true,
+      "native_after_4_udp_nonce": true,
+      "native_after_6_https_verified": true,
+      "native_after_6_udp_nonce": true
+    },
+    "cases": [
+      {
+        "id": "T4G-S00-a0-http-cold",
+        "kind": "application",
+        "target": "literal4",
+        "protocol": "http",
+        "cache": "cold",
+        "name": null,
+        "client_family": 4,
+        "expected_upstream_family": 4,
+        "expected_success": true,
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 619,
+          "body_sha256": "3697ab0e3ca46d94604081376ed5d6ca069efc34ce6275ab5d40f614050fef3e",
+          "elapsed_ms": 13
+        },
+        "result": "PASS_SERVICE",
+        "elapsed_ms": 13
+      },
+      {
+        "id": "T4G-S00-a0-http-warm",
+        "kind": "application",
+        "target": "literal4",
+        "protocol": "http",
+        "cache": "warm",
+        "name": null,
+        "client_family": 4,
+        "expected_upstream_family": 4,
+        "expected_success": true,
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 619,
+          "body_sha256": "98db432caad897616ac0acd042aef1805b7c4535d96c51eea3994faf98141f20",
+          "elapsed_ms": 6
+        },
+        "result": "PASS_SERVICE",
+        "elapsed_ms": 6
+      },
+      {
+        "id": "T4G-S00-a0-https_verified-cold",
+        "kind": "application",
+        "target": "literal4",
+        "protocol": "https_verified",
+        "cache": "cold",
+        "name": null,
+        "client_family": 4,
+        "expected_upstream_family": 4,
+        "expected_success": true,
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 629,
+          "body_sha256": "4f05537112b3ec221247570165ebf8ec4574dc10bca25427148a357e76df3347",
+          "elapsed_ms": 20
+        },
+        "result": "PASS_SERVICE",
+        "elapsed_ms": 20
+      },
+      {
+        "id": "T4G-S00-a0-https_verified-warm",
+        "kind": "application",
+        "target": "literal4",
+        "protocol": "https_verified",
+        "cache": "warm",
+        "name": null,
+        "client_family": 4,
+        "expected_upstream_family": 4,
+        "expected_success": true,
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 629,
+          "body_sha256": "ff63761109f6b3c8400fe9d832f09bda1306effad4e29ebec4149f62834529e0",
+          "elapsed_ms": 33
+        },
+        "result": "PASS_SERVICE",
+        "elapsed_ms": 33
+      },
+      {
+        "id": "T4G-S00-a0-udp_nonce-cold",
+        "kind": "application",
+        "target": "literal4",
+        "protocol": "udp_nonce",
+        "cache": "cold",
+        "name": null,
+        "client_family": 4,
+        "expected_upstream_family": 4,
+        "expected_success": true,
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 165,
+          "body_sha256": "c349eedfe5961ee9411dc42a778ca47b7f866f142cc2f7ebf2ccae24a59564cf",
+          "elapsed_ms": 13
+        },
+        "result": "PASS_SERVICE",
+        "elapsed_ms": 13
+      },
+      {
+        "id": "T4G-S00-a0-udp_nonce-warm",
+        "kind": "application",
+        "target": "literal4",
+        "protocol": "udp_nonce",
+        "cache": "warm",
+        "name": null,
+        "client_family": 4,
+        "expected_upstream_family": 4,
+        "expected_success": true,
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 165,
+          "body_sha256": "c700505d5d0f162f096f2a5a6ff027a51f6a427f6985c3999edebc75bd9f357a",
+          "elapsed_ms": 5
+        },
+        "result": "PASS_SERVICE",
+        "elapsed_ms": 5
+      },
+      {
+        "id": "T4G-S00-a1-http-cold",
+        "kind": "application",
+        "target": "literal6",
+        "protocol": "http",
+        "cache": "cold",
+        "name": null,
+        "client_family": 6,
+        "expected_upstream_family": 6,
+        "expected_success": false,
+        "observation": {
+          "ok": false,
+          "error": "ConnectionResetError: [Errno 54] Connection reset by peer",
+          "elapsed_ms": 3
+        },
+        "result": "PASS_EXPECTED_DENIAL_NO_EGRESS",
+        "elapsed_ms": 3
+      },
+      {
+        "id": "T4G-S00-a1-http-warm",
+        "kind": "application",
+        "target": "literal6",
+        "protocol": "http",
+        "cache": "warm",
+        "name": null,
+        "client_family": 6,
+        "expected_upstream_family": 6,
+        "expected_success": false,
+        "observation": {
+          "ok": false,
+          "error": "ConnectionResetError: [Errno 54] Connection reset by peer",
+          "elapsed_ms": 2
+        },
+        "result": "PASS_EXPECTED_DENIAL_NO_EGRESS",
+        "elapsed_ms": 2
+      },
+      {
+        "id": "T4G-S00-a1-https_verified-cold",
+        "kind": "application",
+        "target": "literal6",
+        "protocol": "https_verified",
+        "cache": "cold",
+        "name": null,
+        "client_family": 6,
+        "expected_upstream_family": 6,
+        "expected_success": false,
+        "observation": {
+          "ok": false,
+          "error": "SSLEOFError: EOF occurred in violation of protocol (_ssl.c:1129)",
+          "elapsed_ms": 1
+        },
+        "result": "PASS_EXPECTED_DENIAL_NO_EGRESS",
+        "elapsed_ms": 2
+      },
+      {
+        "id": "T4G-S00-a1-https_verified-warm",
+        "kind": "application",
+        "target": "literal6",
+        "protocol": "https_verified",
+        "cache": "warm",
+        "name": null,
+        "client_family": 6,
+        "expected_upstream_family": 6,
+        "expected_success": false,
+        "observation": {
+          "ok": false,
+          "error": "SSLEOFError: EOF occurred in violation of protocol (_ssl.c:1129)",
+          "elapsed_ms": 2
+        },
+        "result": "PASS_EXPECTED_DENIAL_NO_EGRESS",
+        "elapsed_ms": 2
+      },
+      {
+        "id": "T4G-S00-a1-udp_nonce-cold",
+        "kind": "application",
+        "target": "literal6",
+        "protocol": "udp_nonce",
+        "cache": "cold",
+        "name": null,
+        "client_family": 6,
+        "expected_upstream_family": 6,
+        "expected_success": false,
+        "observation": {
+          "ok": false,
+          "error": "timeout: timed out",
+          "elapsed_ms": 2003
+        },
+        "result": "PASS_EXPECTED_DENIAL_NO_EGRESS",
+        "elapsed_ms": 2003
+      },
+      {
+        "id": "T4G-S00-a1-udp_nonce-warm",
+        "kind": "application",
+        "target": "literal6",
+        "protocol": "udp_nonce",
+        "cache": "warm",
+        "name": null,
+        "client_family": 6,
+        "expected_upstream_family": 6,
+        "expected_success": false,
+        "observation": {
+          "ok": false,
+          "error": "timeout: timed out",
+          "elapsed_ms": 2004
+        },
+        "result": "PASS_EXPECTED_DENIAL_NO_EGRESS",
+        "elapsed_ms": 2004
+      },
+      {
+        "id": "T4G-S00-a2-http-cold",
+        "kind": "application",
+        "target": "a_only_via_a",
+        "protocol": "http",
+        "cache": "cold",
+        "name": "aonly-74e658-t4g-s00-a2-http.mimo-lab.test",
+        "client_family": 4,
+        "expected_upstream_family": 4,
+        "expected_success": true,
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 619,
+          "body_sha256": "6dfadded7765623a4de5e92af1e5e8f620f3edb42f2008c59c282062815c0ea9",
+          "elapsed_ms": 31
+        },
+        "result": "PASS_SERVICE",
+        "elapsed_ms": 33
+      },
+      {
+        "id": "T4G-S00-a2-http-warm",
+        "kind": "application",
+        "target": "a_only_via_a",
+        "protocol": "http",
+        "cache": "warm",
+        "name": "aonly-74e658-t4g-s00-a2-http.mimo-lab.test",
+        "client_family": 4,
+        "expected_upstream_family": 4,
+        "expected_success": true,
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 619,
+          "body_sha256": "0ce950641635760e11b9cfcfadb4a7d735f0bcb3c7a3b84dd153d5ad28119322",
+          "elapsed_ms": 2
+        },
+        "result": "PASS_SERVICE",
+        "elapsed_ms": 3
+      },
+      {
+        "id": "T4G-S00-a2-https_verified-cold",
+        "kind": "application",
+        "target": "a_only_via_a",
+        "protocol": "https_verified",
+        "cache": "cold",
+        "name": "aonly-74e658-t4g-s00-a2-https-verified.mimo-lab.test",
+        "client_family": 4,
+        "expected_upstream_family": 4,
+        "expected_success": true,
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 629,
+          "body_sha256": "f897d457c122de0bcd53d6799845130f1bee2694d7b0dee9f0cab8b866d9fef6",
+          "elapsed_ms": 37
+        },
+        "result": "PASS_SERVICE",
+        "elapsed_ms": 38
+      },
+      {
+        "id": "T4G-S00-a2-https_verified-warm",
+        "kind": "application",
+        "target": "a_only_via_a",
+        "protocol": "https_verified",
+        "cache": "warm",
+        "name": "aonly-74e658-t4g-s00-a2-https-verified.mimo-lab.test",
+        "client_family": 4,
+        "expected_upstream_family": 4,
+        "expected_success": true,
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 629,
+          "body_sha256": "8fc3591009a0ef30f01cb21dbd8d5cbc542c79265157440f6f5f1d1a4a0a212b",
+          "elapsed_ms": 5
+        },
+        "result": "PASS_SERVICE",
+        "elapsed_ms": 5
+      },
+      {
+        "id": "T4G-S00-a2-udp_nonce-cold",
+        "kind": "application",
+        "target": "a_only_via_a",
+        "protocol": "udp_nonce",
+        "cache": "cold",
+        "name": "aonly-74e658-t4g-s00-a2-udp-nonce.mimo-lab.test",
+        "client_family": 4,
+        "expected_upstream_family": 4,
+        "expected_success": true,
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 165,
+          "body_sha256": "909b154213db1494759e44bcbea1c64f565c9e95fc6767aba21ee47cc7131542",
+          "elapsed_ms": 3
+        },
+        "result": "PASS_SERVICE",
+        "elapsed_ms": 3
+      },
+      {
+        "id": "T4G-S00-a2-udp_nonce-warm",
+        "kind": "application",
+        "target": "a_only_via_a",
+        "protocol": "udp_nonce",
+        "cache": "warm",
+        "name": "aonly-74e658-t4g-s00-a2-udp-nonce.mimo-lab.test",
+        "client_family": 4,
+        "expected_upstream_family": 4,
+        "expected_success": true,
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 165,
+          "body_sha256": "4eecff6c3a737bf7cdd339fa7eef0d0b7248738d562e364657a93663a418a9de",
+          "elapsed_ms": 2
+        },
+        "result": "PASS_SERVICE",
+        "elapsed_ms": 2
+      },
+      {
+        "id": "T4G-S00-a3-http-cold",
+        "kind": "application",
+        "target": "a_only_via_aaaa",
+        "protocol": "http",
+        "cache": "cold",
+        "name": "aonly-74e658-t4g-s00-a3-http.mimo-lab.test",
+        "result": "EXPECTED_DNS_SUPPRESSION",
+        "dns": {
+          "id": 17373,
+          "rcode": 0,
+          "answers": []
+        }
+      },
+      {
+        "id": "T4G-S00-a3-http-warm",
+        "kind": "application",
+        "target": "a_only_via_aaaa",
+        "protocol": "http",
+        "cache": "warm",
+        "name": "aonly-74e658-t4g-s00-a3-http.mimo-lab.test",
+        "result": "EXPECTED_DNS_SUPPRESSION",
+        "dns": {
+          "id": 8034,
+          "rcode": 0,
+          "answers": []
+        }
+      },
+      {
+        "id": "T4G-S00-a3-https_verified-cold",
+        "kind": "application",
+        "target": "a_only_via_aaaa",
+        "protocol": "https_verified",
+        "cache": "cold",
+        "name": "aonly-74e658-t4g-s00-a3-https-verified.mimo-lab.test",
+        "result": "EXPECTED_DNS_SUPPRESSION",
+        "dns": {
+          "id": 1410,
+          "rcode": 0,
+          "answers": []
+        }
+      },
+      {
+        "id": "T4G-S00-a3-https_verified-warm",
+        "kind": "application",
+        "target": "a_only_via_aaaa",
+        "protocol": "https_verified",
+        "cache": "warm",
+        "name": "aonly-74e658-t4g-s00-a3-https-verified.mimo-lab.test",
+        "result": "EXPECTED_DNS_SUPPRESSION",
+        "dns": {
+          "id": 29266,
+          "rcode": 0,
+          "answers": []
+        }
+      },
+      {
+        "id": "T4G-S00-a3-udp_nonce-cold",
+        "kind": "application",
+        "target": "a_only_via_aaaa",
+        "protocol": "udp_nonce",
+        "cache": "cold",
+        "name": "aonly-74e658-t4g-s00-a3-udp-nonce.mimo-lab.test",
+        "result": "EXPECTED_DNS_SUPPRESSION",
+        "dns": {
+          "id": 10541,
+          "rcode": 0,
+          "answers": []
+        }
+      },
+      {
+        "id": "T4G-S00-a3-udp_nonce-warm",
+        "kind": "application",
+        "target": "a_only_via_aaaa",
+        "protocol": "udp_nonce",
+        "cache": "warm",
+        "name": "aonly-74e658-t4g-s00-a3-udp-nonce.mimo-lab.test",
+        "result": "EXPECTED_DNS_SUPPRESSION",
+        "dns": {
+          "id": 28603,
+          "rcode": 0,
+          "answers": []
+        }
+      },
+      {
+        "id": "T4G-S00-a4-http-cold",
+        "kind": "application",
+        "target": "aaaa_only_via_a",
+        "protocol": "http",
+        "cache": "cold",
+        "name": "aaaaonly-74e658-t4g-s00-a4-http.mimo-lab.test",
+        "client_family": 4,
+        "expected_upstream_family": null,
+        "expected_success": false,
+        "observation": {
+          "ok": false,
+          "error": "RemoteDisconnected: Remote end closed connection without response",
+          "elapsed_ms": 1
+        },
+        "result": "PASS_EXPECTED_DENIAL_NO_EGRESS",
+        "elapsed_ms": 1
+      },
+      {
+        "id": "T4G-S00-a4-http-warm",
+        "kind": "application",
+        "target": "aaaa_only_via_a",
+        "protocol": "http",
+        "cache": "warm",
+        "name": "aaaaonly-74e658-t4g-s00-a4-http.mimo-lab.test",
+        "client_family": 4,
+        "expected_upstream_family": null,
+        "expected_success": false,
+        "observation": {
+          "ok": false,
+          "error": "RemoteDisconnected: Remote end closed connection without response",
+          "elapsed_ms": 1
+        },
+        "result": "PASS_EXPECTED_DENIAL_NO_EGRESS",
+        "elapsed_ms": 1
+      },
+      {
+        "id": "T4G-S00-a4-https_verified-cold",
+        "kind": "application",
+        "target": "aaaa_only_via_a",
+        "protocol": "https_verified",
+        "cache": "cold",
+        "name": "aaaaonly-74e658-t4g-s00-a4-https-verified.mimo-lab.test",
+        "client_family": 4,
+        "expected_upstream_family": null,
+        "expected_success": false,
+        "observation": {
+          "ok": false,
+          "error": "SSLEOFError: EOF occurred in violation of protocol (_ssl.c:1129)",
+          "elapsed_ms": 1
+        },
+        "result": "PASS_EXPECTED_DENIAL_NO_EGRESS",
+        "elapsed_ms": 1
+      },
+      {
+        "id": "T4G-S00-a4-https_verified-warm",
+        "kind": "application",
+        "target": "aaaa_only_via_a",
+        "protocol": "https_verified",
+        "cache": "warm",
+        "name": "aaaaonly-74e658-t4g-s00-a4-https-verified.mimo-lab.test",
+        "client_family": 4,
+        "expected_upstream_family": null,
+        "expected_success": false,
+        "observation": {
+          "ok": false,
+          "error": "SSLEOFError: EOF occurred in violation of protocol (_ssl.c:1129)",
+          "elapsed_ms": 1
+        },
+        "result": "PASS_EXPECTED_DENIAL_NO_EGRESS",
+        "elapsed_ms": 1
+      },
+      {
+        "id": "T4G-S00-a4-udp_nonce-cold",
+        "kind": "application",
+        "target": "aaaa_only_via_a",
+        "protocol": "udp_nonce",
+        "cache": "cold",
+        "name": "aaaaonly-74e658-t4g-s00-a4-udp-nonce.mimo-lab.test",
+        "client_family": 4,
+        "expected_upstream_family": null,
+        "expected_success": false,
+        "observation": {
+          "ok": false,
+          "error": "timeout: timed out",
+          "elapsed_ms": 2004
+        },
+        "result": "PASS_EXPECTED_DENIAL_NO_EGRESS",
+        "elapsed_ms": 2004
+      },
+      {
+        "id": "T4G-S00-a4-udp_nonce-warm",
+        "kind": "application",
+        "target": "aaaa_only_via_a",
+        "protocol": "udp_nonce",
+        "cache": "warm",
+        "name": "aaaaonly-74e658-t4g-s00-a4-udp-nonce.mimo-lab.test",
+        "client_family": 4,
+        "expected_upstream_family": null,
+        "expected_success": false,
+        "observation": {
+          "ok": false,
+          "error": "timeout: timed out",
+          "elapsed_ms": 2003
+        },
+        "result": "PASS_EXPECTED_DENIAL_NO_EGRESS",
+        "elapsed_ms": 2003
+      },
+      {
+        "id": "T4G-S00-a5-http-cold",
+        "kind": "application",
+        "target": "aaaa_only_via_aaaa",
+        "protocol": "http",
+        "cache": "cold",
+        "name": "aaaaonly-74e658-t4g-s00-a5-http.mimo-lab.test",
+        "result": "EXPECTED_DNS_SUPPRESSION",
+        "dns": {
+          "id": 48528,
+          "rcode": 0,
+          "answers": []
+        }
+      },
+      {
+        "id": "T4G-S00-a5-http-warm",
+        "kind": "application",
+        "target": "aaaa_only_via_aaaa",
+        "protocol": "http",
+        "cache": "warm",
+        "name": "aaaaonly-74e658-t4g-s00-a5-http.mimo-lab.test",
+        "result": "EXPECTED_DNS_SUPPRESSION",
+        "dns": {
+          "id": 36363,
+          "rcode": 0,
+          "answers": []
+        }
+      },
+      {
+        "id": "T4G-S00-a5-https_verified-cold",
+        "kind": "application",
+        "target": "aaaa_only_via_aaaa",
+        "protocol": "https_verified",
+        "cache": "cold",
+        "name": "aaaaonly-74e658-t4g-s00-a5-https-verified.mimo-lab.test",
+        "result": "EXPECTED_DNS_SUPPRESSION",
+        "dns": {
+          "id": 49249,
+          "rcode": 0,
+          "answers": []
+        }
+      },
+      {
+        "id": "T4G-S00-a5-https_verified-warm",
+        "kind": "application",
+        "target": "aaaa_only_via_aaaa",
+        "protocol": "https_verified",
+        "cache": "warm",
+        "name": "aaaaonly-74e658-t4g-s00-a5-https-verified.mimo-lab.test",
+        "result": "EXPECTED_DNS_SUPPRESSION",
+        "dns": {
+          "id": 46367,
+          "rcode": 0,
+          "answers": []
+        }
+      },
+      {
+        "id": "T4G-S00-a5-udp_nonce-cold",
+        "kind": "application",
+        "target": "aaaa_only_via_aaaa",
+        "protocol": "udp_nonce",
+        "cache": "cold",
+        "name": "aaaaonly-74e658-t4g-s00-a5-udp-nonce.mimo-lab.test",
+        "result": "EXPECTED_DNS_SUPPRESSION",
+        "dns": {
+          "id": 2453,
+          "rcode": 0,
+          "answers": []
+        }
+      },
+      {
+        "id": "T4G-S00-a5-udp_nonce-warm",
+        "kind": "application",
+        "target": "aaaa_only_via_aaaa",
+        "protocol": "udp_nonce",
+        "cache": "warm",
+        "name": "aaaaonly-74e658-t4g-s00-a5-udp-nonce.mimo-lab.test",
+        "result": "EXPECTED_DNS_SUPPRESSION",
+        "dns": {
+          "id": 1315,
+          "rcode": 0,
+          "answers": []
+        }
+      },
+      {
+        "id": "T4G-S00-a6-http-cold",
+        "kind": "application",
+        "target": "dual4_via_a",
+        "protocol": "http",
+        "cache": "cold",
+        "name": "dual4-74e658-t4g-s00-a6-http.mimo-lab.test",
+        "client_family": 4,
+        "expected_upstream_family": 4,
+        "expected_success": true,
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 619,
+          "body_sha256": "ac655fd75538e59e44ca18cfa9a03a8bace8ab5cd7c6848b6834836c13a4ce4c",
+          "elapsed_ms": 3
+        },
+        "result": "PASS_SERVICE",
+        "elapsed_ms": 3
+      },
+      {
+        "id": "T4G-S00-a6-http-warm",
+        "kind": "application",
+        "target": "dual4_via_a",
+        "protocol": "http",
+        "cache": "warm",
+        "name": "dual4-74e658-t4g-s00-a6-http.mimo-lab.test",
+        "client_family": 4,
+        "expected_upstream_family": 4,
+        "expected_success": true,
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 619,
+          "body_sha256": "3d00543dd19a52999330113138b3b3297da3d158ef427592be838fc51c76404c",
+          "elapsed_ms": 2
+        },
+        "result": "PASS_SERVICE",
+        "elapsed_ms": 2
+      },
+      {
+        "id": "T4G-S00-a6-https_verified-cold",
+        "kind": "application",
+        "target": "dual4_via_a",
+        "protocol": "https_verified",
+        "cache": "cold",
+        "name": "dual4-74e658-t4g-s00-a6-https-verified.mimo-lab.test",
+        "client_family": 4,
+        "expected_upstream_family": 4,
+        "expected_success": true,
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 629,
+          "body_sha256": "e6c2d87947b066755b7766c365bc28460e11f595363587d39dd0cae2b2f50767",
+          "elapsed_ms": 5
+        },
+        "result": "PASS_SERVICE",
+        "elapsed_ms": 5
+      },
+      {
+        "id": "T4G-S00-a6-https_verified-warm",
+        "kind": "application",
+        "target": "dual4_via_a",
+        "protocol": "https_verified",
+        "cache": "warm",
+        "name": "dual4-74e658-t4g-s00-a6-https-verified.mimo-lab.test",
+        "client_family": 4,
+        "expected_upstream_family": 4,
+        "expected_success": true,
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 629,
+          "body_sha256": "b95cce329e366a77f1a9a78b44adf66aa978e00d153eba5a18b47936cf603b73",
+          "elapsed_ms": 4
+        },
+        "result": "PASS_SERVICE",
+        "elapsed_ms": 4
+      },
+      {
+        "id": "T4G-S00-a6-udp_nonce-cold",
+        "kind": "application",
+        "target": "dual4_via_a",
+        "protocol": "udp_nonce",
+        "cache": "cold",
+        "name": "dual4-74e658-t4g-s00-a6-udp-nonce.mimo-lab.test",
+        "client_family": 4,
+        "expected_upstream_family": 4,
+        "expected_success": true,
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 165,
+          "body_sha256": "7fbd5837b053245d0b6f466d010370cc1083d777346ebe83f545bde5c7cb3a46",
+          "elapsed_ms": 2
+        },
+        "result": "PASS_SERVICE",
+        "elapsed_ms": 2
+      },
+      {
+        "id": "T4G-S00-a6-udp_nonce-warm",
+        "kind": "application",
+        "target": "dual4_via_a",
+        "protocol": "udp_nonce",
+        "cache": "warm",
+        "name": "dual4-74e658-t4g-s00-a6-udp-nonce.mimo-lab.test",
+        "client_family": 4,
+        "expected_upstream_family": 4,
+        "expected_success": true,
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 165,
+          "body_sha256": "1aef569bac0cb1f2c9cfeb90ec12d0c4c4ab9838f5519ffd404a20b5b6b4a685",
+          "elapsed_ms": 1
+        },
+        "result": "PASS_SERVICE",
+        "elapsed_ms": 1
+      },
+      {
+        "id": "T4G-S00-a7-http-cold",
+        "kind": "application",
+        "target": "dual4_via_aaaa",
+        "protocol": "http",
+        "cache": "cold",
+        "name": "dual4-74e658-t4g-s00-a7-http.mimo-lab.test",
+        "result": "EXPECTED_DNS_SUPPRESSION",
+        "dns": {
+          "id": 43803,
+          "rcode": 0,
+          "answers": []
+        }
+      },
+      {
+        "id": "T4G-S00-a7-http-warm",
+        "kind": "application",
+        "target": "dual4_via_aaaa",
+        "protocol": "http",
+        "cache": "warm",
+        "name": "dual4-74e658-t4g-s00-a7-http.mimo-lab.test",
+        "result": "EXPECTED_DNS_SUPPRESSION",
+        "dns": {
+          "id": 32837,
+          "rcode": 0,
+          "answers": []
+        }
+      },
+      {
+        "id": "T4G-S00-a7-https_verified-cold",
+        "kind": "application",
+        "target": "dual4_via_aaaa",
+        "protocol": "https_verified",
+        "cache": "cold",
+        "name": "dual4-74e658-t4g-s00-a7-https-verified.mimo-lab.test",
+        "result": "EXPECTED_DNS_SUPPRESSION",
+        "dns": {
+          "id": 25731,
+          "rcode": 0,
+          "answers": []
+        }
+      },
+      {
+        "id": "T4G-S00-a7-https_verified-warm",
+        "kind": "application",
+        "target": "dual4_via_aaaa",
+        "protocol": "https_verified",
+        "cache": "warm",
+        "name": "dual4-74e658-t4g-s00-a7-https-verified.mimo-lab.test",
+        "result": "EXPECTED_DNS_SUPPRESSION",
+        "dns": {
+          "id": 56901,
+          "rcode": 0,
+          "answers": []
+        }
+      },
+      {
+        "id": "T4G-S00-a7-udp_nonce-cold",
+        "kind": "application",
+        "target": "dual4_via_aaaa",
+        "protocol": "udp_nonce",
+        "cache": "cold",
+        "name": "dual4-74e658-t4g-s00-a7-udp-nonce.mimo-lab.test",
+        "result": "EXPECTED_DNS_SUPPRESSION",
+        "dns": {
+          "id": 18182,
+          "rcode": 0,
+          "answers": []
+        }
+      },
+      {
+        "id": "T4G-S00-a7-udp_nonce-warm",
+        "kind": "application",
+        "target": "dual4_via_aaaa",
+        "protocol": "udp_nonce",
+        "cache": "warm",
+        "name": "dual4-74e658-t4g-s00-a7-udp-nonce.mimo-lab.test",
+        "result": "EXPECTED_DNS_SUPPRESSION",
+        "dns": {
+          "id": 9049,
+          "rcode": 0,
+          "answers": []
+        }
+      },
+      {
+        "id": "T4G-S00-a8-http-cold",
+        "kind": "application",
+        "target": "dual6_via_a",
+        "protocol": "http",
+        "cache": "cold",
+        "name": "dual6-74e658-t4g-s00-a8-http.mimo-lab.test",
+        "client_family": 4,
+        "expected_upstream_family": 4,
+        "expected_success": true,
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 619,
+          "body_sha256": "61c37d58b2b686b615da85791f0e00bcc8d4ff32c83a7495c961a9390c84ce11",
+          "elapsed_ms": 2
+        },
+        "result": "PASS_SERVICE",
+        "elapsed_ms": 2
+      },
+      {
+        "id": "T4G-S00-a8-http-warm",
+        "kind": "application",
+        "target": "dual6_via_a",
+        "protocol": "http",
+        "cache": "warm",
+        "name": "dual6-74e658-t4g-s00-a8-http.mimo-lab.test",
+        "client_family": 4,
+        "expected_upstream_family": 4,
+        "expected_success": true,
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 619,
+          "body_sha256": "d1f0fba2bf0e0d02335f71295555032f588be0779d4bc80514f17954c53f41cd",
+          "elapsed_ms": 2
+        },
+        "result": "PASS_SERVICE",
+        "elapsed_ms": 2
+      },
+      {
+        "id": "T4G-S00-a8-https_verified-cold",
+        "kind": "application",
+        "target": "dual6_via_a",
+        "protocol": "https_verified",
+        "cache": "cold",
+        "name": "dual6-74e658-t4g-s00-a8-https-verified.mimo-lab.test",
+        "client_family": 4,
+        "expected_upstream_family": 4,
+        "expected_success": true,
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 629,
+          "body_sha256": "f3241994738c6aa8fe928096649304df80a950c381f6061a3111b0852d075926",
+          "elapsed_ms": 4
+        },
+        "result": "PASS_SERVICE",
+        "elapsed_ms": 5
+      },
+      {
+        "id": "T4G-S00-a8-https_verified-warm",
+        "kind": "application",
+        "target": "dual6_via_a",
+        "protocol": "https_verified",
+        "cache": "warm",
+        "name": "dual6-74e658-t4g-s00-a8-https-verified.mimo-lab.test",
+        "client_family": 4,
+        "expected_upstream_family": 4,
+        "expected_success": true,
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 629,
+          "body_sha256": "d64f80d550756ae8d5e8b9fa9cdf4139f9add7e5913a3c2570387efee7893fd7",
+          "elapsed_ms": 3
+        },
+        "result": "PASS_SERVICE",
+        "elapsed_ms": 4
+      },
+      {
+        "id": "T4G-S00-a8-udp_nonce-cold",
+        "kind": "application",
+        "target": "dual6_via_a",
+        "protocol": "udp_nonce",
+        "cache": "cold",
+        "name": "dual6-74e658-t4g-s00-a8-udp-nonce.mimo-lab.test",
+        "client_family": 4,
+        "expected_upstream_family": 4,
+        "expected_success": true,
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 165,
+          "body_sha256": "77fa6dc6f6ca1c589637e39e2482664daa13e323b7a178a82ef6c3adea458876",
+          "elapsed_ms": 2
+        },
+        "result": "PASS_SERVICE",
+        "elapsed_ms": 2
+      },
+      {
+        "id": "T4G-S00-a8-udp_nonce-warm",
+        "kind": "application",
+        "target": "dual6_via_a",
+        "protocol": "udp_nonce",
+        "cache": "warm",
+        "name": "dual6-74e658-t4g-s00-a8-udp-nonce.mimo-lab.test",
+        "client_family": 4,
+        "expected_upstream_family": 4,
+        "expected_success": true,
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 165,
+          "body_sha256": "e555e45e7a91b6e9954137db2c2570fc32f7f6951de62982fb67ce91f3882bb5",
+          "elapsed_ms": 1
+        },
+        "result": "PASS_SERVICE",
+        "elapsed_ms": 1
+      },
+      {
+        "id": "T4G-S00-a9-http-cold",
+        "kind": "application",
+        "target": "dual6_via_aaaa",
+        "protocol": "http",
+        "cache": "cold",
+        "name": "dual6-74e658-t4g-s00-a9-http.mimo-lab.test",
+        "result": "EXPECTED_DNS_SUPPRESSION",
+        "dns": {
+          "id": 19993,
+          "rcode": 0,
+          "answers": []
+        }
+      },
+      {
+        "id": "T4G-S00-a9-http-warm",
+        "kind": "application",
+        "target": "dual6_via_aaaa",
+        "protocol": "http",
+        "cache": "warm",
+        "name": "dual6-74e658-t4g-s00-a9-http.mimo-lab.test",
+        "result": "EXPECTED_DNS_SUPPRESSION",
+        "dns": {
+          "id": 33109,
+          "rcode": 0,
+          "answers": []
+        }
+      },
+      {
+        "id": "T4G-S00-a9-https_verified-cold",
+        "kind": "application",
+        "target": "dual6_via_aaaa",
+        "protocol": "https_verified",
+        "cache": "cold",
+        "name": "dual6-74e658-t4g-s00-a9-https-verified.mimo-lab.test",
+        "result": "EXPECTED_DNS_SUPPRESSION",
+        "dns": {
+          "id": 38394,
+          "rcode": 0,
+          "answers": []
+        }
+      },
+      {
+        "id": "T4G-S00-a9-https_verified-warm",
+        "kind": "application",
+        "target": "dual6_via_aaaa",
+        "protocol": "https_verified",
+        "cache": "warm",
+        "name": "dual6-74e658-t4g-s00-a9-https-verified.mimo-lab.test",
+        "result": "EXPECTED_DNS_SUPPRESSION",
+        "dns": {
+          "id": 3685,
+          "rcode": 0,
+          "answers": []
+        }
+      },
+      {
+        "id": "T4G-S00-a9-udp_nonce-cold",
+        "kind": "application",
+        "target": "dual6_via_aaaa",
+        "protocol": "udp_nonce",
+        "cache": "cold",
+        "name": "dual6-74e658-t4g-s00-a9-udp-nonce.mimo-lab.test",
+        "result": "EXPECTED_DNS_SUPPRESSION",
+        "dns": {
+          "id": 2430,
+          "rcode": 0,
+          "answers": []
+        }
+      },
+      {
+        "id": "T4G-S00-a9-udp_nonce-warm",
+        "kind": "application",
+        "target": "dual6_via_aaaa",
+        "protocol": "udp_nonce",
+        "cache": "warm",
+        "name": "dual6-74e658-t4g-s00-a9-udp-nonce.mimo-lab.test",
+        "result": "EXPECTED_DNS_SUPPRESSION",
+        "dns": {
+          "id": 9744,
+          "rcode": 0,
+          "answers": []
+        }
+      },
+      {
+        "id": "T4G-S00-dns-aonly-1-udp-local",
+        "kind": "dns_delivery",
+        "name": "aonly-74e658-aonly-1-udp-local.mimo-lab.test",
+        "observation": {
+          "id": 20676,
+          "rcode": 0,
+          "answers": [
+            {
+              "name": "aonly-74e658-aonly-1-udp-local.mimo-lab.test",
+              "type": 1,
+              "ttl": 1,
+              "data": "198.18.0.17"
+            }
+          ]
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-aonly-1-udp-capture4",
+        "kind": "dns_delivery",
+        "name": "aonly-74e658-aonly-1-udp-capture4.mimo-lab.test",
+        "observation": {
+          "id": 439,
+          "rcode": 0,
+          "answers": [
+            {
+              "name": "aonly-74e658-aonly-1-udp-capture4.mimo-lab.test",
+              "type": 1,
+              "ttl": 1,
+              "data": "198.18.0.18"
+            }
+          ]
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-aonly-1-udp-capture6",
+        "kind": "dns_delivery",
+        "name": "aonly-74e658-aonly-1-udp-capture6.mimo-lab.test",
+        "observation": {
+          "id": 5371,
+          "rcode": 0,
+          "answers": [
+            {
+              "name": "aonly-74e658-aonly-1-udp-capture6.mimo-lab.test",
+              "type": 1,
+              "ttl": 1,
+              "data": "198.18.0.19"
+            }
+          ]
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-aonly-1-tcp-local",
+        "kind": "dns_delivery",
+        "name": "aonly-74e658-aonly-1-tcp-local.mimo-lab.test",
+        "observation": {
+          "id": 63014,
+          "rcode": 0,
+          "answers": [
+            {
+              "name": "aonly-74e658-aonly-1-tcp-local.mimo-lab.test",
+              "type": 1,
+              "ttl": 1,
+              "data": "198.18.0.16"
+            }
+          ]
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-aonly-1-tcp-capture4",
+        "kind": "dns_delivery",
+        "name": "aonly-74e658-aonly-1-tcp-capture4.mimo-lab.test",
+        "observation": {
+          "id": 3733,
+          "rcode": 0,
+          "answers": [
+            {
+              "name": "aonly-74e658-aonly-1-tcp-capture4.mimo-lab.test",
+              "type": 1,
+              "ttl": 1,
+              "data": "198.18.0.20"
+            }
+          ]
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-aonly-1-tcp-capture6",
+        "kind": "dns_delivery",
+        "name": "aonly-74e658-aonly-1-tcp-capture6.mimo-lab.test",
+        "observation": {
+          "id": 45103,
+          "rcode": 0,
+          "answers": [
+            {
+              "name": "aonly-74e658-aonly-1-tcp-capture6.mimo-lab.test",
+              "type": 1,
+              "ttl": 1,
+              "data": "198.18.0.21"
+            }
+          ]
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-aonly-28-udp-local",
+        "kind": "dns_delivery",
+        "name": "aonly-74e658-aonly-28-udp-local.mimo-lab.test",
+        "observation": {
+          "id": 59144,
+          "rcode": 0,
+          "answers": []
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-aonly-28-udp-capture4",
+        "kind": "dns_delivery",
+        "name": "aonly-74e658-aonly-28-udp-capture4.mimo-lab.test",
+        "observation": {
+          "id": 37438,
+          "rcode": 0,
+          "answers": []
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-aonly-28-udp-capture6",
+        "kind": "dns_delivery",
+        "name": "aonly-74e658-aonly-28-udp-capture6.mimo-lab.test",
+        "observation": {
+          "id": 13924,
+          "rcode": 0,
+          "answers": []
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-aonly-28-tcp-local",
+        "kind": "dns_delivery",
+        "name": "aonly-74e658-aonly-28-tcp-local.mimo-lab.test",
+        "observation": {
+          "id": 64318,
+          "rcode": 0,
+          "answers": []
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-aonly-28-tcp-capture4",
+        "kind": "dns_delivery",
+        "name": "aonly-74e658-aonly-28-tcp-capture4.mimo-lab.test",
+        "observation": {
+          "id": 53694,
+          "rcode": 0,
+          "answers": []
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-aonly-28-tcp-capture6",
+        "kind": "dns_delivery",
+        "name": "aonly-74e658-aonly-28-tcp-capture6.mimo-lab.test",
+        "observation": {
+          "id": 39585,
+          "rcode": 0,
+          "answers": []
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-aaaaonly-1-udp-local",
+        "kind": "dns_delivery",
+        "name": "aaaaonly-74e658-aaaaonly-1-udp-local.mimo-lab.test",
+        "observation": {
+          "id": 37462,
+          "rcode": 0,
+          "answers": [
+            {
+              "name": "aaaaonly-74e658-aaaaonly-1-udp-local.mimo-lab.test",
+              "type": 1,
+              "ttl": 1,
+              "data": "198.18.0.22"
+            }
+          ]
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-aaaaonly-1-udp-capture4",
+        "kind": "dns_delivery",
+        "name": "aaaaonly-74e658-aaaaonly-1-udp-capture4.mimo-lab.test",
+        "observation": {
+          "id": 3468,
+          "rcode": 0,
+          "answers": [
+            {
+              "name": "aaaaonly-74e658-aaaaonly-1-udp-capture4.mimo-lab.test",
+              "type": 1,
+              "ttl": 1,
+              "data": "198.18.0.23"
+            }
+          ]
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-aaaaonly-1-udp-capture6",
+        "kind": "dns_delivery",
+        "name": "aaaaonly-74e658-aaaaonly-1-udp-capture6.mimo-lab.test",
+        "observation": {
+          "id": 52282,
+          "rcode": 0,
+          "answers": [
+            {
+              "name": "aaaaonly-74e658-aaaaonly-1-udp-capture6.mimo-lab.test",
+              "type": 1,
+              "ttl": 1,
+              "data": "198.18.0.24"
+            }
+          ]
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-aaaaonly-1-tcp-local",
+        "kind": "dns_delivery",
+        "name": "aaaaonly-74e658-aaaaonly-1-tcp-local.mimo-lab.test",
+        "observation": {
+          "id": 59959,
+          "rcode": 0,
+          "answers": [
+            {
+              "name": "aaaaonly-74e658-aaaaonly-1-tcp-local.mimo-lab.test",
+              "type": 1,
+              "ttl": 1,
+              "data": "198.18.0.25"
+            }
+          ]
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-aaaaonly-1-tcp-capture4",
+        "kind": "dns_delivery",
+        "name": "aaaaonly-74e658-aaaaonly-1-tcp-capture4.mimo-lab.test",
+        "observation": {
+          "id": 47803,
+          "rcode": 0,
+          "answers": [
+            {
+              "name": "aaaaonly-74e658-aaaaonly-1-tcp-capture4.mimo-lab.test",
+              "type": 1,
+              "ttl": 1,
+              "data": "198.18.0.26"
+            }
+          ]
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-aaaaonly-1-tcp-capture6",
+        "kind": "dns_delivery",
+        "name": "aaaaonly-74e658-aaaaonly-1-tcp-capture6.mimo-lab.test",
+        "observation": {
+          "id": 60856,
+          "rcode": 0,
+          "answers": [
+            {
+              "name": "aaaaonly-74e658-aaaaonly-1-tcp-capture6.mimo-lab.test",
+              "type": 1,
+              "ttl": 1,
+              "data": "198.18.0.27"
+            }
+          ]
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-aaaaonly-28-udp-local",
+        "kind": "dns_delivery",
+        "name": "aaaaonly-74e658-aaaaonly-28-udp-local.mimo-lab.test",
+        "observation": {
+          "id": 49412,
+          "rcode": 0,
+          "answers": []
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-aaaaonly-28-udp-capture4",
+        "kind": "dns_delivery",
+        "name": "aaaaonly-74e658-aaaaonly-28-udp-capture4.mimo-lab.test",
+        "observation": {
+          "id": 42840,
+          "rcode": 0,
+          "answers": []
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-aaaaonly-28-udp-capture6",
+        "kind": "dns_delivery",
+        "name": "aaaaonly-74e658-aaaaonly-28-udp-capture6.mimo-lab.test",
+        "observation": {
+          "id": 64205,
+          "rcode": 0,
+          "answers": []
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-aaaaonly-28-tcp-local",
+        "kind": "dns_delivery",
+        "name": "aaaaonly-74e658-aaaaonly-28-tcp-local.mimo-lab.test",
+        "observation": {
+          "id": 32333,
+          "rcode": 0,
+          "answers": []
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-aaaaonly-28-tcp-capture4",
+        "kind": "dns_delivery",
+        "name": "aaaaonly-74e658-aaaaonly-28-tcp-capture4.mimo-lab.test",
+        "observation": {
+          "id": 60637,
+          "rcode": 0,
+          "answers": []
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-aaaaonly-28-tcp-capture6",
+        "kind": "dns_delivery",
+        "name": "aaaaonly-74e658-aaaaonly-28-tcp-capture6.mimo-lab.test",
+        "observation": {
+          "id": 31182,
+          "rcode": 0,
+          "answers": []
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-dual4-1-udp-local",
+        "kind": "dns_delivery",
+        "name": "dual4-74e658-dual4-1-udp-local.mimo-lab.test",
+        "observation": {
+          "id": 2287,
+          "rcode": 0,
+          "answers": [
+            {
+              "name": "dual4-74e658-dual4-1-udp-local.mimo-lab.test",
+              "type": 1,
+              "ttl": 1,
+              "data": "198.18.0.28"
+            }
+          ]
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-dual4-1-udp-capture4",
+        "kind": "dns_delivery",
+        "name": "dual4-74e658-dual4-1-udp-capture4.mimo-lab.test",
+        "observation": {
+          "id": 14643,
+          "rcode": 0,
+          "answers": [
+            {
+              "name": "dual4-74e658-dual4-1-udp-capture4.mimo-lab.test",
+              "type": 1,
+              "ttl": 1,
+              "data": "198.18.0.29"
+            }
+          ]
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-dual4-1-udp-capture6",
+        "kind": "dns_delivery",
+        "name": "dual4-74e658-dual4-1-udp-capture6.mimo-lab.test",
+        "observation": {
+          "id": 7845,
+          "rcode": 0,
+          "answers": [
+            {
+              "name": "dual4-74e658-dual4-1-udp-capture6.mimo-lab.test",
+              "type": 1,
+              "ttl": 1,
+              "data": "198.18.0.30"
+            }
+          ]
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-dual4-1-tcp-local",
+        "kind": "dns_delivery",
+        "name": "dual4-74e658-dual4-1-tcp-local.mimo-lab.test",
+        "observation": {
+          "id": 40518,
+          "rcode": 0,
+          "answers": [
+            {
+              "name": "dual4-74e658-dual4-1-tcp-local.mimo-lab.test",
+              "type": 1,
+              "ttl": 1,
+              "data": "198.18.0.31"
+            }
+          ]
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-dual4-1-tcp-capture4",
+        "kind": "dns_delivery",
+        "name": "dual4-74e658-dual4-1-tcp-capture4.mimo-lab.test",
+        "observation": {
+          "id": 33358,
+          "rcode": 0,
+          "answers": [
+            {
+              "name": "dual4-74e658-dual4-1-tcp-capture4.mimo-lab.test",
+              "type": 1,
+              "ttl": 1,
+              "data": "198.18.0.33"
+            }
+          ]
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-dual4-1-tcp-capture6",
+        "kind": "dns_delivery",
+        "name": "dual4-74e658-dual4-1-tcp-capture6.mimo-lab.test",
+        "observation": {
+          "id": 59375,
+          "rcode": 0,
+          "answers": [
+            {
+              "name": "dual4-74e658-dual4-1-tcp-capture6.mimo-lab.test",
+              "type": 1,
+              "ttl": 1,
+              "data": "198.18.0.32"
+            }
+          ]
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-dual4-28-udp-local",
+        "kind": "dns_delivery",
+        "name": "dual4-74e658-dual4-28-udp-local.mimo-lab.test",
+        "observation": {
+          "id": 59284,
+          "rcode": 0,
+          "answers": []
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-dual4-28-udp-capture4",
+        "kind": "dns_delivery",
+        "name": "dual4-74e658-dual4-28-udp-capture4.mimo-lab.test",
+        "observation": {
+          "id": 28378,
+          "rcode": 0,
+          "answers": []
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-dual4-28-udp-capture6",
+        "kind": "dns_delivery",
+        "name": "dual4-74e658-dual4-28-udp-capture6.mimo-lab.test",
+        "observation": {
+          "id": 28059,
+          "rcode": 0,
+          "answers": []
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-dual4-28-tcp-local",
+        "kind": "dns_delivery",
+        "name": "dual4-74e658-dual4-28-tcp-local.mimo-lab.test",
+        "observation": {
+          "id": 11985,
+          "rcode": 0,
+          "answers": []
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-dual4-28-tcp-capture4",
+        "kind": "dns_delivery",
+        "name": "dual4-74e658-dual4-28-tcp-capture4.mimo-lab.test",
+        "observation": {
+          "id": 18979,
+          "rcode": 0,
+          "answers": []
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-dual4-28-tcp-capture6",
+        "kind": "dns_delivery",
+        "name": "dual4-74e658-dual4-28-tcp-capture6.mimo-lab.test",
+        "observation": {
+          "id": 50350,
+          "rcode": 0,
+          "answers": []
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-dual6-1-udp-local",
+        "kind": "dns_delivery",
+        "name": "dual6-74e658-dual6-1-udp-local.mimo-lab.test",
+        "observation": {
+          "id": 35858,
+          "rcode": 0,
+          "answers": [
+            {
+              "name": "dual6-74e658-dual6-1-udp-local.mimo-lab.test",
+              "type": 1,
+              "ttl": 1,
+              "data": "198.18.0.34"
+            }
+          ]
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-dual6-1-udp-capture4",
+        "kind": "dns_delivery",
+        "name": "dual6-74e658-dual6-1-udp-capture4.mimo-lab.test",
+        "observation": {
+          "id": 35027,
+          "rcode": 0,
+          "answers": [
+            {
+              "name": "dual6-74e658-dual6-1-udp-capture4.mimo-lab.test",
+              "type": 1,
+              "ttl": 1,
+              "data": "198.18.0.35"
+            }
+          ]
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-dual6-1-udp-capture6",
+        "kind": "dns_delivery",
+        "name": "dual6-74e658-dual6-1-udp-capture6.mimo-lab.test",
+        "observation": {
+          "id": 52800,
+          "rcode": 0,
+          "answers": [
+            {
+              "name": "dual6-74e658-dual6-1-udp-capture6.mimo-lab.test",
+              "type": 1,
+              "ttl": 1,
+              "data": "198.18.0.36"
+            }
+          ]
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-dual6-1-tcp-local",
+        "kind": "dns_delivery",
+        "name": "dual6-74e658-dual6-1-tcp-local.mimo-lab.test",
+        "observation": {
+          "id": 6438,
+          "rcode": 0,
+          "answers": [
+            {
+              "name": "dual6-74e658-dual6-1-tcp-local.mimo-lab.test",
+              "type": 1,
+              "ttl": 1,
+              "data": "198.18.0.37"
+            }
+          ]
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-dual6-1-tcp-capture4",
+        "kind": "dns_delivery",
+        "name": "dual6-74e658-dual6-1-tcp-capture4.mimo-lab.test",
+        "observation": {
+          "id": 45021,
+          "rcode": 0,
+          "answers": [
+            {
+              "name": "dual6-74e658-dual6-1-tcp-capture4.mimo-lab.test",
+              "type": 1,
+              "ttl": 1,
+              "data": "198.18.0.38"
+            }
+          ]
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-dual6-1-tcp-capture6",
+        "kind": "dns_delivery",
+        "name": "dual6-74e658-dual6-1-tcp-capture6.mimo-lab.test",
+        "observation": {
+          "id": 19237,
+          "rcode": 0,
+          "answers": [
+            {
+              "name": "dual6-74e658-dual6-1-tcp-capture6.mimo-lab.test",
+              "type": 1,
+              "ttl": 1,
+              "data": "198.18.0.39"
+            }
+          ]
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-dual6-28-udp-local",
+        "kind": "dns_delivery",
+        "name": "dual6-74e658-dual6-28-udp-local.mimo-lab.test",
+        "observation": {
+          "id": 31024,
+          "rcode": 0,
+          "answers": []
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-dual6-28-udp-capture4",
+        "kind": "dns_delivery",
+        "name": "dual6-74e658-dual6-28-udp-capture4.mimo-lab.test",
+        "observation": {
+          "id": 53159,
+          "rcode": 0,
+          "answers": []
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-dual6-28-udp-capture6",
+        "kind": "dns_delivery",
+        "name": "dual6-74e658-dual6-28-udp-capture6.mimo-lab.test",
+        "observation": {
+          "id": 58824,
+          "rcode": 0,
+          "answers": []
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-dual6-28-tcp-local",
+        "kind": "dns_delivery",
+        "name": "dual6-74e658-dual6-28-tcp-local.mimo-lab.test",
+        "observation": {
+          "id": 31240,
+          "rcode": 0,
+          "answers": []
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-dual6-28-tcp-capture4",
+        "kind": "dns_delivery",
+        "name": "dual6-74e658-dual6-28-tcp-capture4.mimo-lab.test",
+        "observation": {
+          "id": 16166,
+          "rcode": 0,
+          "answers": []
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-dual6-28-tcp-capture6",
+        "kind": "dns_delivery",
+        "name": "dual6-74e658-dual6-28-tcp-capture6.mimo-lab.test",
+        "observation": {
+          "id": 33606,
+          "rcode": 0,
+          "answers": []
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-nx-1-udp-local",
+        "kind": "dns_delivery",
+        "name": "nx-74e658-nx-1-udp-local.mimo-lab.test",
+        "observation": {
+          "id": 7978,
+          "rcode": 0,
+          "answers": [
+            {
+              "name": "nx-74e658-nx-1-udp-local.mimo-lab.test",
+              "type": 1,
+              "ttl": 1,
+              "data": "198.18.0.40"
+            }
+          ]
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-nx-1-udp-capture4",
+        "kind": "dns_delivery",
+        "name": "nx-74e658-nx-1-udp-capture4.mimo-lab.test",
+        "observation": {
+          "id": 17245,
+          "rcode": 0,
+          "answers": [
+            {
+              "name": "nx-74e658-nx-1-udp-capture4.mimo-lab.test",
+              "type": 1,
+              "ttl": 1,
+              "data": "198.18.0.41"
+            }
+          ]
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-nx-1-udp-capture6",
+        "kind": "dns_delivery",
+        "name": "nx-74e658-nx-1-udp-capture6.mimo-lab.test",
+        "observation": {
+          "id": 13568,
+          "rcode": 0,
+          "answers": [
+            {
+              "name": "nx-74e658-nx-1-udp-capture6.mimo-lab.test",
+              "type": 1,
+              "ttl": 1,
+              "data": "198.18.0.42"
+            }
+          ]
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-nx-1-tcp-local",
+        "kind": "dns_delivery",
+        "name": "nx-74e658-nx-1-tcp-local.mimo-lab.test",
+        "observation": {
+          "id": 31013,
+          "rcode": 0,
+          "answers": [
+            {
+              "name": "nx-74e658-nx-1-tcp-local.mimo-lab.test",
+              "type": 1,
+              "ttl": 1,
+              "data": "198.18.0.43"
+            }
+          ]
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-nx-1-tcp-capture4",
+        "kind": "dns_delivery",
+        "name": "nx-74e658-nx-1-tcp-capture4.mimo-lab.test",
+        "observation": {
+          "id": 21810,
+          "rcode": 0,
+          "answers": [
+            {
+              "name": "nx-74e658-nx-1-tcp-capture4.mimo-lab.test",
+              "type": 1,
+              "ttl": 1,
+              "data": "198.18.0.44"
+            }
+          ]
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-nx-1-tcp-capture6",
+        "kind": "dns_delivery",
+        "name": "nx-74e658-nx-1-tcp-capture6.mimo-lab.test",
+        "observation": {
+          "id": 27172,
+          "rcode": 0,
+          "answers": [
+            {
+              "name": "nx-74e658-nx-1-tcp-capture6.mimo-lab.test",
+              "type": 1,
+              "ttl": 1,
+              "data": "198.18.0.45"
+            }
+          ]
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-nx-28-udp-local",
+        "kind": "dns_delivery",
+        "name": "nx-74e658-nx-28-udp-local.mimo-lab.test",
+        "observation": {
+          "id": 12459,
+          "rcode": 0,
+          "answers": []
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-nx-28-udp-capture4",
+        "kind": "dns_delivery",
+        "name": "nx-74e658-nx-28-udp-capture4.mimo-lab.test",
+        "observation": {
+          "id": 54104,
+          "rcode": 0,
+          "answers": []
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-nx-28-udp-capture6",
+        "kind": "dns_delivery",
+        "name": "nx-74e658-nx-28-udp-capture6.mimo-lab.test",
+        "observation": {
+          "id": 21462,
+          "rcode": 0,
+          "answers": []
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-nx-28-tcp-local",
+        "kind": "dns_delivery",
+        "name": "nx-74e658-nx-28-tcp-local.mimo-lab.test",
+        "observation": {
+          "id": 36741,
+          "rcode": 0,
+          "answers": []
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-nx-28-tcp-capture4",
+        "kind": "dns_delivery",
+        "name": "nx-74e658-nx-28-tcp-capture4.mimo-lab.test",
+        "observation": {
+          "id": 22934,
+          "rcode": 0,
+          "answers": []
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-dns-nx-28-tcp-capture6",
+        "kind": "dns_delivery",
+        "name": "nx-74e658-nx-28-tcp-capture6.mimo-lab.test",
+        "observation": {
+          "id": 52063,
+          "rcode": 0,
+          "answers": []
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-real-aonly-1",
+        "kind": "real_dns",
+        "name": "aonly-74e658-real-1.mimo-lab.test",
+        "observation": {
+          "AD": false,
+          "Answer": [
+            {
+              "TTL": 2,
+              "data": "<DATA4>",
+              "name": "aonly-74e658-real-1.mimo-lab.test.",
+              "type": 1
+            }
+          ],
+          "CD": false,
+          "Question": [
+            {
+              "Name": "aonly-74e658-real-1.mimo-lab.test.",
+              "Qtype": 1,
+              "Qclass": 1
+            }
+          ],
+          "RA": true,
+          "RD": true,
+          "Status": 0,
+          "TC": false
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-real-aonly-28",
+        "kind": "real_dns",
+        "name": "aonly-74e658-real-28.mimo-lab.test",
+        "observation": {
+          "AD": false,
+          "CD": false,
+          "Question": [
+            {
+              "Name": "aonly-74e658-real-28.mimo-lab.test.",
+              "Qtype": 28,
+              "Qclass": 1
+            }
+          ],
+          "RA": true,
+          "RD": true,
+          "Status": 0,
+          "TC": false
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-real-aaaaonly-1",
+        "kind": "real_dns",
+        "name": "aaaaonly-74e658-real-1.mimo-lab.test",
+        "observation": {
+          "AD": false,
+          "CD": false,
+          "Question": [
+            {
+              "Name": "aaaaonly-74e658-real-1.mimo-lab.test.",
+              "Qtype": 1,
+              "Qclass": 1
+            }
+          ],
+          "RA": true,
+          "RD": true,
+          "Status": 0,
+          "TC": false
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-real-aaaaonly-28",
+        "kind": "real_dns",
+        "name": "aaaaonly-74e658-real-28.mimo-lab.test",
+        "observation": {
+          "AD": false,
+          "Answer": [
+            {
+              "TTL": 2,
+              "data": "<DATA6>",
+              "name": "aaaaonly-74e658-real-28.mimo-lab.test.",
+              "type": 28
+            }
+          ],
+          "CD": false,
+          "Question": [
+            {
+              "Name": "aaaaonly-74e658-real-28.mimo-lab.test.",
+              "Qtype": 28,
+              "Qclass": 1
+            }
+          ],
+          "RA": true,
+          "RD": true,
+          "Status": 0,
+          "TC": false
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-real-dual4-1",
+        "kind": "real_dns",
+        "name": "dual4-74e658-real-1.mimo-lab.test",
+        "observation": {
+          "AD": false,
+          "Answer": [
+            {
+              "TTL": 2,
+              "data": "<DATA4>",
+              "name": "dual4-74e658-real-1.mimo-lab.test.",
+              "type": 1
+            }
+          ],
+          "CD": false,
+          "Question": [
+            {
+              "Name": "dual4-74e658-real-1.mimo-lab.test.",
+              "Qtype": 1,
+              "Qclass": 1
+            }
+          ],
+          "RA": true,
+          "RD": true,
+          "Status": 0,
+          "TC": false
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-real-dual4-28",
+        "kind": "real_dns",
+        "name": "dual4-74e658-real-28.mimo-lab.test",
+        "observation": {
+          "AD": false,
+          "Answer": [
+            {
+              "TTL": 2,
+              "data": "<DATA6>",
+              "name": "dual4-74e658-real-28.mimo-lab.test.",
+              "type": 28
+            }
+          ],
+          "CD": false,
+          "Question": [
+            {
+              "Name": "dual4-74e658-real-28.mimo-lab.test.",
+              "Qtype": 28,
+              "Qclass": 1
+            }
+          ],
+          "RA": true,
+          "RD": true,
+          "Status": 0,
+          "TC": false
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-real-dual6-1",
+        "kind": "real_dns",
+        "name": "dual6-74e658-real-1.mimo-lab.test",
+        "observation": {
+          "AD": false,
+          "Answer": [
+            {
+              "TTL": 2,
+              "data": "<DATA4>",
+              "name": "dual6-74e658-real-1.mimo-lab.test.",
+              "type": 1
+            }
+          ],
+          "CD": false,
+          "Question": [
+            {
+              "Name": "dual6-74e658-real-1.mimo-lab.test.",
+              "Qtype": 1,
+              "Qclass": 1
+            }
+          ],
+          "RA": true,
+          "RD": true,
+          "Status": 0,
+          "TC": false
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-real-dual6-28",
+        "kind": "real_dns",
+        "name": "dual6-74e658-real-28.mimo-lab.test",
+        "observation": {
+          "AD": false,
+          "Answer": [
+            {
+              "TTL": 2,
+              "data": "<DATA6>",
+              "name": "dual6-74e658-real-28.mimo-lab.test.",
+              "type": 28
+            }
+          ],
+          "CD": false,
+          "Question": [
+            {
+              "Name": "dual6-74e658-real-28.mimo-lab.test.",
+              "Qtype": 28,
+              "Qclass": 1
+            }
+          ],
+          "RA": true,
+          "RD": true,
+          "Status": 0,
+          "TC": false
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-real-nx-1",
+        "kind": "real_dns",
+        "name": "nx-74e658-real-1.mimo-lab.test",
+        "observation": {
+          "AD": false,
+          "CD": false,
+          "Question": [
+            {
+              "Name": "nx-74e658-real-1.mimo-lab.test.",
+              "Qtype": 1,
+              "Qclass": 1
+            }
+          ],
+          "RA": true,
+          "RD": true,
+          "Status": 3,
+          "TC": false
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      },
+      {
+        "id": "T4G-S00-real-nx-28",
+        "kind": "real_dns",
+        "name": "nx-74e658-real-28.mimo-lab.test",
+        "observation": {
+          "AD": false,
+          "CD": false,
+          "Question": [
+            {
+              "Name": "nx-74e658-real-28.mimo-lab.test.",
+              "Qtype": 28,
+              "Qclass": 1
+            }
+          ],
+          "RA": true,
+          "RD": true,
+          "Status": 3,
+          "TC": false
+        },
+        "result": "PASS_DNS_EXPECTATION"
+      }
+    ],
+    "template": {
+      "file": "mimo-v3-ipv4-template.yaml",
+      "sha256": "416256dc9295ad2a286d0dbf7185566e3e7fed8f10fb83b08e98ee964ddf0233",
+      "engine_mode": "global"
+    },
+    "engine_mode": "global",
+    "live_rules": [
+      {
+        "index": 0,
+        "type": "IPCIDR",
+        "payload": "::/0",
+        "proxy": "REJECT",
+        "size": -1,
+        "extra": {
+          "disabled": false,
+          "hitCount": 0,
+          "hitAt": "1970-01-01T07:30:00+07:30",
+          "missCount": 0,
+          "missAt": "1970-01-01T07:30:00+07:30"
+        }
+      },
+      {
+        "index": 1,
+        "type": "Match",
+        "payload": "",
+        "proxy": "Proxy",
+        "size": -1,
+        "extra": {
+          "disabled": false,
+          "hitCount": 0,
+          "hitAt": "1970-01-01T07:30:00+07:30",
+          "missCount": 0,
+          "missAt": "1970-01-01T07:30:00+07:30"
+        }
+      },
+      {
+        "index": 2,
+        "type": "Match",
+        "payload": "",
+        "proxy": "REJECT",
+        "size": -1,
+        "extra": {
+          "disabled": false,
+          "hitCount": 0,
+          "hitAt": "1970-01-01T07:30:00+07:30",
+          "missCount": 0,
+          "missAt": "1970-01-01T07:30:00+07:30"
+        }
+      }
+    ],
+    "packets": {
+      "en0_all_data4": 0,
+      "en0_data4": 0,
+      "en0_all_data6": 0,
+      "en0_data6": 0,
+      "en0_all_fake": 1,
+      "en0_fake": 0,
+      "utun238_all_data4": 104,
+      "utun238_data4": 104,
+      "utun238_all_data6": 88,
+      "utun238_data6": 88,
+      "utun238_all_fake": 319,
+      "utun238_fake": 119
+    },
+    "counts": {
+      "PASS_SERVICE": 24,
+      "PASS_EXPECTED_DENIAL_NO_EGRESS": 12,
+      "EXPECTED_DNS_SUPPRESSION": 24,
+      "PASS_DNS_EXPECTATION": 70
+    },
+    "passed": true
+  }
+]

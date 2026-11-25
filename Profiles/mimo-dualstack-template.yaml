@@ -1,0 +1,85 @@
+# IPv4/IPv6 standalone template. Requires v1.19.34-mimo-no-ping.1.
+# Replace the documentation proxy endpoint in a private, Git-ignored local copy.
+# Switch Rule/Global by changing only mode below; leave both groups and rules intact.
+# The proxy may have an IPv4 address; IPv6 destinations still need server support.
+mode: rule
+ipv6: true
+mixed-port: 7890
+allow-lan: false
+bind-address: 127.0.0.1
+log-level: info
+external-controller: ''
+profile:
+  store-selected: false
+  store-fake-ip: false
+
+tun:
+  enable: true
+  # Patched stack silently drops captured ping AND ping6, without fake replies.
+  # Stock Mihomo rejects this stack; disable-icmp-forwarding alone is insufficient.
+  stack: gvisor-no-ping
+  auto-route: true
+  auto-detect-interface: true
+  strict-route: false
+  disable-icmp-forwarding: true
+  # Keep the default engine IPv6 TUN address and capture both IPv6 halves/NAT64.
+  route-address:
+    - "::/1"
+    - "8000::/1"
+  # Native LAN/Tailnet traffic retains real ping; no dynamic utun name is needed.
+  route-exclude-address:
+    - "100.64.0.0/10"
+    - "fd7a:115c:a1e0::/48"
+  dns-hijack:
+    - any:53
+    - tcp://any:53
+  # Register temporary macOS system DNS at the TUN endpoint; keep interception above.
+  # The engine owns this resolver and removes it on exit; saved service DNS is untouched.
+  # In Mimo-managed use, core must be the sole DNS owner: use disabled there instead.
+  # Search-domain/MagicDNS lifecycle qualification: Design/MIMO_DUALSTACK_TEST_PLAN.md.
+  dns-mode: native
+
+dns:
+  enable: true
+  listen: 127.0.0.1:1053
+  ipv6: true
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  fake-ip-range6: fdfe:dcba:9876:1::/64
+  fake-ip-filter:
+    - '*.lan'
+    - '+.local'
+    - '+.ts.net'
+    - '+.tailscale.com'
+  nameserver-policy:
+    '+.ts.net':
+      - 100.100.100.100
+  nameserver:
+    - 'https://1.1.1.1/dns-query#Proxy'
+  proxy-server-nameserver:
+    - https://1.1.1.1/dns-query
+
+proxies:
+  - name: TEST-PROXY
+    type: socks5
+    server: 192.0.2.1
+    port: 1080
+    udp: true
+    ip-version: dual
+
+proxy-groups:
+  - name: Proxy
+    type: select
+    proxies:
+      - TEST-PROXY
+  - name: GLOBAL
+    type: select
+    proxies:
+      - Proxy
+
+# Add custom rules above these final rules. Global mode bypasses this list.
+rules:
+  - MATCH,Proxy
+  # Catch Rule-mode fall-through, including a proxy that declares no UDP support.
+  # This is not a retry rule after a proxy connection failure.
+  - MATCH,REJECT

@@ -1,0 +1,132 @@
+{
+  "pending": false,
+  "scope": "Global/dual disconnected checkpoint only; reconnect pending",
+  "at": 1795600247.590102,
+  "snapshot": {
+    "at": 1795600244.3511832,
+    "phase": "active",
+    "mode": "global",
+    "family": "dual",
+    "effective_mode": "global",
+    "tailscale": "Stopped",
+    "tailscale_want_running": false,
+    "observation_deadline": 1795604854.300884,
+    "pf_kind": "active"
+  },
+  "connected_comparisons": {
+    "A-fresh-1": false,
+    "A-fresh-2": false,
+    "A-fresh-3": false,
+    "AAAA-fresh-1": false,
+    "AAAA-fresh-2": false,
+    "AAAA-fresh-3": false,
+    "local-tcp": false,
+    "local-notcp": false,
+    "native-ping4": false,
+    "native-ping6": false
+  },
+  "private_queries": [
+    {
+      "kind": "A-fresh-1",
+      "status": null,
+      "answers": 0,
+      "request_error": null,
+      "error_response": true,
+      "has_dns_status": false
+    },
+    {
+      "kind": "A-fresh-2",
+      "status": null,
+      "answers": 0,
+      "request_error": null,
+      "error_response": true,
+      "has_dns_status": false
+    },
+    {
+      "kind": "A-fresh-3",
+      "status": null,
+      "answers": 0,
+      "request_error": null,
+      "error_response": true,
+      "has_dns_status": false
+    },
+    {
+      "kind": "AAAA-fresh-1",
+      "status": null,
+      "answers": 0,
+      "request_error": null,
+      "error_response": true,
+      "has_dns_status": false
+    },
+    {
+      "kind": "AAAA-fresh-2",
+      "status": null,
+      "answers": 0,
+      "request_error": null,
+      "error_response": true,
+      "has_dns_status": false
+    },
+    {
+      "kind": "AAAA-fresh-3",
+      "status": null,
+      "answers": 0,
+      "request_error": null,
+      "error_response": true,
+      "has_dns_status": false
+    }
+  ],
+  "policy": {
+    "active_guard": true,
+    "tailnet_passes": 0,
+    "tailnet_wrong_path_denials": 2,
+    "signed_public_transport_scopes": 4
+  },
+  "ongoing_capture": {
+    "native_attempts": 0,
+    "by_family": {
+      "4": 0,
+      "6": 0
+    },
+    "finalized": false
+  },
+  "capture_reader_ok": true,
+  "fixture": {
+    "scope": "all fixture DNS records since this live campaign started; service counts selected by Global capture label",
+    "dns_queries": 1719,
+    "private_ts_net_queries": 0,
+    "global_service_counts": [
+      {
+        "kind": "proxy_udp_attempt",
+        "family": 4,
+        "count": 6802
+      },
+      {
+        "kind": "proxy_udp_attempt",
+        "family": 6,
+        "count": 3432
+      },
+      {
+        "kind": "service_tcp",
+        "family": 4,
+        "count": 6813
+      },
+      {
+        "kind": "service_tcp",
+        "family": 6,
+        "count": 3421
+      },
+      {
+        "kind": "service_udp",
+        "family": 4,
+        "count": 6802
+      },
+      {
+        "kind": "service_udp",
+        "family": 6,
+        "count": 3432
+      }
+    ],
+    "scanned_rows": 607184,
+    "partial_json_rows": 0
+  }
+}

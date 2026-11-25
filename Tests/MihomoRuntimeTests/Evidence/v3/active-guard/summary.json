@@ -1,0 +1,32 @@
+{
+  "suites": {
+    "traffic-results.json": {
+      "cases": 32,
+      "passed": 32
+    },
+    "compat-results.json": {
+      "cases": 17,
+      "passed": 17
+    },
+    "native-wrong-path-results.json": {
+      "cases": 5,
+      "passed": 5
+    },
+    "ipv6-control-results.json": {
+      "cases": 4,
+      "passed": 4
+    },
+    "firewall-failure-results.json": {
+      "cases": 2,
+      "passed": 2
+    },
+    "package-results.json": {
+      "cases": 8,
+      "passed": 8
+    }
+  },
+  "unique_cases": 68,
+  "passed": 68,
+  "compatibility_preflight_repeated": 17,
+  "traffic_native_attempts": 0
+}

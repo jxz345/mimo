@@ -1,0 +1,101 @@
+diff --git a/constant/tun.go b/constant/tun.go
+index a84af0e..b04933d 100644
+--- a/constant/tun.go
++++ b/constant/tun.go
+@@ -6,10 +6,11 @@ import (
+ )
+ 
+ var StackTypeMapping = map[string]TUNStack{
+-	strings.ToLower(TunGvisor.String()): TunGvisor,
+-	strings.ToLower(TunSystem.String()): TunSystem,
+-	strings.ToLower(TunMixed.String()):  TunMixed,
+-	strings.ToLower(TunMips.String()):   TunMips,
++	strings.ToLower(TunGvisor.String()):       TunGvisor,
++	strings.ToLower(TunSystem.String()):       TunSystem,
++	strings.ToLower(TunMixed.String()):        TunMixed,
++	strings.ToLower(TunMips.String()):         TunMips,
++	strings.ToLower(TunGvisorNoPing.String()): TunGvisorNoPing,
+ }
+ 
+ const (
+@@ -17,6 +18,9 @@ const (
+ 	TunSystem
+ 	TunMixed
+ 	TunMips
++	// Mimo's test stack keeps gVisor TCP/UDP and drops captured ICMP echo requests.
++	// A distinct name makes unpatched engines reject the configuration.
++	TunGvisorNoPing
+ )
+ 
+ type TUNStack int
+@@ -46,6 +50,8 @@ func (e TUNStack) String() string {
+ 		return "Mixed"
+ 	case TunMips:
+ 		return "Mips"
++	case TunGvisorNoPing:
++		return "gvisor-no-ping"
+ 	default:
+ 		return "unknown"
+ 	}
+diff --git a/listener/sing_tun/server.go b/listener/sing_tun/server.go
+index 5415b25..a65c7eb 100644
+--- a/listener/sing_tun/server.go
++++ b/listener/sing_tun/server.go
+@@ -73,8 +73,13 @@ type ListenerHandler struct {
+ 	Inet4Address          []netip.Prefix
+ 	Inet6Address          []netip.Prefix
+ 	DisableICMPForwarding bool
++	blockICMPEcho         bool
+ }
+ 
++// BlockICMPEcho is consumed by the gVisor echo handler before its synthetic
++// or direct reply paths. It does not suppress ICMP control/error traffic.
++func (h *ListenerHandler) BlockICMPEcho() bool { return h.blockICMPEcho }
++
+ var emptyAddressSet = []*netipx.IPSet{{}}
+ 
+ func CalculateInterfaceName(name string) (tunName string) {
+@@ -322,6 +327,7 @@ func New(options LC.Tun, tunnel C.Tunnel, additions ...inbound.Addition) (l *Lis
+ 		Inet4Address:          options.Inet4Address,
+ 		Inet6Address:          options.Inet6Address,
+ 		DisableICMPForwarding: options.DisableICMPForwarding,
++		blockICMPEcho:         options.Stack == C.TunGvisorNoPing,
+ 	}
+ 	l = &Listener{
+ 		closed:  false,
+@@ -509,7 +515,11 @@ func New(options LC.Tun, tunnel C.Tunnel, additions ...inbound.Addition) (l *Lis
+ 	}
+ 	l.tunIf = tunIf
+ 
+-	tunStack, err := tun.NewStack(strings.ToLower(options.Stack.String()), stackOptions)
++	stackName := strings.ToLower(options.Stack.String())
++	if options.Stack == C.TunGvisorNoPing {
++		stackName = "gvisor"
++	}
++	tunStack, err := tun.NewStack(stackName, stackOptions)
+ 	if err != nil {
+ 		return
+ 	}
+--- /dev/null
++++ b/constant/tun_no_ping_test.go
+@@ -0,0 +1,20 @@
++package constant
++
++import "testing"
++
++func TestNoPingStackRoundTrip(t *testing.T) {
++	var stack TUNStack
++	if err := stack.UnmarshalText([]byte("gvisor-no-ping")); err != nil {
++		t.Fatal(err)
++	}
++	if stack != TunGvisorNoPing {
++		t.Fatal("no-ping policy lost during parsing")
++	}
++	value, err := stack.MarshalText()
++	if err != nil || string(value) != "gvisor-no-ping" {
++		t.Fatal("controller/config must expose the no-ping policy")
++	}
++	if err := stack.UnmarshalText([]byte("gvisor-unknown")); err == nil {
++		t.Fatal("unknown stack must fail configuration validation")
++	}
++}

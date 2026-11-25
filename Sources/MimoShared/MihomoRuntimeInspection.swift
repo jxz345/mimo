@@ -6,7 +6,9 @@ import Foundation
 public enum MihomoRuntimeInspection {
     public static func matches(profile: String, active: Bool, proxy: MimoProxy?,
                                config: [String: Any], rules: [[String: Any]], proxies: [String: Any]) -> Bool {
-        guard config["mode"] as? String == "rule", config["ipv6"] as? Bool == (proxy != nil),
+        let expectedMode = profile.split(separator: "\n").first(where: { $0.hasPrefix("mode:") })?.dropFirst(5).trimmingCharacters(in: .whitespaces)
+        let expectedFamily = profile.split(separator: "\n").first(where: { $0.hasPrefix("mimo-destination-family:") })?.dropFirst(24).trimmingCharacters(in: .whitespaces)
+        guard config["mode"] as? String == expectedMode, config["ipv6"] as? Bool == (proxy != nil),
               config["allow-lan"] as? Bool == false, config["bind-address"] as? String == "127.0.0.1",
               config["mixed-port"] as? Int == (active ? MimoRuntime.mixedPort : 0),
               ["port", "socks-port", "redir-port", "tproxy-port"].allSatisfy({ config[$0] as? Int == 0 }),
@@ -16,13 +18,13 @@ public enum MihomoRuntimeInspection {
               let tun = config["tun"] as? [String: Any], tun["enable"] as? Bool == active else { return false }
         if proxy != nil {
             guard tun["device"] as? String == MihomoProfile.tunnelDevice,
-                  tun["stack"] as? String == "gVisor", tun["auto-route"] as? Bool == true,
+                  tun["stack"] as? String == "gvisor-no-ping", tun["auto-route"] as? Bool == true,
                   tun["auto-detect-interface"] as? Bool == true,
                   tun["strict-route"] as? Bool != true,
                   tun["dns-hijack"] as? [String] == ["any:53", "tcp://any:53"],
                   tun["inet6-address"] as? [String] == [MihomoProfile.tunnelIPv6],
-                  tun["route-exclude-address"] as? [String] == ["100.64.0.0/10"],
-                  config["find-process-mode"] as? String == "always" else { return false }
+                  tun["route-exclude-address"] as? [String] == ["100.64.0.0/10", "fd7a:115c:a1e0::/48"],
+                  config["mimo-destination-family"] as? String == expectedFamily else { return false }
         } else if active { return false }
 
         let expected = MihomoProfile.routingRules(in: profile)
@@ -45,9 +47,8 @@ public enum MihomoRuntimeInspection {
                   selected["type"] as? String == (proxy.type == .http ? "Http" : "Socks5"),
                   selected["interface"] as? String == "", selected["dialer-proxy"] as? String == "",
                   selected["routing-mark"] as? Int == 0,
-                  let tailnet = proxies["TS-DIRECT"] as? [String: Any], tailnet["type"] as? String == "Selector",
-                  tailnet["emptyFallback"] as? String == "REJECT",
-                  tailnet["all"] as? [String] == ["TS-NATIVE"], tailnet["now"] as? String == "TS-NATIVE" else { return false }
+                  let global = proxies["GLOBAL"] as? [String: Any],
+                  global["all"] as? [String] == ["Proxy"], global["now"] as? String == "Proxy" else { return false }
         }
         return true
     }

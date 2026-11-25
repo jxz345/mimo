@@ -13,7 +13,7 @@ enum MimoRecoveryState {
         var settings = try storage.data(forKey: "service.settings").map {
             try JSONDecoder().decode(MachineSettings.self, from: $0)
         } ?? MachineSettings()
-        settings.tailscaleProviderEnabled = true
+
         try storage.update([
             "service.routing": try JSONEncoder().encode(configuration),
             "service.settings": try JSONEncoder().encode(settings),
@@ -37,7 +37,7 @@ enum MimoRecoveryState {
         ]
         if activateServices, let data = storage.data(forKey: "service.settings") {
             var settings = try JSONDecoder().decode(MachineSettings.self, from: data)
-            settings.tailscaleProviderEnabled = true
+
             values["service.settings"] = try JSONEncoder().encode(settings)
         }
         try storage.update(values)

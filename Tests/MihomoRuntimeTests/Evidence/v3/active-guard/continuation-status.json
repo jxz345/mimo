@@ -1,0 +1,18 @@
+[
+  {
+    "stage": "v3_active_guard_compat_test",
+    "status": 0
+  },
+  {
+    "stage": "v3_ipv6_control_test",
+    "status": 0
+  },
+  {
+    "stage": "v3_firewall_failure_test",
+    "status": 0
+  },
+  {
+    "stage": "v3_package_closure_test",
+    "status": 0
+  }
+]

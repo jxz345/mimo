@@ -1,0 +1,9 @@
+{
+  "fixture_stopped": true,
+  "temporary_private_key_deleted": true,
+  "temporary_certificate_removed": false,
+  "temporary_ssl_trust_removed": false,
+  "trust_cleanup_status": "retained at user request; System-keychain certificate restored and existing SSL trust verified",
+  "certificate_file_retained": true,
+  "future_https_fixture_requires_new_key_and_certificate": true
+}

@@ -1,0 +1,115 @@
+{
+  "pending": false,
+  "scope": "Installed corrected candidate; human Tailscale disconnect/reconnect, Global/dual",
+  "candidate_helper_sha256": "d04b44fe9645512bc1d5e15e09c4ab020f1745d666050872e11c2bd7b8529351",
+  "reconnected_checks": {
+    "A-fresh-1": true,
+    "A-fresh-2": true,
+    "A-fresh-3": true,
+    "AAAA-fresh-1": true,
+    "AAAA-fresh-2": true,
+    "AAAA-fresh-3": true,
+    "local-tcp": true,
+    "local-notcp": true,
+    "native-ping4": true,
+    "native-ping6": true
+  },
+  "snapshot": {
+    "at": 1795600427.672532,
+    "phase": "active",
+    "mode": "global",
+    "family": "dual",
+    "effective_mode": "global",
+    "tailscale": "Running",
+    "tailscale_want_running": true,
+    "observation_deadline": 1795604854.300884,
+    "pf_kind": "active"
+  },
+  "traffic": {
+    "at": 1795600447.717005,
+    "native_attempts": 0,
+    "by_family": {
+      "4": 0,
+      "6": 0
+    }
+  },
+  "successful_traffic": [
+    {
+      "family": 4,
+      "kind": "dns-tcp",
+      "count": 4146
+    },
+    {
+      "family": 4,
+      "kind": "dns-udp",
+      "count": 4170
+    },
+    {
+      "family": 4,
+      "kind": "fake-tcp",
+      "count": 4108
+    },
+    {
+      "family": 4,
+      "kind": "fake-udp",
+      "count": 4107
+    },
+    {
+      "family": 4,
+      "kind": "stream",
+      "count": 4180
+    },
+    {
+      "family": 4,
+      "kind": "tcp",
+      "count": 4129
+    },
+    {
+      "family": 4,
+      "kind": "udp",
+      "count": 4115
+    },
+    {
+      "family": 6,
+      "kind": "dns-tcp",
+      "count": 4152
+    },
+    {
+      "family": 6,
+      "kind": "dns-udp",
+      "count": 4171
+    },
+    {
+      "family": 6,
+      "kind": "stream",
+      "count": 4183
+    },
+    {
+      "family": 6,
+      "kind": "tcp",
+      "count": 4128
+    },
+    {
+      "family": 6,
+      "kind": "udp",
+      "count": 4138
+    }
+  ],
+  "public_echo_successes": 0,
+  "echo_attempts_by_family": {
+    "4": 1523,
+    "6": 1523
+  },
+  "recorders_running": {
+    "global-traffic-observer": false,
+    "global-connect-observer": false,
+    "menu-sleep-observer": false
+  },
+  "public_fixture_dns": {
+    "scope": "all live-campaign fixture DNS",
+    "queries": 1857,
+    "ts_net_queries": 0,
+    "partial_rows": 0
+  },
+  "result": "PASS_RECONNECT_AND_MEASURED_CONTAINMENT"
+}

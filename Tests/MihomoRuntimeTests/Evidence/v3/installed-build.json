@@ -1,0 +1,7 @@
+{
+  "marketing_version": "3.0",
+  "build": "8",
+  "zip_sha256": "d6410dadb5a99610bbd768be258d1df2a922fe378d1ebaa32e30395c901ce708",
+  "published": false,
+  "notes": "Family-selection correction installed before the trusted HTTPS and active recovery runs."
+}

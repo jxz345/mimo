@@ -1,0 +1,14 @@
+{
+  "version": "3.0",
+  "build": "9",
+  "zip_signature_verified": true,
+  "binary_sha256": {
+    "Contents/MacOS/mimo-core": "d04b44fe9645512bc1d5e15e09c4ab020f1745d666050872e11c2bd7b8529351",
+    "Contents/MacOS/mimo-gui": "f1618f84aceb35f24ffbb0e6238b601d54258f977d42e3ae48500bf28c2d861a",
+    "Contents/Resources/mihomo-v3.bin": "6925603de8a31decb3919c607a97cee2845afc5ea70aa4c2797620e775f143ca"
+  },
+  "source_app_metadata_attributes": {
+    "com.apple.provenance": 47
+  },
+  "package_metadata_note": "Source attributes are macOS provenance only; package signature verified. Homebrew ZIP has no AppleDouble entries."
+}

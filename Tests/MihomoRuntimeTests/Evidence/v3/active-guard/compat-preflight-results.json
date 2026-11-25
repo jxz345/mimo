@@ -1,0 +1,87 @@
+[
+  {
+    "id": "tailnet-direct-baseline",
+    "result": "PASS",
+    "peer_available": true
+  },
+  {
+    "id": "ipv4-rule-bypass-selection",
+    "result": "PASS",
+    "expected": "DIRECT",
+    "matched_connections": 1,
+    "payload_matched": true,
+    "intended_chain_present": true
+  },
+  {
+    "id": "ipv4-rule-native-tailnet-ping",
+    "result": "PASS"
+  },
+  {
+    "id": "ipv4-rule-native-tailnet-dns",
+    "result": "PASS"
+  },
+  {
+    "id": "ipv4-rule-engine-private-dns",
+    "result": "PASS"
+  },
+  {
+    "id": "ipv4-global-bypass-selection",
+    "result": "PASS",
+    "expected": "Proxy",
+    "matched_connections": 1,
+    "payload_matched": true,
+    "intended_chain_present": true
+  },
+  {
+    "id": "ipv4-global-native-tailnet-ping",
+    "result": "PASS"
+  },
+  {
+    "id": "ipv4-global-native-tailnet-dns",
+    "result": "PASS"
+  },
+  {
+    "id": "ipv4-global-engine-private-dns",
+    "result": "PASS"
+  },
+  {
+    "id": "dual-rule-bypass-selection",
+    "result": "PASS",
+    "expected": "DIRECT",
+    "matched_connections": 1,
+    "payload_matched": true,
+    "intended_chain_present": true
+  },
+  {
+    "id": "dual-rule-native-tailnet-ping",
+    "result": "PASS"
+  },
+  {
+    "id": "dual-rule-native-tailnet-dns",
+    "result": "PASS"
+  },
+  {
+    "id": "dual-rule-engine-private-dns",
+    "result": "PASS"
+  },
+  {
+    "id": "dual-global-bypass-selection",
+    "result": "PASS",
+    "expected": "Proxy",
+    "matched_connections": 1,
+    "payload_matched": true,
+    "intended_chain_present": true
+  },
+  {
+    "id": "dual-global-native-tailnet-ping",
+    "result": "PASS"
+  },
+  {
+    "id": "dual-global-native-tailnet-dns",
+    "result": "PASS"
+  },
+  {
+    "id": "dual-global-engine-private-dns",
+    "result": "PASS"
+  }
+]

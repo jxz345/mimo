@@ -1,0 +1,812 @@
+[
+  {
+    "run": "T4R-S00-focus-native-dns-d79f9e",
+    "status": "complete",
+    "profile": "T4R",
+    "proxy_mode": "S00",
+    "scope": "focus-native-dns",
+    "tested_at_utc": "2026-11-24T10:40:13.589448+00:00",
+    "engine_sha256": "ff21dbbad799783de14f4a13684b35531b455beff0335dc2e9d468e5bcbe52bd",
+    "runner_sha256": "c68f1d8d333e71cd64518a7691ab786bcd48b1f899bdafcea3e8cc5be03d41b4",
+    "profile_sha256": "68c50aaf2aa63362402159e521aa491d5af1cf5d4e3b765e1fe2ec50133dcfda",
+    "checks": {
+      "native_before_4_http": true,
+      "native_before_4_https_verified": true,
+      "native_before_4_udp_nonce": true,
+      "fixture_4_https_verified": true,
+      "fixture_4_udp_nonce": true,
+      "native_before_6_http": true,
+      "native_before_6_https_verified": true,
+      "native_before_6_udp_nonce": true,
+      "fixture_6_https_verified": true,
+      "fixture_6_udp_nonce": true,
+      "data_routes_captured": true,
+      "control_route_native": true,
+      "live_mode_and_rule_count": true,
+      "live_proxy_selection": true,
+      "live_no_ping_stack": true,
+      "native_dns_registered": true,
+      "system_capture_control_4": true,
+      "system_capture_control_6": true,
+      "no_native_data_egress": true,
+      "no_native_fake_egress": false,
+      "both_data_families_entered_tun": true,
+      "no_native_nat64_egress": true,
+      "no_native_bootstrap_egress": true,
+      "tailscale_restored": true,
+      "engine_stopped": true,
+      "tun_removed": true,
+      "routes_restored": true,
+      "dns_restored": true,
+      "native_after_4_https_verified": true,
+      "native_after_4_udp_nonce": true,
+      "native_after_6_https_verified": true,
+      "native_after_6_udp_nonce": true
+    },
+    "cases": [
+      {
+        "id": "D01-search-list",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "baseline_count": 2,
+          "active_count": 2
+        }
+      },
+      {
+        "id": "D02-lan-short",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {}
+      },
+      {
+        "id": "D03-tailnet-fqdn",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {}
+      },
+      {
+        "id": "D04-tailnet-short",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {}
+      },
+      {
+        "id": "D05-tailnet-disconnected",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "private_answer_count": 0,
+          "public_dns_ok": true,
+          "private_query_in_public_doh": false
+        }
+      },
+      {
+        "id": "D06-tailnet-reconnected-fqdn",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {}
+      },
+      {
+        "id": "D07-tailnet-reconnected-short",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {}
+      },
+      {
+        "id": "D08-native-split-dns",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {}
+      },
+      {
+        "id": "D09-mode-reload",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "owned_resolver_count": 1,
+          "public_dns_ok": true
+        }
+      },
+      {
+        "id": "D10-native-search-change",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "method": "Changed only the fixture-owned default resolver/search list; saved network preferences untouched."
+        }
+      },
+      {
+        "id": "D12-graceful-exit",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {}
+      },
+      {
+        "id": "D11-startup-aborted-after-dns",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "method": "Injected process death immediately after DNS registration; no app workload started."
+        }
+      }
+    ],
+    "template": {
+      "file": "mimo-ipv4-template.yaml",
+      "sha256": "589b6585432f8fcbd855b14162c0d3797c9cdaeacd9dbe830ea9c817de42bf4c",
+      "engine_mode": "rule"
+    },
+    "engine_mode": "rule",
+    "native_dns_peer_is_self": true,
+    "live_rules": [
+      {
+        "index": 0,
+        "type": "IPCIDR",
+        "payload": "::/0",
+        "proxy": "REJECT",
+        "size": -1,
+        "extra": {
+          "disabled": false,
+          "hitCount": 0,
+          "hitAt": "1970-01-01T07:30:00+07:30",
+          "missCount": 0,
+          "missAt": "1970-01-01T07:30:00+07:30"
+        }
+      },
+      {
+        "index": 1,
+        "type": "Match",
+        "payload": "",
+        "proxy": "Proxy",
+        "size": -1,
+        "extra": {
+          "disabled": false,
+          "hitCount": 0,
+          "hitAt": "1970-01-01T07:30:00+07:30",
+          "missCount": 0,
+          "missAt": "1970-01-01T07:30:00+07:30"
+        }
+      },
+      {
+        "index": 2,
+        "type": "Match",
+        "payload": "",
+        "proxy": "REJECT",
+        "size": -1,
+        "extra": {
+          "disabled": false,
+          "hitCount": 0,
+          "hitAt": "1970-01-01T07:30:00+07:30",
+          "missCount": 0,
+          "missAt": "1970-01-01T07:30:00+07:30"
+        }
+      }
+    ],
+    "packets": {
+      "en0_all_data4": 0,
+      "en0_data4": 0,
+      "en0_all_data6": 0,
+      "en0_data6": 0,
+      "en0_all_fake": 1,
+      "en0_fake": 1,
+      "en0_bootstrap": 0,
+      "en0_nat64": 0,
+      "utun238_all_data4": 6,
+      "utun238_data4": 6,
+      "utun238_all_data6": 5,
+      "utun238_data6": 5,
+      "utun238_all_fake": 104,
+      "utun238_fake": 49,
+      "utun238_bootstrap": 0,
+      "utun238_nat64": 0,
+      "utun2_all_data4": 0,
+      "utun2_data4": 0,
+      "utun2_all_data6": 0,
+      "utun2_data6": 0,
+      "utun2_all_fake": 0,
+      "utun2_fake": 0,
+      "utun2_bootstrap": 0,
+      "utun2_nat64": 0
+    },
+    "counts": {
+      "PASS_FOCUSED": 12
+    },
+    "passed": false
+  },
+  {
+    "run": "T4R-S00-focus-native-dns-697bd9",
+    "status": "incomplete",
+    "profile": "T4R",
+    "proxy_mode": "S00",
+    "scope": "focus-native-dns",
+    "tested_at_utc": "2026-11-24T10:28:29.961556+00:00",
+    "engine_sha256": "ff21dbbad799783de14f4a13684b35531b455beff0335dc2e9d468e5bcbe52bd",
+    "runner_sha256": "670e70d0ea73abfaaa24bd3cc9fb3b357984b7708280e7f644b25e00e0812955",
+    "profile_sha256": "c73f888a1664844668e5ada31d7a8614980a77789ca32b662b195ca2d1892d86",
+    "checks": {
+      "native_before_4_http": true,
+      "native_before_4_https_verified": true,
+      "native_before_4_udp_nonce": true,
+      "fixture_4_https_verified": true,
+      "fixture_4_udp_nonce": true,
+      "native_before_6_http": true,
+      "native_before_6_https_verified": true,
+      "native_before_6_udp_nonce": true,
+      "fixture_6_https_verified": true,
+      "fixture_6_udp_nonce": true,
+      "tailscale_restored": true,
+      "engine_stopped": true,
+      "tun_removed": true,
+      "routes_restored": true,
+      "dns_restored": true,
+      "native_after_4_https_verified": true,
+      "native_after_4_udp_nonce": true,
+      "native_after_6_https_verified": true,
+      "native_after_6_udp_nonce": true
+    },
+    "cases": [],
+    "template": {
+      "file": "mimo-ipv4-template.yaml",
+      "sha256": "589b6585432f8fcbd855b14162c0d3797c9cdaeacd9dbe830ea9c817de42bf4c",
+      "engine_mode": "rule"
+    },
+    "engine_mode": "rule",
+    "error": "AssertionError: Native Tailnet short-name baseline invalid",
+    "packets": {},
+    "counts": {},
+    "passed": false
+  },
+  {
+    "run": "T4R-S00-focus-native-dns-8cc4ad",
+    "status": "incomplete",
+    "profile": "T4R",
+    "proxy_mode": "S00",
+    "scope": "focus-native-dns",
+    "tested_at_utc": "2026-11-24T10:27:00.188852+00:00",
+    "engine_sha256": "ff21dbbad799783de14f4a13684b35531b455beff0335dc2e9d468e5bcbe52bd",
+    "runner_sha256": "693a183dc63098917352c12d221d48dab2d250669597b7ea638574f5ba9bad4e",
+    "profile_sha256": "af14541bfba1b176b4af12f261b4b41b2517c2463ad2d45c373b17341803e332",
+    "checks": {
+      "native_before_4_http": true,
+      "native_before_4_https_verified": true,
+      "native_before_4_udp_nonce": true,
+      "fixture_4_https_verified": true,
+      "fixture_4_udp_nonce": true,
+      "native_before_6_http": true,
+      "native_before_6_https_verified": true,
+      "native_before_6_udp_nonce": true,
+      "fixture_6_https_verified": true,
+      "fixture_6_udp_nonce": true,
+      "tailscale_restored": true,
+      "engine_stopped": true,
+      "tun_removed": true,
+      "routes_restored": true,
+      "dns_restored": false,
+      "native_after_4_https_verified": true,
+      "native_after_4_udp_nonce": true,
+      "native_after_6_https_verified": true,
+      "native_after_6_udp_nonce": true
+    },
+    "cases": [],
+    "template": {
+      "file": "mimo-ipv4-template.yaml",
+      "sha256": "589b6585432f8fcbd855b14162c0d3797c9cdaeacd9dbe830ea9c817de42bf4c",
+      "engine_mode": "rule"
+    },
+    "engine_mode": "rule",
+    "error": "AssertionError: Native DNS fixture baseline unavailable",
+    "packets": {},
+    "counts": {},
+    "passed": false
+  },
+  {
+    "run": "T4R-S00-focus-native-dns-924ce3",
+    "status": "incomplete",
+    "profile": "T4R",
+    "proxy_mode": "S00",
+    "scope": "focus-native-dns",
+    "tested_at_utc": "2026-11-24T10:30:44.817211+00:00",
+    "engine_sha256": "ff21dbbad799783de14f4a13684b35531b455beff0335dc2e9d468e5bcbe52bd",
+    "runner_sha256": "1c46e8cacc1f90a2a69b6dcdb1b3139b4a413488cc772c83377234d2c13363b3",
+    "profile_sha256": "c84b0cbca5440447c6b1d124b1c1d58bda08aaf2ca66fe012efb2a5d0536e4b8",
+    "checks": {
+      "native_before_4_http": true,
+      "native_before_4_https_verified": true,
+      "native_before_4_udp_nonce": true,
+      "fixture_4_https_verified": true,
+      "fixture_4_udp_nonce": true,
+      "native_before_6_http": true,
+      "native_before_6_https_verified": true,
+      "native_before_6_udp_nonce": true,
+      "fixture_6_https_verified": true,
+      "fixture_6_udp_nonce": true,
+      "tailscale_restored": true,
+      "engine_stopped": true,
+      "tun_removed": true,
+      "routes_restored": true,
+      "dns_restored": true,
+      "native_after_4_https_verified": true,
+      "native_after_4_udp_nonce": true,
+      "native_after_6_https_verified": true,
+      "native_after_6_udp_nonce": true
+    },
+    "cases": [],
+    "template": {
+      "file": "mimo-ipv4-template.yaml",
+      "sha256": "589b6585432f8fcbd855b14162c0d3797c9cdaeacd9dbe830ea9c817de42bf4c",
+      "engine_mode": "rule"
+    },
+    "engine_mode": "rule",
+    "error": "AssertionError: Native Tailnet short-name baseline invalid",
+    "packets": {},
+    "counts": {},
+    "passed": false
+  },
+  {
+    "run": "T6G-S00-focus-native-dns-b1e6a4",
+    "status": "complete",
+    "profile": "T6G",
+    "proxy_mode": "S00",
+    "scope": "focus-native-dns",
+    "tested_at_utc": "2026-11-24T10:42:09.978069+00:00",
+    "engine_sha256": "ff21dbbad799783de14f4a13684b35531b455beff0335dc2e9d468e5bcbe52bd",
+    "runner_sha256": "b478f991f535e1900bad1588e5c2a2a9fa421ccf38a6bc5f8cbc0342c1afa553",
+    "profile_sha256": "fa60315d67da86a13f5137c4e100b8b3ca5edb6c9c9286a7a869bf3dca2f497d",
+    "checks": {
+      "native_before_4_http": true,
+      "native_before_4_https_verified": true,
+      "native_before_4_udp_nonce": true,
+      "fixture_4_https_verified": true,
+      "fixture_4_udp_nonce": true,
+      "native_before_6_http": true,
+      "native_before_6_https_verified": true,
+      "native_before_6_udp_nonce": true,
+      "fixture_6_https_verified": true,
+      "fixture_6_udp_nonce": true,
+      "data_routes_captured": true,
+      "control_route_native": true,
+      "live_mode_and_rule_count": true,
+      "live_proxy_selection": true,
+      "live_no_ping_stack": true,
+      "native_dns_registered": true,
+      "system_capture_control_4": true,
+      "system_capture_control_6": true,
+      "no_native_data_egress": true,
+      "no_native_fake_egress_while_active": true,
+      "both_data_families_entered_tun": true,
+      "no_native_nat64_egress": true,
+      "no_native_bootstrap_egress": true,
+      "tailscale_restored": true,
+      "engine_stopped": true,
+      "tun_removed": true,
+      "routes_restored": true,
+      "dns_restored": true,
+      "native_after_4_https_verified": true,
+      "native_after_4_udp_nonce": true,
+      "native_after_6_https_verified": true,
+      "native_after_6_udp_nonce": true
+    },
+    "cases": [
+      {
+        "id": "D01-search-list",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "baseline_count": 2,
+          "active_count": 2
+        }
+      },
+      {
+        "id": "D02-lan-short",
+        "kind": "focused",
+        "result": "FAIL_FUNCTIONAL",
+        "observation": {}
+      },
+      {
+        "id": "D03-tailnet-fqdn",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {}
+      },
+      {
+        "id": "D04-tailnet-short",
+        "kind": "focused",
+        "result": "FAIL_FUNCTIONAL",
+        "observation": {}
+      },
+      {
+        "id": "D05-tailnet-disconnected",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "private_answer_count": 0,
+          "public_dns_ok": true,
+          "private_query_in_public_doh": false
+        }
+      },
+      {
+        "id": "D06-tailnet-reconnected-fqdn",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {}
+      },
+      {
+        "id": "D07-tailnet-reconnected-short",
+        "kind": "focused",
+        "result": "FAIL_FUNCTIONAL",
+        "observation": {}
+      },
+      {
+        "id": "D08-native-split-dns",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {}
+      },
+      {
+        "id": "D09-mode-reload",
+        "kind": "focused",
+        "result": "FAIL_FUNCTIONAL",
+        "observation": {
+          "owned_resolver_count": 1,
+          "public_dns_ok": true
+        }
+      },
+      {
+        "id": "D10-native-search-change",
+        "kind": "focused",
+        "result": "FAIL_FUNCTIONAL",
+        "observation": {
+          "method": "Changed only fixture-owned default and supplemental DNS/search entries; saved network preferences untouched."
+        }
+      },
+      {
+        "id": "D12-graceful-exit",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {}
+      },
+      {
+        "id": "D11-startup-aborted-after-dns",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "method": "Injected process death immediately after DNS registration; no app workload started."
+        }
+      }
+    ],
+    "template": {
+      "file": "mimo-dualstack-template.yaml",
+      "sha256": "cba6adf0b9205c0c1b5550b90ba721d2b5f3d2a4b51f34e560edac69f20fcbcc",
+      "engine_mode": "global"
+    },
+    "engine_mode": "global",
+    "native_dns_peer_is_self": true,
+    "live_rules": [
+      {
+        "index": 0,
+        "type": "Match",
+        "payload": "",
+        "proxy": "Proxy",
+        "size": -1,
+        "extra": {
+          "disabled": false,
+          "hitCount": 0,
+          "hitAt": "1970-01-01T07:30:00+07:30",
+          "missCount": 0,
+          "missAt": "1970-01-01T07:30:00+07:30"
+        }
+      },
+      {
+        "index": 1,
+        "type": "Match",
+        "payload": "",
+        "proxy": "REJECT",
+        "size": -1,
+        "extra": {
+          "disabled": false,
+          "hitCount": 0,
+          "hitAt": "1970-01-01T07:30:00+07:30",
+          "missCount": 0,
+          "missAt": "1970-01-01T07:30:00+07:30"
+        }
+      }
+    ],
+    "active_capture_ended_at": 1795516938.104293,
+    "packets": {
+      "en0_all_data4": 0,
+      "en0_data4": 0,
+      "en0_all_data6": 0,
+      "en0_data6": 0,
+      "en0_all_fake": 1,
+      "en0_fake": 1,
+      "en0_fake_while_active": 0,
+      "en0_fake_after_stop_began": 1,
+      "en0_bootstrap": 0,
+      "en0_nat64": 0,
+      "utun238_all_data4": 6,
+      "utun238_data4": 6,
+      "utun238_all_data6": 6,
+      "utun238_data6": 6,
+      "utun238_all_fake": 93,
+      "utun238_fake": 43,
+      "utun238_fake_while_active": 43,
+      "utun238_fake_after_stop_began": 0,
+      "utun238_bootstrap": 0,
+      "utun238_nat64": 0,
+      "utun2_all_data4": 0,
+      "utun2_data4": 0,
+      "utun2_all_data6": 0,
+      "utun2_data6": 0,
+      "utun2_all_fake": 0,
+      "utun2_fake": 0,
+      "utun2_fake_while_active": 0,
+      "utun2_fake_after_stop_began": 0,
+      "utun2_bootstrap": 0,
+      "utun2_nat64": 0
+    },
+    "shutdown_boundary": {
+      "native_fake_packets_after_stop_began": 1,
+      "limitation": "Standalone shutdown ends route enforcement; queued OS DNS may use the former TUN DNS endpoint over the native route before resolver removal propagates."
+    },
+    "counts": {
+      "PASS_FOCUSED": 7,
+      "FAIL_FUNCTIONAL": 5
+    },
+    "passed": false
+  },
+  {
+    "run": "T6R-S00-focus-native-dns-68ee9c",
+    "status": "complete",
+    "profile": "T6R",
+    "proxy_mode": "S00",
+    "scope": "focus-native-dns",
+    "tested_at_utc": "2026-11-24T10:41:57.590363+00:00",
+    "engine_sha256": "ff21dbbad799783de14f4a13684b35531b455beff0335dc2e9d468e5bcbe52bd",
+    "runner_sha256": "b478f991f535e1900bad1588e5c2a2a9fa421ccf38a6bc5f8cbc0342c1afa553",
+    "profile_sha256": "6e1c946f8ecde974d0be250640cbe25a0aaa236573cdf9a061e63d78a8c4a501",
+    "checks": {
+      "native_before_4_http": true,
+      "native_before_4_https_verified": true,
+      "native_before_4_udp_nonce": true,
+      "fixture_4_https_verified": true,
+      "fixture_4_udp_nonce": true,
+      "native_before_6_http": true,
+      "native_before_6_https_verified": true,
+      "native_before_6_udp_nonce": true,
+      "fixture_6_https_verified": true,
+      "fixture_6_udp_nonce": true,
+      "data_routes_captured": true,
+      "control_route_native": true,
+      "live_mode_and_rule_count": true,
+      "live_proxy_selection": true,
+      "live_no_ping_stack": true,
+      "native_dns_registered": true,
+      "system_capture_control_4": true,
+      "system_capture_control_6": true,
+      "no_native_data_egress": true,
+      "no_native_fake_egress_while_active": true,
+      "both_data_families_entered_tun": true,
+      "no_native_nat64_egress": true,
+      "no_native_bootstrap_egress": true,
+      "tailscale_restored": true,
+      "engine_stopped": true,
+      "tun_removed": true,
+      "routes_restored": true,
+      "dns_restored": true,
+      "native_after_4_https_verified": true,
+      "native_after_4_udp_nonce": true,
+      "native_after_6_https_verified": true,
+      "native_after_6_udp_nonce": true
+    },
+    "cases": [
+      {
+        "id": "D01-search-list",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "baseline_count": 2,
+          "active_count": 2
+        }
+      },
+      {
+        "id": "D02-lan-short",
+        "kind": "focused",
+        "result": "FAIL_FUNCTIONAL",
+        "observation": {}
+      },
+      {
+        "id": "D03-tailnet-fqdn",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {}
+      },
+      {
+        "id": "D04-tailnet-short",
+        "kind": "focused",
+        "result": "FAIL_FUNCTIONAL",
+        "observation": {}
+      },
+      {
+        "id": "D05-tailnet-disconnected",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "private_answer_count": 0,
+          "public_dns_ok": true,
+          "private_query_in_public_doh": false
+        }
+      },
+      {
+        "id": "D06-tailnet-reconnected-fqdn",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {}
+      },
+      {
+        "id": "D07-tailnet-reconnected-short",
+        "kind": "focused",
+        "result": "FAIL_FUNCTIONAL",
+        "observation": {}
+      },
+      {
+        "id": "D08-native-split-dns",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {}
+      },
+      {
+        "id": "D09-mode-reload",
+        "kind": "focused",
+        "result": "FAIL_FUNCTIONAL",
+        "observation": {
+          "owned_resolver_count": 1,
+          "public_dns_ok": true
+        }
+      },
+      {
+        "id": "D10-native-search-change",
+        "kind": "focused",
+        "result": "FAIL_FUNCTIONAL",
+        "observation": {
+          "method": "Changed only fixture-owned default and supplemental DNS/search entries; saved network preferences untouched."
+        }
+      },
+      {
+        "id": "D12-graceful-exit",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {}
+      },
+      {
+        "id": "D11-startup-aborted-after-dns",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "method": "Injected process death immediately after DNS registration; no app workload started."
+        }
+      }
+    ],
+    "template": {
+      "file": "mimo-dualstack-template.yaml",
+      "sha256": "cba6adf0b9205c0c1b5550b90ba721d2b5f3d2a4b51f34e560edac69f20fcbcc",
+      "engine_mode": "rule"
+    },
+    "engine_mode": "rule",
+    "native_dns_peer_is_self": true,
+    "live_rules": [
+      {
+        "index": 0,
+        "type": "Match",
+        "payload": "",
+        "proxy": "Proxy",
+        "size": -1,
+        "extra": {
+          "disabled": false,
+          "hitCount": 0,
+          "hitAt": "1970-01-01T07:30:00+07:30",
+          "missCount": 0,
+          "missAt": "1970-01-01T07:30:00+07:30"
+        }
+      },
+      {
+        "index": 1,
+        "type": "Match",
+        "payload": "",
+        "proxy": "REJECT",
+        "size": -1,
+        "extra": {
+          "disabled": false,
+          "hitCount": 0,
+          "hitAt": "1970-01-01T07:30:00+07:30",
+          "missCount": 0,
+          "missAt": "1970-01-01T07:30:00+07:30"
+        }
+      }
+    ],
+    "active_capture_ended_at": 1795516925.682477,
+    "packets": {
+      "en0_all_data4": 0,
+      "en0_data4": 0,
+      "en0_all_data6": 0,
+      "en0_data6": 0,
+      "en0_all_fake": 1,
+      "en0_fake": 1,
+      "en0_fake_while_active": 0,
+      "en0_fake_after_stop_began": 1,
+      "en0_bootstrap": 0,
+      "en0_nat64": 0,
+      "utun238_all_data4": 6,
+      "utun238_data4": 6,
+      "utun238_all_data6": 5,
+      "utun238_data6": 5,
+      "utun238_all_fake": 93,
+      "utun238_fake": 43,
+      "utun238_fake_while_active": 43,
+      "utun238_fake_after_stop_began": 0,
+      "utun238_bootstrap": 0,
+      "utun238_nat64": 0,
+      "utun2_all_data4": 0,
+      "utun2_data4": 0,
+      "utun2_all_data6": 0,
+      "utun2_data6": 0,
+      "utun2_all_fake": 0,
+      "utun2_fake": 0,
+      "utun2_fake_while_active": 0,
+      "utun2_fake_after_stop_began": 0,
+      "utun2_bootstrap": 0,
+      "utun2_nat64": 0
+    },
+    "shutdown_boundary": {
+      "native_fake_packets_after_stop_began": 1,
+      "limitation": "Standalone shutdown ends route enforcement; queued OS DNS may use the former TUN DNS endpoint over the native route before resolver removal propagates."
+    },
+    "counts": {
+      "PASS_FOCUSED": 7,
+      "FAIL_FUNCTIONAL": 5
+    },
+    "passed": false
+  },
+  {
+    "run": "T4R-S00-focus-native-dns-86949d",
+    "status": "incomplete",
+    "profile": "T4R",
+    "proxy_mode": "S00",
+    "scope": "focus-native-dns",
+    "tested_at_utc": "2026-11-24T10:29:23.222215+00:00",
+    "engine_sha256": "ff21dbbad799783de14f4a13684b35531b455beff0335dc2e9d468e5bcbe52bd",
+    "runner_sha256": "670e70d0ea73abfaaa24bd3cc9fb3b357984b7708280e7f644b25e00e0812955",
+    "profile_sha256": "194fccbc1a10d4b697a2e86a8747d59c22488501d88fcf6f98bff395ead13f81",
+    "checks": {
+      "native_before_4_http": true,
+      "native_before_4_https_verified": true,
+      "native_before_4_udp_nonce": true,
+      "fixture_4_https_verified": true,
+      "fixture_4_udp_nonce": true,
+      "native_before_6_http": true,
+      "native_before_6_https_verified": true,
+      "native_before_6_udp_nonce": true,
+      "fixture_6_https_verified": true,
+      "fixture_6_udp_nonce": true,
+      "tailscale_restored": true,
+      "engine_stopped": true,
+      "tun_removed": true,
+      "routes_restored": true,
+      "dns_restored": true,
+      "native_after_4_https_verified": true,
+      "native_after_4_udp_nonce": true,
+      "native_after_6_https_verified": true,
+      "native_after_6_udp_nonce": true
+    },
+    "cases": [],
+    "template": {
+      "file": "mimo-ipv4-template.yaml",
+      "sha256": "589b6585432f8fcbd855b14162c0d3797c9cdaeacd9dbe830ea9c817de42bf4c",
+      "engine_mode": "rule"
+    },
+    "engine_mode": "rule",
+    "error": "AssertionError: Native Tailnet short-name baseline invalid",
+    "packets": {},
+    "counts": {},
+    "passed": false
+  }
+]

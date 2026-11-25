@@ -37,7 +37,7 @@ public enum EventLogLine {
             case "replacing_services": return "\(action) · replacing Mimo engine and daemons"
             case "services_enabled": return "All Mimo services enabled · saved stop preferences cleared"
             case "starting_services": return "\(action) · starting all Mimo services"
-            case "verifying_services": return "\(action) · checking core, engine, provider and infrastructure health"
+            case "verifying_services": return "\(action) · checking core, engine and infrastructure health"
             case "services_verified": return "All Mimo services passed health verification"
             case "health_failed": return "Installation health check failed" + item
             case "succeeded": return "\(action) completed · all services installed and healthy"
@@ -48,6 +48,10 @@ public enum EventLogLine {
             case "rollback_failed": return "Installation recovery incomplete · recovery files retained"
             default: return nil
             }
+        case "mimo_dns_removed_and_drained": return "Mimo DNS override removed · queued queries drained before tunnel teardown"
+        case "mimo_direct_network_released": return "Direct restored · Mimo packet rules and tunnel removed"
+        case "mimo_native_release_checked": return "Native network release check completed"
+        case "mimo_native_release_check_failed": return "Mimo controls released · native Tailnet DNS check failed"
         case "mimo_deactivation_started": return "Stop engine · full service uninstall started"
         case "mimo_deactivation_succeeded": return "Network controls released · IP monitoring continues in this app"
         case "mimo_deactivation_cancelled": return "Service uninstall cancelled · removal not confirmed"
@@ -103,7 +107,8 @@ public enum EventLogLine {
         case "mimo_ipv4_policy_failed": return "IPv4 network policy needs repair" + detail(fields["reason"])
         case "mimo_legacy_network_controls_removed": return "Removed older Mimo firewall policies and DNS override; restored saved IPv6 settings"
         case "mimo_transition_firewall_released": return "Verification passed; transition firewall released to profile routing"
-        case "mimo_direct_network_released": return "Direct selected; Mimo firewall restrictions removed"
+        case "mimo_active_firewall_installed": return "Verification passed; active firewall blocks native application fallback"
+        case "mimo_native_egress_updated": return "Updated verified native VPN transport permissions"
         case "mimo_liveness_lost":
             if fields["heartbeatExpired"] == "true" { return "Check trigger · core heartbeat expired" }
             if fields["engineRunning"] == "false" { return "Check trigger · mihomo stopped" }
@@ -189,7 +194,7 @@ public enum EventLogLine {
             if fields["served"] == "direct" {
                 return "Tailscale provider · Direct \(fields["interface"] ?? "")".trimmingCharacters(in: .whitespaces)
             }
-            return "Tailscale provider · Reject (\(TailscaleVergeStatus.reasonText(fields["reason"] ?? "unknown")))"
+            return "Tailscale provider · Reject (\(fields["reason"] ?? "unknown"))"
         case "route_monitor_unavailable", "network_configuration_monitor_unavailable":
             return "Network change monitor unavailable"
         case "ipinfo_token_removed": return "IPinfo token removed"

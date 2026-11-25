@@ -1,0 +1,485 @@
+diff --git a/config/config.go b/config/config.go
+index cc8c101..d3dccaa 100644
+--- a/config/config.go
++++ b/config/config.go
+@@ -46,6 +46,7 @@ import (
+ 
+ // General config
+ type General struct {
++	MimoDestinationFamily string `json:"mimo-destination-family"`
+ 	Inbound
+ 	Mode              T.TunnelMode            `json:"mode"`
+ 	UnifiedDelay      bool                    `json:"unified-delay"`
+@@ -402,6 +403,7 @@ type RawTLS struct {
+ }
+ 
+ type RawConfig struct {
++	MimoDestinationFamily         string                  `yaml:"mimo-destination-family" json:"mimo-destination-family"`
+ 	Port                          int                     `yaml:"port" json:"port"`
+ 	SocksPort                     int                     `yaml:"socks-port" json:"socks-port"`
+ 	RedirPort                     int                     `yaml:"redir-port" json:"redir-port"`
+@@ -759,10 +761,14 @@ func ParseRawConfig(rawCfg *RawConfig) (*Config, error) {
+ func temporaryUpdateGeneral(general *General) func()
+ 
+ func parseGeneral(cfg *RawConfig) (*General, error) {
++	if cfg.MimoDestinationFamily != "" && cfg.MimoDestinationFamily != "ipv4" && cfg.MimoDestinationFamily != "dual" {
++		return nil, errors.New("invalid mimo-destination-family")
++	}
+ 	if cfg.GlobalClientFingerprint != "" {
+ 		log.Errorln("The `global-client-fingerprint` configuration is removed, please set `client-fingerprint` directly on the proxy instead")
+ 	}
+ 	return &General{
++		MimoDestinationFamily: cfg.MimoDestinationFamily,
+ 		Inbound: Inbound{
+ 			Port:              cfg.Port,
+ 			SocksPort:         cfg.SocksPort,
+diff --git a/constant/tun.go b/constant/tun.go
+index a84af0e..b04933d 100644
+--- a/constant/tun.go
++++ b/constant/tun.go
+@@ -6,10 +6,11 @@ import (
+ )
+ 
+ var StackTypeMapping = map[string]TUNStack{
+-	strings.ToLower(TunGvisor.String()): TunGvisor,
+-	strings.ToLower(TunSystem.String()): TunSystem,
+-	strings.ToLower(TunMixed.String()):  TunMixed,
+-	strings.ToLower(TunMips.String()):   TunMips,
++	strings.ToLower(TunGvisor.String()):       TunGvisor,
++	strings.ToLower(TunSystem.String()):       TunSystem,
++	strings.ToLower(TunMixed.String()):        TunMixed,
++	strings.ToLower(TunMips.String()):         TunMips,
++	strings.ToLower(TunGvisorNoPing.String()): TunGvisorNoPing,
+ }
+ 
+ const (
+@@ -17,6 +18,9 @@ const (
+ 	TunSystem
+ 	TunMixed
+ 	TunMips
++	// Mimo's test stack keeps gVisor TCP/UDP and drops captured ICMP echo requests.
++	// A distinct name makes unpatched engines reject the configuration.
++	TunGvisorNoPing
+ )
+ 
+ type TUNStack int
+@@ -46,6 +50,8 @@ func (e TUNStack) String() string {
+ 		return "Mixed"
+ 	case TunMips:
+ 		return "Mips"
++	case TunGvisorNoPing:
++		return "gvisor-no-ping"
+ 	default:
+ 		return "unknown"
+ 	}
+diff --git a/constant/tun_no_ping_test.go b/constant/tun_no_ping_test.go
+new file mode 100644
+index 0000000..03cd46f
+--- /dev/null
++++ b/constant/tun_no_ping_test.go
+@@ -0,0 +1,20 @@
++package constant
++
++import "testing"
++
++func TestNoPingStackRoundTrip(t *testing.T) {
++	var stack TUNStack
++	if err := stack.UnmarshalText([]byte("gvisor-no-ping")); err != nil {
++		t.Fatal(err)
++	}
++	if stack != TunGvisorNoPing {
++		t.Fatal("no-ping policy lost during parsing")
++	}
++	value, err := stack.MarshalText()
++	if err != nil || string(value) != "gvisor-no-ping" {
++		t.Fatal("controller/config must expose the no-ping policy")
++	}
++	if err := stack.UnmarshalText([]byte("gvisor-unknown")); err == nil {
++		t.Fatal("unknown stack must fail configuration validation")
++	}
++}
+diff --git a/hub/executor/executor.go b/hub/executor/executor.go
+index 796face..d7fdda7 100644
+--- a/hub/executor/executor.go
++++ b/hub/executor/executor.go
+@@ -153,12 +153,13 @@ func GetGeneral() *config.General {
+ 			InboundTfo:        inbound.Tfo(),
+ 			InboundMPTCP:      inbound.MPTCP(),
+ 		},
+-		Mode:         tunnel.Mode(),
+-		UnifiedDelay: adapter.UnifiedDelay.Load(),
+-		LogLevel:     log.Level(),
+-		IPv6:         !resolver.DisableIPv6,
+-		Interface:    dialer.DefaultInterface.Load(),
+-		RoutingMark:  int(dialer.DefaultRoutingMark.Load()),
++		Mode:                  tunnel.Mode(),
++		MimoDestinationFamily: tunnel.MimoDestinationFamily(),
++		UnifiedDelay:          adapter.UnifiedDelay.Load(),
++		LogLevel:              log.Level(),
++		IPv6:                  !resolver.DisableIPv6,
++		Interface:             dialer.DefaultInterface.Load(),
++		RoutingMark:           int(dialer.DefaultRoutingMark.Load()),
+ 		GeoXUrl: config.GeoXUrl{
+ 			GeoIp:   geodata.GeoIpUrl(),
+ 			Mmdb:    geodata.MmdbUrl(),
+@@ -392,6 +393,7 @@ func temporaryUpdateGeneral(general *config.General) func() {
+ 
+ func updateGeneral(general *config.General, logging bool) {
+ 	tunnel.SetMode(general.Mode)
++	tunnel.SetMimoDestinationFamily(general.MimoDestinationFamily)
+ 	tunnel.SetFindProcessMode(general.FindProcessMode)
+ 	resolver.DisableIPv6 = !general.IPv6
+ 
+diff --git a/hub/route/server.go b/hub/route/server.go
+index 6d37d48..b33e3b9 100644
+--- a/hub/route/server.go
++++ b/hub/route/server.go
+@@ -570,5 +570,5 @@ func getLogs(w http.ResponseWriter, r *http.Request) {
+ }
+ 
+ func version(w http.ResponseWriter, r *http.Request) {
+-	render.JSON(w, r, render.M{"meta": C.Meta, "version": C.Version})
++	render.JSON(w, r, render.M{"meta": C.Meta, "version": C.Version, "mimoCapabilities": []string{"strict-ipv4-v1", "probe-acl-v1", "silent-echo-v1", "native-dns-route-v1"}})
+ }
+diff --git a/listener/sing_tun/mimo_native_route_test.go b/listener/sing_tun/mimo_native_route_test.go
+new file mode 100644
+index 0000000..118a948
+--- /dev/null
++++ b/listener/sing_tun/mimo_native_route_test.go
+@@ -0,0 +1,31 @@
++package sing_tun
++
++import (
++	"net/netip"
++	"runtime"
++	"testing"
++)
++
++func TestMimoNativeRouteDoesNotBindQuad100ToPhysicalDefault(t *testing.T) {
++	for _, address := range []string{"100.64.0.0", "100.100.100.100", "100.127.255.255", "::ffff:100.100.100.100", "fd7a:115c:a1e0::53"} {
++		ip := netip.MustParseAddr(address)
++		if !mimoNativeRoute(ip) {
++			t.Fatal(address)
++		}
++		if runtime.GOOS == "darwin" {
++			// No monitor is installed: reaching the normal interface-selection path
++			// would panic, rather than merely returning the expected empty string.
++			if got := (&cDialerInterfaceFinder{}).FindInterfaceName(ip); got != "" {
++				t.Fatalf("%s: %s", address, got)
++			}
++		}
++	}
++	for _, address := range []string{"100.63.255.255", "100.128.0.0", "1.1.1.1", "192.168.1.1", "2001:db8::1", "fd7a:115c:a1e1::1", "64:ff9b::6464:6464"} {
++		if mimoNativeRoute(netip.MustParseAddr(address)) {
++			t.Fatal(address)
++		}
++	}
++	if mimoNativeRoute(netip.Addr{}) {
++		t.Fatal("invalid destination")
++	}
++}
+diff --git a/listener/sing_tun/server.go b/listener/sing_tun/server.go
+index 5415b25..7e146b1 100644
+--- a/listener/sing_tun/server.go
++++ b/listener/sing_tun/server.go
+@@ -73,8 +73,13 @@ type ListenerHandler struct {
+ 	Inet4Address          []netip.Prefix
+ 	Inet6Address          []netip.Prefix
+ 	DisableICMPForwarding bool
++	blockICMPEcho         bool
+ }
+ 
++// BlockICMPEcho is consumed by the gVisor echo handler before its synthetic
++// or direct reply paths. It does not suppress ICMP control/error traffic.
++func (h *ListenerHandler) BlockICMPEcho() bool { return h.blockICMPEcho }
++
+ var emptyAddressSet = []*netipx.IPSet{{}}
+ 
+ func CalculateInterfaceName(name string) (tunName string) {
+@@ -322,6 +327,7 @@ func New(options LC.Tun, tunnel C.Tunnel, additions ...inbound.Addition) (l *Lis
+ 		Inet4Address:          options.Inet4Address,
+ 		Inet6Address:          options.Inet6Address,
+ 		DisableICMPForwarding: options.DisableICMPForwarding,
++		blockICMPEcho:         options.Stack == C.TunGvisorNoPing,
+ 	}
+ 	l = &Listener{
+ 		closed:  false,
+@@ -509,7 +515,11 @@ func New(options LC.Tun, tunnel C.Tunnel, additions ...inbound.Addition) (l *Lis
+ 	}
+ 	l.tunIf = tunIf
+ 
+-	tunStack, err := tun.NewStack(strings.ToLower(options.Stack.String()), stackOptions)
++	stackName := strings.ToLower(options.Stack.String())
++	if options.Stack == C.TunGvisorNoPing {
++		stackName = "gvisor"
++	}
++	tunStack, err := tun.NewStack(stackName, stackOptions)
+ 	if err != nil {
+ 		return
+ 	}
+@@ -627,6 +637,13 @@ func (d *cDialerInterfaceFinder) DefaultInterfaceName(destination netip.Addr) st
+ }
+ 
+ func (d *cDialerInterfaceFinder) FindInterfaceName(destination netip.Addr) string {
++	// Native overlays commonly assign /32 and /128 addresses, so the interface
++	// prefix lookup above cannot identify a different peer or Quad100. Binding
++	// those destinations to the physical default defeats macOS's host route.
++	// Leave them unbound: core's PF guard independently denies a wrong path.
++	if runtime.GOOS == "darwin" && mimoNativeRoute(destination) {
++		return ""
++	}
+ 	for _, dest := range []netip.Addr{destination, netip.IPv4Unspecified(), netip.IPv6Unspecified()} {
+ 		autoDetectInterfaceName := d.DefaultInterfaceName(dest)
+ 		if autoDetectInterfaceName == d.tunName {
+@@ -642,6 +659,12 @@ func (d *cDialerInterfaceFinder) FindInterfaceName(destination netip.Addr) strin
+ 	return "<invalid>"
+ }
+ 
++func mimoNativeRoute(destination netip.Addr) bool {
++	destination = destination.Unmap()
++	return netip.MustParsePrefix("100.64.0.0/10").Contains(destination) ||
++		netip.MustParsePrefix("fd7a:115c:a1e0::/48").Contains(destination)
++}
++
+ func uidToRange[T constraints.Integer](uidList []T) []ranges.Range[T] {
+ 	return common.Map(uidList, func(uid T) ranges.Range[T] {
+ 		return ranges.NewSingle(uid)
+diff --git a/tunnel/mimo_policy.go b/tunnel/mimo_policy.go
+new file mode 100644
+index 0000000..fc3686c
+--- /dev/null
++++ b/tunnel/mimo_policy.go
+@@ -0,0 +1,93 @@
++package tunnel
++
++import (
++	"context"
++	"errors"
++	"github.com/metacubex/mihomo/component/resolver"
++	C "github.com/metacubex/mihomo/constant"
++	"net/netip"
++	"strings"
++	"sync/atomic"
++)
++
++var mimoIPv4Only atomic.Bool
++
++func SetMimoDestinationFamily(family string) { mimoIPv4Only.Store(family == "ipv4") }
++func MimoDestinationFamily() string {
++	if mimoIPv4Only.Load() {
++		return "ipv4"
++	}
++	return "dual"
++}
++
++// Run before fake-IP restoration and sniffing: a literal IPv6 request cannot
++// acquire an IPv4 hostname and evade the destination policy.
++func mimoRejectLiteral(m *C.Metadata) bool {
++	return mimoIPv4Only.Load() && m.DstIP.Is6() && !m.DstIP.Is4In6()
++}
++
++// Routing uses the original host. Only the outbound copy loses it, after rule
++// classification and sniffing, so SOCKS/CONNECT cannot remotely resolve to AAAA.
++func mimoDialMetadata(ctx context.Context, m *C.Metadata, resolve func(context.Context, string) (netip.Addr, error)) (*C.Metadata, error) {
++	if m.InName == "mimo-private-probe" && (m.InUser == "mimo-core-ipv4" || m.InUser == "mimo-core-ipv6") {
++		if err := mimoProbeAdmission(m); err != nil {
++			return nil, err
++		}
++		if mimoIPv4Only.Load() && m.InUser == "mimo-core-ipv6" {
++			return nil, errors.New("IPv6 probe denied in IPv4 mode")
++		}
++		resolve := resolver.ResolveIPv4
++		if m.InUser == "mimo-core-ipv6" {
++			resolve = resolver.ResolveIPv6
++		}
++		ip, err := resolve(ctx, m.Host)
++		if err != nil {
++			return nil, err
++		}
++		if (m.InUser == "mimo-core-ipv4" && !ip.Is4()) || (m.InUser == "mimo-core-ipv6" && !ip.Is6()) {
++			return nil, errors.New("probe destination family mismatch")
++		}
++		result := m.Clone()
++		result.DstIP = ip
++		result.Host = ""
++		result.DNSMode = C.DNSMapping
++		return result, nil
++	}
++	if !mimoIPv4Only.Load() {
++		return m, nil
++	}
++	if mimoRejectLiteral(m) {
++		return nil, errors.New("IPv6 destination rejected by Mimo IPv4 policy")
++	}
++	result := m.Clone()
++	if m.Host != "" {
++		ip, err := resolve(ctx, m.Host)
++		if err != nil {
++			return nil, err
++		}
++		result.DstIP = ip.Unmap()
++	}
++	if !result.DstIP.Is4() {
++		return nil, errors.New("Mimo requires an IPv4 destination")
++	}
++	result.Host = ""
++	result.DNSMode = C.DNSMapping
++	return result, nil
++}
++
++// Auth is checked by the listener; restrict its authenticated principal and
++// destinations here, before SpecialProxy or Global dispatch can bypass rules.
++func mimoProbeAdmission(m *C.Metadata) error {
++	if m.InName != "mimo-private-probe" && m.SpecialRules != "mimo-verification" {
++		return nil
++	}
++	if m.InName != "mimo-private-probe" || m.SpecialRules != "mimo-verification" ||
++		(m.InUser != "mimo-core" && m.InUser != "mimo-core-ipv4" && m.InUser != "mimo-core-ipv6") || m.NetWork != C.TCP || m.DstPort != 443 {
++		return errors.New("Mimo private probe denied")
++	}
++	switch strings.ToLower(strings.TrimSuffix(m.Host, ".")) {
++	case "api.ipinfo.io", "v4.api.ipinfo.io", "v6.api.ipinfo.io", "ipapi.co", "ipwho.is", "api.ipapi.is", "api4.ipify.org", "api6.ipify.org":
++		return nil
++	}
++	return errors.New("Mimo private probe destination denied")
++}
+diff --git a/tunnel/mimo_policy_test.go b/tunnel/mimo_policy_test.go
+new file mode 100644
+index 0000000..ca9cd1f
+--- /dev/null
++++ b/tunnel/mimo_policy_test.go
+@@ -0,0 +1,61 @@
++package tunnel
++
++import (
++	"context"
++	"errors"
++	C "github.com/metacubex/mihomo/constant"
++	"net/netip"
++	"testing"
++)
++
++func TestMimoIPv4Pinning(t *testing.T) {
++	SetMimoDestinationFamily("ipv4")
++	defer SetMimoDestinationFamily("dual")
++	for _, ip := range []string{"2001:db8::1", "64:ff9b::c000:201", "64:ff9b:1::c000:201"} {
++		m := &C.Metadata{DstIP: netip.MustParseAddr(ip)}
++		if !mimoRejectLiteral(m) {
++			t.Fatal("IPv6 ingress accepted", ip)
++		}
++		if _, err := mimoDialMetadata(context.Background(), m, nil); err == nil {
++			t.Fatal("IPv6 outbound accepted")
++		}
++	}
++	for _, network := range []C.NetWork{C.TCP, C.UDP} {
++		original := &C.Metadata{Host: "dual.example", NetWork: network}
++		got, err := mimoDialMetadata(context.Background(), original, func(context.Context, string) (netip.Addr, error) { return netip.MustParseAddr("192.0.2.1"), nil })
++		if err != nil || got.Host != "" || !got.DstIP.Is4() || original.Host != "dual.example" {
++			t.Fatalf("destination not pinned: %v %v", got, err)
++		}
++		if _, err := mimoDialMetadata(context.Background(), original, func(context.Context, string) (netip.Addr, error) { return netip.Addr{}, errors.New("no A") }); err == nil {
++			t.Fatal("missing A accepted")
++		}
++		if _, err := mimoDialMetadata(context.Background(), original, func(context.Context, string) (netip.Addr, error) { return netip.MustParseAddr("2001:db8::1"), nil }); err == nil {
++			t.Fatal("resolver AAAA accepted")
++		}
++	}
++}
++
++func TestMimoProbeBeforeGlobal(t *testing.T) {
++	previous := mode
++	mode = Global
++	defer func() { mode = previous }()
++	valid := C.Metadata{InName: "mimo-private-probe", SpecialRules: "mimo-verification", InUser: "mimo-core", Host: "v6.api.ipinfo.io", NetWork: C.TCP, DstPort: 443}
++	if err := mimoProbeAdmission(&valid); err != nil {
++		t.Fatal(err)
++	}
++	changes := []func(*C.Metadata){
++		func(m *C.Metadata) { m.Host = "example.com" },
++		func(m *C.Metadata) { m.Host = "v6.api.ipinfo.io.attacker.example" },
++		func(m *C.Metadata) { m.DstPort = 80 },
++		func(m *C.Metadata) { m.NetWork = C.UDP },
++		func(m *C.Metadata) { m.InUser = "" },
++		func(m *C.Metadata) { m.SpecialRules = "unknown" },
++	}
++	for _, change := range changes {
++		m := valid
++		change(&m)
++		if _, _, err := resolveMetadata(&m); err == nil {
++			t.Fatal("Global bypassed probe admission", m)
++		}
++	}
++}
+diff --git a/tunnel/tunnel.go b/tunnel/tunnel.go
+index 86dbc14..110d3db 100644
+--- a/tunnel/tunnel.go
++++ b/tunnel/tunnel.go
+@@ -315,6 +315,9 @@ func preHandleMetadata(metadata *C.Metadata) error {
+ }
+ 
+ func resolveMetadata(metadata *C.Metadata) (proxy C.Proxy, rule C.Rule, err error) {
++	if err = mimoProbeAdmission(metadata); err != nil {
++		return
++	}
+ 	if metadata.SpecialProxy != "" {
+ 		var exist bool
+ 		proxy, exist = proxies[metadata.SpecialProxy]
+@@ -398,6 +401,12 @@ func resolveMetadata(metadata *C.Metadata) (proxy C.Proxy, rule C.Rule, err erro
+ 		helper.FindProcess = nil
+ 	}
+ 
++	if metadata.SpecialRules != "" {
++		if _, ok := subRules[metadata.SpecialRules]; !ok {
++			return nil, nil, errors.New("unknown listener rule")
++		}
++		return match(metadata, helper)
++	}
+ 	switch mode {
+ 	case Direct:
+ 		proxy = proxies["DIRECT"]
+@@ -430,6 +439,10 @@ func handleUDPConn(packet C.PacketAdapter) {
+ 		return
+ 	}
+ 	fixMetadata(metadata) // fix some metadata not set via metadata.SetRemoteAddr or metadata.SetRemoteAddress
++	if mimoRejectLiteral(metadata) {
++		packet.Drop()
++		return
++	}
+ 
+ 	if err := preHandleMetadata(metadata.Clone()); err != nil { // precheck without modify metadata
+ 		packet.Drop()
+@@ -466,6 +479,13 @@ func handleUDPConn(packet C.PacketAdapter) {
+ 			dialMetadata := metadata.Pure()
+ 			ctx, cancel := context.WithTimeout(context.Background(), C.DefaultUDPTimeout)
+ 			defer cancel()
++			if !proxy.SupportUDP() {
++				return nil, nil, errors.New("selected proxy does not support UDP")
++			}
++			dialMetadata, err = mimoDialMetadata(ctx, dialMetadata, resolver.ResolveIPv4)
++			if err != nil {
++				return nil, nil, err
++			}
+ 			rawPc, err := retry(ctx, func(ctx context.Context) (C.PacketConn, error) {
+ 				return proxy.ListenPacketContext(ctx, dialMetadata)
+ 			}, func(err error) {
+@@ -515,6 +535,9 @@ func handleTCPConn(connCtx C.ConnContext) {
+ 		return
+ 	}
+ 	fixMetadata(metadata) // fix some metadata not set via metadata.SetRemoteAddr or metadata.SetRemoteAddress
++	if mimoRejectLiteral(metadata) {
++		return
++	}
+ 
+ 	preHandleFailed := false
+ 	if err := preHandleMetadata(metadata); err != nil {
+@@ -573,6 +596,10 @@ func handleTCPConn(connCtx C.ConnContext) {
+ 
+ 	ctx, cancel := context.WithTimeout(context.Background(), C.DefaultTCPTimeout)
+ 	defer cancel()
++	dialMetadata, err = mimoDialMetadata(ctx, dialMetadata, resolver.ResolveIPv4)
++	if err != nil {
++		return
++	}
+ 	remoteConn, err := retry(ctx, func(ctx context.Context) (remoteConn C.Conn, err error) {
+ 		remoteConn, err = proxy.DialContext(ctx, dialMetadata)
+ 		if err != nil {

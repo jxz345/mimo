@@ -8,5 +8,8 @@ swift-test.log
 __pycache__/
 dist/
 
+# Private testing profiles; may contain local proxy credentials.
+/Profiles/*.local.yaml
+
 # Standalone Sites checkout; source is versioned in the Site's own repository.
 /Design/mimo-dashboard-preview/

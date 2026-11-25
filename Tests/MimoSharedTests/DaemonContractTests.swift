@@ -84,45 +84,4 @@ final class DaemonContractTests: XCTestCase {
         XCTAssertNil(object["user"])
     }
 
-    func testNativeRouteRequiresSpecificSingleUtun() {
-        XCTAssertEqual(NativeProviderProtocol.routeInterface("destination: 100.100.100.100\ninterface: utun7"), "utun7")
-        for text in ["destination: default\ninterface: utun7", "destination: 100.100.100.100\ninterface: en0",
-                     "destination: 100.100.100.100\ninterface: utun7\ninterface: utun8"] {
-            XCTAssertNil(NativeProviderProtocol.routeInterface(text))
-        }
-    }
-
-    func testNativeAddressMustBeOneCanonicalCGNATAddress() {
-        XCTAssertEqual(NativeProviderProtocol.tailscaleAddress("100.64.0.1\n"), "100.64.0.1")
-        for text in ["100.63.0.1", "100.128.0.1", "100.064.0.1", "100.64.0.256", "100.64.0.1\n100.64.0.2", "::1"] {
-            XCTAssertNil(NativeProviderProtocol.tailscaleAddress(text))
-        }
-    }
-
-    func testNativeInterfaceMustBeUpAndOwnAddress() {
-        XCTAssertTrue(NativeProviderProtocol.ownsAddress("utun7: flags=1<UP,POINTOPOINT>\n inet 100.64.0.1", interface: "utun7", address: "100.64.0.1"))
-        XCTAssertFalse(NativeProviderProtocol.ownsAddress("utun7: flags=1<POINTOPOINT>\n inet 100.64.0.1", interface: "utun7", address: "100.64.0.1"))
-        XCTAssertFalse(NativeProviderProtocol.ownsAddress("utun8: flags=1<UP>\n inet 100.64.0.1", interface: "utun7", address: "100.64.0.1"))
-    }
-
-    func testHTTPPreservesProviderBytesAndRejectsStaleState() throws {
-        let now = Date()
-        let status = TailscaleVergeStatus(served: .direct(interface: "utun7"), checkedAt: now)
-        let request = Data("GET /provider.yaml HTTP/1.1\r\nHost: localhost\r\n\r\n".utf8)
-        let response = try XCTUnwrap(NativeProviderProtocol.response(to: request, status: status, now: now))
-        XCTAssertTrue(String(decoding: response, as: UTF8.self).hasSuffix("proxies:\n  - name: TS-NATIVE\n    type: direct\n    interface-name: utun7\n    udp: true\n"))
-        let stale = try XCTUnwrap(NativeProviderProtocol.response(to: request, status: status, now: now.addingTimeInterval(13)))
-        XCTAssertTrue(String(decoding: stale, as: UTF8.self).hasSuffix("proxies:\n  - name: TS-NATIVE\n    type: reject\n"))
-    }
-
-    func testHTTPHeadUnknownRoutesUnsupportedMethodsAndIncompleteRequests() throws {
-        for (method, path, status) in [("HEAD", "/provider.yaml", "200"), ("GET", "/unknown", "404"), ("POST", "/provider.yaml", "501")] {
-            let request = Data("\(method) \(path) HTTP/1.1\r\n\r\n".utf8)
-            let response = String(decoding: try XCTUnwrap(NativeProviderProtocol.response(to: request, status: nil)), as: UTF8.self)
-            XCTAssertTrue(response.hasPrefix("HTTP/1.1 \(status)"))
-            if method == "HEAD" { XCTAssertTrue(response.hasSuffix("\r\n\r\n")) }
-        }
-        XCTAssertNil(NativeProviderProtocol.response(to: Data("GET /provider.yaml HTTP/1.1\r\n".utf8), status: nil))
-        XCTAssertNil(NativeProviderProtocol.response(to: Data(repeating: 65, count: 8193), status: nil))
-    }
 }

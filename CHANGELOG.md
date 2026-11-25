@@ -1,5 +1,13 @@
 # Mimo changelog
 
+## 3.0 (build 9) — 2026-11-25
+
+- Add strict IPv4 and dual-stack traffic policies for Rule and Global, using a bundled, pinned Mihomo engine. Capture IPv6 in both policies; strict IPv4 rejects public IPv6 destinations, while dual-stack carries supported IPv6 TCP/UDP through the selected proxy. Block public ping/ping6 silently while preserving native LAN/Tailnet echo and necessary network-control traffic.
+- Replace the dynamic utun provider with native route handling and scoped private DNS. Preserve native search domains, keep Tailnet/private names off public DoH, and use the proxy explicitly for public DNS.
+- Use a flat firewall policy for closed transitions, verification and active fallback containment. Active protection remains effective during engine/process/route faults; Direct and full Stop release owned controls. Permit verified native VPN startup transport before its private tunnel exists, retaining private wrong-path denials.
+- Update the dashboard and Settings for paired exit observations, stable IPv6 layout, country flags, consistent service rows, full Stop/Activate controls and a firewall/maintenance reference. Preserve core ownership across multiple GUI accounts.
+- Qualify real dual-stack Tailscale disconnect/reconnect in Rule and Global and a corrected 32-case baseline/fault rerun with zero measured native bypass or public echo replies. Preserve historical failures and the old ICMP harness limitation. VM sleep/wake was skipped after the VM did not sleep; physical/native-UI qualification remains separately documented.
+
 ## 2.1 (build 8) — 2026-11-23
 
 - Save a system-wide list of HTTP/SOCKS5 proxies with one active selection or None. Inactive edits save without reloading; active protected edits reload and verify. None or active deletion restores Direct. Preserve revisions and drafts across accounts; do not automatically fail over proxies.

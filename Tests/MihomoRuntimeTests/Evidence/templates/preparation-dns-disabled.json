@@ -1,0 +1,38 @@
+{
+  "checks": [
+    {
+      "profile": "mimo-ipv4-template.yaml",
+      "mode": "rule",
+      "engine_configuration_parse_passed": true
+    },
+    {
+      "profile": "mimo-ipv4-template.yaml",
+      "mode": "global",
+      "engine_configuration_parse_passed": true
+    },
+    {
+      "profile": "mimo-dualstack-template.yaml",
+      "mode": "rule",
+      "engine_configuration_parse_passed": true
+    },
+    {
+      "profile": "mimo-dualstack-template.yaml",
+      "mode": "global",
+      "engine_configuration_parse_passed": true
+    }
+  ],
+  "planned_behavioral_cases": 3572,
+  "runtime_cases_executed": 0,
+  "status": "templates_prepared_runtime_not_tested",
+  "checked_at_utc": "2026-11-24T09:16:30.750395+00:00",
+  "engine_version": "v1.19.34-mimo-no-ping.1",
+  "engine_sha256": "ff21dbbad799783de14f4a13684b35531b455beff0335dc2e9d468e5bcbe52bd",
+  "source_sha256": {
+    "mimo-ipv4-template.yaml": "000aeddd8048c0b71b6f5be1e401bd804bf0af455517193a0b94757e6056f310",
+    "mimo-dualstack-template.yaml": "ed2261c8a7ed4811a36982a5b4965a419cbbe711fa7d65ffae8134bee24ac6a3"
+  },
+  "mode_variant_changes_only_mode": true,
+  "existing_working_profile_unchanged": true,
+  "temporary_vm_directory_removed": true,
+  "limitation": "IPv4-oriented template is not strict IPv4-only enforcement in Global or for remotely resolved SOCKS hostnames."
+}

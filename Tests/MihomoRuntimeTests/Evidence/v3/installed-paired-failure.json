@@ -1,0 +1,38 @@
+[
+  {
+    "id": "paired-baseline",
+    "passed": true
+  },
+  {
+    "id": "paired-ipv6-refusal-denied",
+    "passed": true
+  },
+  {
+    "id": "paired-ipv6-refusal-public-listeners-closed",
+    "passed": true
+  },
+  {
+    "id": "paired-refusal-cooldown-retained",
+    "passed": true
+  },
+  {
+    "id": "paired-ipv6-refusal-recovered",
+    "passed": true
+  },
+  {
+    "id": "paired-ipv6-not-allowlisted-denied",
+    "passed": true
+  },
+  {
+    "id": "paired-ipv6-not-allowlisted-public-listeners-closed",
+    "passed": true
+  },
+  {
+    "id": "paired-allowlist-recovered",
+    "passed": true
+  },
+  {
+    "id": "paired-final-direct",
+    "passed": true
+  }
+]

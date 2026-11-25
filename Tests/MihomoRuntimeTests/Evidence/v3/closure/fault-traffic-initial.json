@@ -1,0 +1,406 @@
+{
+  "scope": "installed Release 3.0 build 8; controlled native attempts stopped by independent lab containment",
+  "traffic": [
+    {
+      "id": "ipv4-rule-baseline",
+      "result": "PASS",
+      "native_attempts": 0,
+      "successes": {
+        "4-tcp": 12,
+        "4-stream": 11,
+        "4-udp": 12,
+        "4-echo": 0,
+        "6-tcp": 0,
+        "6-stream": 0,
+        "6-udp": 0,
+        "6-echo": 0
+      }
+    },
+    {
+      "id": "ipv4-rule-engine-kill",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 2,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 2
+      },
+      "first_native_attempt_seconds": 0.0337,
+      "first_sampled_closed_seconds": 0.0967,
+      "recovered": true,
+      "error": null,
+      "result": "FAIL_NATIVE_BYPASS"
+    },
+    {
+      "id": "ipv4-rule-engine-stall",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 0,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 0
+      },
+      "first_native_attempt_seconds": null,
+      "first_sampled_closed_seconds": 3.2251,
+      "recovered": true,
+      "error": null,
+      "result": "PASS"
+    },
+    {
+      "id": "ipv4-rule-core-stall",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 0,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 0
+      },
+      "first_native_attempt_seconds": null,
+      "first_sampled_closed_seconds": 6.0156,
+      "recovered": false,
+      "error": "",
+      "result": "FAIL_RECOVERY"
+    },
+    {
+      "id": "ipv4-rule-supervisor-stall",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 0,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 0
+      },
+      "first_native_attempt_seconds": null,
+      "first_sampled_closed_seconds": 14.8324,
+      "recovered": true,
+      "error": null,
+      "result": "PASS"
+    },
+    {
+      "id": "ipv4-rule-owners-stall",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 0,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 0
+      },
+      "first_native_attempt_seconds": null,
+      "first_sampled_closed_seconds": 14.5332,
+      "recovered": true,
+      "error": null,
+      "result": "PASS"
+    },
+    {
+      "id": "ipv4-rule-native-route",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 0,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 0
+      },
+      "first_native_attempt_seconds": null,
+      "first_sampled_closed_seconds": 0.3071,
+      "recovered": true,
+      "error": null,
+      "result": "PASS"
+    },
+    {
+      "id": "ipv4-global-baseline",
+      "result": "PASS",
+      "native_attempts": 0,
+      "successes": {
+        "4-tcp": 12,
+        "4-stream": 13,
+        "4-udp": 12,
+        "4-echo": 0,
+        "6-tcp": 0,
+        "6-stream": 0,
+        "6-udp": 0,
+        "6-echo": 0
+      }
+    },
+    {
+      "id": "ipv4-global-engine-kill",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 3,
+      "native_attempts_by_family": {
+        "4": 1,
+        "6": 2
+      },
+      "first_native_attempt_seconds": 0.0379,
+      "first_sampled_closed_seconds": 0.4238,
+      "recovered": true,
+      "error": null,
+      "result": "FAIL_NATIVE_BYPASS"
+    },
+    {
+      "id": "ipv4-global-engine-stall",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 0,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 0
+      },
+      "first_native_attempt_seconds": null,
+      "first_sampled_closed_seconds": 3.1764,
+      "recovered": true,
+      "error": null,
+      "result": "PASS"
+    },
+    {
+      "id": "ipv4-global-core-stall",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 0,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 0
+      },
+      "first_native_attempt_seconds": null,
+      "first_sampled_closed_seconds": 5.6526,
+      "recovered": false,
+      "error": "",
+      "result": "FAIL_RECOVERY"
+    },
+    {
+      "id": "ipv4-global-supervisor-stall",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 0,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 0
+      },
+      "first_native_attempt_seconds": null,
+      "first_sampled_closed_seconds": 14.6805,
+      "recovered": true,
+      "error": null,
+      "result": "PASS"
+    },
+    {
+      "id": "ipv4-global-owners-stall",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 0,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 0
+      },
+      "first_native_attempt_seconds": null,
+      "first_sampled_closed_seconds": 15.1145,
+      "recovered": true,
+      "error": null,
+      "result": "PASS"
+    },
+    {
+      "id": "ipv4-global-native-route",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 2,
+      "native_attempts_by_family": {
+        "4": 1,
+        "6": 1
+      },
+      "first_native_attempt_seconds": 0.0994,
+      "first_sampled_closed_seconds": 0.5046,
+      "recovered": true,
+      "error": null,
+      "result": "FAIL_NATIVE_BYPASS"
+    },
+    {
+      "id": "dual-rule-baseline",
+      "result": "PASS",
+      "native_attempts": 0,
+      "successes": {
+        "4-tcp": 12,
+        "4-stream": 13,
+        "4-udp": 12,
+        "4-echo": 0,
+        "6-tcp": 12,
+        "6-stream": 13,
+        "6-udp": 12,
+        "6-echo": 0
+      }
+    },
+    {
+      "id": "dual-rule-engine-kill",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 1,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 1
+      },
+      "first_native_attempt_seconds": 0.0555,
+      "first_sampled_closed_seconds": 0.3714,
+      "recovered": true,
+      "error": null,
+      "result": "FAIL_NATIVE_BYPASS"
+    },
+    {
+      "id": "dual-rule-engine-stall",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 0,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 0
+      },
+      "first_native_attempt_seconds": null,
+      "first_sampled_closed_seconds": 4.0263,
+      "recovered": true,
+      "error": null,
+      "result": "PASS"
+    },
+    {
+      "id": "dual-rule-core-stall",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 0,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 0
+      },
+      "first_native_attempt_seconds": null,
+      "first_sampled_closed_seconds": 5.7345,
+      "recovered": false,
+      "error": "",
+      "result": "FAIL_RECOVERY"
+    },
+    {
+      "id": "dual-rule-supervisor-stall",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 0,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 0
+      },
+      "first_native_attempt_seconds": null,
+      "first_sampled_closed_seconds": 14.576,
+      "recovered": true,
+      "error": null,
+      "result": "PASS"
+    },
+    {
+      "id": "dual-rule-owners-stall",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 0,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 0
+      },
+      "first_native_attempt_seconds": null,
+      "first_sampled_closed_seconds": null,
+      "recovered": true,
+      "error": null,
+      "result": "PASS"
+    },
+    {
+      "id": "dual-rule-native-route",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 0,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 0
+      },
+      "first_native_attempt_seconds": null,
+      "first_sampled_closed_seconds": 0.329,
+      "recovered": true,
+      "error": null,
+      "result": "PASS"
+    },
+    {
+      "id": "dual-global-baseline",
+      "result": "PASS",
+      "native_attempts": 0,
+      "successes": {
+        "4-tcp": 13,
+        "4-stream": 12,
+        "4-udp": 13,
+        "4-echo": 0,
+        "6-tcp": 12,
+        "6-stream": 14,
+        "6-udp": 13,
+        "6-echo": 0
+      }
+    },
+    {
+      "id": "dual-global-engine-kill",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 4,
+      "native_attempts_by_family": {
+        "4": 2,
+        "6": 2
+      },
+      "first_native_attempt_seconds": 0.0218,
+      "first_sampled_closed_seconds": 0.1658,
+      "recovered": true,
+      "error": null,
+      "result": "FAIL_NATIVE_BYPASS"
+    },
+    {
+      "id": "dual-global-engine-stall",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 0,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 0
+      },
+      "first_native_attempt_seconds": null,
+      "first_sampled_closed_seconds": 3.8655,
+      "recovered": true,
+      "error": null,
+      "result": "PASS"
+    },
+    {
+      "id": "dual-global-core-stall",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 0,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 0
+      },
+      "first_native_attempt_seconds": null,
+      "first_sampled_closed_seconds": 5.9876,
+      "recovered": false,
+      "error": "",
+      "result": "FAIL_RECOVERY"
+    },
+    {
+      "id": "dual-global-supervisor-stall",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 0,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 0
+      },
+      "first_native_attempt_seconds": null,
+      "first_sampled_closed_seconds": 14.7155,
+      "recovered": true,
+      "error": null,
+      "result": "PASS"
+    },
+    {
+      "id": "dual-global-owners-stall",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 0,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 0
+      },
+      "first_native_attempt_seconds": null,
+      "first_sampled_closed_seconds": 14.9356,
+      "recovered": true,
+      "error": null,
+      "result": "PASS"
+    },
+    {
+      "id": "dual-global-native-route",
+      "native_attempts_before_fault": 0,
+      "native_attempts_after_fault": 0,
+      "native_attempts_by_family": {
+        "4": 0,
+        "6": 0
+      },
+      "first_native_attempt_seconds": null,
+      "first_sampled_closed_seconds": 0.0793,
+      "recovered": true,
+      "error": null,
+      "result": "PASS"
+    }
+  ],
+  "detector": {
+    "both_families_detected": true,
+    "native_attempts": 51
+  },
+  "preliminary_core_resume": "Initial core-stall records used cached Active phase then immediately asserted PF; corrected effective-state polling is rerun separately."
+}

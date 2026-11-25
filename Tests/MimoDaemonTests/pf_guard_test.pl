@@ -3,6 +3,7 @@ use strict;
 use warnings;
 use Test::More;
 use JSON::PP;
+use File::Temp qw(tempfile);
 require $ARGV[0];
 
 my $original = "# administrator rules\nscrub-anchor \"com.apple/*\"\nanchor \"com.apple/*\"\nload anchor \"com.apple\" from \"/etc/pf.anchors/com.apple\"\n";
@@ -41,26 +42,38 @@ for my $intent ({engine => JSON::PP::true, releaseNetwork => JSON::PP::true},
 }
 {
     no warnings 'redefine';
-    my $active = "anchor \"power-guard\" out quick all\n";
-    my ($live, $barrier) = ($active, '');
+    my ($file, $empty_path) = tempfile(UNLINK => 1);
+    close $file;
+    local *main::secure = sub { }; # Test runs without root; exercise the real file reader.
+    my $active = main::read_file($empty_path);
+    is($active, '', 'an existing empty expected-policy file is not missing');
+    $active = "pass out quick on lo0 all no state label \"mimo:active:loopback\"\nblock drop out quick all label \"mimo:active:deny-native-fallback\"\n";
+    my $live = $active;
     local *main::required = sub {
         my $query = join(' ', @_);
         return "TOKENS:\n7 pfctl 123 0 days\n" if $query =~ /References$/;
         return "Status: Enabled\n" if $query =~ /-s info$/;
         return "anchor \"com.apple/*\" all\n" if $query eq '/sbin/pfctl -sr';
-        return $barrier if $query =~ /power-guard -sr$/;
         return $live if $query =~ /000\.mimo -sr$/;
         return '';
     };
     my $snapshot = [undef, 'active', $active, '', '', encode_json({boot => 'test', token => '123'})];
-    ok(!main::inspect_pf_snapshot($snapshot, 'test')->{needs_block}, 'active profile routing requires no steady packet filter');
-    $barrier = 'block drop out quick all label "mimo:transition:deny"';
-    ok(main::inspect_pf_snapshot($snapshot, 'test')->{withdrawn}, 'independent barrier withdraws active access');
-    $barrier = '';
+    ok(!main::inspect_pf_snapshot($snapshot, 'test')->{needs_block}, 'active access requires the persistent fallback guard');
+    $live = '';
+    ok(main::inspect_pf_snapshot($snapshot, 'test')->{needs_block}, 'empty active policy requires closure');
+    $live = $active;
+    $snapshot->[2] = undef;
+    ok(main::inspect_pf_snapshot($snapshot, 'test')->{needs_block}, 'missing expected policy cannot qualify active access');
+    $snapshot->[2] = $active;
     $live = $active . "block return out quick inet6 all\n";
     ok(main::inspect_pf_snapshot($snapshot, 'test')->{needs_block}, 'older active IPv6 filter is not accepted as the new policy');
     $live = '';
     $snapshot->[1] = 'direct'; $snapshot->[2] = '';
     ok(!main::inspect_pf_snapshot($snapshot, 'test')->{needs_block}, 'empty Direct policy is healthy');
+    $snapshot->[1] = 'blocked';
+    ok(main::inspect_pf_snapshot($snapshot, 'test')->{needs_block}, 'an empty policy cannot qualify a closed transition');
+    $live = "block drop out quick all label \"mimo:transition:deny\"\n";
+    $snapshot->[2] = $live;
+    ok(!main::inspect_pf_snapshot($snapshot, 'test')->{needs_block}, 'flat closed policy is accepted');
 }
 done_testing();

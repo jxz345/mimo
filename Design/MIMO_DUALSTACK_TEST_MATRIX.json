@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "status": "executed_with_documented_diagnostic_difference",
+  "plan": "MIMO_DUALSTACK_TEST_PLAN.md",
+  "frozen_profile": "Profiles/mimo-global-ipv6-test.local.yaml",
+  "engine": "v1.19.34-mimo-no-ping.1",
+  "profile_directory": "Profiles",
+  "common_overlay": {
+    "proxy_listener_family": "ipv4",
+    "proxy_endpoint": "discovered_delta_vm_bridge_ipv4",
+    "application_ipv4": "discovered_delta_lan_ipv4_distinct_from_proxy",
+    "application_ipv6": "discovered_delta_reachable_native_ipv6",
+    "public_dns": "controlled_delta_ipv4_doh_via_Proxy",
+    "tls_trust": "engine_local_temporary_CA_no_OS_trust_mutation",
+    "fake_ipv6_pool_if_enabled": "fdfe:dcba:9876:1::/64",
+    "tun_instrumentation": "isolated_device_and_controller_plus_exact_VM_data_capture_routes"
+  },
+  "invariants": {
+    "mode": "global",
+    "rule_count": 0,
+    "global_chain": ["GLOBAL", "Proxy", "TEST-PROXY"],
+    "direct_fallback": false,
+    "top_level_ipv6": true,
+    "stack": "gvisor-no-ping",
+    "custom_tun_ipv6_address": false,
+    "ipv6_capture_routes": ["::/1", "8000::/1"],
+    "native_tailnet_exclusions": ["100.64.0.0/10", "fd7a:115c:a1e0::/48"],
+    "proxy_udp": true,
+    "core_dns_mode": "disabled",
+    "persistent_fake_ip_cache": false
+  },
+  "profiles": [
+    {"id": "P00", "file": "mimo-dualstack-p00.local.yaml", "dns_ipv6": false, "fake_ipv6_pool": false, "ip_version": "ipv4"},
+    {"id": "P01", "file": "mimo-dualstack-p01.local.yaml", "dns_ipv6": false, "fake_ipv6_pool": false, "ip_version": "dual"},
+    {"id": "P02", "file": "mimo-dualstack-p02.local.yaml", "dns_ipv6": false, "fake_ipv6_pool": true, "ip_version": "ipv4"},
+    {"id": "P03", "file": "mimo-dualstack-p03.local.yaml", "dns_ipv6": false, "fake_ipv6_pool": true, "ip_version": "dual"},
+    {"id": "P04", "file": "mimo-dualstack-p04.local.yaml", "dns_ipv6": true, "fake_ipv6_pool": false, "ip_version": "ipv4"},
+    {"id": "P05", "file": "mimo-dualstack-p05.local.yaml", "dns_ipv6": true, "fake_ipv6_pool": false, "ip_version": "dual"},
+    {"id": "P06", "file": "mimo-dualstack-p06.local.yaml", "dns_ipv6": true, "fake_ipv6_pool": true, "ip_version": "ipv4"},
+    {"id": "P07", "file": "mimo-dualstack-p07.local.yaml", "dns_ipv6": true, "fake_ipv6_pool": true, "ip_version": "dual"}
+  ],
+  "focused_profiles": [
+    {"id": "P08", "file": "mimo-dualstack-p08.local.yaml", "base": "P07", "delta": {"proxies.TEST-PROXY.ip-version": "ipv6-prefer"}},
+    {"id": "P09", "file": "mimo-dualstack-p09.local.yaml", "base": "P07", "delta": {"dns.enhanced-mode": "redir-host", "dns.fake-ip-range": null, "dns.fake-ip-range6": null}},
+    {"id": "P10", "file": "mimo-dualstack-p10.local.yaml", "base": "P07", "delta": {"tun.dns-mode": "native"}}
+  ],
+  "proxy_modes": [
+    {"id": "S00", "ipv6_tcp": "forward", "ipv6_udp": "forward"},
+    {"id": "S01", "ipv6_tcp": "explicit_failure", "ipv6_udp": "forward"},
+    {"id": "S02", "ipv6_tcp": "bounded_stall", "ipv6_udp": "forward"},
+    {"id": "S03", "ipv6_tcp": "forward", "ipv6_udp": "drop"},
+    {"id": "S04", "ipv6_tcp": "explicit_failure", "ipv6_udp": "drop"},
+    {"id": "S05", "ipv6_tcp": "bounded_stall", "ipv6_udp": "drop"}
+  ],
+  "proxy_mode_invariants": {"ipv4_tcp": "forward", "ipv4_udp": "forward", "core_doh_transport": "ipv4"},
+  "application_axes": {
+    "targets": [
+      {"id": "literal4", "name_class": null, "client_address": "actual_ipv4"},
+      {"id": "literal6", "name_class": null, "client_address": "actual_ipv6"},
+      {"id": "a_only_via_a", "name_class": "a_only", "client_address": "listener_A"},
+      {"id": "a_only_via_aaaa", "name_class": "a_only", "client_address": "listener_AAAA"},
+      {"id": "aaaa_only_via_a", "name_class": "aaaa_only", "client_address": "listener_A"},
+      {"id": "aaaa_only_via_aaaa", "name_class": "aaaa_only", "client_address": "listener_AAAA"},
+      {"id": "dual4_via_a", "name_class": "dual_proxy_tcp_prefers_ipv4", "client_address": "listener_A"},
+      {"id": "dual4_via_aaaa", "name_class": "dual_proxy_tcp_prefers_ipv4", "client_address": "listener_AAAA"},
+      {"id": "dual6_via_a", "name_class": "dual_proxy_tcp_prefers_ipv6", "client_address": "listener_A"},
+      {"id": "dual6_via_aaaa", "name_class": "dual_proxy_tcp_prefers_ipv6", "client_address": "listener_AAAA"}
+    ],
+    "protocols": ["http", "https_verified", "udp_nonce"],
+    "cache_states": ["cold_fresh_connection", "warm_mapping_fresh_connection"]
+  },
+  "dns_axes": {
+    "name_classes": ["a_only", "aaaa_only", "dual_proxy_tcp_prefers_ipv4", "dual_proxy_tcp_prefers_ipv6", "nonexistent"],
+    "query_types": ["A", "AAAA"],
+    "client_transports": ["udp", "tcp"],
+    "delivery_paths": ["explicit_ipv4_local_listener", "captured_ipv4_port53", "captured_ipv6_port53"]
+  },
+  "real_resolver_axes": {
+    "name_classes_from": "dns_axes.name_classes",
+    "query_types_from": "dns_axes.query_types",
+    "path": "controller_dns_query_unique_name"
+  },
+  "expected_core_counts": {
+    "profile_proxy_cells": 48,
+    "application_cases": 2880,
+    "dns_delivery_queries": 2880,
+    "real_resolver_queries": 480,
+    "total_planned_cases": 6240
+  },
+  "focused_scenarios": [
+    {"id": "F01", "subject": "doh_ipv4_ipv6_transport_independence"},
+    {"id": "F02", "subject": "dns_response_timeout_tls_failure_recovery"},
+    {"id": "F03", "subject": "socks_address_forms_and_explicit_error_codes"},
+    {"id": "F04", "subject": "udp_association_refusal_relay_loss_revocation"},
+    {"id": "F05", "subject": "authentication_proxy_off_midstream_failure"},
+    {"id": "F06", "subject": "warm_dns_capability_withdrawal_recovery"},
+    {"id": "F07", "subject": "happy_eyeballs_proxied_ipv4_retry"},
+    {"id": "F08", "subject": "redir_host_and_mixed_listener_controls"},
+    {"id": "F09", "subject": "large_payload_fragmentation_icmp_control"},
+    {"id": "F10", "subject": "silent_echo_drop_no_synthetic_replies"},
+    {"id": "F11", "subject": "native_lan_tailnet_and_magicdns"},
+    {"id": "F12", "subject": "nat64_capture_without_translation_claim"},
+    {"id": "F13", "subject": "system_dns_registration_and_cleanup"},
+    {"id": "F14", "subject": "reload_invalid_startup_parent_loss_cleanup"},
+    {"id": "F15", "subject": "engine_exit_and_native_route_boundaries"}
+  ],
+  "result_classes": [
+    "PASS_SERVICE",
+    "PASS_DNS_EXPECTATION",
+    "PASS_EXPECTED_DENIAL_NO_EGRESS",
+    "EXPECTED_DNS_SUPPRESSION",
+    "FAIL_FUNCTIONAL",
+    "FAIL_LEAK",
+    "INVALID_FIXTURE",
+    "NOT_RUN"
+  ],
+  "execution_limits": {
+    "case_deadline_seconds": 5,
+    "max_independent_cases_per_cell": 4,
+    "vm_cell_watchdog_seconds": 360,
+    "host_fixture_lifetime_seconds": 480,
+    "whole_run_budget_seconds": 21600,
+    "serialize_mutations_and_cold_warm_pairs": true,
+    "stop_affected_phase_on_leak": true
+  },
+  "execution_order": ["preflight", "fixture_self_test", "generate_validate_variants", "P00_P07_S00_S04_smoke", "full_matrix", "focused_regressions", "candidate_decision"],
+  "results": {
+    "report": "MIMO_DUALSTACK_TEST_RESULTS.md",
+    "evidence": "../Tests/MihomoRuntimeTests/Evidence/dualstack/summary.json",
+    "candidate": "P07",
+    "matrix_cells_completed": 48,
+    "matrix_cases_matching_expectations": 6240,
+    "focused_assertions_passed": 148,
+    "focused_functional_differences": 1,
+    "diagnostic_difference": "P09 redir-host restored an IPv4 literal to a cached dual-stack hostname; traffic remained proxied but the upstream family changed."
+  }
+}

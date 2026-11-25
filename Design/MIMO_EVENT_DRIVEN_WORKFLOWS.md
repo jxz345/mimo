@@ -1,461 +1,244 @@
 # Mimo event-driven workflows
 
-Installation gives startup health verification up to 120 seconds (10 seconds per endpoint request, inside a 150-second installer bound), allowing legacy cleanup to finish before declaring a communication failure. It still requires all existing health checks. A delayed Direct command is acknowledged without another profile load when the supervisor has already completed Direct restoration and the runtime gate still confirms Direct.
+Current v3 implementation, updated 2026-11-25. Qualification is tracked separately
+in [MIMO_3_0_IMPLEMENTATION.md](MIMO_3_0_IMPLEMENTATION.md); this document is not a
+claim that every physical scenario has passed. The v3 plan contains its own
+adapted workflow specification and does not depend on historical versions of
+this file.
 
-Updated 2026-11-23 for **2.1 build 8**, including shared proxy lists, local credentials and explicit refresh outcomes. Built on **2.0 build 7**, including core-owned installation restoration and cross-account cleanup. The build 6 transition-firewall section below supersedes the earlier steady-state PF/native-rule descriptions. Earlier test evidence remains historical. Previous baseline: **2.0 build 5 release**, on top of published build 4. Engine release/coexistence and editable Rule bypass workflows are described below. The following MagicDNS history remains scoped to build 3. This implementation reference includes scoped MagicDNS access, native resolver search domains and uniform monitoring ages. The integrated firewall candidate passed on the affected physical Mac; the permanent policy is packaged and installed in mimo-vm with fresh-query, revocation and recovery checks. See [build 3 evidence](../Tests/ReleaseEvidence/mimo-build-3-magicdns.json) for scope and remaining limits. The [DNS comparison](../Scripts/diagnose-magicdns.pl) and [service snapshot](../Scripts/diagnose-mimo-services.sh) remain read-only diagnostics.
+## Ownership
 
-The [design plan](../MIMO_PLAN.md) records design decisions and earlier sequences. For current event handling, use this document and the linked source. [Failure scenarios](MIMO_FIREWALL_AND_FAILURE_SCENARIOS.md) describe the broader protection limits.
-
-## Contents
-
-- [Ownership and states](#ownership-and-states)
-- [Trigger inventory](#trigger-inventory)
-- [Startup, shutdown and recovery](#startup-shutdown-and-recovery)
-- [Protected verification](#protected-verification)
-- [Network changes and event coalescing](#network-changes-and-event-coalescing)
-- [Native Tailnet and provider changes](#native-tailnet-and-provider-changes)
-- [Sleep, wake and user sessions](#sleep-wake-and-user-sessions)
-- [Engine release and resumption](#engine-release-and-resumption)
-- [User commands and shared settings](#user-commands-and-shared-settings)
-- [Lookup scheduling and failures](#lookup-scheduling-and-failures)
-- [Runtime faults and background audits](#runtime-faults-and-background-audits)
-- [GUI, widgets and diagnostics](#gui-widgets-and-diagnostics)
-- [Installation and release events](#installation-and-release-events)
-- [Timing and diagnostic reference](#timing-and-diagnostic-reference)
-- [Validation map and maintenance](#validation-map-and-maintenance)
-
-## Ownership and states
-
-| Component | Owns | Does not own |
-| --- | --- | --- |
-| `mimo-core` / `DaemonService` | Shared settings and revisions, lookup scheduling, quotas, credentials, client subscriptions, native connection intent and diagnostic HTTP provider | Final PF permission to open traffic |
-| `MimoCoordinator` in core | Ordered supervisor requests, lookup generation, authenticated private exit-IP probe | An independent network event observer in the installed service |
-| Independent `MimoSupervisor` | PF transitions, profile delivery, runtime readiness, native PF/provider publication, network/power/session observation, service operations and recovery | GUI lifetime |
-| `mihomo` | Loaded profile, TUN, proxy/DNS listeners and routing, watching the private File provider | Authority to release Mimo's PF gate |
-| Independent boot/infrastructure jobs | Saved PF installation and periodic PF/launchd repair | Exit-IP approval |
-| GUI and widgets | Displaying shared state and issuing authorized commands | Traffic enforcement or authoritative cached approval |
-
-**Protected** below means Rule or Global. Direct restores system networking without allowlist approval or Mimo IPv6 restrictions. Rule/Global capture and reject IPv6 in the profile. Explicit engine release restores owned IPv6 flags and relinquishes networking; it is a separate persisted intent, not merely a mode selection. A previously displayed IP is not a new approval. A successful IP lookup alone is not proof that the traffic gate opened.
-
-| Routing phase | Meaning |
+| Owner | Responsibility |
 | --- | --- |
-| `unavailable` | Current enforcement/status cannot be confirmed. |
-| `restoringDirect` | Removing managed routing and the temporary DNS override. |
-| `closing` | Closure requested; the UI must not claim confirmed blocking yet. |
-| `blocked` | Protected access remains closed, including failures or waiting between checks. |
-| `validating` | Profile preparation/readiness is underway with ordinary application traffic closed. |
-| `checking` | The authenticated private exit-IP probe is available; ordinary application traffic remains closed. |
-| `active` | Effective Direct, or approved Rule/Global. A permitted warm background audit does not change this to Checking. |
-
-Sources: [routing policy](../Sources/MimoShared/MimoRouting.swift), [coordinator](../Sources/MimoService/MimoCoordinator.swift), [supervisor](../Sources/MimoService/MimoSupervisor.swift), [presentation](../Sources/MimoShared/MimoStatusPresentation.swift).
-
-## Trigger inventory
-
-This inventory includes OS callbacks, polled state transitions, user commands and timer completions. Polling is how some external events are detected; it is not itself an instruction to check the exit IP.
-
-| Trigger | Receiver / workflow | Protected behavior | Direct behavior |
-| --- | --- | --- | --- |
-| Boot, supervisor or core startup | Startup / saved configuration | Guard, respect service intent, fresh verification before release | Restore Direct; startup lookup observes IP |
-| Select Rule/Global, including switching between them | Shared routing transaction → verification | Close and verify current saved configuration | Leaving Direct arms a protected cycle |
-| Select Direct | Shared routing transaction → Direct restore | Cancel obsolete approval and restore Direct after persistence; retain engine | Remain Direct; do not restart an explicitly released engine |
-| Stop engine and use Direct | Privileged installer deactivation | Full daemon/login-item/network cleanup; retain app/settings; completion requires verified receipt and job absence | Same full cleanup |
-| Activate Mimo after deactivation | Privileged installer activation | Restore all services in Direct; later Rule/Global follows normal verification | Confirm identified conflicts using installation prompt, then restore services |
-| Apply bypass blocks | Core revision-checked settings transaction | Rule re-verifies; Global saves without changing routing | Save only, including released mode |
-| Add/edit/remove inactive proxy | Shared catalog transaction | Save only; no profile/lookup/gate change | Save only |
-| Edit/select active proxy | Shared catalog transaction | Keep protected mode; invalidate, reload and verify | Keep Direct; save only |
-| Select None/remove active proxy | Shared catalog transaction | Restore ordinary Direct; preserve remaining catalog | Stay Direct |
-| Change allowlist/provider settings or lookup credential | Settings transaction | Invalidate and verify when affected | Refresh observation without allowlist enforcement |
-| Refresh now, Retry verification, provider Test | Monitor refresh scheduler | Run the protected verification workflow if a lookup is admitted | Observe IP without closing |
-| Periodic interval, quota/cooldown retry, queued refresh | Monitor scheduler | Same protected lookup path; no special periodic bypass of PF preparation | Observe IP |
-| External IP, DNS, proxy, route, interface, service-order, location or VPN change | Supervisor network observer | Early revocation, classified event, fresh verification | Ordinary event ignored for lookup; IPv4 policy still maintained |
-| Recognized AirPort telemetry or unchanged location apply | Callback-side filters | No verification and no early closure | Same |
-| Exact owned TUN/DNS mutation | Ownership classification | No additional verification; resolve any pending event classification | Same |
-| Validated private native Tailnet connect/disconnect | Private Tailnet classifier + native observers | Update native PF/provider and protected DNS in place | Update native integration; no public gate cycle |
-| Tailnet exit-node/subnet/public/unknown change | Conservative network classification | Verification required | Ordinary event ignored for lookup |
-| Mimo provider Start/Stop/Restart | Core settings + supervisor native writer | Update private Tailnet access in place when public access is already approved | Preserve Direct |
-| Diagnostic provider port occupied/listener failure | HTTP provider service | Rebind/retry independently of the File provider and profile | Same |
-| System will sleep / wake / sleep cancelled | IOKit power guard | Revoke old epoch and hold closed; verify after wake | No allowlist gate or event-driven lookup |
-| Lock/unlock, login/logout, console-user switch, display sleep/wake | Session sampler | Revoke and verify; unavailable observation is also relevant | No event-driven lookup |
-| Core heartbeat loss, engine death, unexpected gate state | Supervisor watchdog | Close; recover through fresh verification | Direct recovery remains available |
-| Missing resolver, failed readiness/native/PF audit or audit timeout | Supervisor audit/recovery | Close, invalidate reusable baseline, recover and verify | Do not let a delayed protected fault close a newer Direct selection |
-| Core Start/Stop/Restart; managed engine Start/Restart; profile Reload | Supervisor service workflow | Confirm closure before mutation; Start/Restart/Reload requests verification | Preserve Direct; no proxy approval needed |
-| PF/launchd damage or service recovery | Independent guard + supervisor repair | Repair closed, respect Stop flags, fresh verification | Maintain infrastructure and restore saved Direct when permitted |
-| GUI launch/reopen/focus, screen/session UI notification, GUI quit | Client subscription and presentation | Read/display state; no lookup solely because the dashboard opened | Same |
-| Country-only metadata change or highlight expiry | Snapshot/presentation update | No extra lookup or gate cycle | Same |
-| Appearance/login-item setting, copy, log pause/export, Open profile | Presentation/read-only workflows | No routing mutation | Same |
-| Install/upgrade/repair/uninstall | Installer/cleanup | Maintenance guard and rollback/restoration workflow | Persisted mode and settings handled by installer |
-
-## Startup, shutdown and recovery
-
-The following managed-start sequence is skipped for persisted `releaseNetwork: true`. The entry point does not close the startup guard; the engine wrapper exits, the core persists Direct/engine-disabled while retaining its settings revision ownership, and the supervisor resumes release cleanup. The independent boot/configure paths remove only Mimo’s boot block, and the health checker reports PF Released without enabling or installing PF. Job repair may restart intended core/supervisor jobs but never the stopped engine. See [engine release](#engine-release-and-resumption).
-
-1. Independent boot protection loads the saved blocking PF policy. Core/supervisor entry closes the startup guard before slower setup. Traffic before the independent guard actually loads is outside the demonstrated guarantee.
-2. Supervisor starts the power guard, checks installation, initializes native transport to a constrained state, loads saved routing and service flags, and honors maintenance mode. It starts/stops the engine and core according to persisted intent.
-3. Saved Direct is restored without an exit-IP approval. Saved Rule/Global remains closed pending core verification. A supervisor-only restart also marks verification recovery pending: an existing core heartbeat does not reinstate old approval.
-4. Core starts its separate liveness pulse and state channel, loads settings/credentials, enables the diagnostic provider, then starts monitoring and its startup lookup. Native connection-intent observation starts after initialization.
-5. Network/session/native observers, watchdog and infrastructure repair continue independently of the GUI.
-
-Core Stop cancels monitor work, timers, provider publication and subscriptions. Protected access is closed by the supervisor/liveness policy; saved Stop intent prevents immediate respawn. Supervisor Stop closes protected access before its own observation ends. GUI Quit only disconnects the UI.
-
-Administrator Direct recovery stops core, confirms it stopped, persists Direct and increments the settings revision, restores Direct through the supervisor, then restarts core only if it had been enabled. Persistence failure must not silently release traffic. Sources: [entry point](../Sources/MimoService/DaemonMain.swift), [core startup](../Sources/MimoService/DaemonService.swift), [Direct recovery](../Sources/MimoService/MimoDirectRecovery.swift).
-
-## Protected verification
-
-The current installed coordinator sends every admitted protected lookup through `prepare → probe → approve`. This includes scheduled/manual lookups. An active background readiness audit is a different operation and does not itself request a lookup.
-
-```mermaid
-flowchart TD
-    Trigger[Protected verification requested] --> Close[Request and confirm application gate closure]
-    Trigger --> Prep[Prepare credentials, profile bytes, PF rules and installation checks]
-    Close --> Rules[Install restricted probe policy and finish connection cleanup]
-    Prep --> Rules
-    Rules --> Native[Join fresh native PF and private provider preparation]
-    Native --> Profile[Load or reuse final profile; configure protected DNS]
-    Profile --> Probe[Permit authenticated private exit-IP probe]
-    Profile --> Ready[Readiness inspection or eligible verified baseline]
-    Probe --> Approved{Fresh IPv4 allowlisted?}
-    Approved -- No --> Blocked[Remain blocked]
-    Approved -- Yes --> Join[Join readiness and recheck attempt, revision, process and event epoch]
-    Ready --> Join
-    Join --> Changed{External or unresolved event?}
-    Changed -- Yes --> Followup[Keep closed; schedule one follow-up]
-    Followup --> Trigger
-    Changed -- No --> Open[Open PF once; publish Allowed]
-    Open --> Audit[Warm baseline only: bounded background audit]
-    Audit --> Result{Audit passes?}
-    Result -- Yes --> Active[Remain Allowed]
-    Result -- No or timeout --> Blocked
-```
-
-### Preparation and opening order
-
-1. Arm the power/event fence before the first suspension, even when saved policy still describes the previous Direct state. Begin one cycle and invalidate superseded work.
-2. Request gate closure. Concurrently prepare restricted PF rules, retrieve credentials/render profile bytes, inspect installation when required, and clear old controller connections. Confirm actual blocking before installing the probe policy.
-3. For a hostname proxy, retire the previous TUN using the credential-free blocking profile before restricted bootstrap resolution. Resolve IPv4, then install endpoint-specific probe rules while ordinary traffic stays closed. Literal IPv4 skips this bootstrap dependency.
-4. Join native transport prerequisites. A successful observation no older than one second may be reused; otherwise take a fresh bounded observation. **Apply native firewall rules, then atomically publish the matching private provider file, before loading the final profile.** If either fails, do not proceed to public approval.
-5. Load the final profile once, or reuse it only when its bytes and engine identity match. Publish the temporary protected DNS resolver ([builder](../Sources/MimoShared/MimoProtectedDNS.swift)). It claims every domain and so becomes the system default; configd then ignores other supplemental services' own search lists. The resolver therefore carries the search domains of native resolvers that claim every domain (MagicDNS), then of the primary service, with saved settings overriding DHCP. Direct removes it and the native search list returns unchanged. A Tailnet DNS change republishes it under the existing owned-change fence. Start readiness inspection after native prerequisites are ready, unless an eligible verified baseline permits the warm path.
-6. Permit the authenticated private probe, restricted to configured lookup-provider destinations through the configured proxy. Ordinary proxy/TUN/DNS entry points remain blocked. The probe has no automatic Direct fallback.
-7. Require a fresh allowlisted IPv4. Empty or mismatched allowlist stays blocked. Country is not part of this decision.
-8. Join critical readiness, or revalidate the warm baseline. Recheck the current attempt, saved revision, network generation, loaded profile, engine process, observers and infrastructure. The final PF mutation is serialized with the power/event fence.
-9. Open once. Do not reload the profile after approval. On the warm path, begin a bounded audit while retaining Allowed; failure or timeout closes access and revokes reuse eligibility.
-
-Cancellation/generation checks prevent an old prepare, lookup, audit or XPC reply from opening a superseded configuration or closing a newer Direct selection. A declined IP and a successful HTTP lookup may coexist in the logs: use `mimo_traffic_opened`, not `lookup_succeeded`, to identify actual release.
-
-Sources: [prepare/approve implementation](../Sources/MimoService/MimoSupervisor.swift), [runtime mutations](../Sources/MimoService/MimoSystemRuntime.swift), [readiness](../Sources/MimoService/MimoReadinessChecks.swift), [private probe](../Sources/MimoService/MimoLookupSession.swift), [command ordering](../Sources/MimoService/MimoCommandFence.swift).
-
-## Network changes and event coalescing
-
-### Detection and classification
-
-The installed supervisor owns `SCDynamicStore` and routing-socket observation. The installed `MonitoringEngine` is constructed with `observeSystem: false`; it receives supervisor notifications. The shared engine's standalone `NWPathMonitor` and five-second event-window path are retained for other/test consumers and must not be mistaken for a second installed observer.
-
-Classification happens before early blocking wherever enough information is available:
-
-| Notification | Ignored only when | Still relevant when |
-| --- | --- | --- |
-| AirPort | Unchanged or known telemetry such as `AutoJoinTimestamp`, `Busy`, radio/scan metrics | Association/power changes, unknown fields or unavailable reads |
-| `Setup:` location root | Both `CurrentSet` values are known and unchanged, and only `LastUpdated` differs (or nothing differs) | Missing location, changed location, unknown field difference |
-| Mimo DNS key | Actual resolver equals the recorded owned value | Removed, changed or unreadable resolver |
-| Mimo TUN/interface/routes | Recorded interface/process/address and bounded ownership checks match | Unknown ownership, external interfaces/routes, conflicting changes |
-| Global DNS publication | Nonnative DNS is unchanged, Mimo's resolver is intact, and selection exactly matches owned DNS or validated native selection | External DNS/configuration changes or unknown resolver metadata |
-| Private Tailnet | The narrow conditions in the next section hold | Any unrecognized/public-network effect |
-
-Filtering a key never discards unrelated keys in the same callback. An empty unclassified callback remains an unknown change. Profile mutation updates only owned-network baselines; it must not absorb a simultaneous external change into a new baseline.
-
-### Event during an active cycle
-
-An early callback can precede actor-side ownership classification. It creates a pending event token. Approval waits until that token is resolved: an owned change clears it; an external change marks the cycle dirty; an unresolved token prevents opening.
-
-External events received during verification are accumulated with source/detail. Existing work can finish, but its stale result cannot open PF. Finishing that cycle schedules **one follow-up for that batch**, with `source: deferred_events`. This is not a global promise of at most two checks: a real new change during the follow-up can require another check. Known owned/telemetry changes must not perpetually dirty either cycle.
-
-The active cycle takes precedence over an older Direct policy when attributing early events. Ordinary events outside a protected cycle in Direct do not request a lookup. They can still enforce the permanent IPv4 policy on newly added services.
-
-Sources: [configuration filter](../Sources/MimoCore/NetworkConfigurationObserver.swift), [route decoder](../Sources/MimoCore/RouteChangeObserver.swift), [network observer](../Sources/MimoService/MimoNetworkObserver.swift), [event fence](../Sources/MimoService/MimoPowerGuard.swift), [ownership policy](../Sources/MimoShared/MimoNetworkChangePolicy.swift).
-
-## Native Tailnet and provider changes
-
-### Native Connect/Disconnect
-
-Native connection intent is observed separately from transport readiness. `Starting`/`Running` mean enabled; explicit stopped/login-needed states mean disabled; failed or ambiguous observations mean unknown, not Off. Automatic settings changes wait while core is mutating settings, running a lookup or holding a user control.
-
-The supervisor continuously discovers the verified native interface, official native transport sockets and constrained infrastructure. It is the sole writer of the engine's private File provider. Each accepted update performs:
-
-```mermaid
-flowchart LR
-    Native[Native intent and transport observation] --> Validate[Validate current session and observation]
-    Validate --> PF[Apply constrained native PF rules]
-    PF --> File[Atomically publish matching Direct or REJECT provider]
-    File --> Engine[Mihomo watches private File provider]
-    File --> DNS[Refresh protected DNS domains when native configuration changes]
-```
-
-The private provider is `Mihomo/proxy_providers/mimo-tailnet.yaml` under Mimo's machine support directory. It contains no full proxy profile credentials. The full profile references this stable file, so a native interface/provider change does not need a full profile reload. Old observation/session completions cannot republish Direct after Stop. Unchanged provider bytes are not rewritten.
-
-Protected probe/Rule/Global policies call the same `native-transport` child twice: first with a root-only IPv4 TCP destination filter for `100.100.100.100:53`, then, after the ordinary DNS group block, for general native transport. The early call is not an unconditional pass: the child must match the freshly verified native interface. Emptying or replacing that child on Stop, disconnect or stale observation revokes/updates both paths in one native transaction. Public native transport exceptions use different ports and cannot match the early DNS call. Permission and power barriers remain outside this policy. No UDP, DoT or IPv6 exception is added, and Direct/startup policies are unchanged. This trusts root-owned sockets, not a particular executable; ordinary applications still encounter the DNS block. See [policy generation](../Sources/MimoShared/MimoFirewallPolicy.swift) and [firewall regression tests](../Tests/MimoSharedTests/MimoRoutingTests.swift).
-
-An already approved public connection can stay open only when classification confirms separation from native Tailnet routing:
-
-- The configured public proxy endpoint is IPv4 outside the Tailnet range and its outbound interface is known and separate from native/Mimo tunnels.
-- Private addresses/routes remain within `100.64.0.0/10` or the native `fd7a:115c:a1e0::/48` identity range. Recognizing IPv6 notification metadata does **not** enable IPv6 traffic.
-- A known native interface's scoped routes cannot change the separately bound public proxy path. Unscoped default/public/subnet routes are not treated as private.
-- Native DNS matches Quad100 and known Tailnet domains/metadata. On disconnect, a native service may republish the exact unchanged underlying DNS servers; this is allowed only by strict comparison. Temporary native resolver selection on reconnect is accepted only while owned protected DNS remains intact and nonnative DNS is unchanged.
-- Official native service registration and observed private interface state establish identity; an arbitrary `utun` name is insufficient. Unknown fields/configurations remain conservative.
-
-Exit-node, subnet-router, unrelated VPN, proxy-path or public DNS changes still require verification. A native firewall/provider publication failure closes protected traffic; ordinary disconnected/disabled state is a valid REJECT provider, not a public-network failure. Failure to refresh protected DNS also closes access.
-
-### Mimo provider Start/Stop/Restart
-
-These commands control Mimo's integration, not the Tailscale application. Start prepares observation and diagnostic listening; Stop removes inner Tailnet permission and publishes REJECT. Restart runs Stop then Start. The core persists the shared setting/revision and asks the supervisor to apply it while preserving existing public approval.
-
-The normal UI control is queued behind an in-flight lookup. If a provider change nevertheless reaches an active transition, core invalidates that result and joins a follow-up, rather than allowing approval against old settings. Automatic native intent following only reacts when its observed intent changes; it does not continuously overwrite a manual Stop with an unchanged Running observation.
-
-### Diagnostic HTTP endpoint
-
-The loopback HTTP provider/status endpoint is separate from engine delivery. It first binds port `18766`; if occupied, the kernel selects and reserves an available fallback. The actual port is published to status/diagnostics. Listener failure is retried. No fixed-port availability is required for the private File provider, and a port change does not rewrite or reload the full active profile.
-
-Native DNS selection metadata can include `__IF_INDEX__` during reconnect. The classifier validates it against the current interface of the identified native service before removing the bookkeeping field. Zero, unknown, stale/different indices, changed DNS servers and unknown resolver fields remain external events; the public-route and protected-resolver checks still apply. This avoids an extra block/verify cycle for a valid native DNS selection without suppressing an entire notification batch. The focused Tailnet tests cover these cases.
-
-Sources: [intent following](../Sources/MimoService/MimoTailnetLifecycle.swift), [native observer](../Sources/MimoService/MimoNativeTransportObserver.swift), [PF/file writer](../Sources/MimoService/MimoNativeTransportWriter.swift), [private notification classifier](../Sources/MimoService/MimoTailnetNetworkChanges.swift), [classification policy](../Sources/MimoShared/MimoTailnetChangePolicy.swift), [HTTP service](../Sources/MimoService/TailscaleProviderService.swift).
-
-## Sleep, wake and user sessions
-
-IOKit power callbacks run on a dedicated queue. `CanSystemSleep` is acknowledged. For `SystemWillSleep`, the fence marks sleeping, increments its epoch, closes protected PF and only then acknowledges. Failed closure is logged and not acknowledged as ready; macOS can still force sleep at its deadline. While sleeping, preparation cannot arm approval. Wake and cancelled sleep advance the epoch, retain/reassert the protected barrier, then request verification. A session event cannot clear the sleep hold.
-
-The independent session observer samples numeric login/console identities and lock state from IORegistry every 500 ms. Optional display sampling uses a separate utility queue, with at most one outstanding WindowServer query. It starts only after an unlocked console session is stable for two seconds, refreshes after one second, expires after five seconds and discards old-account replies. A slow WindowServer cannot block session observation or observer shutdown. Locked/no-console sessions rely on kernel lock/session events and the independent IOKit power guard; they do not issue new display queries. It emits changes for `screen_locked`, `screen_unlocked`, `user_login`, `user_logout`, `console_session_changed`, `display_sleep` and `display_wake`. Observation loss/restoration is also relevant. It revokes the epoch and closes the protected barrier before waiting on the supervisor actor. Failed closure retains the transition for retry on the next sample.
-
-The same callbacks do not close Direct or schedule ordinary Direct IP checks. Some low-level log action labels say `direct_refresh`; the installed supervisor subsequently ignores that ordinary event for lookup. GUI focus/display notifications only reread shared state and are not the enforcement mechanism.
-
-Sources: [power guard](../Sources/MimoService/MimoPowerGuard.swift), [session observer](../Sources/MimoService/MimoSessionObserver.swift), [session comparison](../Sources/MimoShared/MimoSessionSnapshot.swift).
-
-## Dashboard deactivation and activation
-
-The 2.0 UI retains build 4's toolbar, Settings structure, service rows and footer. The new Stop/Activate action replaces the connection card's old uninstall-only guidance. The copy is “Stop the engine and release network controls.”
-
-`DaemonInstallationModel.deactivate()` invokes bundled `daemon.sh deactivate` with administrator authentication. The installer keeps this GUI open while removing login items for all accounts, unloading Mimo's jobs and restoring owned network settings through its uninstall recovery path. It writes `/Library/Application Support/Mimo/deactivated` only after successful cleanup. `MimoDeactivation.isConfirmed()` checks the root-owned receipt and helper/plist absence; the installer model also confirms all five jobs are absent. The monitor cancels obsolete RPC work and reports inactive, not a stale or healthy daemon. PF is Released; launchd and services are Removed. Mode and service buttons cannot reactivate piecemeal.
-
-Activate uses `daemon.sh activate`, bypasses the ordinary installed-service repair shortcut, performs the existing conflict inventory and **Cancel / Stop and Continue** confirmation, prepares Direct with service intent enabled, and installs all daemons. The inactive receipt is removed only on successful completion. Native Tailscale is not an installation conflict solely for having a tunnel. A failed or cancelled operation remains visible and cannot fabricate completion.
-
-Install/reinstall/upgrade override a confirmed inactive receipt and restore all services, using the same conflict confirmation as explicit activation. A formerly inactive installation resumes in Direct. Activation rollback releases its temporary gate and restores owned networking before removing recovery files, even when the retained pre-deactivation mode was Rule or Global.
-
-Installed package checks cover full cleanup from every mode, missing-controller recovery, safe app removal, a second real engine, cancelled/confirmed takeover, inactive reinstall, early/late activation failures and a real inactive VM reboot. See [build 5 evidence](../Tests/ReleaseEvidence/mimo-build-5-v2.json) and [installed test](../Tests/MihomoRuntimeTests/release_v2_test.py). The older evidence below covers the internal engine-only path.
-
-Sources: [installer model](../Sources/MimoApp/DaemonInstallationModel.swift), [receipt](../Sources/MimoApp/MimoDeactivation.swift), [installer](../Sources/MimoDaemon/daemon.sh), [GUI state](../Sources/MimoApp/PublicIPMonitor.swift).
-
-## Internal engine-only release and resumption
-
-This internal workflow remains for service commands/recovery. The dashboard now uses full installer deactivation above; its earlier engine-only completion is not equivalent to Mimo inactive.
-
-The internal engine-release command uses the existing supervisor service queue; selecting ordinary Direct does not stop the engine. `services.json` stores `releaseNetwork: true` together with `engine: false`. Old files without this optional field keep their existing managed behavior. This intent prevents startup, repair and observers from reclaiming networking; it does not itself prove successful cleanup.
-
-1. Persist release intent before mutation. Cancel prior verification generations/readiness, enter the Direct power fence, stop/join the native writer and clear reusable profile state.
-2. Publish restoring progress. Notify core to cancel obsolete lookups, persist Direct/engine-disabled with its own revision, and suspend the diagnostic provider. When core is stopped, use the existing locked Direct-recovery writer. If core cannot acknowledge, attempt runtime cleanup anyway and retain an explicit error.
-3. Disable and unload only Mimo’s engine job; wait for its recorded PID to exit. Remove the owned resolver even when this supervisor did not create it. This path works without a controller socket or profile reload.
-4. Remove the marked Mimo boot policy, clear only Mimo’s parent PF anchor and release only recorded live PF enable references. Restore journaled IPv6 enabled flags only where Mimo’s disabled value still remains; preserve a newer enabled value from another owner. Do not disable PF globally or flush unrelated state.
-5. Confirm engine/job absence, owned TUN absence, no remaining owned engine process, no core TCP provider listener, empty Mimo PF policy and resolver removal. Remove the root-owned controller socket. Only successful completion writes the released marker and emits `mimo_network_released`.
-6. Publish `networkReleased: true` and active Direct, with engine Stopped, profile/provider Suspended and PF Released. Cleanup failures retain intent with an unavailable reason and Retry network cleanup. GUI loss displays communication interruption; it does not fabricate completion.
-
-The control protocol advances to version 6 for the new Released/Suspended states; an older GUI receives an explicit incompatible-service response and must be updated with the matching app/helper. Startup release recovery holds the service-operation queue so a simultaneous Start cannot overtake cleanup.
-
-The core and supervisor remain installed and running. Routine IP observation follows the system path, potentially through another VPN. Native Tailscale itself is untouched. Released observers/watchdog and offline Direct recovery do not reinstall network policy. Guard checks still inspect service intent and repair intended background jobs. No GUI lifetime or login item is required to retain the choice.
-
-**Start engine** first checks live known competing engines, required TCP listeners, UDP DNS port 1053 and the Mimo TUN name. An observed conflict returns an actionable failure while keeping release intent and networking intact. This internal engine-only command does not terminate another service; full activation uses installer confirmation. After successful preflight, the supervisor withdraws release intent, restores its boot policy, starts the engine and establishes ordinary Direct; the core resumes its enabled provider and native observation. Selecting Rule/Global from released mode first requests this start, then follows the normal closed-gate verification transaction. A later failure after reacquiring ownership uses the managed recovery policy and is not silently treated as released.
-
-Validation covers installed candidate cleanup from Rule with a missing controller, independent PF-owner preservation, reusable ports, TCP/UDP conflicts, released bypass saves, guard `--configure`/`--boot`/`--check`, core/supervisor restart and explicit resumption. Actual reboot, physical user switching and arbitrary third-party VPN compatibility are not established by those tests. Sources: [supervisor](../Sources/MimoService/MimoSupervisor.swift), [runtime](../Sources/MimoService/MimoSystemRuntime.swift), [core](../Sources/MimoService/DaemonService.swift), [guard](../Sources/MimoDaemon/pf-guard.pl), [installed regression](../Tests/MihomoRuntimeTests/release_networking_test.py).
-
-## User commands and shared settings
-
-Core serializes provider Test, routing, proxy, credential and settings commands. Refresh now joins an in-flight lookup or waits through the engine’s shared control hold. The supervisor rejects missing service/operation fields immediately after authorization, then queues valid service operations behind its active cycle/operation. These are per-owner queues, not a single global transaction queue. Waiting holds no PF/lifecycle lock. Read-only state, events and heartbeats bypass the user queue.
-
-Mode-only commands are rebased onto the latest configuration when their turn arrives. Full proxy/settings edits require the expected revision and report conflict if stale; they cannot overwrite another account's changes. Mutation flow is validation → invalidate affected verification → persist settings/secret and revision → update routing/provider state → schedule required refresh → publish. Proxy metadata, passwords and revision commit in one atomic owner-only state-file replacement. A failed write leaves the previous state intact.
-
-`MachineSettings.affectsVerification` covers provider, provider pool, refresh interval and allowlist, plus bypass-block changes only when the current mode is Rule. Presentation/diagnostic/provider-only changes preserve current public access when no verification is active. Token changes and active proxy edits/selection invalidate protected verification. Inactive proxy edits save only; None or active removal selects Direct. Direct selection persists before restoration and does not preemptively close Direct just to change the selection.
-
-Except for explicit engine release above, service Start/Stop/Restart and profile Reload confirm protected blocking before launchd/controller work. If blocking cannot be confirmed, the service change is aborted. Intent is persisted before the operation; a failed Stop must not silently become automatic Start later. GUI Start/Restart/Reload requests a fresh lookup after success. Core Stop leaves the independent supervisor available for Start. Open profile reads the delivered profile without reloading it.
-
-Bypass Apply normalizes/validates domain entries and block IDs/names before saving with the expected machine-settings revision. The optional saved block array distinguishes old settings (nil → existing defaults) from a deliberately empty list. Enabled exact/suffix rules are deduplicated and rendered after managed native rules and before LAN/final rules. Global omits the editable blocks. Rule Apply invalidates verification and prepares the new profile; Global, ordinary Direct and internal engine-only released saves retain current routing and do not start the engine. Existing connections follow the normal protected-cycle cleanup in Rule. Fully deactivated installations cannot apply shared edits until activation. Drafts survive navigation/status updates; a concurrent revision prompts reload, and Cancel discards to the latest saved state. Validation failure does not mutate settings; a later runtime failure keeps the saved desired rules but cannot claim active verified routing. Sources: [bypass model](../Sources/MimoShared/MimoBypass.swift), [profile renderer](../Sources/MimoShared/MihomoProfile.swift), [draft](../Sources/MimoApp/MimoBypassDraft.swift), [editor](../Sources/MimoApp/MimoBypassView.swift).
-
-Sources: [core transactions](../Sources/MimoService/DaemonService.swift), [control queue](../Sources/MimoService/MimoControlQueue.swift), [settings contract](../Sources/MimoShared/DaemonProtocol.swift), [GUI service commands](../Sources/MimoApp/PublicIPMonitor.swift).
-
-### 2.1 shared catalog and credential ownership
-
-Core owns stable proxy IDs, selected ID, metadata and private password map in the same atomic settings file. GUI requests carry the loaded revision and an entry ID (nil for Add or None); no GUI writes machine files. The runtime verifies the selected configuration and revision before reading its password. Inactive edits preserve live approval; active protected edits run the normal profile preparation workflow. Direct selection of a proxy does not enter protected mode. No automatic proxy failover is introduced.
-
-At core startup, `MimoLocalSettings` imports the old selected proxy and machine Keychain secrets into owner-only local storage, commits a migration marker, then deletes the old entries. An interrupted deletion is retried without overwriting newer local edits. A failed read/write does not delete old credentials. Personal Keychain import is explicitly requested and read-only. Shared state/broadcasts include availability flags, never passwords or tokens. IPinfo authentication uses its fixed HTTPS endpoint and a Bearer header; every redirect is rejected. Stop/uninstall retains the private state; released GUI monitoring remains anonymous.
-
-Sources: [migration and local storage](../Sources/MimoShared/MimoLocalSettings.swift), [catalog](../Sources/MimoShared/MimoRouting.swift), [IPinfo requests](../Sources/MimoShared/IPLocationProvider.swift), [core transaction tests](../Tests/MimoServiceTests/service_test.swift), [privacy tests](../Tests/MimoSharedTests/IPinfoPrivacyTests.swift).
-
-## Lookup scheduling and failures
-
-Refresh triggers are startup, manual, provider Test, settings change, supervisor network event, periodic timer, provider retry, queued deadline and in-flight recheck. The scheduler shares budgets, cooldowns and last-attempt times across accounts and restarts. Every hour is the default; the one-time 2.1 migration changes existing 15-minute settings to one hour while preserving other choices. Released monitoring migrates its old preferences before copying current machine settings, preserving a new explicit 15-minute choice after Stop. Never removes only the periodic timer and interval-derived staleness; event/manual/startup/recovery/retry behavior is unchanged. Identifiable local pauses migrate to ten minutes; old ambiguous HTTP/rate-limit deadlines remain unchanged.
-
-1. A queued user control holds automatic refreshes; pending work merges urgency/bypass intent until controls finish.
-2. Refresh now publishes queued/checking and final succeeded/deferred/failed state to every GUI. It joins an existing lookup or waits behind a settings mutation, without queuing duplicate human checks. A successful same-IP answer advances checkedAt; skipped/failed requests do not. Provider rotation completes before the manual result is finalized. Concurrent requests share one lookup. Routine/manual duplicates are coalesced; relevant nonmanual forced events retain one pending recheck with the highest urgency.
-3. Select an eligible provider and enforce persisted daily budgets/cooldowns. Explicit/startup/installed network refreshes can bypass spacing/burst limits, not daily exhaustion or provider failure pauses. Missing required IPinfo credentials does not spend a request.
-4. Record an admitted attempt and run the current mode's lookup. Managed routing has a 60-second overall budget; HTTP has its own deadline.
-5. On success, normalize IPv4, update snapshot/provider health, authorization and display. Unknown/different country alone does not schedule another check. A country highlight requires an IP change and expires independently.
-6. An actual lookup error pauses that provider for ten minutes or a longer Retry-After, persists the pause, and tries the next eligible provider after the current task unwinds. A profile/service preparation error is not evidence that the lookup provider failed and does not receive that pause.
-7. If providers/budget/credentials make a required protected check unavailable, invalidate access and remain blocked. Direct retains networking and shows the observation failure. Retry/deferred timers do not confer approval.
-8. Stop or configuration invalidation cancels pending work and advances the lifecycle generation; late results are discarded.
-
-Sources: [monitor engine](../Sources/MimoCore/MonitoringEngine.swift), [refresh gate and budgets](../Sources/MimoShared/LookupBudget.swift), [failure policy](../Sources/MimoShared/ProviderFailurePolicy.swift).
-
-## Runtime faults and background audits
-
-Core sends independent liveness pulses and state requests. The supervisor validates the current core PID/controller/sequence and measures heartbeat age from actual receipt, so a delayed state request cannot hide a stopped core. Missing heartbeat, dead engine or unexpected PF state closes protected access.
-
-A warm verified baseline is reusable only for the matching loaded profile/process and current healthy state. After a fresh allowlisted exit opens traffic, a background audit checks installation, runtime readiness, policies and native state. It must finish within three seconds. The timeout closes a barrier independently of actor progress. Audit failure revokes the baseline, forces a future profile load and marks recovery pending; successful audit keeps the UI Allowed.
-
-While protected access is active, watchdog inspections continue after the background audit. Status/heartbeat reads also compare protected DNS immediately. Losing the owned resolver revokes approval rather than leaving a stale Allowed display until the next scheduled IP check.
-
-Native-writer faults close protected access and request one recovery when native rules are healthy again. Infrastructure scans repair PF/launchd while respecting saved Stop intent. Recovery clears pending flags only after the current verification/audit succeeds; it never restores an old IP approval by itself. Direct restoration is retried when saved Direct is permitted but the runtime gate is not Direct.
-
-Sources: [watchdog and recovery](../Sources/MimoService/MimoSupervisor.swift), [heartbeat lease](../Sources/MimoService/MimoHeartbeatLease.swift), [audit deadline](../Sources/MimoService/MimoAuditDeadline.swift), [runtime infrastructure](../Sources/MimoService/MimoSystemRuntime.swift).
-
-## GUI, widgets and diagnostics
-
-GUI startup acquires the single-instance role, creates the menu-bar item, subscribes to core and schedules per-user login-item synchronization on a dedicated utility queue. Login-item views display cached state; repeated refresh requests coalesce and explicit changes serialize with startup synchronization. A pending macOS login-item call cannot block the GUI main actor. Dashboard reopen/focus fetches shared state through a coalesced read-only 3-second probe. Subscription setup has an 8-second deadline; service-changing commands retain their separate 75-second deadline. Core publishes snapshot/provider/routing/settings changes through subscriptions; the GUI reconciles streamed service progress with later state. A disconnected UI explicitly reports communication loss and retains the last successful reply time; cached health cannot imply current service failure or approval. It reads the supervisor with a 2-second deadline and retries after 3 seconds. Supervisor replies expire after 10 seconds and cannot prove tailnet-provider health; an independently inspected running core is labeled Running, not Healthy. Reconnect replaces the subscription and fences old callbacks/probes. It never requests a lookup, service restart or PF change. Session deactivation cancels polling/subscriptions/retries and suppresses inactive-window repositioning and deferred activation. Session activation reconnects immediately. The core and supervisor continue independently in every account.
-
-The menu bar, dashboard and widgets derive status from routing state and freshness. `mimo_access_presentation_changed` records a display transition, not its cause. Background auditing can retain Allowed. The warning window is shown only to the relevant active user for an unapproved address; clearing/dismissing display indicators does not approve traffic.
-
-All six dashboard monitoring rows display status and inspection age as `Healthy(n secs)` using one one-second UI timeline. PF/launchd retain the independent infrastructure inspection time. The supervisor stamps core/engine launchd observations and profile-hosting intent when refreshing its two-second service cache; cached replies retain that timestamp. The core's Tailnet provider carries its observation/listener-state time. A running report older than 35 seconds displays `Stale(n secs)`; one without a valid inspection time displays `Unavailable(—)`. Stopped/restarting/failure states keep their meaning and use the same age suffix. Rendering cannot create a new inspection time, change PF, perform a lookup or grant access. The labels express the recorded checks, not end-to-end DNS validation. Sources: [shared status and formatting](../Sources/MimoShared/MimoRouting.swift), [supervisor cache](../Sources/MimoService/MimoSupervisor.swift), [provider observations](../Sources/MimoService/TailscaleProviderService.swift), [dashboard](../Sources/MimoApp/MimoViews.swift).
-
-Widget timeline reads fetch daemon state and cache it for outages. A failed fetch presents unavailable/stale state. Timeline reload and Control Center activation do not perform an independent exit-IP check; the control opens the dashboard. Appearance and login-item choices affect that account's interface, not machine services.
-
-Event Log polls core/supervisor and subscribes to GUI log writes, merges recent readable events, and labels missing/stale diagnostic sources. Pause or text selection holds displayed updates without stopping monitoring. Copy All exports readable events; Copy Diagnostics exports source-separated records with version/build and the current IP-redaction policy. Successful copy controls show a checkmark/“Copied” for two seconds; failed writes do not show success. Closing Event Log stops its polling only.
-
-The manual [service snapshot](../Scripts/diagnose-mimo-services.sh) bounds read-only commands for machine/build identity, Mimo processes and launchd jobs, saved service intent, gate marker, controller/listeners, permission/power guards and the protected resolver. It performs no repair/restart or PF/profile/provider mutation. Use it when the displayed status conflicts with commands on the same Mac; the snapshot does not itself prove or restore an access grant. It reads no proxy profile, credential or full process argument list.
-
-Sources: [app lifecycle](../Sources/MimoApp/MimoApp.swift), [client](../Sources/MimoApp/PublicIPMonitor.swift), [login item](../Sources/MimoApp/LoginItemSync.swift), [widgets](../Sources/MimoWidgets/MimoStatusWidget.swift), [log window](../Sources/MimoApp/EventLogWindow.swift), [copy feedback](../Sources/MimoApp/MimoCopyButton.swift).
-
-## Installation and release events
-
-The build 4 service installer adds a confirmation step before taking over from another Clash/mihomo engine. Signature, pinned checksum and staging validation finish first, under the installation lock. The installer snapshots executable names/PIDs and process start identities (not command-line arguments), maps live PIDs to system or per-user launchd jobs, and lists them for approval. A foreground terminal accepts explicit `y`/`yes`; nonterminal Homebrew/package/GUI invocations ask the installing console user with a macOS dialog. Cancel, timeout, unavailable confirmation and `install --non-interactive` stop installation without stopping competing engines. GUI outcome parsing recognizes the installer cancellation marker.
-
-After consent, identities and launchd PIDs are checked again. Only approved jobs are disabled and booted out; standalone processes receive TERM. The disabled state prevents automatic launchd restarts at login/reboot. A bounded rescan requires all competing engines to exit. Respawn or a newly discovered engine aborts without extending the original consent. Mimo's exact runtime/helper paths are excluded. This occurs before replacing Mimo services in both Direct and protected modes. Another application's files/settings remain; deliberately re-enabling its service can start it again. If subsequent installation fails, Mimo's rollback applies to Mimo; the installer reports the affected competitors for manual re-enabling rather than automatically opening a different network path.
-
-`daemon.sh install --app /Applications/Mimo.app` accepts a downloaded copy only when it matches the app's bundled installer. Installation now requires the corresponding core CLI; mismatched scripts stop before invoking an older core with unknown commands. Prefer running the bundled installer directly. The package's outer deadline includes time for confirmation. Installer logs include the listed processes/jobs, stop/verification result and `[MIMO_INSTALL_CANCELLED]` on declined/unavailable confirmation; full process arguments are never collected. Validation: [mocked conflict contracts](../Tests/MimoDaemonTests/engine_conflicts_test.sh), [VM launchd/terminal/repair checks](../Tests/MihomoRuntimeTests/installer_conflicts_test.py), and [GUI outcome tests](../Tests/MimoSharedTests/DaemonInstallationTests.swift).
-
-Install/reinstall/upgrade are explicit requests to restore all services. A confirmed full Stop no longer short-circuits installation, and older released intent no longer skips competing-engine checks. Preflight and consent occur before replacing Mimo services. Under the machine-wide installation lock and maintenance barrier, the installer stops all old writers. The verified mimo-core commits enabled core/engine/profile/provider intent and a new shared settings revision. A previously inactive/released installation resumes in Direct; an active Rule/Global installation keeps its mode and still requires fresh exit verification. Proxy, bypass, allowlist, credentials and unrelated settings remain.
-
-The installer enables all five launchd labels and starts the supervisor and independent jobs. Core verification requires fresh running core/engine/profile reports, a responding core with the provider bound to the fixed 18766 port, healthy PF/launchd monitoring, and the expected engine controller version. A loaded job or saved stopped preference is not sufficient. Protected traffic can remain blocked awaiting approval even when installation health passes. Homebrew postflight and the standalone installer propagate failure; they never report a successful app-only install. Failed changes use the existing rollback, including restored inactive networking after a failed reactivation.
-
-mimo-core writes a bounded machine-wide `installation.jsonl` journal containing an attempt identifier, operation, stage, approved service identity/PID and status code. It excludes credentials, profiles and arbitrary subprocess output. Core/supervisor event replies merge the journal on demand, so all GUI accounts can see events recorded before startup or after their connection was established. Events distinguish conflict detection/consent, disable and stop requests, confirmed exit, service enable/start/check, success, failure and rollback. GUI clients only request operations and display shared results; they do not reset intent, inspect or supervise daemons. The installation lock and existing shared revision checks serialize multi-account mutations.
-
-Sources: [service installer](../Sources/MimoDaemon/daemon.sh), [core installation state](../Sources/MimoService/MimoDirectRecovery.swift), [health verification](../Sources/MimoService/MimoInstallationReadiness.swift), [machine journal](../Sources/MimoCore/MimoInstallationJournal.swift). Regression coverage: [core installation tests](../Tests/MimoServiceTests/mimo_installation_tests.swift), [cask contracts](../Tests/MimoInstallTests/cask_test.rb), [standalone installer tests](../Tests/MimoInstallTests/reinstall_test.sh).
-
-Homebrew invokes its embedded cleanup helper with administrator authentication. Full Stop removes the manager/removal grant but leaves GUI-only monitoring open, possibly in another account. Privileged cleanup can revalidate and stop those exact app processes before reinstall; it never runs code from the target bundle. Active installation removal still delegates service/network teardown to the installed root-owned manager.
-
-Homebrew caches the prior uninstall hook: migration from an older nonprivileged hook can require closing the other accounts' GUI clients or one administrator cleanup before retrying. The standalone installer authenticates the verified new cleanup helper before replacement; package preinstall already runs with administrator privileges. [Installed restoration tests](../Tests/MihomoRuntimeTests/install_reactivation_test.py) cover reactivation, consent, concurrent locking and identical core event replies across accounts. [VM evidence](../Tests/ReleaseEvidence/mimo-install-restoration.json) also records real Homebrew install, cached-hook migration, Stop/reinstall with another account's GUI left open, and final uninstall. It does not qualify physical login-window/account-switch behavior.
-
-Deleting `Mimo.app` alone is not this cleanup workflow. Use the documented [clean uninstall](../README.md#clean-uninstall-and-reinstall). If version 1 removal stops early or installation files are already missing, the [manual recovery procedure](LEGACY_UNINSTALL_RECOVERY.md) disables and unloads all five Mimo jobs before removing the persistent boot block, clearing only Mimo's live PF parent anchor, removing its resolver and restoring saved IPv6 flags. It then archives the installed components and verifies that protection does not return after reboot. This operator procedure applies to both Direct and protected modes; it does not change the automated uninstaller or globally reset other VPNs' networking.
-
-The standalone [version 1 recovery script](../Scripts/cleanup-mimo-v1.pl) defaults to inspection. Explicit `--apply` shows the host/scope and requires typed confirmation, then repeats inspection, saves private recovery records, disables/unloads guards before the other jobs, waits for worker exit and reasserts disabled/absent job state. Only then does it remove the marked boot block, flush the owned parent anchor and remove the owned resolver. Current-boot PF references are released only when identified in the live list; saved IPv6 flags are restored before installed components are archived. A failed shutdown prevents PF/DNS changes. A later failure retains recovery material and does not restart services or restore blocking. App/package ownership, per-account login entries, the private group/right and source settings remain for the documented finishing steps. Validation uses [fixtures and mocked OS commands](../Tests/MimoDaemonTests/manual_cleanup_test.pl); actual installed cleanup is not yet qualified by that suite.
-
-For every **new GitHub build upload**, advance `Configuration/BuildNumber.txt` once even if the version remains `1.0`. Local rebuilds may reuse the unpublished candidate number. Generation propagates the number to bundles; packaging records version/build and artifact hashes in `release-build.json`. Release notes, dashboard, diagnostics and uploaded manifest must agree. Homebrew keeps only the marketing version (`2.1`) in its `version` field; the generated URL identifies the exact build. A newer build of the same version is installed with `brew reinstall --cask jxz345/tap/mimo`. Packaging does not itself publish or trigger a workflow.
-
-Sources: [installer preflight](../Scripts/pkg/preinstall), [postinstall](../Scripts/pkg/postinstall), [service setup](../Sources/MimoDaemon/setup.command), [cleanup](../Sources/MimoDiagnostics/cleanup-installation.sh), [packaging](../Scripts/package-release.sh), [repository release rule](../AGENTS.md#release-build-identity).
-
-## Timing and diagnostic reference
-
-These are configured polling intervals/deadlines, not end-to-end latency guarantees. Bounded command execution and scheduling can extend the time between completed samples.
-
-| Activity | Current value / behavior | Source |
-| --- | --- | --- |
-| Core liveness pulse and supervisor state loop | Separate loops, about 1 second each | `MimoCoordinator` |
-| Heartbeat expiry | 5 seconds | `MimoHeartbeatLease` |
-| Supervisor watchdog | 1-second delay plus completed inspection work | `MimoSupervisor` |
-| Infrastructure repair | 10-second delay between passes | `MimoSupervisor` |
-| Kernel session sample / optional display query | 500 ms / separate utility queue, 2-second console settling, 1-second refresh, 5-second expiry | `MimoSessionObserver` |
-| Native socket / interface / infrastructure observation | 250 ms / 2 seconds / 10 seconds | `MimoNativeTransportObserver` |
-| Native intent / diagnostic provider observation | 2 seconds | `MimoTailnetLifecycle`, `TailscaleProviderService` |
-| Provider listener readiness / retry | Up to 2 seconds / 5 seconds | `TailscaleProviderService` |
-| Prepared native observation reused before profile | At most 1 second old | `MimoSystemRuntime` |
-| Owned profile-route classification window | 2 seconds, measured at receipt, with ownership constraints | `MimoNetworkObserver` |
-| Warm background audit | 3-second deadline | `MimoAuditDeadline` |
-| Managed lookup / HTTP resource | 60 seconds / 15 seconds | `MonitoringEngine`, `MimoLookupSession` |
-| Human queue | At most 32 waiting entries; 65-second deadline | `MimoControlQueue` |
-| Periodic lookup | Configurable 5/15/30/60 minutes | `RefreshInterval` |
-| GUI state poll / read deadline / reconnect / row age | 15 seconds / 3 seconds / 3 seconds after supervisor fallback / 1 second | `PublicIPMonitor` |
-| Event Log service poll / copy feedback | 2 seconds / 2 seconds | `EventLogWindow`, `MimoCopyButton` |
-| Widget timeline request | 1 hour; WidgetKit controls delivery, state changes also request reload | `RefreshPolicy`, widget provider |
-
-| Diagnostic question | Records to correlate |
+| `DaemonService` / `MonitoringEngine` | Machine settings/revisions, proxy catalog, local credentials, shared request scheduling/budget, subscriptions and diagnostics. |
+| `MimoCoordinator` | Current verification request, cancellation, family-specific HTTP observations, supervisor communication and client-visible routing state. |
+| Supervisor | Profile preparation/delivery, system DNS, PF, readiness, service lifecycle, network/power/session events and recovery. |
+| Independent guard | Boot closure and periodic PF/launchd inspection, even if a main service is absent. |
+| Bundled engine | TUN capture, strict destination-family policy, silent public echo suppression, DNS policy and proxy transport. |
+| GUI / widgets | Display shared results and submit explicit actions. Released GUI monitoring is anonymous and owns no network controls. |
+
+There is no native utun provider, provider file/port, refresh timer, dynamic
+interface binding. Old provider paths/names remain only in migration and cleanup.
+Native VPN transport is now a bounded signed-process exception in the active PF
+policy, collected by core's existing audit. Multiple GUI sessions do not duplicate supervision.
+
+Settings → Maintenance is a read-only reference, available even without a core
+connection. Copying its commands only changes the clipboard. Executing a copied
+release/install/uninstall command in Terminal enters the existing privileged
+lifecycle workflow below; it is not a second GUI enforcement path. The page
+documents live PF inspection, system DNS, launchd status and owned cleanup.
+
+The canonical profile renderer emits the same explanatory YAML comments for v3
+templates and installed private profiles. Comments describe policy, not runtime
+health or successful qualification. Settings changes still follow the existing
+revision/render/verify path; annotating a profile does not introduce a new event.
+
+## Flat firewall state
+
+The only active root is `com.apple/000.mimo`. Every generated packet rule carries
+a `mimo:` context label. Old child anchors are removed on migration/release.
+
+| Phase | Packet policy |
 | --- | --- |
-| Why did a check start? | `refresh_requested.trigger`, `mimo_network_changed.source/detail/generation`, `mimo_routing_changed.revision` |
-| Was Wi-Fi/location noise filtered? | `network_airport_telemetry_ignored`, `network_location_metadata_ignored`; relevant alternatives are `network_airport_connection_changed`, `network_location_changed` |
-| Was it an owned or private change? | `mimo_cycle_owned_event_ignored`, `mimo_network_owned_dns_selected`, `mimo_tailnet_configuration_updated`, `mimo_tailnet_change_scope` |
-| Why a second check? | `mimo_cycle_event_deferred`, then `mimo_network_changed` with `source: deferred_events` and retained detail |
-| Were native prerequisites ready before the profile? | `mimo_native_provider_published`, `mimo_profile_prerequisites_ready`, then `mimo_final_profile_loaded` or `mimo_final_profile_reused`; correlate attempt IDs |
-| Did traffic really open? | `mimo_private_probe_ready` → `mimo_exit_ip_approved` → `mimo_opening_barrier_ready` → `mimo_traffic_opened`; readiness may finish before the probe |
-| Why did it stay closed? | `mimo_exit_rejected`, `lookup_failed`, `provider_failure_paused`, `lookup_all_providers_paused`, `lookup_daily_budget_exhausted`, `mimo_gate_closed.reason/confirmed` |
-| Did a warm audit finish? | `mimo_background_audit_started`, then `mimo_background_audit_passed`, `mimo_background_audit_failed` or `mimo_background_audit_timeout` |
-| Was the service/observer unhealthy? | `mimo_liveness_lost`, `mimo_dns_configuration_lost`, `mimo_verification_audit_failed`, `mimo_native_transport_failed`, `network_configuration_monitor_unavailable`, `mimo_session_guard_failed` |
-| Was a human action waiting? | `mimo_control_queued` → `mimo_control_resumed`; service progress uses `mimo_service_change_begin/changed/failed` |
-| Which diagnostic port is live? | `tailscale_provider_port_conflict`, `tailscale_provider_listening.port/fallback`, `tailscale_provider_prepared` |
-| Was explicit engine cleanup completed? | `mimo_network_released`, supervisor `networkReleased: true`, stopped/suspended service reports and PF Released; intent alone is insufficient |
-| Is the log only reporting UI? | `mimo_access_presentation_changed` and `widget_reload_requested` do not establish a network cause or an open/close operation |
+| Closed | Block public local proxy/DNS listeners; permit other loopback control, DHCP, IPv6 neighbor/router link control; deny other outbound traffic. |
+| Verification | Closed controls plus literal IPv4 TCP proxy endpoint/port for the runtime GID. Hostname bootstrap briefly uses only the fixed encrypted bootstrap resolver. No native Tailnet, broad root/user, LAN or TUN exception. |
+| Active Rule/Global | Persistent fallback guard: owned TUN/loopback, engine TCP/UDP, intentional native destinations and link control; drop other native egress. Profile owns routing/DNS/family. |
+| Managed Direct | Empty root; no Mimo TUN/system DNS. Engine remains available with an idle profile. |
+| Released | All owned rules/children, boot references, jobs and resolver ownership removed; other owners’ PF rules/references remain. |
 
-Repeated `mimo_gate_closed` records can describe successive confirmations during one continuously closed period. Two Blocked display entries do not establish an intervening release. To prove a block-open-block cycle, locate `mimo_traffic_opened` between confirmed closures. To prove redundant verification, count distinct probe attempts and inspect the triggering events.
+Managed Direct and released Direct are distinct. The first retains a running idle
+engine and shared services. Stop engine enters the second while keeping Mimo.app
+installed; it removes owned service/runtime controls rather than merely pausing
+the engine. Both states passed service/network qualification. Released GUI IP
+refresh and native button appearance remain separate UI checks.
 
-## Validation map and maintenance
+PF mutations are serialized, and a revocation epoch invalidates older probes.
+Close flushes old connection states; open does not. Readback verifies expanded
+rule contents, not just labels. Independent checks require the exact active
+guard; an empty protected root is a fault. An ineffective or bypassed closed policy is a failure, not an
+acknowledged block. The active guard preserves explicit native exceptions; there are no such exceptions while closed.
+Tailnet destination permissions bind to a live native tunnel snapshot. Missing or
+changed native interfaces invalidate that preparation; Quad100 and Tailnet ULA
+are denied on other paths before engine and generic native grants. This is PF
+scope validation, not a restored provider or profile interface binding. Synthetic
+IPv4/IPv6 addresses are also denied outside the owned TUN.
 
-| Workflow | Relevant tests / evidence |
-| --- | --- |
-| Full dashboard deactivation/activation and bypass routing | [installed package test](../Tests/MihomoRuntimeTests/release_v2_test.py), [build 5 evidence](../Tests/ReleaseEvidence/mimo-build-5-v2.json) |
-| Internal engine release and explicit resumption | [installed candidate test](../Tests/MihomoRuntimeTests/release_networking_test.py), [guard contracts](../Tests/MimoDaemonTests/pf_guard_test.pl), [2.0 evidence](../Tests/ReleaseEvidence/mimo-v2-ui-and-release.json) |
-| Rule bypass drafts and rendering | [model/profile tests](../Tests/MimoSharedTests/MimoBypassTests.swift), [native draft tests](../Tests/MimoAppTests/mimo_draft_tests.swift), installed candidate test above |
-| Telemetry/location filtering and event ownership | [AirPort tests](../Tests/MimoSharedTests/AirPortChangeFilterTests.swift), [location tests](../Tests/MimoSharedTests/NetworkLocationChangeFilterTests.swift), [cycle tests](../Tests/MimoServiceTests/mimo_cycle_tests.swift), [installed route/location test](../Tests/MihomoRuntimeTests/release_cycle_classification_test.py) |
-| Private Tailnet and provider ordering | [policy tests](../Tests/MimoSharedTests/MimoTailnetChangePolicyTests.swift), [native observer tests](../Tests/MimoServiceTests/mimo_native_observer_tests.swift), [notification tests](../Tests/MimoServiceTests/mimo_tailnet_network_tests.swift), [installed live-update test](../Tests/MihomoRuntimeTests/release_tailnet_live_update_test.py) |
-| Power/session/late commands | [power tests](../Tests/MimoServiceTests/mimo_power_tests.swift), [session tests](../Tests/MimoSharedTests/MimoSessionSnapshotTests.swift), [command fence tests](../Tests/MimoServiceTests/mimo_command_fence_tests.swift), [coordinator tests](../Tests/MimoServiceTests/mimo_coordinator_tests.swift) |
-| Readiness, audit, resolver loss and recovery | [gate tests](../Tests/MimoServiceTests/mimo_gate_tests.swift), [recovery tests](../Tests/MimoServiceTests/mimo_recovery_tests.swift), [installed audit test](../Tests/MihomoRuntimeTests/release_optimistic_audit_test.py), [DNS test](../Tests/MihomoRuntimeTests/release_dns_privacy_test.py), [resolver search-list tests](../Tests/MimoSharedTests/MimoProtectedDNSTests.swift), [installed MagicDNS test](../Tests/MihomoRuntimeTests/release_magicdns_test.py) |
-| Refresh admission, pauses and metadata | [refresh scenarios](../Tests/MimoSharedTests/RefreshScenarioTests.swift), [failure-policy tests](../Tests/MimoSharedTests/ProviderFailurePolicyTests.swift), [country UI tests](../Tests/MimoAppTests/mimo_country_tests.swift) |
-| UI status, log export and copy | [service age/cache tests](../Tests/MimoSharedTests/MimoServiceStatusTests.swift), [dashboard tests](../Tests/MimoAppTests/mimo_dashboard_tests.swift), [log tests](../Tests/MimoAppTests/event_log_tests.swift), [copy tests](../Tests/MimoAppTests/copy_feedback_tests.swift), [disconnect test](../Tests/MihomoRuntimeTests/release_ui_disconnect_test.py) |
-| Install, repair, uninstall and persisted intent | [install tests](../Tests/MimoInstallTests/run.sh), [installed lifecycle tests](../Tests/MihomoRuntimeTests/installed_acceptance_test.py), [upgrade tests](../Tests/MihomoRuntimeTests/upgrade_test.py) |
+The active audit also reads held sockets from the official root-owned Tailscale
+system extension, checking its running signature and process identity on both
+sides of collection. UDP grants require its held source ports plus root ownership;
+HTTPS grants require an observed control/relay address, port 443 and root ownership.
+Held failed TCP sockets allow the next retry to use a new source port. These
+trusted-native-service exceptions do not promise containment of a malicious root
+process or compromised VPN. No grant is made for another user or general root HTTPS.
+Changed scopes replace only the active policy under the shared mutation lock,
+after checking that the old policy/gate/interface snapshot remains current.
+Readback and `guard.expected` are committed together. Invalid observations remove
+grants. No profile reload, new approval or separate provider/watch loop occurs;
+closure supersedes any in-flight observation. `mimo_native_egress_updated` logs
+counts without endpoints. Native interface changes still close and reverify.
+Public transport observation runs even with no native Tailnet interface. Cached
+preparation, fresh preparation and the active audit all collect the same signed
+socket evidence; otherwise a disconnected VPN cannot obtain the transport needed
+to create its interface. Held public control sockets can remain eligible while
+the VPN is disconnected. Their disappearance or failed identity validation
+revokes the corresponding scopes. This is distinct from private Tailnet passes,
+which require the verified native interface and remain behind wrong-path denial.
+Closed/probe behavior is unchanged; Direct has no Mimo filtering or native scope
+publication. See the [live reconnect record](MIMO_V3_LIVE_LIFECYCLE_RESULTS.md)
+for the startup failure and the corrected candidate's passing dual-stack Rule
+and Global reconnects. Protected/managed-Direct sleep remains unqualified because
+the operator skipped further attempts after the VM did not sleep.
+The pinned engine leaves native overlay destinations to macOS routing rather
+than binding Quad100 to the physical default inferred from interface prefixes.
+PF denies those destinations outside the verified native tunnel. The capability
+`native-dns-route-v1` is required before activation. No provider or YAML interface
+binding is involved.
 
-Tests listed here establish where behavior is checked, not that every scenario passed for every build. Use dated [release evidence](../Tests/ReleaseEvidence/) and [README validation limits](../README.md#validation-and-known-limits) for qualification. VM-injected power events are not physical sleep/wake evidence. VM results alone did not qualify the physical-Mac failure; the integrated candidate now has a separate passing physical result below.
+## Protected transaction
 
-The [build 2 qualification record](../Tests/ReleaseEvidence/mimo-build-2-workflows.json) covers the build's installed Rule transitions, native/provider live updates, shared and focused service checks, dashboard renders and exact artifact identity. Subsequent physical-Mac comparison found that native DNS under the runtime group and fresh Mihomo instances also fail in Rule; a Direct TCP DNS query succeeds without reconnecting native Tailscale. The subsequent `--trace` result identifies Mimo's TCP port-53 group-negation block: three additional blocked packets, no additional native-anchor evaluations and only TCP resets on the native interface. Why socket-owner lookup differs from the expected process group remains unresolved. The search-domain correction above is separate from this full-name failure.
+1. Validate and admit a shared revision. Cancel superseded requests and mark the
+   effective mode unavailable while preserving the requested mode.
+2. Request closure; confirm effective policy, PF enable state and state flush.
+   Profile rendering, credential reads and immutable preparation may run in parallel.
+3. For hostname proxies, remove/drain the old DNS owner while its TUN exists,
+   retire that TUN, grant only encrypted bootstrap, resolve A, then revoke bootstrap.
+4. Load the exact canonical candidate; install core’s temporary catchall resolver
+   with preserved native search domains/scopes. Engine DNS registration is disabled.
+5. Confirm process identity, pinned engine capabilities, loaded profile/selection,
+   listeners, DNS and capture readiness. Permit authenticated exact-host HTTPS
+   verification via the private listener and narrowly scoped proxy endpoint grant.
+6. Obtain fresh IPv4, plus IPv6 in Dual, through family-pinned proxy connections.
+   Each actual provider HTTP request spends the shared budget. Both must belong to
+   this attempt, revision and network generation and pass the allowlist.
+7. Recheck readiness, close epoch, power hold and deferred external events under
+   the grant lock. Install/read back the active guard and publish Active only after success. No optimistic open.
 
-The [standalone firewall experiment](../Scripts/test-magicdns-firewall.pl) is a manual test, not an installed workflow. It requires an open protected gate and matching native provider/route, inserts a unique temporary child anchor into `open-policy`, and tests root-only then (if needed) owner-independent TCP Quad100 exceptions on that interface. It clears ordinary engine DNS cache for each query, confirms rule packet counters, and removes only its own reference/rules under the existing mutation/revocation locks. Permission/power barriers, profile, provider, services and routes are untouched; no closed gate is reopened. A detached watchdog removes the exception on parent death or timeout. The owner-independent test temporarily allows ordinary processes to query Quad100, so success is transport evidence, not qualification of a permanent privacy policy. VM tests verify normal completion, the fallback branch, interruption, parent death and timeout preserve existing policies. On the physical Mac, the root-only branch returned the correct full-name answer from both the engine and local listener, with seven pass-rule packets; the broader fallback was unused and the script restored its rules.
+A failed required family, DNS/TLS/proxy failure, stale result, changed profile or
+unresolved external event keeps the gate closed. Rejected/unsupported IPv6 never
+falls back to native transport. Full readiness also applies to warm profile reuse.
+The active guard remains installed through process or route failures. Recovery
+is asynchronous, but ordinary native application egress must already be denied.
+Liveness loss sets verificationRecoveryPending so a recovered core can reverify.
+The corrected candidate passed the separate
+[32-row packet/fault rerun](MIMO_V3_CORRELATED_FAULT_RESULTS.md), with both-family
+echo attempts during every fault, zero native bypass/public echo replies and
+confirmed recovery. Historical failures and the earlier sender limitation remain
+evidence; physical, native-UI and actual PF kernel-failure limits remain separate.
 
-The subsequent [candidate script](../Scripts/test-magicdns-candidate.pl) tests the integrated early root/TCP/Quad100 call, placed after loopback/TUN rules and before the group guard. A unique removable wrapper delegates to the existing live `native-transport` child; the script never writes that child, so native Stop/disconnect/expiry still controls revocation. No owner-independent fallback is used. Three uncached engine queries and uncached local-listener queries over TCP and UDP must return Tailnet IPv4 addresses; synthetic fake-IP answers fail. A macOS system-resolver lookup must also return a Tailnet IPv4 address. The existing restoration/watchdog mechanism removes the wrapper/reference without replacing a newer policy or reopening a gate. Cleanup preserves the original failure exit code. [VM script tests](../Tests/MihomoRuntimeTests/magicdns_candidate_script_test.py) pass normal operation, interruption, parent termination and timeout with parent/open/permission/power policies restored. This script applies only a temporary test; it neither builds nor installs an app.
+## DNS policy and teardown
 
-The integrated source changes pass 219 shared tests, focused native/profile-preparation and cancellation tests, and light/dark dashboard renders including stale/missing service timestamps. Temporary VM fixtures of the generated scoped PF call pass root DNS and installed-engine/local-listener queries, block ordinary direct TCP/UDP DNS, add no root UDP exception, reject a different native interface and revoke access when the native child is cleared. Short fixtures confirmed original-policy/permission restoration; an earlier longer fixture lost controller availability before completion and is not counted as a full pass. Build 3 now packages these changes; installed VM checks verify the permanent policy without a temporary wrapper. The affected physical Mac has live Mimo jobs, a responding controller and DNS listeners. The affected physical Mac passed the candidate from a failing baseline: all three uncached engine queries, both local-listener transports and macOS resolution returned the same Tailnet IPv4 address. The script restored its temporary wrapper and left the live native policy, permission gate and app unchanged. The installed build 3 package passes three fresh engine queries, root TCP DNS with a different group, ordinary DNS blocking, provider revocation/recovery and Rule/Global DNS recovery checks. Short-name resolver construction is unit-tested; the installed peer short-name check is skipped because the VM has no online own-tailnet peer. Monitoring ages remain observations, not DNS proof. See the [installed firewall regression](../Tests/MihomoRuntimeTests/release_magicdns_firewall_test.py) and [build 3 evidence](../Tests/ReleaseEvidence/mimo-build-3-magicdns.json).
+Public DoH explicitly selects Proxy. Bare names and private suffixes have both
+fake-IP exclusions and nonpublic resolver policy. Quad100 handles Tailnet names;
+validated native mappings handle LAN/corporate suffixes. Missing private mappings
+produce a local negative response. The names-only journal prevents a previously
+known disconnected suffix from falling through to public DNS; it does not retain
+stale resolver addresses. Saved primary DNS overrides DHCP for the same suffix.
 
-When adding/changing an event, update its inventory row, owning workflow, blocking/Direct behavior, coalescing/cancellation rules, diagnostic records and validation mapping here. Update the README feature/manual-check entries in the same change. Keep unrelated presentation changes out of network verification and never broaden an ignore rule solely to make a noisy trace disappear.
+Core publishes a temporary catchall only. Existing native split scopes keep their
+precedence, with explicit default/Tailnet search domains carried forward. Native
+DNS changes trigger a conservative protected refresh. Direct keeps native DNS.
 
-Build 4 validation: `Tests/MimoAppTests/client_connection_tests.swift` exercises delayed/obsolete replies, coalescing, supervisor freshness, inactive/returning accounts and no mutation requests. `login_item_controller_tests.swift` blocks the system backend while the main actor progresses. `Tests/MimoServiceTests/mimo_session_display_tests.swift` blocks a display query while session reads and shutdown progress; existing cycle/power tests retain epoch revocation and Direct behavior. These controlled regressions are not a reproduction of the physical login-screen freeze.
+Direct/Stop/uninstall revoke work, close and drain DNS **before** tunnel removal.
+Maintenance closes through the short PF revocation lock instead of waiting for a
+normal lifecycle operation. Cleanup then serializes lifecycle/PF ownership and
+records a new close epoch. Direct releases only its current epoch; maintenance or
+a newer denial supersedes that release. Post-release native connectivity checks
+run outside the lifecycle lock. The independent monitor distinguishes a healthy
+empty expected-policy file from a missing file.
+If an engine repair is still executing the guarded core wrapper and has no TUN,
+Direct teardown leaves that wrapper alive. Its controller is not ready yet;
+treating the failed reload as a hung engine would cancel each launchd repair.
+An actual engine with a failed controller, or a surviving TUN, still requires
+teardown before release.
+Then retire TUN, restore older saved IPv6 settings and clear all legacy child
+policies before emptying/removing the barrier. Stop/uninstall additionally remove
+owned jobs and controls using the shared cleanup script. Native Tailnet route/DNS
+readback occurs after release. A failure then reports incomplete native recovery;
+it must not silently reinstall blocking. A disconnected Tailnet is reported as
+unavailable for checking, not as successfully tested.
 
+Full Stop produces a cleanup receipt, continues anonymous GUI IP monitoring and
+changes the dashboard action to Activate. Activate/install/reinstall restore all
+roles and perform scoped conflict consent. Core remains the sole machine owner;
+release does not create another settings writer in each GUI.
 
-## Full network release and GUI-only monitoring
+## Events
 
-Both `daemon.sh uninstall` and the Dashboard's `deactivate` run the same full service removal. Deactivate retains only the open GUI and writes a version-2 completion receipt after every step succeeds. An older receipt must pass the current release checks before the GUI can claim completion. A subsequent install/reinstall/upgrade overrides that receipt and restores all services; it is retained only for rollback until setup succeeds. It does not use the older engine-only service stop. The GUI's Stop button remains usable when communication is lost; an active shared mutation or installer operation still disables it.
+| Event | Protected behavior | Direct / released behavior |
+| --- | --- | --- |
+| V01 Boot, core/supervisor restart | Inspect durable intent; close before protected setup, honor service Stop/maintenance, restore intended roles and verify a new receipt. Supervisor restart also invalidates approval. | Managed Direct restores without approval. Completed deactivation leaves jobs absent; interrupted release resumes cleanup before activation. |
+| V02 Mode, active proxy or family change | Validate candidate, admit revision, close and run section 7.5. IPv4 requires fresh approved IPv4; Dual-stack requires both fresh approved families from this attempt. | Save proxy/family without activation or an IP check; core-owned family selection survives supervisor status polls. Selecting None/removing the active proxy restores Direct. No selected proxy permits Direct only. |
+| V03 Bypass Apply | Rule validates and reloads under a fresh cycle; Global saves blocks for later Rule use without reload. Invalid drafts cause no mutation. | Save only while core is active. Full deactivation cannot create a second machine-settings owner. |
+| V04 Inactive proxy CRUD, drafts, display/login preferences, refresh interval | Persist or display only; no unrelated profile reload, lookup or close. Editing the active proxy is V02. | Same admission rules; no protection cycle. Released refresh preferences are isolated to that monitor. |
+| V05 Allowlist, verification-provider selection or active provider credential | Invalidate the affected receipt and verify with the new revision. Removing an approved address cannot leave the old receipt effective. Country metadata never grants approval. | Observe under updated preferences when relevant, with no native-traffic gate. Machine credentials remain unavailable to released monitoring. |
+| V06 Refresh now, provider Test, Retry, periodic/deferred refresh | Shared scheduler applies quotas/cooldowns and joins/coalesces in-flight work. Every admitted protected lookup uses section 7.5 and reports its real result. Never disables only periodic refresh. | Managed core observes native exit; after full deactivation the anonymous GUI monitor does so. Neither closes PF for a Direct check. |
+| V07 External IP/DNS/route/interface/VPN/service-order/location change | Relevant/unknown changes invalidate and request early closure; classify and coalesce a fresh cycle. | No protected cycle or event-only lookup in managed Direct. Released monitoring can follow another VPN's exit. |
+| V08 Exact owned mutation or known telemetry | Ignore only positively classified keys; resolve their tickets without clearing unrelated external events. | No routing or lookup side effect from ignored notifications. |
+| V09 Proven private-only native DNS/route change | Preserve native scopes/search configuration without provider/PF publication. Current implementation conservatively requests a new protected cycle for changed native DNS; no in-place approval reuse. | Native configuration stays authoritative; no Tailnet control, provider refresh or port retry. |
+| V10 WillSleep, wake, sleep cancelled | Establish power hold/epoch and confirm close before normal sleep acknowledgement. Wake/cancel remains closed until the current generation verifies. | No protection guard or event-driven approval. Released monitoring follows account activity. |
+| V11 Lock/unlock, login/logout, console/display change | Supervisor invalidates once per real transition. Multiple GUI windows do not each request global rechecks. Bounded display sampling cannot block login/session handling. | No protected cycle; released account monitoring pauses/resumes with that GUI. |
+| V12 Core/engine missing or hung; failed process/profile/DNS/route audit | Supervisor/independent checker closes, records observation/effective times, repairs only intended services and requires new verification. | Respect Direct/released intent; stale protected faults cannot reinstall blocking. |
+| V13 PF/launchd drift or infrastructure timer | Compare expected live phase. Empty active root is a fault; ineffective closed root is a fault. Repair closed and reverify; never recreate old provider/PF children. | Managed recovery retains empty packet policy; full release removes repair jobs. A stale surviving worker must respect release intent/receipt. |
+| V14 Core/engine Start/Stop/Restart or profile Reload | Confirm closure before destructive mutation; persist explicit service Stop intent. Restart/reload requires verification. Lower-level core Stop leaves independent blocking, not silent Direct. | Respect saved service intent and native networking. Dashboard full deactivation is V15. |
+| V15 Direct, Stop engine and use Direct, uninstall | Cancel old work and execute section 6.3. Stop/uninstall additionally removes all owned privileged services. | Idempotent cleanup; confirmed Stop shows Monitoring only and Activate. Already-clean Direct causes no new guard cycle. |
+| V16 Install/reinstall/upgrade/Activate | Stage/validate, request scoped conflict consent, restore all roles and qualify health; preserve protected mode only with fresh approval. | Previously inactive installations start all services in Direct. No port 18766 or provider readiness dependency. |
+| V17 GUI open/focus/reconnect/quit, widgets, logs/copy | Read state or perform the explicit command only. Communication loss causes reconnect/unconfirmed presentation, not an automatic restart, check or close. | Same; anonymous released monitoring is the explicit exception. |
+| V18 Timeout, cancellation, crash/reboot during a transaction | Reject stale completions; resume from journaled phase with confirmed closure or fresh verification required. Desired settings and effective profile remain separate. | Resume release, not superseded protected work. A failed native check after release remains incomplete without reblocking Direct. |
 
-After maintenance admission, the installer unloads all repair/boot/core/engine/supervisor jobs and waits for their workers. `Sources/MimoDiagnostics/release-network.pl` independently confirms job absence, removes the exact persistent Mimo boot stanza, enumerates the entire `com.apple/000.mimo` tree, and clears filter/NAT rules and tables including unknown older descendants. Readback must show empty policies. No global PF reset/state flush, foreign anchor mutation or unrecorded PF reference release is allowed. This does not depend on the old installed binary's PF cleanup implementation.
+## Coalescing, cancellation and observation
 
-Next it removes only Mimo's dynamic resolver, releases current-boot recorded PF references, restores saved per-service IPv6 flags through the helper, flushes system DNS caches and checks that the stopped engine left no Mimo tunnel address. For a native Quad100 route with a Tailnet IPv4 address, it requires a fresh TCP PTR answer from Quad100 for that address (up to three bounded attempts). Failure aborts completion, retaining recovery files; a disconnected Tailnet is explicitly unverified. It does not restart Tailscale, modify its routes/ACLs or claim every peer service is reachable. Cleanup reruns are idempotent.
+Core’s shared scheduler joins concurrent refresh requests, observes provider quotas,
+uses a ten-minute failure cooldown and honors longer Retry-After responses. Never
+suppresses periodic checks only. Display/login preferences, refresh interval and
+inactive proxy edits do not cause protected reloads. Rule bypass edits affect Rule;
+Global saves them without a cycle. Session/wake/network checks remain owner-driven.
+Manual Refresh bypasses request-gap/burst admission, not a provider cooldown.
+Recovery can select another eligible provider; a successful IPv4 observation does
+not authorize a dual-stack cycle whose IPv6 observation failed or was rejected.
 
-Fixed `MIMO_CLEANUP` markers are copied into the GUI's readable Event Log as `mimo_cleanup_step` records. Completion, cancellation and failure are separate events. Core/supervisor log polling stops after confirmed removal. Uninstall from a terminal retains the same stage output in its command log.
+Owned mutations are ignored only after positive classification. Unknown/external
+changes invalidate approval; deferred events cannot be cleared by a stale completion.
+Client cancellation does not erase durable release intent. Health is inspected by
+service owners and timestamped; GUI communication loss is not process failure.
 
-On confirmed deactivation, `PublicIPMonitor` cancels XPC subscriptions/probes and starts `MimoReleasedMonitor`. That GUI-owned `MonitoringEngine` has isolated per-account storage, anonymous providers only, the previously selected refresh interval and diagnostic settings, and no privileged callbacks or machine credential access. It observes ordinary network changes so another VPN's exit can update; it never enforces the allowlist. Its snapshots drive the same menu/dashboard and manual refresh. Service rows stay Removed. Account deactivation or quitting cancels this engine; returning constructs a fresh observer lifecycle. Activation stops it before reconnecting to shared services. A communication failure alone cannot start released monitoring.
+## Sources and validation
 
-Validation: `Tests/MimoDaemonTests/network_release_test.pl` checks scope/error handling; `Tests/MihomoRuntimeTests/release_legacy_firewall_test.py` reproduces blocked native DNS with nested legacy rules in mimo-vm and verifies recovery while preserving unrelated PF rules and references; `Tests/MimoAppTests/released_monitor_tests.swift` covers fresh GUI lookup, rendering, no XPC, account pause/resume and activation fencing. Physical peer-to-peer acceptance remains necessary for the reported affected Mac.
+**Historical pre-guard qualification exceptions (2026-11-25):** active empty PF permits a
+short native-fallback interval after engine termination or a newly installed
+native route. The contained installed campaign measured public test attempts
+before the temporary deny became effective. V12/V13 recovery must not be read as
+an instantaneous packet guarantee. A resumed core also remained safely Blocked
+after heartbeat expiry in the corrected 100-second recovery test; automatic
+reverification is not yet qualified for that path. The supervisor's liveness
+closure currently does not set the retry flag used by audit recovery. No new
+firewall or recovery behavior has been silently substituted. See
+[closure evidence and remaining work](MIMO_V3_QUALIFICATION_CLOSURE.md).
 
+- [Canonical profile](../Sources/MimoShared/MihomoProfile.swift),
+  [family/paired observations](../Sources/MimoShared/MimoNetworkFamily.swift),
+  [engine patch](../Patches/mihomo-1.19.34-v3.patch).
+- [Coordinator](../Sources/MimoService/MimoCoordinator.swift),
+  [supervisor](../Sources/MimoService/MimoSupervisor.swift),
+  [runtime](../Sources/MimoService/MimoSystemRuntime.swift),
+  [PF lock](../Sources/MimoService/MimoFirewallLock.swift),
+  [independent guard](../Sources/MimoDaemon/pf-guard.pl).
+- [DNS owner](../Sources/MimoService/MimoDNSConfiguration.swift),
+  [native policies](../Sources/MimoShared/MimoNativeDNSPolicy.swift),
+  [cleanup](../Sources/MimoDiagnostics/release-network.pl),
+  [installer](../Sources/MimoDaemon/daemon.sh).
+- `xcrun swift test`, `bash Tests/MimoServiceTests/run.sh`, engine patch tests,
+  and the [dual-stack/installed plan](MIMO_DUALSTACK_TEST_PLAN.md).
+- Installed trusted-fixture validation: [44 HTTPS assertions](../Tests/MihomoRuntimeTests/Evidence/v3/installed-https.json),
+  [13 active recovery assertions](../Tests/MihomoRuntimeTests/Evidence/v3/installed-active-recovery.json),
+  and [9 paired-failure assertions](../Tests/MihomoRuntimeTests/Evidence/v3/installed-paired-failure.json).
 
-## Build 6: profile policy and a transition-only firewall
+New events include `mimo_dns_removed_and_drained`,
+`mimo_active_firewall_installed`, `mimo_direct_network_released`,
+`mimo_native_release_checked`, `mimo_native_release_check_failed` and
+`lookup_http_request`. Installation/cleanup outcomes are machine-wide and remain
+available with the GUI closed. Tokens/passwords never appear in these events.
 
-**Policy ownership.** Mihomo owns normal Rule/Global proxy routing, bypasses, public DNS and IPv6 rejection. Top-level IPv6 is enabled so the TUN can capture it, with an explicit TUN IPv6 address; profile DNS still suppresses AAAA and the first routing rule rejects all captured IPv6. The wrapper forces IPv6 TUN setup even when native IPv6 is absent at launch. macOS service IPv6 flags are no longer disabled. A temporary macOS resolver remains necessary for system DNS: it is separate from the provider file, and Direct/Stop/uninstall remove its exact owned key.
-
-**Startup/upgrade.** Establish the blocking parent before migration. Enumerate and clear every descendant of the owned PF anchor, including unreferenced older native/open policies; remove an older persistent Mimo DNS key; restore saved IPv6 flags. Never change another VPN's PF tree or resolver. Then prepare the current provider file and profile. The provider observer verifies the interface and publishes the file without PF writes or public endpoint discovery.
-
-**Closed transition.** Block public mixed/DNS loopback ports first, allow other loopback control, DHCP and IPv6 neighbor/router control, then deny all remaining outbound traffic in both families. No TUN, LAN or Tailnet exception exists. The independent power guard installs this barrier before revoking private-probe permission. Existing PF states in both families are cleared on closure; that operation is global and can interrupt other applications' connections.
-
-**Verification.** A private child allows only TCP to the pinned proxy endpoint for the installed runtime group, or encrypted bootstrap DNS when resolving a proxy hostname. Public traffic remains blocked. Reusing a prepared profile still reinstalls the blocking parent before clearing the power guard: cached policy bytes must not reopen the active parent prematurely. Confirm the exact profile, engine, DNS listeners and IPv4/IPv6 TUN routes before approval.
-
-**Active.** Under the shared mutation lock, replace the parent with only `anchor "power-guard" out quick`, whose child must be empty. No reachable Mimo packet allow/block rule remains. No blanket `pass all` overrides another owner's firewall. Stored probe rules are unreachable. The independent checker recognizes this active shape and treats a filled emergency child as withdrawn access. Detected faults close the barrier and require fresh verification. This policy deliberately depends on system routing while active; specific routes/interface-bound applications can bypass TUN, and unexpected failure detection is not instantaneous.
-
-**Direct.** Empty the owned parent and descendants, retire the TUN/profile, remove the resolver and restore an older IPv6 journal. No IPv6 state flush or separate IPv6 filter remains. Background services stay available. **Stop/uninstall** additionally remove jobs, persistent boot configuration, enable references and all owned network resources using the shared full cleanup routine described above. GUI-only IP monitoring continues after successful Stop.
-
-**Identification.** Every generated packet rule has a persistent `mimo:` label with its transition/probe purpose. Generated anchor files have context comments; the root anchor namespace remains `com.apple/000.mimo`. Cleanup never relies on labels, so unlabeled legacy rules are included. PF can retain an empty anchor object after a successful flush.
-
-Source: `MimoFirewallPolicy`, `MihomoProfile`, `MimoSystemRuntime`, `MimoPowerGuard`, `MimoNativeTransportWriter`, `pf-guard.pl`, `release-network.pl`. Events: `mimo_legacy_network_controls_removed`, `mimo_transition_firewall_released`, `mimo_direct_network_released`, and ordered `mimo_cleanup_step` stages. Validation and limits are recorded in the build 6 release evidence, not inferred from earlier PF campaigns.
+Physical login switching, forced sleep, Wi-Fi hardware changes and pre-loader
+boot behavior remain separate qualifications. Detection intervals are not maximum
+leakage windows. See the v3 plan’s T01–T14 mapping and implementation record for
+executed evidence and unresolved limits.

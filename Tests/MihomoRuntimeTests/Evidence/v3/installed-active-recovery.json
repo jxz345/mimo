@@ -1,0 +1,70 @@
+[
+  {
+    "id": "active-dual-global-baseline",
+    "passed": true
+  },
+  {
+    "id": "active-roles-000",
+    "passed": true,
+    "recovery_seconds": 36.543,
+    "fresh_attempt": true
+  },
+  {
+    "id": "active-roles-001",
+    "passed": true,
+    "recovery_seconds": 29.741,
+    "fresh_attempt": true
+  },
+  {
+    "id": "active-roles-010",
+    "passed": true,
+    "recovery_seconds": 25.003,
+    "fresh_attempt": true
+  },
+  {
+    "id": "active-roles-011",
+    "passed": true,
+    "recovery_seconds": 16.295,
+    "fresh_attempt": true
+  },
+  {
+    "id": "active-roles-100",
+    "passed": true,
+    "recovery_seconds": 24.924,
+    "fresh_attempt": true
+  },
+  {
+    "id": "active-roles-101",
+    "passed": true,
+    "recovery_seconds": 33.067,
+    "fresh_attempt": true
+  },
+  {
+    "id": "active-roles-110",
+    "passed": true,
+    "recovery_seconds": 35.504,
+    "fresh_attempt": true
+  },
+  {
+    "id": "active-roles-111",
+    "passed": true,
+    "recovery_seconds": 0.22,
+    "fresh_attempt": false
+  },
+  {
+    "id": "active-change-ipv4-global",
+    "passed": true
+  },
+  {
+    "id": "active-change-dual-global",
+    "passed": true
+  },
+  {
+    "id": "active-change-dual-rule",
+    "passed": true
+  },
+  {
+    "id": "active-final-direct",
+    "passed": true
+  }
+]

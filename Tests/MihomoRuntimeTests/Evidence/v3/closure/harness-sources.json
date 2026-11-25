@@ -1,0 +1,10 @@
+{
+  "Tests/MihomoRuntimeTests/v3_closure_fixture.py": "69986a31066fa4768fe25957bcb35ea20005dc45e8db1c2d50135865a208cb42",
+  "Tests/MihomoRuntimeTests/v3_fault_traffic_test.py": "781cfbba8542278fa728901277963ae4b9f316f4053a3196e173463901a6f0ca",
+  "Tests/MihomoRuntimeTests/v3_fault_watchdog.py": "a865423695bfe2cb6861dc4183b7bf207362169ece6b2483d20612d7f7f74a1c",
+  "Tests/MihomoRuntimeTests/v3_ipv6_control_test.py": "d5f33a8000d6612d686f1671121e5f54d33b8b02eae4b8efb93faeb4f1aa26c1",
+  "Tests/MihomoRuntimeTests/v3_firewall_failure_test.py": "f631e8112a0846dd8dd436407028ae757c68302b76729819e39847f34c1e4765",
+  "Tests/MihomoRuntimeTests/v3_package_closure_test.py": "846d8beb1ff015cfa0d4e2a769524552df37c936321f9f1e436807fdc2c79a48",
+  "Tests/MihomoRuntimeTests/v3_closure_continuation.py": "7bba734fe5758e26ead817de6d8190c24ba55418fd3ea3ced727a441d6579d1f",
+  "Tests/MihomoRuntimeTests/v3_closure_restore.py": "25a223cae7e8a6b563654aabcaceef7fd60a35948257217f9cd7acbb7701e7ab"
+}

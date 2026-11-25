@@ -1,0 +1,22 @@
+[
+  {
+    "family": "ipv4",
+    "mode": "rule",
+    "result": "PASS"
+  },
+  {
+    "family": "ipv4",
+    "mode": "global",
+    "result": "PASS"
+  },
+  {
+    "family": "dualstack",
+    "mode": "rule",
+    "result": "PASS"
+  },
+  {
+    "family": "dualstack",
+    "mode": "global",
+    "result": "PASS"
+  }
+]

@@ -1,0 +1,89 @@
+--- a/stack_gvisor_icmp.go
++++ b/stack_gvisor_icmp.go
+@@ -50,9 +50,16 @@
+ }
+ 
+ func (f *ICMPForwarder) HandlePacket(id stack.TransportEndpointID, pkt *stack.PacketBuffer) bool {
++	// Optional policy: drop echo requests before direct forwarding or synthetic
++	// replies, including requests addressed to the TUN itself. Other ICMP types
++	// retain their normal stack handling (PMTU, neighbor/router discovery, etc.).
++	policy, _ := f.handler.(interface{ BlockICMPEcho() bool })
+ 	if pkt.NetworkProtocolNumber == header.IPv4ProtocolNumber {
+ 		ipHdr := header.IPv4(pkt.NetworkHeader().Slice())
+ 		icmpHdr := header.ICMPv4(pkt.TransportHeader().Slice())
++		if icmpHdr.Type() == header.ICMPv4Echo && policy != nil && policy.BlockICMPEcho() {
++			return true
++		}
+ 		if icmpHdr.Type() != header.ICMPv4Echo || icmpHdr.Code() != 0 {
+ 			return false
+ 		}
+@@ -114,6 +121,9 @@
+ 	} else {
+ 		ipHdr := header.IPv6(pkt.NetworkHeader().Slice())
+ 		icmpHdr := header.ICMPv6(pkt.TransportHeader().Slice())
++		if icmpHdr.Type() == header.ICMPv6EchoRequest && policy != nil && policy.BlockICMPEcho() {
++			return true
++		}
+ 		if icmpHdr.Type() != header.ICMPv6EchoRequest {
+ 			return false
+ 		}
+--- /dev/null
++++ b/stack_gvisor_icmp_block_test.go
+@@ -0,0 +1,57 @@
++//go:build with_gvisor
++
++package tun
++
++import (
++	"testing"
++
++	"github.com/metacubex/gvisor/pkg/tcpip/header"
++	"github.com/metacubex/gvisor/pkg/tcpip/stack"
++)
++
++type blockEchoHandler struct{ Handler }
++
++func (*blockEchoHandler) BlockICMPEcho() bool { return true }
++
++func TestBlockEchoWithoutForwardingOrSyntheticReply(t *testing.T) {
++	for _, v6 := range []bool{false, true} {
++		for _, code := range []byte{0, 1} {
++			packet := stack.NewPacketBuffer(stack.PacketBufferOptions{ReserveHeaderBytes: 48})
++			transport := packet.TransportHeader().Push(8)
++			transport[1] = code
++			if v6 {
++				packet.NetworkHeader().Push(40)
++				packet.NetworkProtocolNumber = header.IPv6ProtocolNumber
++				transport[0] = byte(header.ICMPv6EchoRequest)
++			} else {
++				packet.NetworkHeader().Push(20)
++				packet.NetworkProtocolNumber = header.IPv4ProtocolNumber
++				transport[0] = byte(header.ICMPv4Echo)
++			}
++			// The absent stack/mapping deliberately fail if the handler tries to
++			// forward, look up a route or manufacture a reply instead of dropping.
++			forwarder := &ICMPForwarder{handler: &blockEchoHandler{}}
++			if !forwarder.HandlePacket(stack.TransportEndpointID{}, packet) {
++				t.Fatal("echo request escaped the drop policy")
++			}
++			if transport[0] == byte(header.ICMPv4EchoReply) || transport[0] == byte(header.ICMPv6EchoReply) {
++				t.Fatal("echo request was changed to a synthetic reply")
++			}
++			packet.DecRef()
++		}
++	}
++}
++
++func TestBlockEchoPreservesControlAndErrorHandling(t *testing.T) {
++	for _, kind := range []byte{1, 2, 3, 4, 133, 134, 135, 136} {
++		packet := stack.NewPacketBuffer(stack.PacketBufferOptions{ReserveHeaderBytes: 48})
++		packet.TransportHeader().Push(8)[0] = kind
++		packet.NetworkHeader().Push(40)
++		packet.NetworkProtocolNumber = header.IPv6ProtocolNumber
++		forwarder := &ICMPForwarder{handler: &blockEchoHandler{}}
++		if forwarder.HandlePacket(stack.TransportEndpointID{}, packet) {
++			t.Fatalf("ICMPv6 type %d was consumed by echo policy", kind)
++		}
++		packet.DecRef()
++	}
++}

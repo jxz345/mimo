@@ -1,0 +1,16 @@
+{
+  "settings_restored": true,
+  "proxy_selection_restored": true,
+  "proxy_catalog_restored": true,
+  "saved_family_restored": true,
+  "mode": "direct",
+  "services_healthy": true,
+  "owned_dns_removed": true,
+  "active_pf_empty": true,
+  "lab_rules_removed": true,
+  "lab_pflog_removed": true,
+  "certificate_and_key_retained": true,
+  "servers_stopped": true,
+  "tcp_listeners_absent": true,
+  "retained_tls_key_owner_only": true
+}

@@ -11,7 +11,7 @@ struct MimoMenuBarLabel: View {
                 countryLabel
                 directArrow
                 if presentation.kind == .checking { Image(systemName: "clock").foregroundStyle(Color.orange) }
-                if presentation.kind == .directWarning || presentation.kind == .tailnetWarning { Image(systemName: "exclamationmark.triangle").foregroundStyle(Color.orange) }
+                if presentation.kind == .directWarning { Image(systemName: "exclamationmark.triangle").foregroundStyle(Color.orange) }
             } else {
                 switch presentation.kind {
                 case .direct: directArrow
@@ -23,13 +23,10 @@ struct MimoMenuBarLabel: View {
                 case .blocked:
                     MenuBarCountryLabel.allowlistStop
                     countryLabel
-                case .verified, .tailnetWarning:
+                case .verified:
                     countryLabel
                     Image(systemName: "checkmark.shield").foregroundStyle(Color.white)
                         .shadow(color: .black.opacity(0.3), radius: 0.5, y: 0.5)
-                    if presentation.kind == .tailnetWarning {
-                        Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Color.orange)
-                    }
                     if presentation.countryChanged {
                         Image(systemName: "circle.fill").font(.system(size: 6))
                     }

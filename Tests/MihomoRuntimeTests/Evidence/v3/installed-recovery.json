@@ -1,0 +1,41 @@
+{
+  "scope": "Installed final candidate; managed Direct role recovery with live pinned controller version required for every verdict.",
+  "cases": [
+    {
+      "id": "baseline-direct",
+      "passed": true
+    },
+    {
+      "id": "roles-000",
+      "passed": true
+    },
+    {
+      "id": "roles-001",
+      "passed": true
+    },
+    {
+      "id": "roles-010",
+      "passed": true
+    },
+    {
+      "id": "roles-011",
+      "passed": true
+    },
+    {
+      "id": "roles-100",
+      "passed": true
+    },
+    {
+      "id": "roles-101",
+      "passed": true
+    },
+    {
+      "id": "roles-110",
+      "passed": true
+    },
+    {
+      "id": "roles-111",
+      "passed": true
+    }
+  ]
+}

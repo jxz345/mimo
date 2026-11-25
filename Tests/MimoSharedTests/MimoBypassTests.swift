@@ -28,13 +28,13 @@ final class MimoBypassTests: XCTestCase {
         XCTAssertFalse(global.contains("example.com"))
         XCTAssertFalse(global.contains("cdn.example.net"))
         for profile in [rule, global] {
-            XCTAssertTrue(profile.contains("DOMAIN-SUFFIX,ts.net,TS-DIRECT"))
-            XCTAssertTrue(profile.contains("IP-CIDR,192.168.0.0/16,DIRECT,no-resolve"))
+            XCTAssertTrue(profile.contains("100.64.0.0/10"))
+            XCTAssertTrue(profile.contains("fd7a:115c:a1e0::/48"))
             XCTAssertTrue(profile.contains("MATCH,Proxy"))
         }
         let removed = try MihomoProfile.render(proxy, mode: .rule, stage: .active, probePassword: "test", bypassBlocks: [])
         XCTAssertFalse(removed.contains("DOMAIN-SUFFIX,youtube.com,DIRECT"))
-        XCTAssertTrue(removed.contains("DOMAIN-SUFFIX,ts.net,TS-DIRECT"))
+        XCTAssertTrue(removed.contains("100.64.0.0/10"))
     }
 
     func testMalformedOrInjectableDomainsAreRejectedBeforeSaving() throws {
@@ -62,7 +62,7 @@ final class MimoBypassTests: XCTestCase {
         XCTAssertFalse(policy.state.allowsTraffic)
         policy.networkReleased(configuration: MimoConfiguration())
         var released = policy.state; released.networkReleased = true; released.networkReleaseRequested = true
-        released.services = [.init(id: .tailnetProvider, health: .suspended, transport: "HTTP")]
+        released.services = [.init(id: .mihomo, health: .suspended, transport: "Unix socket")]
         let display = MimoStatusPresentation(routing: released, snapshot: nil, preferences: .init(), date: .now)
         XCTAssertEqual(display.title, "Direct · Engine stopped")
         XCTAssertFalse(display.trafficIsBlocked)

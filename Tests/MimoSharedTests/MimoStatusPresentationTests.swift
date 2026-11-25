@@ -75,44 +75,6 @@ final class MimoStatusPresentationTests: XCTestCase {
         XCTAssertTrue(value.title.contains("Closing traffic"))
     }
 
-    func testProviderOffIsNormalWhenNativeTailnetIsOffButAnEnabledFailureWarns() {
-        var routing = MimoRoutingState()
-        routing.configuration.mode = .rule
-        routing.effectiveMode = .rule
-        routing.phase = .active
-        routing.tailnetExpected = false
-        for (health, expected): (MimoServiceHealth, MimoStatusPresentation.Kind) in [
-            (.stopped, .verified), (.running, .verified), (.restarting, .verified),
-            (.unavailable, .tailnetWarning), (.notInstalled, .tailnetWarning)
-        ] {
-            routing.services = [.init(id: .tailnetProvider, health: health, transport: "HTTP")]
-            let value = MimoStatusPresentation(routing: routing, snapshot: nil,
-                preferences: MonitoringPreferences(), date: .now)
-            XCTAssertEqual(value.kind, expected)
-            XCTAssertFalse(value.trafficIsBlocked)
-        }
-    }
-
-    func testStoppedProviderWarnsWhenNativeTailnetIsRunningInEveryMode() {
-        for mode in ProxyMode.allCases {
-            var routing = MimoRoutingState()
-            routing.configuration.mode = mode
-            routing.effectiveMode = mode
-            routing.phase = .active
-            routing.tailnetExpected = true
-            routing.services = [.init(id: .tailnetProvider, health: .stopped, transport: "HTTP")]
-            let value = MimoStatusPresentation(routing: routing, snapshot: nil,
-                preferences: MonitoringPreferences(), date: .now)
-            XCTAssertEqual(value.kind, .tailnetWarning)
-            XCTAssertTrue(value.detail.contains("Tailscale is running, but its provider is stopped"))
-            XCTAssertFalse(value.trafficIsBlocked)
-            XCTAssertEqual(value.isDirect, mode == .direct)
-            let refreshing = MimoStatusPresentation(routing: routing, snapshot: nil,
-                preferences: MonitoringPreferences(), date: .now, monitoringStatus: .refreshing)
-            XCTAssertEqual(refreshing.kind, .tailnetWarning, "A lookup must not hide a stopped required provider")
-        }
-    }
-
     func testBlockedVerificationShowsFailureInsteadOfGenericCloseReason() {
         var routing = MimoRoutingState()
         routing.configuration.mode = .rule

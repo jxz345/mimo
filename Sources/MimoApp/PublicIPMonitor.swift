@@ -100,7 +100,7 @@ final class PublicIPMonitor: ObservableObject {
     }
 
     func hasServiceReport(_ id: MimoServiceID, at date: Date = .now) -> Bool {
-        connected || (id != .tailnetProvider && hasSupervisorReply(at: date))
+        connected || hasSupervisorReply(at: date)
     }
 
     func serviceHealthLabel(_ id: MimoServiceID, at date: Date) -> String {
@@ -192,6 +192,14 @@ final class PublicIPMonitor: ObservableObject {
         Task { _ = await changeShared(request) }
     }
 
+    func setNetworkFamily(_ family: MimoNetworkFamily) {
+        var request = DaemonRequest(.configureRouting)
+        var configuration = routingState.configuration
+        configuration.networkFamily = family
+        request.routing = configuration
+        Task { _ = await changeShared(request) }
+    }
+
     func saveProxy(_ proxy: MimoProxy, password: String?, expectedRevision: Int, id: UUID? = nil) async -> Bool {
         var request = DaemonRequest(.saveProxy); request.proxyID = id; request.proxy = proxy; request.proxyPassword = password
         request.expectedRevision = expectedRevision
@@ -235,7 +243,7 @@ final class PublicIPMonitor: ObservableObject {
         serviceRPCFinished = false
         serviceOperation = service
         let releasing = service == .mihomo && operation == .stop
-        if releasing || (service != .tailnetProvider && routingState.configuration.mode.requiresVerification) {
+        if releasing || routingState.configuration.mode.requiresVerification {
             var pending = routingState
             pending.phase = .closing; pending.effectiveMode = nil
             pending.reason = "Blocking internet access before changing \(service.title)…"
@@ -255,22 +263,6 @@ final class PublicIPMonitor: ObservableObject {
                     serviceOperationID = nil; serviceOperation = nil
                     if succeeded, let state = daemonState?.routing { reconcileServiceProgress(state) }
                 }
-            }
-            if service == .tailnetProvider {
-                if operation == .start {
-                    await startTailnetProvider()
-                    return
-                }
-                guard var settings = daemonState?.settings else { operationError = DaemonFailure.unavailable.localizedDescription; return }
-                if operation == .restart {
-                    settings.tailscaleProviderEnabled = false
-                    var stop = DaemonRequest(.configure); stop.settings = settings
-                    guard await changeShared(stop) else { return }
-                }
-                settings.tailscaleProviderEnabled = operation != .stop
-                var request = DaemonRequest(.configure); request.settings = settings
-                _ = await changeShared(request)
-                return
             }
             do {
                 var message = MimoSupervisorRequest(.service); message.service = service; message.operation = operation
@@ -321,38 +313,7 @@ final class PublicIPMonitor: ObservableObject {
     private func serviceProgressState(_ routing: MimoRoutingState) -> MimoRoutingState {
         var state = routing
         state.hasProxyPassword = daemonState?.routing?.hasProxyPassword ?? false
-        state.tailnetExpected = daemonState?.routing?.tailnetExpected
-        var provider = daemonState?.routing?.services.first(where: { $0.id == .tailnetProvider })
-            ?? MimoServiceStatus(id: .tailnetProvider, health: .stopped, transport: "Loopback HTTP",
-                                 address: "127.0.0.1")
-        if state.networkReleaseRequested == true {
-            provider.health = .suspended; provider.bindingConfirmed = false
-            state.tailnetExpected = false
-        }
-        if state.services.first(where: { $0.id == .core })?.health != .running {
-            provider.health = .stopped; provider.bindingConfirmed = false
-        }
-        state.services.removeAll { $0.id == .tailnetProvider }
-        state.services.append(provider)
         return state
-    }
-
-    private func startTailnetProvider() async {
-        // Starting restores the machine-wide integration and needs no saved
-        // administrator authorization. Retry a concurrent automatic revision.
-        for attempt in 0..<4 {
-            do {
-                let response = try await DaemonRPC.call(DaemonRequest(.startTailnetProvider), timeout: 75)
-                if let state = response.state { receive(state) }
-                operationError = nil
-                return
-            } catch DaemonFailure.conflict where attempt < 3 {
-                try? await Task.sleep(for: .milliseconds(300))
-            } catch {
-                operationError = error.localizedDescription
-                return
-            }
-        }
     }
 
     func openProfile() async -> String? {
@@ -711,7 +672,7 @@ final class PublicIPMonitor: ObservableObject {
         settings.allowlist = list; configure(settings)
     }
     func addAllowedIP(_ value: String) -> Bool {
-        guard let address = IPAddressValidator.normalize(value), !address.contains(":") else { return false }
+        guard let address = IPAddressValidator.normalize(value) else { return false }
         var list = allowedIPList
         guard list.insert(address) else { return false }
         setAllowedIPList(list); return true
@@ -720,11 +681,6 @@ final class PublicIPMonitor: ObservableObject {
     func applyDiagnosticPreferences(_ preferences: DiagnosticPreferences) {
         guard var settings = daemonState?.settings else { return }
         settings.diagnostics = preferences; configure(settings)
-    }
-    func setProviderEnabled(_ enabled: Bool) {
-        if enabled { changeService(.tailnetProvider, operation: .start); return }
-        guard var settings = daemonState?.settings else { return }
-        settings.tailscaleProviderEnabled = enabled; configure(settings)
     }
     private func configure(_ settings: MachineSettings) {
         var request = DaemonRequest(.configure)
@@ -736,12 +692,8 @@ final class PublicIPMonitor: ObservableObject {
         let defaults = MimoAppGroup.defaults
         do { try MimoLocalSettings.migrateMonitoring(defaults) }
         catch { operationError = "Could not migrate monitoring preferences."; return }
-        let legacyProvider = FileManager.default.fileExists(atPath: TailscaleVergeProvider.monitorPlistPath)
-            || FileManager.default.fileExists(atPath: MimoService.support.appendingPathComponent("legacy-provider-enabled").path)
-            || FileManager.default.fileExists(atPath: "/Library/Preferences/com.mimo.legacy-provider-enabled")
-            || FileManager.default.fileExists(atPath: FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support/Mimo/legacy-provider-enabled").path)
         let settings = MachineSettings(preferences: MonitoringPreferences.load(), allowlist: AllowedIPStore().load(),
-                                       diagnostics: DiagnosticPreferencesStore().load(), tailscaleProviderEnabled: legacyProvider)
+                                       diagnostics: DiagnosticPreferencesStore().load())
         var request = DaemonRequest(.initialize)
         request.migration = MigrationState(settings: settings, budget: LookupBudgetStore().load(),
             attempts: RefreshAttemptStore().lastAttempts(), cooldowns: Dictionary(uniqueKeysWithValues: ProviderID.allCases.compactMap { provider in

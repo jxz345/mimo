@@ -1,0 +1,34 @@
+{
+  "total": 32,
+  "passed": 32,
+  "baselines": 4,
+  "faults": 28,
+  "faults_recovered": 28,
+  "native_bypass_packets": 0,
+  "public_echo_successes": 0,
+  "echo_send_attempts_during_faults": {
+    "4": 535,
+    "6": 533
+  },
+  "minimum_echo_send_attempts_in_each_fault_family": 12,
+  "sequence": {
+    "stage": "FINISHED",
+    "campaign_exit": 0,
+    "watchdog_finished": true,
+    "restore_exit": 0,
+    "finished_at": 1795601493.496911
+  },
+  "restoration": {
+    "settings_restored": true,
+    "proxy_selection_restored": true,
+    "proxy_catalog_restored": true,
+    "saved_family_restored": true,
+    "mode": "direct",
+    "services_healthy": true,
+    "owned_dns_removed": true,
+    "active_pf_empty": true,
+    "lab_rules_removed": true,
+    "lab_pflog_removed": true,
+    "certificate_and_key_retained": true
+  }
+}

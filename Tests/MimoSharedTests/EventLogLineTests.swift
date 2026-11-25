@@ -91,18 +91,6 @@ final class EventLogLineTests: XCTestCase {
                        "Skipped · service start · import or save the shared IPinfo token in Settings")
     }
 
-    func testTailscaleProviderLines() {
-        XCTAssertEqual(EventLogLine.message(event: "tailscale_provider_changed",
-                                            fields: TailscaleVergeChange.logFields(.direct(interface: "utun7"))),
-                       "Tailscale provider · Direct utun7")
-        XCTAssertEqual(EventLogLine.message(event: "tailscale_provider_changed",
-                                            fields: TailscaleVergeChange.logFields(.reject(reason: "no-tailscale-route"))),
-                       "Tailscale provider · Reject (Tailscale isn't connected)")
-        XCTAssertEqual(EventLogLine.message(event: "tailscale_provider_changed",
-                                            fields: TailscaleVergeChange.logFields(.reject(reason: "tailscale-not-installed"))),
-                       "Tailscale provider · Reject (Tailscale isn't installed)")
-    }
-
     func testRoutineRecordsAreNotShown() {
         for event in ["provider_health_changed", "network_path_unchanged", "lookup_started", "widget_reload_requested",
                       "refresh_coalesced_in_flight", "network_configuration_changed", "diagnostic_preferences_changed",
@@ -118,23 +106,6 @@ final class EventLogLineTests: XCTestCase {
         XCTAssertEqual(cut.count, EventLogLine.maximumMessageLength)
         XCTAssertTrue(cut.hasSuffix("…"))
         XCTAssertFalse(cut.contains("\n"))
-    }
-
-    func testTailscaleChangeIgnoresRepeatsAndCountsRealChanges() {
-        let direct7 = TailscaleVergeStatus.Served.direct(interface: "utun7")
-        XCTAssertEqual(TailscaleVergeChange.next(previous: nil, current: direct7), direct7, "the first reading is recorded")
-        XCTAssertNil(TailscaleVergeChange.next(previous: direct7, current: direct7), "routine rewrites are not recorded")
-        // Same served value from two state files with different ages: still nothing to record.
-        let a = TailscaleVergeStatus.evaluate(stateText: "state=direct\ninterface=utun7\nreason=verified\nchecked=1999999990\n",
-                                              now: Date(timeIntervalSince1970: 2_000_000_000))
-        let b = TailscaleVergeStatus.evaluate(stateText: "state=direct\ninterface=utun7\nreason=verified\nchecked=1999999998\n",
-                                              now: Date(timeIntervalSince1970: 2_000_000_000))
-        XCTAssertNil(TailscaleVergeChange.next(previous: a.served, current: b.served))
-        XCTAssertEqual(TailscaleVergeChange.next(previous: direct7, current: .reject(reason: "no-tailscale-route")),
-                       .reject(reason: "no-tailscale-route"))
-        XCTAssertEqual(TailscaleVergeChange.next(previous: direct7, current: .direct(interface: "utun8")), .direct(interface: "utun8"))
-        XCTAssertEqual(TailscaleVergeChange.next(previous: .reject(reason: "no-tailscale-route"), current: .reject(reason: "monitor-stale")),
-                       .reject(reason: "monitor-stale"))
     }
 
     func testMonitoringSummaryDescribesTimerAndEvents() {
@@ -159,25 +130,6 @@ final class EventLogLineTests: XCTestCase {
 }
 
 final class EventLogBufferTests: XCTestCase {
-    func testRepeatedTailscaleLinesAreDroppedButOtherEventsAreKept() {
-        var buffer = EventLogBuffer()
-        let direct = TailscaleVergeChange.logFields(.direct(interface: "utun7"))
-        XCTAssertTrue(buffer.append(timestamp: "2026-10-18T13:00:00Z", event: "tailscale_provider_changed", fields: direct))
-        XCTAssertFalse(buffer.append(timestamp: "2026-10-18T13:05:00Z", event: "tailscale_provider_changed", fields: direct),
-                       "a later launch recording the same starting value adds no line")
-        XCTAssertTrue(buffer.append(timestamp: "2026-10-18T13:06:00Z", event: "monitor_started", fields: [:]))
-        XCTAssertTrue(buffer.append(timestamp: "2026-10-18T13:07:00Z", event: "tailscale_provider_changed",
-                                    fields: TailscaleVergeChange.logFields(.reject(reason: "no-tailscale-route"))))
-        XCTAssertTrue(buffer.append(timestamp: "2026-10-18T13:07:04Z", event: "tailscale_provider_changed", fields: direct))
-        XCTAssertFalse(buffer.append(timestamp: "2026-10-18T13:07:05Z", event: "widget_reload_requested", fields: [:]))
-        XCTAssertEqual(buffer.lines, [
-            "2026-10-18 13:00:00Z  Tailscale provider · Direct utun7",
-            "2026-10-18 13:06:00Z  Monitoring started",
-            "2026-10-18 13:07:00Z  Tailscale provider · Reject (Tailscale isn't connected)",
-            "2026-10-18 13:07:04Z  Tailscale provider · Direct utun7"
-        ])
-    }
-
     func testKeepsOnlyTheNewestLines() {
         var buffer = EventLogBuffer(limit: 3)
         for second in 0..<5 {

@@ -13,8 +13,6 @@ struct ServiceTests {
         }
         if CommandLine.arguments.contains("--profile-preparation") {
             MimoTailnetNetworkTests.run()
-            MimoNativeObserverTests.run()
-            try await MimoNativeObserverTests.preparation()
             try await MimoCoordinatorTests.run()
             return
         }
@@ -22,8 +20,6 @@ struct ServiceTests {
         MimoCommandFenceTests.run()
         try MimoPowerTests.run()
         try await MimoGateTests.run()
-        MimoNativeObserverTests.run()
-        try await MimoNativeObserverTests.preparation()
         try await MimoRecoveryTests.run()
         try MimoInstallationTests.run()
         let boot = UUID().uuidString
@@ -212,6 +208,13 @@ struct ServiceTests {
         require(kill(child, 0) != 0 && errno == ESRCH, "timeout must terminate the child as well as the parent")
         let flood = await Task.detached { BoundedProcess.run("/usr/bin/yes", [], timeout: 2) }.value
         require(flood.status == 125, "probe output must be bounded")
+        let largeSnapshot = await Task.detached {
+            BoundedProcess.run("/usr/bin/head", ["-c", "120000", "/dev/zero"], outputLimit: 1_048_576)
+        }.value
+        require(largeSnapshot.status == 0 && largeSnapshot.text.utf8.count == 120000,
+                "an explicitly bounded native socket snapshot can exceed the ordinary 64K probe limit")
+        let rejectedLimit = BoundedProcess.run("/usr/bin/true", [], outputLimit: 1_048_577)
+        require(rejectedLimit.status == 126, "callers cannot remove the output bound")
         print("PASS: real XPC transport, initialization, authorization, secret isolation, per-user state, concurrent refresh, revision conflicts, restart persistence and bounded subprocesses")
     }
 
@@ -249,6 +252,16 @@ struct ServiceTests {
         require(await service.handle(protected, uid: 501).failure == nil, "Rule with selected proxy is available")
         try await Task.sleep(for: .milliseconds(350))
         require(service.state(for: 501).authorizationState.isNotAllowed, "protected IP is still checked against allowlist")
+        let beforeFamilyChange = await client.count
+        var family = request(.configureRouting)
+        family.routing = service.state(for: 502).routing!.configuration
+        family.routing!.networkFamily = .dual
+        require(await service.handle(family, uid: 502).failure == nil, "another account can select dual-stack")
+        require(service.state(for: 501).routing?.configuration.networkFamily == .dual, "family selection is shared")
+        let persisted = try JSONDecoder().decode(MimoConfiguration.self, from: local().data(forKey: "service.routing")!)
+        require(persisted.networkFamily == .dual, "family selection survives storage reload")
+        try await Task.sleep(for: .milliseconds(350))
+        require(await client.count > beforeFamilyChange, "changing family in Rule requests fresh verification")
         var stale = request(.saveProxy); stale.proxyID = id; stale.proxy = save.proxy
         var second = request(.saveProxy); second.proxy = save.proxy; second.proxy?.name = "Second"
         let count = await client.count
@@ -261,6 +274,14 @@ struct ServiceTests {
         require(service.state(for: 501).routing?.configuration.mode == .direct, "Direct is shared")
         require(!service.state(for: 501).authorizationState.isNotAllowed, "Direct clears protected rejection")
         try await Task.sleep(for: .milliseconds(350))
+        let directChecks = await client.count
+        family = request(.configureRouting)
+        family.routing = service.state(for: 501).routing!.configuration
+        family.routing!.networkFamily = .ipv4
+        require(await service.handle(family, uid: 501).failure == nil, "Direct retains future family selection")
+        require(service.state(for: 502).routing?.configuration.networkFamily == .ipv4, "Direct family selection is shared")
+        try await Task.sleep(for: .milliseconds(350))
+        require(await client.count == directChecks, "Direct family selection does not disrupt networking or request a lookup")
         var token = request(.setToken); token.token = "replacement-ipinfo-secret"
         require(await service.handle(token, uid: 501).failure == nil, "local token replacement commits")
         require(try MimoLocalSettings.passwords(in: local())[id] == "proxy-test-secret", "token save retains password")

@@ -1,6 +1,6 @@
 import Foundation
 
-/// Mimo-owned profiles. The legacy renderer remains the compatibility fixture and migration source.
+/// One canonical family-aware renderer. Legacy profiles are migration inputs only.
 public enum MihomoProfile {
     public enum Stage: Sendable { case verification, active }
     public static let tunnelDevice = "utun239"
@@ -9,6 +9,8 @@ public enum MihomoProfile {
     public static func blocking(controllerPath: String = MimoRuntime.controller.path) -> String {
         """
         # Mimo startup profile: credentials and public listeners are absent.
+        # Core holds the PF transition barrier while this idle profile is loaded.
+        # In Direct, core removes its DNS override and releases PF separately.
         mode: rule
         mixed-port: 0
         allow-lan: false
@@ -30,58 +32,114 @@ public enum MihomoProfile {
     public static func render(_ settings: ClashProxySettings, mode: ProxyMode, stage: Stage,
                               probePassword: String, controllerPath: String = MimoRuntime.controller.path,
                               probePort: Int = MimoRuntime.probePort,
-                              bypassBlocks: [MimoBypassBlock] = MimoBypassBlock.defaults) throws -> String {
-        guard mode.requiresVerification, !settings.server.contains(":"), (1...65535).contains(probePort),
+                              bypassBlocks: [MimoBypassBlock] = MimoBypassBlock.defaults,
+                              family: MimoNetworkFamily = .ipv4,
+                              privateDNS: [MimoPrivateDNSRule] = []) throws -> String {
+        let proxy = try settings.validated()
+        guard mode.requiresVerification, !proxy.server.contains(":"), (1...65535).contains(probePort),
               !probePassword.isEmpty, probePassword.count <= 256,
               !probePassword.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) }),
-              controllerPath.hasPrefix("/"), !controllerPath.contains("\n") else { throw DaemonFailure.invalidRequest }
-        let legacy = try ClashVergeProfile.render(settings)
-        // Keep the trusted DNS/TUN/proxy/provider template together. User data is rendered only
-        // through validated quoted scalars; it can never add configuration keys or commands.
-        let body = String(legacy[legacy.range(of: "mode: rule")!.lowerBound...])
-        let corsStart = body.range(of: "external-controller-cors:")!.lowerBound
-        let dnsStart = body.range(of: "\ndns:", range: corsStart..<body.endIndex)!.lowerBound
-        var profile = String(body[..<corsStart]) + String(body[dnsStart...])
-        profile = profile.replacingOccurrences(of: "\"/tmp/verge/verge-mihomo.sock\"", with: ClashVergeProfile.quoted(controllerPath))
-            .replacingOccurrences(of: "  - fd7a:115c:a1e0::/48\n", with: "")
-            .replacingOccurrences(of: "allow-lan: false", with: "allow-lan: false\nbind-address: 127.0.0.1")
-            .replacingOccurrences(of: "log-level: info", with: "log-level: silent")
-            .replacingOccurrences(of: "mixed-port: 7890", with: "mixed-port: \(stage == .active ? MimoRuntime.mixedPort : 0)")
-            .replacingOccurrences(of: "dns:\n  enable: true", with: "dns:\n  enable: true\n  listen: \(stage == .active ? "127.0.0.1:\(MimoRuntime.dnsPort)" : "''")")
-            .replacingOccurrences(of: "tun:\n  enable: true", with: "tun:\n  device: \(tunnelDevice)\n  enable: \(stage == .active)")
-        // Enable IPv6 capture, but keep the existing profile-level rejection.
-        // `ipv6: false` at the top level would prevent TUN IPv6 routes entirely.
-        // Do not change any macOS service's IPv6 preferences.
-        profile = profile.replacingOccurrences(of: "  stack: gvisor\n", with:
-            "  stack: gvisor\n  inet6-address: [\(tunnelIPv6)]\n")
-            .replacingOccurrences(of: "  ipv6: true\n", with: "  ipv6: false\n")
-            .replacingOccurrences(of: "  - any:53\n", with: "  - any:53\n  - tcp://any:53\n")
-        // Local provider delivery cannot collide with another application's
-        // TCP listener or leave an obsolete HTTP poller attached to its port.
-        let start = profile.range(of: "    type: http\n", range: profile.range(of: "\nproxy-providers:\n")!.upperBound..<profile.endIndex)!.lowerBound
-        let end = profile.range(of: "    health-check:\n", range: start..<profile.endIndex)!.lowerBound
-        profile.replaceSubrange(start..<end, with: "    type: file\n    path: ./proxy_providers/mimo-tailnet.yaml\n")
-        let rulesStart = profile.range(of: "\nrules:")!.lowerBound
-        profile = String(profile[..<rulesStart])
-        // Public DNS uses the proxy in both protected modes, even when Rule
-        // intentionally sends a website directly. Keep the earlier MagicDNS
-        // policy and a separate encrypted resolver for the proxy endpoint;
-        // resolving the proxy through itself would introduce a bootstrap loop.
-        let dnsUpstreamStart = profile.range(of: "  nameserver:\n")!.lowerBound
-        let dnsUpstreamEnd = profile.range(of: "proxies:\n", range: dnsUpstreamStart..<profile.endIndex)!.lowerBound
-        profile.replaceSubrange(dnsUpstreamStart..<dnsUpstreamEnd, with:
-            "  nameserver:\n  - \"https://1.1.1.1/dns-query#Proxy\"\n" +
-            "  proxy-server-nameserver:\n  - \"https://1.1.1.1/dns-query\"\n")
-        // Global keeps inner-tailnet and native-process exceptions, but ordinary
-        // visits to Tailscale's public websites must use the proxy like any website.
-        let activeRules = (ClashVergeProfile.nativeRules +
-            (mode == .rule ? try MimoBypassBlock.rules(bypassBlocks) : []) + ClashVergeProfile.localAndFinalRules)
-            .filter { !$0.hasPrefix("IP-CIDR6,") }
-        let ordinaryRules = stage == .active ? ["IP-CIDR6,::/0,REJECT,no-resolve"] + activeRules : ["MATCH,REJECT"]
-        profile += "\nrules:\n" + ordinaryRules.map { "  - \($0)" }.joined(separator: "\n") + "\n"
+              controllerPath.hasPrefix("/"), !controllerPath.contains("\n"), privateDNS.count <= 128 else {
+            throw DaemonFailure.invalidRequest
+        }
+        let q = ClashVergeProfile.quoted
+        var native = Dictionary(uniqueKeysWithValues: try ["lan", "local", "home.arpa"].map {
+            ($0, try MimoPrivateDNSRule(suffix: $0, servers: []))
+        })
+        native["ts.net"] = try MimoPrivateDNSRule(suffix: "ts.net", servers: ["100.100.100.100"])
+        for rule in privateDNS { native[rule.suffix] = rule }
+        let domains = native.keys.sorted()
+        var profile = """
+        # Mimo v3 private runtime profile. Never publish credentials.
+        # Generated by core from shared settings; edit Settings, not this file.
+        # Requires the pinned v3 engine. PF containment is managed outside YAML.
+        # Rule applies enabled bypass blocks; actual Global selects GLOBAL below.
+        mode: \(mode.rawValue)
+        # Mode-independent enforcement, including proxy-side hostname resolution.
+        mimo-destination-family: \(family.rawValue)
+        # Keep IPv6 capture available even when the destination family is IPv4.
+        ipv6: true
+        # Ordinary local clients are admitted only after core verifies the exit(s).
+        mixed-port: \(stage == .active ? MimoRuntime.mixedPort : 0)
+        allow-lan: false
+        bind-address: 127.0.0.1
+        log-level: silent
+        external-controller: ''
+        # Root-owned Unix socket; no public HTTP controller or secret in a URL.
+        external-controller-unix: \(q(controllerPath))
+        profile:
+          store-selected: false
+          store-fake-ip: false
+        tun:
+          # Mimo's own fixed TUN; native VPN interface names are never bound here.
+          device: \(tunnelDevice)
+          enable: \(stage == .active)
+          stack: gvisor-no-ping
+          # The patched stack silently drops captured echo, preserving ICMP control.
+          auto-route: true
+          auto-detect-interface: true
+          strict-route: false
+          disable-icmp-forwarding: true
+          # Core alone owns macOS DNS and preserves native scoped/search resolvers.
+          dns-mode: disabled
+          route-address: ['::/1', '8000::/1']
+          # Both IPv6 halves include NAT64. Native Tailnet stays outside this TUN.
+          # The pinned engine leaves native-overlay sockets on the macOS route.
+          route-exclude-address: ['100.64.0.0/10', 'fd7a:115c:a1e0::/48']
+          dns-hijack: ['any:53', 'tcp://any:53']
+        dns:
+          enable: true
+          listen: \(stage == .active ? "127.0.0.1:\(MimoRuntime.dnsPort)" : "''")
+          ipv6: \(family.requiresIPv6)
+          # Synthetic addresses route back to the engine; they are not real exits.
+          enhanced-mode: fake-ip
+          fake-ip-range: 198.18.0.1/16
+        """
+        if family.requiresIPv6 { profile += "\n  fake-ip-range6: fdfe:dcba:9876:1::/64" }
+        profile += "\n  # Public DNS is pinned to Proxy below; no unencrypted/public fallback pool.\n  respect-rules: false\n  fallback: []\n  fake-ip-filter-mode: blacklist\n  # Bare/private names never receive fake addresses or public DNS forwarding.\n  fake-ip-filter:\n    - '*'\n"
+        profile += domains.map { "    - \(q("+." + $0))\n" }.joined()
+        profile += "    - '+.tailscale.com'\n  # Core supplies native suffix/resolver pairs; absent resolvers fail locally.\n  nameserver-policy:\n    # Bare names fail locally, allowing macOS to try preserved search domains.\n    '*': ['rcode://name_error']\n"
+        for domain in domains {
+            profile += "    \(q("+." + domain)): [\(native[domain]!.upstreams.map(q).joined(separator: ", "))]\n"
+        }
+        profile += """
+          nameserver: ['https://1.1.1.1/dns-query#Proxy']
+          # Used only to resolve a hostname proxy endpoint; core scopes bootstrap PF.
+          proxy-server-nameserver: ['https://1.1.1.1/dns-query']
+        # Private proxy credentials below are local only, never release artifacts.
+        proxies:
+          - name: \(q(proxy.name))
+            type: \(proxy.type.rawValue)
+            server: \(q(proxy.server))
+            port: \(proxy.port)
+            udp: \(proxy.type == .socks5)
+            ip-version: \(family == .ipv4 ? "ipv4" : "dual")
+        """
+        if !proxy.username.isEmpty {
+            profile += "\n    username: \(q(proxy.username))\n    password: \(q(proxy.password))"
+        }
+        profile += """
+
+        proxy-groups:
+          # No automatic DIRECT member/fallback when the selected proxy fails.
+          - name: Proxy
+            type: select
+            proxies: [\(q(proxy.name))]
+          - name: GLOBAL
+            type: select
+            proxies: [Proxy]
+        rules:
+          # Global bypasses this list; family/probe safety is enforced in the engine.
+          # Rule rejects IPv6 when IPv4 is selected, then applies bypasses and Proxy.
+          # Final REJECT catches rule fall-through; it is not a failed-dial retry.
+        """
+        let rules = (family == .ipv4 ? ["IP-CIDR6,::/0,REJECT,no-resolve"] : []) +
+            (mode == .rule ? try MimoBypassBlock.rules(bypassBlocks) : []) + ["MATCH,Proxy", "MATCH,REJECT"]
+        profile += rules.map { "\n  - \($0)" }.joined()
         profile += """
 
         listeners:
+          # Authenticated core-only exit checks; ordinary applications use mixed-port.
           - name: mimo-private-probe
             type: mixed
             listen: 127.0.0.1
@@ -89,17 +147,20 @@ public enum MihomoProfile {
             udp: false
             users:
               - username: \(MimoRuntime.probeUser)
-                password: \(ClashVergeProfile.quoted(probePassword))
+                password: \(q(probePassword))
+              - username: mimo-core-ipv4
+                password: \(q(probePassword))
+              - username: mimo-core-ipv6
+                password: \(q(probePassword))
             rule: mimo-verification
         sub-rules:
+          # The pinned engine enforces this exact-host HTTPS ACL in both modes.
           mimo-verification:
         """
-        // Even valid probe credentials cannot turn this listener into a general proxy.
         for host in MimoRuntime.lookupHosts {
             profile += "\n    - AND,((DOMAIN,\(host)),(DST-PORT,443)),Proxy"
         }
-        profile += "\n    - MATCH,REJECT\n"
-        return "# Mimo private runtime profile. Do not publish or log.\n" + profile
+        return profile + "\n    - MATCH,REJECT\n"
     }
 
     public static func routingRules(in profile: String) -> [String] {

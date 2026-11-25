@@ -1,5 +1,6 @@
 #!/usr/bin/perl
 use strict;
+our $support;
 use warnings;
 use Test::More;
 use FindBin;
@@ -78,5 +79,30 @@ for my $status (0, 1, 124) {
     local *run_command = sub { $_[2] eq '/usr/bin/dig' ? (0, 'status: SERVFAIL', '') : (0, "interface: utun8\n", '') };
     local *required = sub { "inet 100.123.194.87 --> 100.123.194.87\n" };
     ok(!eval { verify_tailnet(); 1 }, 'failed connected Tailnet DNS prevents completed uninstall');
+}
+{
+    no warnings 'redefine';
+    require File::Temp;
+    local $support = File::Temp::tempdir(CLEANUP => 1);
+    mkdir "$support/Runtime";
+    local *secure_path = sub { 1 }; # Files belong to the unprivileged test runner.
+    my @steps;
+    local *remove_owned_resolver = sub { push @steps, 'dns-remove' };
+    local *required = sub {
+        my $command = join(' ', @_[2..$#_]);
+        push @steps, $command;
+        return "block drop out quick all label \"mimo:transition:deny\"\n" if $command =~ /-sr$/;
+        return '';
+    };
+    prepare_network();
+    ok(-s "$support/Runtime/pf-close.epoch" && -s "$support/Runtime/pf-mutation.epoch",
+       'cleanup revokes older grants using the shared mutation epochs');
+    my ($denial) = grep { $steps[$_] =~ /-sr$/ } 0..$#steps;
+    my ($dns) = grep { $steps[$_] eq 'dns-remove' } 0..$#steps;
+    ok($denial < $dns, 'cleanup confirms the guard before draining DNS');
+    @steps = ();
+    local *required = sub { '' };
+    ok(!eval { prepare_network(); 1 }, 'failed close readback aborts cleanup');
+    ok(!@steps, 'failed closure leaves the existing resolver untouched');
 }
 done_testing();

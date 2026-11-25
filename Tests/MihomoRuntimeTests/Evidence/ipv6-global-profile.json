@@ -1,0 +1,261 @@
+{
+  "engine_version": "v1.19.34",
+  "engine_sha256": "a55a9073f9b7b1fa596a82c034d2dae3407ec34732102b6e42c5513ce3033f34",
+  "cases": [
+    {
+      "name": "controlled_proxy",
+      "checks": {
+        "global_mode": true,
+        "zero_rules": true,
+        "global_selects_proxy": true,
+        "proxy_selects_test_proxy": true,
+        "ipv6_capture_routes": true,
+        "ipv4_default_capture": true,
+        "native_tailnet_route": true,
+        "native_tailnet_ipv6_route": true,
+        "management_route_unchanged": true,
+        "dns_unchanged_while_running": true,
+        "default_tun_ipv6_address": true,
+        "all_ipv6_proxy_echoes": true,
+        "proxy_received_each_destination": true,
+        "unavailable_proxy_fails": true,
+        "native_ipv6_destination_packets_zero": true,
+        "ping_entered_tun": true,
+        "routes_restored": true,
+        "dns_restored": true,
+        "tun_removed": true
+      },
+      "ping_status": 0,
+      "echo_results": {
+        "2606:4700:4700::1111": {
+          "tcp": true,
+          "udp": true
+        },
+        "64:ff9b::101:101": {
+          "tcp": true,
+          "udp": true
+        },
+        "64:ff9b:1::101:101": {
+          "tcp": true,
+          "udp": true
+        }
+      },
+      "proxy_received": [
+        {
+          "protocol": "tcp",
+          "destination": "2606:4700:4700::1111",
+          "port": 443,
+          "payload_received": true
+        },
+        {
+          "protocol": "udp",
+          "destination": "2606:4700:4700::1111",
+          "port": 443,
+          "payload_received": true
+        },
+        {
+          "protocol": "udp",
+          "destination": "2001:2::22",
+          "port": 443,
+          "payload_received": true
+        },
+        {
+          "protocol": "udp",
+          "destination": "2001:2::22",
+          "port": 443,
+          "payload_received": true
+        },
+        {
+          "protocol": "tcp",
+          "destination": "64:ff9b::101:101",
+          "port": 443,
+          "payload_received": true
+        },
+        {
+          "protocol": "udp",
+          "destination": "64:ff9b::101:101",
+          "port": 443,
+          "payload_received": true
+        },
+        {
+          "protocol": "tcp",
+          "destination": "64:ff9b:1::101:101",
+          "port": 443,
+          "payload_received": true
+        },
+        {
+          "protocol": "udp",
+          "destination": "64:ff9b:1::101:101",
+          "port": 443,
+          "payload_received": true
+        }
+      ],
+      "unavailable_proxy_echoes": {
+        "tcp": false,
+        "udp": false
+      },
+      "en0_destination_packets": {
+        "2606:4700:4700::1111": {
+          "tcp": 0,
+          "udp": 0,
+          "echo": 0
+        },
+        "64:ff9b::101:101": {
+          "tcp": 0,
+          "udp": 0,
+          "echo": 0
+        },
+        "64:ff9b:1::101:101": {
+          "tcp": 0,
+          "udp": 0,
+          "echo": 0
+        }
+      },
+      "utun238_destination_packets": {
+        "2606:4700:4700::1111": {
+          "tcp": 7,
+          "udp": 1,
+          "echo": 3
+        },
+        "64:ff9b::101:101": {
+          "tcp": 11,
+          "udp": 2,
+          "echo": 0
+        },
+        "64:ff9b:1::101:101": {
+          "tcp": 6,
+          "udp": 1,
+          "echo": 0
+        }
+      },
+      "required_checks_passed": true
+    },
+    {
+      "name": "supplied_proxy",
+      "checks": {
+        "global_mode": true,
+        "zero_rules": true,
+        "global_selects_proxy": true,
+        "proxy_selects_test_proxy": true,
+        "ipv6_capture_routes": true,
+        "ipv4_default_capture": true,
+        "native_tailnet_route": true,
+        "native_tailnet_ipv6_route": true,
+        "management_route_unchanged": true,
+        "dns_unchanged_while_running": true,
+        "default_tun_ipv6_address": true,
+        "magicdns_a": true,
+        "client_aaaa_suppressed": true,
+        "local_dns_tcp_udp": true,
+        "public_dns": true,
+        "public_listener_fake_ip": true,
+        "ipv4_tun_https": true,
+        "proxy_listener_https": true,
+        "native_ipv6_destination_packets_zero": true,
+        "ping_entered_tun": true,
+        "routes_restored": true,
+        "dns_restored": true,
+        "tun_removed": true
+      },
+      "ping_status": 0,
+      "dns_queries": {
+        "A": {
+          "status": 0,
+          "answer_count": 1,
+          "error": null
+        },
+        "AAAA": {
+          "status": 0,
+          "answer_count": 0,
+          "error": null
+        }
+      },
+      "listener_dns": {
+        "+tcp": true,
+        "+notcp": true
+      },
+      "public_dns": {
+        "status": 0,
+        "answer_count": 2,
+        "error": null
+      },
+      "https": {
+        "ipv4": {
+          "status": 0,
+          "http_code": "200",
+          "error": ""
+        },
+        "ipv6": {
+          "status": 35,
+          "http_code": "000",
+          "error": "curl: (35) LibreSSL SSL_connect: SSL_ERROR_SYSCALL in connection to one.one.one.one:443 \n"
+        },
+        "nat64": {
+          "status": 35,
+          "http_code": "000",
+          "error": "curl: (35) LibreSSL SSL_connect: SSL_ERROR_SYSCALL in connection to one.one.one.one:443 \n"
+        }
+      },
+      "https_proxy_listener": {
+        "status": 0,
+        "stdout": "200",
+        "stderr": ""
+      },
+      "external_ipv6_https_passed": false,
+      "en0_destination_packets": {
+        "2606:4700:4700::1111": {
+          "tcp": 0,
+          "udp": 0,
+          "echo": 0
+        },
+        "64:ff9b::101:101": {
+          "tcp": 0,
+          "udp": 0,
+          "echo": 0
+        },
+        "64:ff9b:1::101:101": {
+          "tcp": 0,
+          "udp": 0,
+          "echo": 0
+        }
+      },
+      "utun238_destination_packets": {
+        "2606:4700:4700::1111": {
+          "tcp": 5,
+          "udp": 1,
+          "echo": 3
+        },
+        "64:ff9b::101:101": {
+          "tcp": 5,
+          "udp": 1,
+          "echo": 0
+        },
+        "64:ff9b:1::101:101": {
+          "tcp": 0,
+          "udp": 1,
+          "echo": 0
+        }
+      },
+      "required_checks_passed": true
+    }
+  ],
+  "profile_sha256": "bdf1076c908a888fd9105ad13f5e637d874a3aadda6d32c89c359a31b932584b",
+  "scope": "Standalone profile; no app, firewall or macOS resolver changes.",
+  "tested_at_utc": "2026-11-24T04:06:55.550760+00:00",
+  "limits": [
+    "Controlled SOCKS echo proves proxy transport, not remote Internet reachability.",
+    "External IPv6/NAT64 HTTPS results are reported separately from packet-path checks.",
+    "Ping replies are synthetic; no remote ping qualification.",
+    "The macOS resolver is unchanged; listener DNS answers are used explicitly.",
+    "No installed-app lifecycle, Tailscale on/off or multi-account qualification."
+  ],
+  "profile_yaml_sha256": "3a7fc7795b57a9959a1d4f1821d205fdf022a3a4243da9636c86fe3136b69e03",
+  "test_script_sha256": "0e27886b21b2bc1d74a51ebdd730ffc712c54faf6eea132faf33f59857bd1cdd",
+  "independent_upstream_controls": {
+    "engine_running": false,
+    "ipv4_hostname_https_http_status": 200,
+    "ipv6_literal_socks5_reply": 5,
+    "nat64_literal_socks5_reply": 5,
+    "meaning": "SOCKS5 connection refused for the tested IPv6 destinations; not an end-to-end IPv6 success."
+  }
+}

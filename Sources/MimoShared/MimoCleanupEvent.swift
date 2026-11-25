@@ -6,6 +6,7 @@ public enum MimoCleanupEvent {
     public static let messages: [String: String] = [
         "services_stopped": "All Mimo background services stopped",
         "firewall_removed": "Mimo firewall rules removed, including previous-version child anchors",
+        "dns_drained_before_tunnel": "System DNS drained before tunnel removal",
         "resolver_removed": "Mimo DNS override removed",
         "ipv6_restored": "Saved IPv6 settings restored",
         "ipv6_no_backup": "No saved IPv6 settings; current network settings retained",

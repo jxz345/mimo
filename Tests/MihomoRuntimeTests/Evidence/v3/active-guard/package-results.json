@@ -1,0 +1,38 @@
+[
+  {
+    "id": "release-package-identity",
+    "result": "PASS",
+    "version": "3.0",
+    "build": "8",
+    "engine_sha256": "6925603de8a31decb3919c607a97cee2845afc5ea70aa4c2797620e775f143ca"
+  },
+  {
+    "id": "release-package-upgrade",
+    "result": "PASS"
+  },
+  {
+    "id": "release-cleans-legacy-preserves-foreign",
+    "result": "PASS"
+  },
+  {
+    "id": "occupied-port-refusal",
+    "result": "PASS"
+  },
+  {
+    "id": "explicit-fixture-takeover",
+    "result": "PASS",
+    "scope": "Real terminal consent, test-owned standalone listener only"
+  },
+  {
+    "id": "reinstall-after-release",
+    "result": "PASS"
+  },
+  {
+    "id": "release-package-uninstall",
+    "result": "PASS"
+  },
+  {
+    "id": "release-package-final-healthy",
+    "result": "PASS"
+  }
+]

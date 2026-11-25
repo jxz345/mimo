@@ -3,7 +3,7 @@ import Foundation
 /// One presentation policy for the menu bar, dashboard, widgets, and Control Center. A location alone
 /// never implies that the supervisor has opened traffic.
 public struct MimoStatusPresentation: Equatable, Sendable {
-    public enum Kind: String, Sendable { case direct, directWarning, checking, blocked, verified, tailnetWarning, unavailable }
+    public enum Kind: String, Sendable { case direct, directWarning, checking, blocked, verified, unavailable }
     public let kind: Kind
     public let title: String
     public let detail: String
@@ -27,11 +27,6 @@ public struct MimoStatusPresentation: Equatable, Sendable {
         isClosing = routing.phase == .closing
         isRestoringDirect = routing.phase == .restoringDirect
         isBackgroundVerification = routing.allowsTraffic && routing.configuration.mode.requiresVerification && routing.backgroundVerification == true
-        let tailnet = routing.services.first(where: { $0.id == .tailnetProvider })
-        let tailnetFailed = tailnet.map {
-            [.unavailable, .notInstalled].contains($0.health)
-                || ($0.health == .stopped && routing.tailnetExpected == true)
-        } ?? false
         switch routing.phase {
         case .unavailable:
             kind = .unavailable
@@ -41,7 +36,6 @@ public struct MimoStatusPresentation: Equatable, Sendable {
             kind = .blocked
         case .active:
             if !routing.allowsTraffic { kind = .unavailable }
-            else if tailnetFailed && routing.networkReleaseRequested != true { kind = .tailnetWarning }
             else if routing.effectiveMode == .direct {
                 switch monitoringStatus {
                 case .refreshing: kind = .checking
@@ -54,9 +48,9 @@ public struct MimoStatusPresentation: Equatable, Sendable {
         address = kind == .unavailable ? nil : routing.displayedIP?.address
         let locationIsCurrent = snapshot?.ipAddress == routing.observedIP?.address
         country = snapshot?.hasValidCountryCode == true &&
-            (kind == .blocked || ((isDirect || kind == .verified || kind == .tailnetWarning) && locationIsCurrent))
+            (kind == .blocked || ((isDirect || kind == .verified) && locationIsCurrent))
             ? snapshot?.menuBarLabel(style: preferences.menuBarDisplayStyle) : nil
-        countryChanged = (kind == .direct || kind == .verified || kind == .tailnetWarning) && country != nil
+        countryChanged = (kind == .direct || kind == .verified) && country != nil
             && preferences.highlightCountryChanges && (snapshot?.isCountryChangeHighlighted(at: date) ?? false)
         switch kind {
         case .direct: title = routing.networkReleased == true ? "Direct · Engine stopped" : "Direct · No proxy"
@@ -67,7 +61,6 @@ public struct MimoStatusPresentation: Equatable, Sendable {
                 : "\(routing.configuration.mode.title) · Checking exit IP"
         case .blocked: title = "\(routing.configuration.mode.title) · Internet blocked"
         case .verified: title = "\(routing.configuration.mode.title) · Allowed"
-        case .tailnetWarning: title = "\(routing.configuration.mode.title) · Tailnet unavailable"
         case .unavailable: title = "Mimo · Status unavailable"
         }
         if kind == .verified {
@@ -84,11 +77,6 @@ public struct MimoStatusPresentation: Equatable, Sendable {
             detail = "Checking the exit IP. Direct remains selected."
         } else if kind == .unavailable, routing.phase != .unavailable {
             detail = "The routing state could not be confirmed. Open Dashboard to reconnect."
-        } else if kind == .tailnetWarning {
-            let prefix = isDirect ? "Direct remains selected." : "Public access is approved."
-            detail = routing.tailnetExpected == true && tailnet?.health == .stopped
-                ? "\(prefix) Tailscale is running, but its provider is stopped. Start the provider or reconnect Tailscale."
-                : "\(prefix) The tailnet provider is unavailable. Check Background services."
         } else if kind == .blocked, case .failed(let message) = monitoringStatus {
             // A later gate-close notification may have a generic reason. Keep
             // the failed verification's actionable cause visible in every UI.
@@ -109,7 +97,7 @@ public struct MimoStatusPresentation: Equatable, Sendable {
         case .checking where trafficIsBlocked:
             return isValidating ? "Traffic blocked → Validate profile → Check IP → Reopen if allowed"
                 : isCheckingReadiness ? "Traffic blocked → Exit IP approved → Checking readiness" : "Traffic blocked → Checking exit IP → Reopen if allowed"
-        case .verified, .tailnetWarning:
+        case .verified:
             return "Traffic blocked → Exit IP approved → Internet reopened"
         default: return nil
         }
@@ -123,7 +111,6 @@ public struct MimoStatusPresentation: Equatable, Sendable {
         case .checking: "clock"
         case .blocked: MimoIndicatorSymbol.outsideAllowlist
         case .verified: "checkmark.shield"
-        case .tailnetWarning: "exclamationmark.triangle"
         case .unavailable: "info.circle"
         }
     }

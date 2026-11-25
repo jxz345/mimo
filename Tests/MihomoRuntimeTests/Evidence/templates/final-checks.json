@@ -1,0 +1,31 @@
+{
+  "tested_at_utc": "2026-11-24T10:45:23.735941+00:00",
+  "checks": {
+    "mimo-global-ipv6-test.local.yaml_unchanged": true,
+    "mimo-global-ipv6-test.local.yaml_ignored": true,
+    "mimo-global-ipv6-test.yaml_unchanged": true,
+    "mimo-global-dualstack-test.local.yaml_unchanged": true,
+    "mimo-global-dualstack-test.local.yaml_ignored": true,
+    "mimo-global-dualstack-test.yaml_unchanged": true,
+    "template_hashes_match_preparation": true,
+    "every_report_uses_current_template": true,
+    "host_fixture_processes_stopped": true,
+    "host_fixture_tcp_listeners_removed": true,
+    "temporary_tls_private_keys_removed": true,
+    "vm_owned_temporary_directories_removed": true,
+    "vm_test_tun_removed": true,
+    "vm_test_engine_and_capture_stopped": true,
+    "vm_native_ipv4_route_restored": true,
+    "vm_native_ipv6_route_restored": true,
+    "vm_test_dns_registration_removed": true,
+    "native_lan_ipv4_ping": true,
+    "native_lan_ipv6_ping": true,
+    "native_tailnet_ipv4_ping": true,
+    "native_tailnet_ipv6_ping": true,
+    "vm_lab_browser_tabs_removed": true,
+    "vm_tailscale_running": true,
+    "vm_native_dns_fixture_stopped": true
+  },
+  "all_passed": true,
+  "scope": "Independent cleanup and identity verification; does not turn failed behavioral assertions into passes."
+}

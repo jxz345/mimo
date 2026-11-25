@@ -15,11 +15,24 @@ enum MimoCoordinatorTests {
         try await delayedDirectCannotOpenClosedGate()
         try await delayedCloseCannotUndoDirect()
         try await nonRoutingRevisionPreservesVerifiedAccess()
+        try await directFamilySurvivesSupervisorPoll()
         try await singlePreparationOwnsClosure()
         try await approvalProgressWaitsAndCannotUndoDirect()
         try await failedPreparationCannotProbe()
         try await supervisorEventInvalidatesWithoutDuplicateClose()
         print("PASS: stale supervisor replies, interrupted preparation/probes, credential mutation fencing and Direct failure isolation")
+    }
+
+    private static func directFamilySurvivesSupervisorPoll() async throws {
+        let fixture = Fixture(mode: .direct)
+        let coordinator = fixture.coordinator()
+        await coordinator.update(configuration: fixture.configuration, allowlist: Fixture.allowed, revision: 1)
+        var next = fixture.configuration; next.networkFamily = .dual
+        await coordinator.update(configuration: next, allowlist: Fixture.allowed, revision: 2, preservingAccess: true)
+        await coordinator.refreshSupervisorState()
+        require(coordinator.state.configuration.networkFamily == .dual && coordinator.state.allowsTraffic,
+                "supervisor polls preserve the core's new family selection in Direct")
+        require(fixture.lookupCount == 0, "Direct family selection does not verify a protected exit")
     }
 
     private static func singlePreparationOwnsClosure() async throws {

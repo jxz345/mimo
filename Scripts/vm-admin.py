@@ -5,6 +5,7 @@ The password stays outside the repository and is sent to sudo through stdin.
 No credentials are accepted on the command line or printed.
 """
 import json
+import ipaddress
 import os
 from pathlib import Path
 import shlex
@@ -24,7 +25,9 @@ def main():
     if value.get("host") != "mimo-vm-admin" or value.get("username") != "mimotest":
         sys.exit("Unexpected VM administrator configuration")
     remote = shlex.join(["/usr/bin/sudo", "-k", "-S", "-p", "", "--", *sys.argv[1:]])
-    process = subprocess.Popen(["/usr/bin/ssh", "-T", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8",
+    address = os.environ.get("MIMO_VM_ADDRESS")
+    host_options = ["-o", "Hostname=" + str(ipaddress.ip_address(address))] if address else []
+    process = subprocess.Popen(["/usr/bin/ssh", "-T", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8", *host_options,
                                 "mimo-vm-admin", remote], stdin=subprocess.PIPE)
     try:
         process.communicate(input=(value["password"] + "\n").encode())

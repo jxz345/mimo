@@ -1,0 +1,14 @@
+{
+  "fixture_process_stopped": true,
+  "fixture_listeners_closed": {
+    "proxy_port": true,
+    "control_port": true,
+    "http_port": true,
+    "https_port": true,
+    "udp_port": true,
+    "stream_port": true
+  },
+  "reusable_certificate_retained": true,
+  "reusable_key_retained": true,
+  "certificate_sha256": "2b5c844e10ed53f1aa216597b05a8205a68d357483bfd9a034e41a2076c94d3f"
+}

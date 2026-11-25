@@ -11,20 +11,16 @@ public enum MimoProtectedDNS {
     /// `primary` is the primary service's DNS with saved settings applied. Returns
     /// nil when there are too many domains to override safely.
     public static func resolver(services: [String: [String: Any]], primary: [String: Any]?) -> [String: Any]? {
-        // Match each existing supplemental domain at a higher priority, so a native
-        // VPN's default or MagicDNS resolver cannot bypass Mimo's DNS policy.
-        var domains = Set([""])
-        for value in services.values {
-            for domain in value["SupplementalMatchDomains"] as? [String] ?? [] where isValid(domain) {
-                domains.insert(domain)
-            }
-        }
+        // Claim only the default scope. Native private scopes retain precedence.
+        let domains = [""]
         // configd keeps only the default resolver's own SearchDomains (or DomainName).
         // Resolvers claiming every domain, such as MagicDNS, compete for that role
         // with the primary service; keep their lists first.
         let defaults = services.keys.sorted().compactMap { key -> [String: Any]? in
             let value = services[key]!
-            return (value["SupplementalMatchDomains"] as? [String])?.contains("") == true ? value : nil
+            let domains = value["SupplementalMatchDomains"] as? [String] ?? []
+            let tailnet = (value["ServerAddresses"] as? [String])?.contains("100.100.100.100") == true
+            return domains.contains("") || tailnet ? value : nil
         }
         var search: [String] = [], seen = Set<String>()
         for value in defaults + [primary].compactMap({ $0 }) {

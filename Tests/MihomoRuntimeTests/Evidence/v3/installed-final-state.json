@@ -1,0 +1,28 @@
+{
+  "version": "3.0",
+  "build": "8",
+  "phase": "active",
+  "effectiveMode": "direct",
+  "services": {
+    "core": "running",
+    "mihomo": "running",
+    "profileHosting": "running"
+  },
+  "infrastructure": {
+    "launchd": "healthy",
+    "pf": "healthy"
+  },
+  "pf_empty": true,
+  "owned_dns_absent": true,
+  "owned_tunnel_absent": true,
+  "controller": {
+    "meta": true,
+    "mimoCapabilities": [
+      "strict-ipv4-v1",
+      "probe-acl-v1",
+      "silent-echo-v1"
+    ],
+    "version": "v1.19.34-mimo-v3.1"
+  },
+  "fixture_proxy_absent": true
+}

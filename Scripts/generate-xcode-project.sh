@@ -179,7 +179,6 @@ for required_path in \
     "$KIT_ROOT/Sources/MimoApp/MimoApp.swift" \
     "$KIT_ROOT/Sources/MimoWidgets/MimoControl.swift" \
     "$KIT_ROOT/Sources/MimoDaemon/daemon.sh" \
-    "$KIT_ROOT/Sources/MimoDaemon/tailscale-verge.sh" \
     "$KIT_ROOT/Configuration/Mimo-Info.plist" \
     "$KIT_ROOT/Configuration/MimoWidgets-Info.plist" \
     "$KIT_ROOT/Configuration/Mimo.entitlements" \
@@ -235,6 +234,13 @@ mkdir -p "$PROJECT_DIR"
 ditto "$KIT_ROOT/Sources" "$PROJECT_DIR/Sources"
 ditto "$KIT_ROOT/Configuration" "$PROJECT_DIR/Configuration"
 cp "$KIT_ROOT/Design/AppIcon/mimo-icon.icns" "$PROJECT_DIR/Configuration/mimo-icon.icns"
+engine_binary="${MIMO_V3_ENGINE:-$KIT_ROOT/.build/v3-engine/mihomo-v3.bin}"
+engine_hash=$(/usr/bin/plutil -extract architectures.arm64.binarySHA256 raw -o - "$KIT_ROOT/Configuration/MihomoDependency.plist")
+[[ -f "$engine_binary" && "$(/usr/bin/shasum -a 256 "$engine_binary" | /usr/bin/awk '{print $1}')" == "$engine_hash" ]] || {
+    echo 'Build the pinned v3 engine with Scripts/build-v3-engine.sh and set MIMO_V3_ENGINE to its matching binary.' >&2; exit 1;
+}
+cp "$engine_binary" "$PROJECT_DIR/Configuration/mihomo-v3.bin"
+
 find "$PROJECT_DIR/Sources" "$PROJECT_DIR/Configuration" -name '.DS_Store' -delete
 
 # Apply the requested App Group only to generated copies. The source kit remains reusable.
@@ -274,7 +280,7 @@ settings:
     SWIFT_VERSION: "6.0"
     ENABLE_HARDENED_RUNTIME: YES
     MACOSX_DEPLOYMENT_TARGET: "14.0"
-    MARKETING_VERSION: "2.1"
+    MARKETING_VERSION: "3.0"
     CURRENT_PROJECT_VERSION: "$BUILD_NUMBER"
 targets:
   Mimo:
@@ -294,6 +300,8 @@ targets:
       - path: Sources/MimoDaemon/setup.command
         buildPhase: resources
       - path: Configuration/MihomoDependency.plist
+        buildPhase: resources
+      - path: Configuration/mihomo-v3.bin
         buildPhase: resources
       - path: Configuration/mimo-icon.icns
         buildPhase: resources
@@ -477,6 +485,7 @@ if (( GENERATE_ONLY == 0 )); then
             -configuration Debug \
             -destination 'platform=macOS' \
             -derivedDataPath "$PROJECT_DIR/DerivedData" \
+            ENABLE_DEBUG_DYLIB=NO \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             build

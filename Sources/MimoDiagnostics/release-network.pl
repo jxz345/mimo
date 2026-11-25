@@ -4,7 +4,7 @@
 # Never disable PF globally, reload its root rules, or stop another VPN's engine.
 use strict;
 use warnings;
-use Fcntl qw(:DEFAULT :mode);
+use Fcntl qw(:DEFAULT :mode :flock);
 use File::Basename qw(dirname);
 use File::Temp qw(tempfile);
 use IO::Select;
@@ -291,6 +291,47 @@ sub remove_owned_resolver {
     print "MIMO_CLEANUP resolver_removed\n";
 }
 
+sub prepare_network {
+    # Serialize with both normal lifecycle writers and independent power denial.
+    # Keep the same inodes and lock order as the installed core/guard.
+    my @locks;
+    for my $name (qw(firewall.lock pf-revocation.lock pf-mutation.lock)) {
+        my $path = "$support/Runtime/$name";
+        secure_path("$support/Runtime", 1, 0);
+        secure_path($path, 0, 1);
+        sysopen(my $lock, $path, O_RDWR | O_CREAT | O_NOFOLLOW, 0600) or die "Cannot open cleanup lock\n";
+        my $deadline = time() + 30;
+        until (flock($lock, LOCK_EX | LOCK_NB)) { die "Network cleanup is waiting for another transition\n" if time() >= $deadline; sleep .05; }
+        push @locks, $lock;
+    }
+    for my $name (qw(pf-close.epoch pf-mutation.epoch)) {
+        my $path = "$support/Runtime/$name";
+        secure_path($path, 0, 1);
+        my ($file, $temporary) = tempfile('.cleanup-XXXXXXXX', DIR => "$support/Runtime", UNLINK => 0);
+        print {$file} "cleanup-$$-" . time(); close $file or die "Cannot finish cleanup epoch\n";
+        rename($temporary, $path) or die "Cannot publish cleanup epoch\n";
+    }
+    # This fixed closed policy has no provider, process or native-TUN exception.
+    my $rules = <<'PF';
+block return out quick on lo0 proto { tcp, udp } to { 127.0.0.1, ::1 } port { 7890, 1053 } label "mimo:transition:public-listeners"
+pass out quick on lo0 all no state label "mimo:transition:local-control"
+pass out quick inet proto udp from any port 68 to 255.255.255.255 port 67 no state label "mimo:transition:dhcp"
+pass out quick inet6 proto icmp6 to { fe80::/10, ff02::/16 } icmp6-type { neighbrsol, neighbradv, routersol, routeradv } no state label "mimo:transition:ipv6-link-control"
+block drop out quick all label "mimo:transition:deny"
+PF
+    required(5, $rules, '/sbin/pfctl', '-a', $anchor, '-f', '-');
+    required(5, undef, '/sbin/pfctl', '-k', '0.0.0.0/0');
+    required(5, undef, '/sbin/pfctl', '-k', '::/0');
+    my $actual = required(5, undef, '/sbin/pfctl', '-a', $anchor, '-sr');
+    die "Cleanup barrier could not be confirmed\n" unless $actual =~ /^block drop out quick all label "mimo:transition:deny"$/m;
+    remove_owned_resolver();
+    required(5, undef, '/usr/bin/dscacheutil', '-flushcache');
+    required(5, undef, '/usr/bin/killall', '-HUP', 'mDNSResponder');
+    sleep .3;
+    die "Mimo DNS listener still advertised before teardown\n" if required(5, undef, '/usr/sbin/scutil', '--dns') =~ /port\s*:\s*1053\b/;
+    print "MIMO_CLEANUP dns_drained_before_tunnel\n";
+}
+
 sub release_network {
     require_stopped_jobs();
     print "MIMO_CLEANUP services_stopped\n";
@@ -313,7 +354,9 @@ sub release_network {
 }
 
 unless (caller) {
-    die "Usage: sudo /usr/bin/perl release-network.pl\n" if @ARGV;
+    my $prepare = @ARGV == 1 && $ARGV[0] eq "--prepare";
+    my $verify = @ARGV == 1 && $ARGV[0] eq "--verify-native";
+    die "Usage: sudo /usr/bin/perl release-network.pl [--prepare|--verify-native]\n" if @ARGV && !$prepare && !$verify;
     die "Administrator authentication on macOS is required\n" unless $> == 0 && $^O eq 'darwin';
     umask 0077;
     $ENV{PATH} = '/usr/bin:/bin:/usr/sbin:/sbin'; $ENV{LC_ALL} = 'C';
@@ -324,6 +367,6 @@ unless (caller) {
     secure_path($support, 1, 1);
     secure_path($pf_conf, 0, 0);
     for my $directory ("$support/Runtime", "$support/Guard") { secure_path($directory, 1, 1); }
-    eval { release_network(); 1 } or do { stop_child(); die $@ || "Network release failed\n"; };
+    eval { $verify ? verify_tailnet() : $prepare ? prepare_network() : release_network(); 1 } or do { stop_child(); die $@ || "Network release failed\n"; };
 }
 1;

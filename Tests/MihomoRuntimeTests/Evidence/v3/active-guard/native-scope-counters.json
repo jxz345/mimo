@@ -1,0 +1,94 @@
+[
+  {
+    "cell": "dual-global",
+    "engine": {
+      "rules": 2,
+      "packets": 10
+    },
+    "native-vpn-udp": {
+      "rules": 2,
+      "packets": 0
+    },
+    "native-vpn-https": {
+      "rules": 55,
+      "packets": 4
+    },
+    "tailnet": {
+      "rules": 2,
+      "packets": 8
+    },
+    "tailnet-wrong-path": {
+      "rules": 2,
+      "packets": 0
+    }
+  },
+  {
+    "cell": "dual-rule",
+    "engine": {
+      "rules": 2,
+      "packets": 25
+    },
+    "native-vpn-udp": {
+      "rules": 2,
+      "packets": 0
+    },
+    "native-vpn-https": {
+      "rules": 55,
+      "packets": 4
+    },
+    "tailnet": {
+      "rules": 2,
+      "packets": 8
+    },
+    "tailnet-wrong-path": {
+      "rules": 2,
+      "packets": 0
+    }
+  },
+  {
+    "cell": "ipv4-global",
+    "engine": {
+      "rules": 2,
+      "packets": 13
+    },
+    "native-vpn-udp": {
+      "rules": 2,
+      "packets": 0
+    },
+    "native-vpn-https": {
+      "rules": 55,
+      "packets": 10
+    },
+    "tailnet": {
+      "rules": 2,
+      "packets": 9
+    },
+    "tailnet-wrong-path": {
+      "rules": 2,
+      "packets": 0
+    }
+  },
+  {
+    "cell": "ipv4-rule",
+    "engine": {
+      "rules": 2,
+      "packets": 57
+    },
+    "native-vpn-udp": {
+      "rules": 2,
+      "packets": 14
+    },
+    "native-vpn-https": {
+      "rules": 55,
+      "packets": 12
+    },
+    "tailnet": {
+      "rules": 2,
+      "packets": 8
+    },
+    "tailnet-wrong-path": {
+      "rules": 2,
+      "packets": 0
+    }
+  }
+]

@@ -2,7 +2,7 @@ import Foundation
 
 enum MimoInstallationReadiness {
     static func problems(flags: MimoServicePreferences, supervisor: MimoRoutingState?,
-                         provider: MimoServiceStatus?, now: Date = .now) -> [String] {
+                         now: Date = .now) -> [String] {
         var problems: [String] = []
         if !flags.core || !flags.engine || !flags.profile || flags.networkReleaseRequested { problems.append("service_intent") }
         guard let supervisor else { return problems + ["supervisor"] }
@@ -15,9 +15,6 @@ enum MimoInstallationReadiness {
         for service in [MimoServiceID.core, .mihomo, .profileHosting] {
             guard let report = supervisor.services.first(where: { $0.id == service }),
                   report.health == .running, fresh(report.checkedAt) else { problems.append(service.rawValue); continue }
-        }
-        if provider?.health != .running || provider?.bindingConfirmed != true || provider?.port != 18766 || !fresh(provider?.checkedAt) {
-            problems.append("tailnetProvider")
         }
         let infrastructure = supervisor.infrastructure?.current(at: now)
         if ![MimoInfrastructureHealth.healthy, .released].contains(infrastructure?.pf ?? .unknown) { problems.append("firewall_monitor") }

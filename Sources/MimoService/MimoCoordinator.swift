@@ -9,6 +9,7 @@ final class MimoCoordinator {
 
     private(set) var state: MimoRoutingState
     var changed: (() -> Void)?
+    var willRequest: ((ProviderID) throws -> Void)?
     private var configuration: MimoConfiguration
     private var allowlist: AllowedIPList
     private var revision: Int
@@ -142,8 +143,9 @@ final class MimoCoordinator {
         self.configuration = configuration; self.allowlist = allowlist; self.revision = revision
         state.configuration = configuration
         if preservingAccess {
-            // Presentation/diagnostic and native-provider changes do not alter the
-            // verified public profile. A heartbeat applies the saved tailnet policy.
+            // Non-routing edits, including a future family selection in Direct,
+            // do not alter the current network path. Retain core-owned selection
+            // when merging the supervisor's effective state.
             await refreshSupervisorState()
             return
         }
@@ -217,19 +219,34 @@ final class MimoCoordinator {
         guard generation == networkGeneration, revision == self.revision else { throw CancellationError() }
         do {
             var timing = MimoTransitionTiming("lookup")
-            let result: MimoSnapshot
-            if let lookupOverride {
-                result = try await lookupOverride(lookup, mode.requiresVerification)
-            } else {
-                let session = try makeSession(protected: mode.requiresVerification)
-                defer { session.invalidateAndCancel() }
-                result = try await PublicIPLookupClient(session: session).lookup(configuration: lookup)
+            func observe(_ family: MimoAddressFamily?) async throws -> MimoSnapshot {
+                try willRequest?(lookup.provider)
+                let request = LookupConfiguration(provider: lookup.provider, ipinfoToken: lookup.ipinfoToken, family: family)
+                let value: MimoSnapshot
+                if let lookupOverride { value = try await lookupOverride(request, mode.requiresVerification) }
+                else {
+                    let session = try makeSession(protected: mode.requiresVerification, family: family)
+                    defer { session.invalidateAndCancel() }
+                    value = try await PublicIPLookupClient(session: session).lookup(configuration: request)
+                }
+                if let family, !family.accepts(value.ipAddress) {
+                    throw LookupError.transport("The provider did not return the requested \(family.rawValue) exit.")
+                }
+                return value
+            }
+            let result = try await observe(mode.requiresVerification ? .ipv4 : nil)
+            var ipv6: MimoSnapshot?
+            if mode.requiresVerification, configuration.networkFamily.requiresIPv6 {
+                try Task.checkCancellation()
+                guard generation == networkGeneration, revision == self.revision else { throw CancellationError() }
+                ipv6 = try await observe(.ipv6)
             }
             timing.record("exit_ip")
             try Task.checkCancellation()
             guard generation == networkGeneration, revision == self.revision else { throw CancellationError() }
             if let check {
                 var message = MimoSupervisorRequest(.approve); message.verification = check; message.address = result.ipAddress
+                message.exitObservations = MimoExitObservations(verification: check, ipv4: result, ipv6: ipv6)
                 _ = try await send(message)
             } else {
                 directObservation = MimoIPObservation(address: result.ipAddress, checkedAt: result.checkedAt)
@@ -249,15 +266,16 @@ final class MimoCoordinator {
         let generation = networkGeneration, revision = revision
         let session = try makeSession(protected: configuration.mode.requiresVerification)
         defer { session.invalidateAndCancel() }
+        try willRequest?(CountryChangeConfirmationPolicy.secondaryProvider(for: primaryProvider))
         let result = try await PublicIPLookupClient(session: session).confirmCountryChange(primaryProvider: primaryProvider, ipinfoToken: token)
         guard generation == networkGeneration, revision == self.revision else { throw CancellationError() }
         return result
     }
 
-    private func makeSession(protected: Bool) throws -> URLSession {
+    private func makeSession(protected: Bool, family: MimoAddressFamily? = nil) throws -> URLSession {
         if protected {
             let password = try String(contentsOf: MimoRuntime.directory.appendingPathComponent("probe.secret"), encoding: .utf8)
-            return try MimoLookupSession.make(probePassword: password)
+            return try MimoLookupSession.make(probePassword: password, family: family)
         }
         return try MimoLookupSession.make()
     }
@@ -298,6 +316,7 @@ final class MimoCoordinator {
                 guard preparing || waiting else { return }
                 self.state = interim
                 self.state.configuration.mode = self.configuration.mode
+                self.state.configuration.networkFamily = self.configuration.networkFamily
                 self.state.configuration.proxy = self.configuration.proxy
                 self.state.configuration.proxies = self.configuration.proxies
                 self.state.configuration.activeProxyID = self.configuration.activeProxyID
@@ -311,6 +330,7 @@ final class MimoCoordinator {
             if isPoll { appliedPollSequence = sequence }
             // Selected configuration is owned by core, while supervisor reports the actual gate.
             result.configuration.mode = configuration.mode
+            result.configuration.networkFamily = configuration.networkFamily
             result.configuration.proxy = configuration.proxy
             result.configuration.proxies = configuration.proxies
             result.configuration.activeProxyID = configuration.activeProxyID
@@ -431,7 +451,8 @@ private final class MimoHeartbeatReply: @unchecked Sendable {
 final class MimoLookupClient: PublicIPLookupClientProtocol {
     // Two bounded supervisor calls (20s each), a 15s HTTP resource deadline,
     // and a small scheduling margin. Public HTTP timeouts are unchanged.
-    nonisolated var lookupTimeout: Duration { .seconds(60) }
+    nonisolated var lookupTimeout: Duration { .seconds(75) }
+    nonisolated var accountsActualRequests: Bool { true }
     let coordinator: MimoCoordinator
     init(_ coordinator: MimoCoordinator) { self.coordinator = coordinator }
     func lookup(configuration: LookupConfiguration) async throws -> MimoSnapshot { try await coordinator.lookup(configuration) }

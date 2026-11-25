@@ -1,0 +1,127 @@
+{
+  "updated_at_utc": "2026-11-24T10:50:00.083892+00:00",
+  "status": "completed_with_failures",
+  "planned": {
+    "matrix": 3120,
+    "focused": 500,
+    "total": 3620
+  },
+  "unique_cases_executed": 3620,
+  "counts": {
+    "PASS_FOCUSED": 490,
+    "PASS_SERVICE": 810,
+    "EXPECTED_DNS_SUPPRESSION": 288,
+    "PASS_EXPECTED_DENIAL_NO_EGRESS": 342,
+    "PASS_DNS_EXPECTATION": 1680,
+    "FAIL_FUNCTIONAL": 10
+  },
+  "not_run": 0,
+  "matrix": {
+    "cells_reported": 24,
+    "cells_passed": 24,
+    "counts": {
+      "PASS_SERVICE": 810,
+      "EXPECTED_DNS_SUPPRESSION": 288,
+      "PASS_EXPECTED_DENIAL_NO_EGRESS": 342,
+      "PASS_DNS_EXPECTATION": 1680
+    }
+  },
+  "focused": {
+    "runs_reported": 32,
+    "counts": {
+      "PASS_FOCUSED": 490,
+      "FAIL_FUNCTIONAL": 10
+    }
+  },
+  "failed_checks": [
+    {
+      "profile": "T6G",
+      "scope": "focus-native-dns",
+      "proxy_mode": "S00",
+      "checks": [],
+      "failed_case_ids": [
+        "D02-lan-short",
+        "D04-tailnet-short",
+        "D07-tailnet-reconnected-short",
+        "D09-mode-reload",
+        "D10-native-search-change"
+      ],
+      "error": null
+    },
+    {
+      "profile": "T6R",
+      "scope": "focus-native-dns",
+      "proxy_mode": "S00",
+      "checks": [],
+      "failed_case_ids": [
+        "D02-lan-short",
+        "D04-tailnet-short",
+        "D07-tailnet-reconnected-short",
+        "D09-mode-reload",
+        "D10-native-search-change"
+      ],
+      "error": null
+    }
+  ],
+  "preliminary_runs_retained": 7,
+  "scope": "Exact public templates with declared fixture overlay; isolated mimo-vm engine; no installed app or host network changes.",
+  "per_configuration": {
+    "T4R": {
+      "PASS_SERVICE": 136,
+      "PASS_EXPECTED_DENIAL_NO_EGRESS": 80,
+      "EXPECTED_DNS_SUPPRESSION": 144,
+      "PASS_DNS_EXPECTATION": 420,
+      "PASS_FOCUSED": 125
+    },
+    "T4G": {
+      "PASS_SERVICE": 150,
+      "EXPECTED_DNS_SUPPRESSION": 144,
+      "PASS_EXPECTED_DENIAL_NO_EGRESS": 66,
+      "PASS_DNS_EXPECTATION": 420,
+      "PASS_FOCUSED": 125
+    },
+    "T6R": {
+      "PASS_SERVICE": 262,
+      "PASS_DNS_EXPECTATION": 420,
+      "PASS_EXPECTED_DENIAL_NO_EGRESS": 98,
+      "PASS_FOCUSED": 120,
+      "FAIL_FUNCTIONAL": 5
+    },
+    "T6G": {
+      "PASS_SERVICE": 262,
+      "PASS_DNS_EXPECTATION": 420,
+      "PASS_EXPECTED_DENIAL_NO_EGRESS": 98,
+      "PASS_FOCUSED": 120,
+      "FAIL_FUNCTIONAL": 5
+    }
+  },
+  "shutdown_observations": [
+    {
+      "profile": "T4G",
+      "native_fake_packets_after_stop_began": 1,
+      "limitation": "Standalone shutdown ends route enforcement; queued OS DNS may use the former TUN DNS endpoint over the native route before resolver removal propagates."
+    },
+    {
+      "profile": "T4R",
+      "native_fake_packets_after_stop_began": 1,
+      "limitation": "Standalone shutdown ends route enforcement; queued OS DNS may use the former TUN DNS endpoint over the native route before resolver removal propagates."
+    },
+    {
+      "profile": "T6G",
+      "native_fake_packets_after_stop_began": 1,
+      "limitation": "Standalone shutdown ends route enforcement; queued OS DNS may use the former TUN DNS endpoint over the native route before resolver removal propagates."
+    },
+    {
+      "profile": "T6R",
+      "native_fake_packets_after_stop_began": 1,
+      "limitation": "Standalone shutdown ends route enforcement; queued OS DNS may use the former TUN DNS endpoint over the native route before resolver removal propagates."
+    }
+  ],
+  "qualification_limits": [
+    "D03/D04/D07 use this VM's own native Tailscale DNS name when no same-tailnet peer exists; the shared-device FQDN is covered separately by F11.",
+    "D10 changes temporary default/supplemental DNS and search entries; no physical primary-network switch or saved preference mutation was tested.",
+    "D11 injects process death immediately after DNS registration, not an internal engine initialization error.",
+    "Shutdown ends standalone route enforcement; queued OS DNS at the former TUN endpoint is recorded separately from active traffic.",
+    "No installed-app integration, supplied remote proxy IPv6 qualification, host packet capture, crafted PMTU packet or public NAT64 translator test."
+  ]
+}

@@ -244,6 +244,7 @@ public enum RefreshGate {
         budget: inout LookupBudget,
         lastSuccess: Date?,
         bypassLimits: Bool = false,
+        recordAtAdmission: Bool = true,
         now: Date = .now
     ) -> Decision {
         let candidates = pool.isEmpty ? [preferred] : pool
@@ -285,7 +286,7 @@ public enum RefreshGate {
                 return .queue(until: date, reason: "burst_budget")
             }
         }
-        budget.recordCall(to: provider, now: now)
+        if recordAtAdmission { budget.recordCall(to: provider, now: now) }
         return .run(provider: provider, rotatedFrom: provider == preferred ? nil : preferred)
     }
 }

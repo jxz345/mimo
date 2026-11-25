@@ -1,0 +1,118 @@
+{
+  "scope": "corrected candidate, human Tailscale disconnect/reconnect in Rule/dual; separate correlated echo check afterward",
+  "result": "PASS_RECONNECT_AND_MEASURED_CONTAINMENT",
+  "candidate_helper_sha256": "d04b44fe9645512bc1d5e15e09c4ab020f1745d666050872e11c2bd7b8529351",
+  "connected_baseline": {
+    "A-fresh-1": true,
+    "A-fresh-2": true,
+    "A-fresh-3": true,
+    "AAAA-fresh-1": true,
+    "AAAA-fresh-2": true,
+    "AAAA-fresh-3": true,
+    "local-tcp": true,
+    "local-notcp": true,
+    "native-ping4": true,
+    "native-ping6": true
+  },
+  "disconnected_queries_and_peer_access_failed": true,
+  "reconnected_checks": {
+    "A-fresh-1": true,
+    "A-fresh-2": true,
+    "A-fresh-3": true,
+    "AAAA-fresh-1": true,
+    "AAAA-fresh-2": true,
+    "AAAA-fresh-3": true,
+    "local-tcp": true,
+    "local-notcp": true,
+    "native-ping4": true,
+    "native-ping6": true
+  },
+  "backend_running": true,
+  "active_guard": true,
+  "public_native_bypass_attempts": 0,
+  "successful_traffic": [
+    {
+      "family": 4,
+      "kind": "dns-udp",
+      "count": 3071
+    },
+    {
+      "family": 6,
+      "kind": "dns-udp",
+      "count": 3085
+    },
+    {
+      "family": 4,
+      "kind": "dns-tcp",
+      "count": 3084
+    },
+    {
+      "family": 6,
+      "kind": "dns-tcp",
+      "count": 3084
+    },
+    {
+      "family": 4,
+      "kind": "stream",
+      "count": 3071
+    },
+    {
+      "family": 6,
+      "kind": "stream",
+      "count": 3080
+    },
+    {
+      "family": 4,
+      "kind": "udp",
+      "count": 3057
+    },
+    {
+      "family": 6,
+      "kind": "udp",
+      "count": 3068
+    },
+    {
+      "family": 4,
+      "kind": "tcp",
+      "count": 3041
+    },
+    {
+      "family": 6,
+      "kind": "tcp",
+      "count": 3051
+    },
+    {
+      "family": 4,
+      "kind": "fake-tcp",
+      "count": 2926
+    },
+    {
+      "family": 4,
+      "kind": "fake-udp",
+      "count": 2936
+    },
+    {
+      "family": 6,
+      "kind": "echo",
+      "count": 1
+    }
+  ],
+  "uncorrelated_echo_indications": 1,
+  "original_ipv4_echo_subprobe_invalid": true,
+  "correlated_echo_after_reconnect": {
+    "same_matcher_native_positive_controls": {
+      "4": true,
+      "6": true
+    },
+    "public_echo_matches": 0,
+    "echo_attempts_by_family": {
+      "4": 8,
+      "6": 8
+    },
+    "native_bypass_packets": 0,
+    "odd_length_ipv4_checksum_fixed": true
+  },
+  "reconnected_at": 1795598223.504885,
+  "sleep_attempted": false,
+  "global_reconnect_tested": false
+}

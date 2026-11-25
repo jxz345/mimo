@@ -5,7 +5,6 @@ import Foundation
 final class DaemonService: NSObject, NSXPCListenerDelegate {
     private let storage: FilePreferenceStorage
     let engine: MonitoringEngine
-    private let provider: TailscaleProviderService
     private let instanceID = UUID()
     private var settings: MachineSettings
     private var revision: Int
@@ -25,8 +24,6 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
     private var routingConfiguration: MimoConfiguration
     private let routing: MimoCoordinator?
     private var hasProxyPassword = false
-    private var tailnetLifecycle: MimoTailnetLifecycle?
-    private var nativeTailnetExpected: Bool?
     private var networkReleaseRequested: Bool { routing != nil && MimoSystemRuntime().networkReleaseRequested }
 
     init(storage: FilePreferenceStorage, observeSystem: Bool = true,
@@ -69,7 +66,6 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
             providerHealthStore: ProviderHealthStore(defaults: storage), diagnosticPreferencesStore: DiagnosticPreferencesStore(defaults: storage),
             client: routing.map { MimoLookupClient($0) as any PublicIPLookupClientProtocol } ?? client, ipinfoCredentials: CredentialSession(service: CredentialService(backend: localCredentials),
                                                                account: SecureTokenStore.ipinfoLiteAccount))
-        provider = TailscaleProviderService(persistFiles: observeSystem)
         super.init()
         engine.allowlistChecksEnabled = routingConfiguration.mode.requiresVerification
         engine.networkEventChecksEnabled = routingConfiguration.mode.requiresVerification
@@ -77,14 +73,15 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
         observation = engine.objectWillChange.sink { [weak self] in
             Task { @MainActor [weak self] in self?.schedulePublication() }
         }
-        provider.changed = { [weak self] in self?.schedulePublication() }
+        routing?.willRequest = { [weak self] provider in
+            guard let self else { throw CancellationError() }
+            try self.engine.accountActualRequest(provider)
+        }
         routing?.changed = { [weak self] in self?.schedulePublication() }
         if let routing {
             engine.networkConfigurationChanged = { routing.supervisorNetworkChanged() }
             engine.requiredCheckUnavailable = { reason in Task { await routing.invalidate(reason: reason) } }
-            tailnetLifecycle = MimoTailnetLifecycle { [weak self] enabled in
-                await self?.applyAutomaticTailnet(enabled) ?? false
-            }
+
         }
     }
 
@@ -96,73 +93,17 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
         }
         if initialized { _ = await engine.ipinfoCredentials.load() }
         else { engine.apply(settings.monitoring, requestRefresh: false) }
-        provider.setEnabled(settings.tailscaleProviderEnabled && !networkReleaseRequested)
         engine.start()
-        if initialized { tailnetLifecycle?.start() }
         schedulePublication()
         RuntimeLog.shared.info("daemon_ready", fields: ["instance": instanceID.uuidString])
     }
 
     func stop() {
-        tailnetLifecycle?.stop()
         routing?.stop()
         engine.stop()
-        provider.setEnabled(false)
         for session in sessions.values { session.connection.invalidate() }
         sessions.removeAll()
         RuntimeLog.shared.info("daemon_stopped")
-    }
-
-    private func applyAutomaticTailnet(_ enabled: Bool) async -> Bool {
-        if nativeTailnetExpected != enabled {
-            nativeTailnetExpected = enabled
-            schedulePublication()
-        }
-        guard initialized, !mutationInProgress, !engine.lookupInFlight, !engine.hasQueuedControl else { return false }
-        guard settings.tailscaleProviderEnabled != enabled else { return true }
-        do {
-            try await changeTailnetEnabled(enabled)
-            RuntimeLog.shared.info("mimo_tailnet_automatic_state_changed", fields: ["enabled": String(enabled)])
-            return true
-        } catch {
-            RuntimeLog.shared.error("mimo_tailnet_automatic_update_failed")
-            return false
-        }
-    }
-
-    private func changeTailnetEnabled(_ enabled: Bool) async throws {
-        guard initialized else { throw DaemonFailure.invalidRequest }
-        guard !mutationInProgress else { throw DaemonFailure.conflict }
-        guard settings.tailscaleProviderEnabled != enabled else { return }
-        mutationInProgress = true
-        defer { mutationInProgress = false }
-        let interruptsVerification = routing?.state.phase == .checking || routing?.state.phase == .validating || routing?.state.phase == .closing
-        if interruptsVerification {
-            engine.invalidatePendingLookup()
-            // A check already owns closure. Invalidate its result immediately,
-            // then join the monitor's single follow-up; do not send another
-            // standalone close before committing this provider-only setting.
-            routing?.supervisorNetworkChanged()
-        }
-        do {
-            var next = settings
-            next.tailscaleProviderEnabled = enabled
-            try storage.update(["service.settings": try JSONEncoder().encode(next), "service.revision": revision + 1])
-            settings = next; revision += 1
-            RuntimeLog.shared.info("mimo_tailnet_settings_committed", fields: ["enabled": String(enabled), "revision": String(revision)])
-            provider.setEnabled(enabled && !networkReleaseRequested)
-            await routing?.update(configuration: routingConfiguration, allowlist: settings.allowlist, revision: revision,
-                                  preservingAccess: true)
-            if interruptsVerification {
-                Task { [engine] in await engine.refresh(force: true, bypassMinimumInterval: true, trigger: .networkConfiguration) }
-            }
-            publish()
-        } catch {
-            if interruptsVerification {
-                Task { [engine] in await engine.refresh(force: true, bypassMinimumInterval: true, trigger: .networkConfiguration) }
-            }
-            throw error
-        }
     }
 
     nonisolated func listener(_ listener: NSXPCListener, shouldAcceptNewConnection connection: NSXPCConnection) -> Bool {
@@ -192,7 +133,7 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
         var request = request
         guard request.protocolVersion == MimoService.protocolVersion else { return DaemonResponse(failure: .incompatible) }
         let humanControl = [.configureRouting, .saveProxy, .removeProxy, .selectProxy, .configure, .initialize,
-                            .setToken, .removeToken, .testProvider, .startTailnetProvider].contains(request.command)
+                            .setToken, .removeToken, .testProvider].contains(request.command)
         let restricted = [.configureRouting, .saveProxy, .removeProxy, .selectProxy, .configure, .initialize, .setToken, .removeToken].contains(request.command)
         if restricted, session?.installedApp != true, !authorize(request.authorization) {
             return DaemonResponse(failure: .unauthorized)
@@ -219,17 +160,6 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
             }
             switch request.command {
             case .state: return DaemonResponse(state: state(for: uid))
-            case .startTailnetProvider:
-                // Any local account may restore this shared integration. This
-                // command has no client-supplied settings or network policy.
-                guard request.settings == nil, request.routing == nil, request.proxy == nil,
-                      request.proxyPassword == nil, request.proxyID == nil, request.token == nil, request.migration == nil,
-                      request.supervisor == nil, request.presentation == nil, request.provider == nil else {
-                    throw DaemonFailure.invalidRequest
-                }
-                let wasEnabled = settings.tailscaleProviderEnabled
-                try await changeTailnetEnabled(true)
-                if !wasEnabled { RuntimeLog.shared.info("mimo_tailnet_started", fields: ["uid": String(uid)]) }
             case .networkChanged:
                 guard uid == 0 else { throw DaemonFailure.unauthorized }
                 if networkReleaseRequested {
@@ -241,11 +171,9 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
                         try storage.update(["service.routing": try JSONEncoder().encode(next), "service.revision": revision + 1])
                         routingConfiguration = next; revision += 1
                     }
-                    provider.setEnabled(false)
                     engine.allowlistChecksEnabled = false; engine.networkEventChecksEnabled = false
                     routing?.adoptNetworkRelease(configuration: next, revision: revision)
                 } else {
-                    provider.setEnabled(settings.tailscaleProviderEnabled && !networkReleaseRequested)
                     if initialized || routingConfiguration.mode == .direct { engine.supervisorNetworkChanged() }
                 }
             case .subscribe:
@@ -314,7 +242,6 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
                     engine.applyDiagnosticPreferences(settings.diagnostics)
                     RuntimeLog.shared.configure(settings.diagnostics)
                     if wasInitialized {
-                        provider.setEnabled(settings.tailscaleProviderEnabled && !networkReleaseRequested)
                         if affectsRouting {
                             Task { [engine] in await engine.refresh(force: true, bypassMinimumInterval: true, trigger: .settingsChanged) }
                         }
@@ -356,6 +283,7 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
                 case .configureRouting:
                     guard let requested = request.routing else { throw DaemonFailure.invalidRequest }
                     next.mode = requested.mode
+                    next.networkFamily = requested.networkFamily
                 case .selectProxy:
                     if let id = request.proxyID, !entries.contains(where: { $0.id == id }) { throw DaemonFailure.invalidRequest }
                     next.activeProxyID = request.proxyID
@@ -379,7 +307,8 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
                 next = try next.validated()
                 guard !next.mode.requiresVerification || next.proxy != nil else { throw DaemonFailure.invalidRequest }
                 let affectsRouting = next.mode != routingConfiguration.mode ||
-                    (next.mode.requiresVerification && (next.proxy != routingConfiguration.proxy ||
+                    (next.mode.requiresVerification && (next.networkFamily != routingConfiguration.networkFamily ||
+                        next.proxy != routingConfiguration.proxy ||
                         next.activeProxyID != routingConfiguration.activeProxyID ||
                         next.activeProxyID.flatMap { passwords[$0] } != previousPassword))
                 if next.mode.requiresVerification, networkReleaseRequested {
@@ -403,7 +332,8 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
                     Task { [engine] in await engine.refresh(force: true, bypassMinimumInterval: true, trigger: .settingsChanged) }
                 }
                 RuntimeLog.shared.info("mimo_proxy_catalog_changed", fields: ["operation": request.command.rawValue,
-                    "count": String(entries.count), "mode": next.mode.rawValue, "revision": String(revision), "reload": String(affectsRouting)])
+                    "count": String(entries.count), "mode": next.mode.rawValue, "family": next.networkFamily.rawValue,
+                    "revision": String(revision), "reload": String(affectsRouting)])
             case .supervisor: throw DaemonFailure.invalidRequest
             }
             publish()
@@ -430,14 +360,10 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
                            providerHealth: engine.providerHealth, budget: engine.lookupBudget, nextProvider: engine.preferences.provider, cooldowns: cooldowns,
                            hasIPinfoToken: !engine.isIPinfoTokenUnavailable, credentialError: engine.ipinfoCredentials.errorMessage ?? credentialMigrationWarning,
                            allowlistEventID: allowlistEventID, errorEventID: errorEventID,
-                           providerStatus: provider.status, providerError: provider.error, storageError: storage.lastError)
+                           storageError: storage.lastError)
         result.manualRefresh = engine.manualRefresh
         result.routing = routing?.state ?? MimoRoutingState(configuration: routingConfiguration)
         result.routing?.hasProxyPassword = hasProxyPassword
-        result.routing?.tailnetExpected = networkReleaseRequested ? false : nativeTailnetExpected
-        result.routing?.services.append(.init(id: .tailnetProvider, health: networkReleaseRequested ? .suspended : settings.tailscaleProviderEnabled ? (provider.boundPort != nil && provider.error == nil ? .running : .unavailable) : .stopped,
-                                             transport: "Loopback HTTP", address: "127.0.0.1", port: provider.boundPort ?? 18766, bindingConfirmed: settings.tailscaleProviderEnabled && provider.boundPort != nil && provider.error == nil,
-                                             checkedAt: provider.healthCheckedAt))
         return result
     }
 

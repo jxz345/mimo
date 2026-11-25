@@ -1,0 +1,186 @@
+{
+  "tested_at_utc": "2026-11-24T05:19:41.817243+00:00",
+  "engine_sha256": "ff21dbbad799783de14f4a13684b35531b455beff0335dc2e9d468e5bcbe52bd",
+  "engine_version": "Mihomo Meta v1.19.34-mimo-no-ping.1 darwin arm64 with go1.26.11 2026-11-24\nUse tags: with_gvisor",
+  "scope": "Captured echoes drop; native LAN/Tailnet echoes remain real.",
+  "checks": {
+    "native_ping_baseline": true,
+    "stock_rejects_unsupported_stack": true,
+    "global_zero_rules": true,
+    "no_ping_stack": true,
+    "blocked_targets_captured": true,
+    "native_routes_preserved": true,
+    "dns_unchanged": true,
+    "all_captured_pings_fail": true,
+    "native_pings_succeed": true,
+    "captured_requests_seen": true,
+    "no_synthetic_replies": true,
+    "no_native_forwarding": true,
+    "native_echoes_bypass_tun": true,
+    "native_echoes_real": true,
+    "routes_restored": true,
+    "dns_restored": true,
+    "tun_removed": true,
+    "native_pings_after_cleanup": true
+  },
+  "baseline_native_ping_status": {
+    "lan_ipv4": 0,
+    "lan_ipv6": 0,
+    "tailnet_ipv4": 0,
+    "tailnet_ipv6": 0
+  },
+  "blocked_ping_status": {
+    "ipv4_literal": "timeout",
+    "ipv4_fake_ip": "timeout",
+    "ipv6_public": "timeout",
+    "ipv6_nat64": "timeout",
+    "ipv6_local_nat64": "timeout",
+    "ipv6_tun_prefix": "timeout"
+  },
+  "native_ping_status": {
+    "lan_ipv4": 0,
+    "lan_ipv6": 0,
+    "tailnet_ipv4": 0,
+    "tailnet_ipv6": 0
+  },
+  "packets": {
+    "en0": {
+      "ipv4_literal": {
+        "requests": 0,
+        "replies": 0
+      },
+      "ipv4_fake_ip": {
+        "requests": 0,
+        "replies": 0
+      },
+      "ipv6_public": {
+        "requests": 0,
+        "replies": 0
+      },
+      "ipv6_nat64": {
+        "requests": 0,
+        "replies": 0
+      },
+      "ipv6_local_nat64": {
+        "requests": 0,
+        "replies": 0
+      },
+      "ipv6_tun_prefix": {
+        "requests": 0,
+        "replies": 0
+      },
+      "lan_ipv4": {
+        "requests": 2,
+        "replies": 2
+      },
+      "lan_ipv6": {
+        "requests": 2,
+        "replies": 2
+      },
+      "tailnet_ipv4": {
+        "requests": 0,
+        "replies": 0
+      },
+      "tailnet_ipv6": {
+        "requests": 0,
+        "replies": 0
+      }
+    },
+    "utun2": {
+      "ipv4_literal": {
+        "requests": 0,
+        "replies": 0
+      },
+      "ipv4_fake_ip": {
+        "requests": 0,
+        "replies": 0
+      },
+      "ipv6_public": {
+        "requests": 0,
+        "replies": 0
+      },
+      "ipv6_nat64": {
+        "requests": 0,
+        "replies": 0
+      },
+      "ipv6_local_nat64": {
+        "requests": 0,
+        "replies": 0
+      },
+      "ipv6_tun_prefix": {
+        "requests": 0,
+        "replies": 0
+      },
+      "lan_ipv4": {
+        "requests": 0,
+        "replies": 0
+      },
+      "lan_ipv6": {
+        "requests": 0,
+        "replies": 0
+      },
+      "tailnet_ipv4": {
+        "requests": 2,
+        "replies": 2
+      },
+      "tailnet_ipv6": {
+        "requests": 2,
+        "replies": 2
+      }
+    },
+    "utun238": {
+      "ipv4_literal": {
+        "requests": 2,
+        "replies": 0
+      },
+      "ipv4_fake_ip": {
+        "requests": 2,
+        "replies": 0
+      },
+      "ipv6_public": {
+        "requests": 2,
+        "replies": 0
+      },
+      "ipv6_nat64": {
+        "requests": 2,
+        "replies": 0
+      },
+      "ipv6_local_nat64": {
+        "requests": 2,
+        "replies": 0
+      },
+      "ipv6_tun_prefix": {
+        "requests": 2,
+        "replies": 0
+      },
+      "lan_ipv4": {
+        "requests": 0,
+        "replies": 0
+      },
+      "lan_ipv6": {
+        "requests": 0,
+        "replies": 0
+      },
+      "tailnet_ipv4": {
+        "requests": 0,
+        "replies": 0
+      },
+      "tailnet_ipv6": {
+        "requests": 0,
+        "replies": 0
+      }
+    }
+  },
+  "native_ping_after_cleanup": {
+    "lan_ipv4": 0,
+    "lan_ipv6": 0,
+    "tailnet_ipv4": 0,
+    "tailnet_ipv6": 0
+  },
+  "passed": true,
+  "profile_template_sha256": "7d1ab49f11060367b6f690a2559a25e21355d3f1b456f314d627a19c7a271ba1",
+  "test_files_sha256": {
+    "no_ping_profile_test.py": "d977d4e973f347efce90a9604005c5c0e1f9f8a196ecf4db6d3c13fcf10d597c",
+    "ipv6_global_profile_test.py": "c08ea03c5637432d8b5c2dc064eca13b1abb9951ea478111662aa78c19061ea3"
+  }
+}

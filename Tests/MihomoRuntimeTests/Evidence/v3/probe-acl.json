@@ -1,0 +1,185 @@
+{
+  "scope": "real engine private probe over loopback, no system routing changes",
+  "cases": [
+    {
+      "id": "ipv4-rule-base",
+      "passed": true,
+      "upstream_connections": 1
+    },
+    {
+      "id": "ipv4-rule-v4",
+      "passed": true,
+      "upstream_connections": 1
+    },
+    {
+      "id": "ipv4-rule-v6",
+      "passed": true,
+      "upstream_connections": 0
+    },
+    {
+      "id": "ipv4-rule-wrong-host",
+      "passed": true,
+      "upstream_connections": 0
+    },
+    {
+      "id": "ipv4-rule-suffix-spoof",
+      "passed": true,
+      "upstream_connections": 0
+    },
+    {
+      "id": "ipv4-rule-wrong-port",
+      "passed": true,
+      "upstream_connections": 0
+    },
+    {
+      "id": "ipv4-rule-wrong-user",
+      "passed": true,
+      "upstream_connections": 0
+    },
+    {
+      "id": "ipv4-rule-no-auth",
+      "passed": true,
+      "upstream_connections": 0
+    },
+    {
+      "id": "ipv4-rule-literal",
+      "passed": true,
+      "upstream_connections": 0
+    },
+    {
+      "id": "ipv4-global-base",
+      "passed": true,
+      "upstream_connections": 1
+    },
+    {
+      "id": "ipv4-global-v4",
+      "passed": true,
+      "upstream_connections": 1
+    },
+    {
+      "id": "ipv4-global-v6",
+      "passed": true,
+      "upstream_connections": 0
+    },
+    {
+      "id": "ipv4-global-wrong-host",
+      "passed": true,
+      "upstream_connections": 0
+    },
+    {
+      "id": "ipv4-global-suffix-spoof",
+      "passed": true,
+      "upstream_connections": 0
+    },
+    {
+      "id": "ipv4-global-wrong-port",
+      "passed": true,
+      "upstream_connections": 0
+    },
+    {
+      "id": "ipv4-global-wrong-user",
+      "passed": true,
+      "upstream_connections": 0
+    },
+    {
+      "id": "ipv4-global-no-auth",
+      "passed": true,
+      "upstream_connections": 0
+    },
+    {
+      "id": "ipv4-global-literal",
+      "passed": true,
+      "upstream_connections": 0
+    },
+    {
+      "id": "dual-rule-base",
+      "passed": true,
+      "upstream_connections": 1
+    },
+    {
+      "id": "dual-rule-v4",
+      "passed": true,
+      "upstream_connections": 1
+    },
+    {
+      "id": "dual-rule-v6",
+      "passed": true,
+      "upstream_connections": 1
+    },
+    {
+      "id": "dual-rule-wrong-host",
+      "passed": true,
+      "upstream_connections": 0
+    },
+    {
+      "id": "dual-rule-suffix-spoof",
+      "passed": true,
+      "upstream_connections": 0
+    },
+    {
+      "id": "dual-rule-wrong-port",
+      "passed": true,
+      "upstream_connections": 0
+    },
+    {
+      "id": "dual-rule-wrong-user",
+      "passed": true,
+      "upstream_connections": 0
+    },
+    {
+      "id": "dual-rule-no-auth",
+      "passed": true,
+      "upstream_connections": 0
+    },
+    {
+      "id": "dual-rule-literal",
+      "passed": true,
+      "upstream_connections": 0
+    },
+    {
+      "id": "dual-global-base",
+      "passed": true,
+      "upstream_connections": 1
+    },
+    {
+      "id": "dual-global-v4",
+      "passed": true,
+      "upstream_connections": 1
+    },
+    {
+      "id": "dual-global-v6",
+      "passed": true,
+      "upstream_connections": 1
+    },
+    {
+      "id": "dual-global-wrong-host",
+      "passed": true,
+      "upstream_connections": 0
+    },
+    {
+      "id": "dual-global-suffix-spoof",
+      "passed": true,
+      "upstream_connections": 0
+    },
+    {
+      "id": "dual-global-wrong-port",
+      "passed": true,
+      "upstream_connections": 0
+    },
+    {
+      "id": "dual-global-wrong-user",
+      "passed": true,
+      "upstream_connections": 0
+    },
+    {
+      "id": "dual-global-no-auth",
+      "passed": true,
+      "upstream_connections": 0
+    },
+    {
+      "id": "dual-global-literal",
+      "passed": true,
+      "upstream_connections": 0
+    }
+  ]
+}

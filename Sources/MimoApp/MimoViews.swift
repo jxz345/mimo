@@ -8,10 +8,10 @@ enum MimoMainTab: String, CaseIterable, Identifiable {
 }
 
 enum MimoSettingsSection: String, CaseIterable, Identifiable {
-    case proxy = "Proxy", bypass = "Bypass", allowedIPs = "Allowed IPs", monitoring = "Monitoring", general = "General"
+    case proxy = "Proxy", bypass = "Bypass", allowedIPs = "Allowed IPs", monitoring = "Monitoring", general = "General", maintenance = "Maintenance"
     var id: String { rawValue }
     var symbol: String {
-        switch self { case .proxy: "network"; case .bypass: "arrow.triangle.branch"; case .allowedIPs: "checkmark.shield"; case .monitoring: "clock"; case .general: "gear" }
+        switch self { case .proxy: "network"; case .bypass: "arrow.triangle.branch"; case .allowedIPs: "checkmark.shield"; case .monitoring: "clock"; case .general: "gear"; case .maintenance: "wrench.and.screwdriver" }
     }
 }
 
@@ -33,15 +33,15 @@ struct DashboardView: View {
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "—"
         return "Version \(version) · Build \(build)"
     }()
-    private let primaryTextSize: CGFloat = 21
-    private let primaryIconSize: CGFloat = 26
+    private let primaryTextSize: CGFloat = 16
+    private let primaryIconSize: CGFloat = 24
     private let primaryIconWidth: CGFloat = 34
     private let serviceTitleFont = Font.system(size: 13, weight: .medium)
     private let serviceStatusFont = Font.system(size: 13)
-    private let serviceControlFont = Font.system(size: 11)
-    private let serviceStatusWidth: CGFloat = 152
-    private let serviceAccessoryWidth: CGFloat = 170
-    private let serviceRowHeight: CGFloat = 60
+    private let serviceControlFont = Font.system(size: 13)
+    private let serviceStatusWidth: CGFloat = 134
+    private let serviceAccessoryWidth: CGFloat = 190
+    private let serviceRowHeight: CGFloat = 48
     private var routing: MimoRoutingState { monitor.routingState }
     private var presentation: MimoStatusPresentation { monitor.statusPresentation }
     private var location: MimoSnapshot? { monitor.snapshot.flatMap { $0.ipAddress == routing.displayedIP?.address ? $0 : nil } }
@@ -88,7 +88,7 @@ struct DashboardView: View {
                 Text(Self.versionLabel).font(.caption).foregroundStyle(.secondary)
                     .textSelection(.enabled).padding(.leading, 12)
                 Spacer()
-                Text(monitor.installationInactive ? "Monitoring in this app. Safe to delete Mimo.app." : routing.networkReleased == true ? "Engine stays stopped until you start it." : "Routing continues when this window closes.").font(.caption).foregroundStyle(.secondary)
+                Text(monitor.installationInactive ? "Monitoring in this app. Safe to delete Mimo.app." : routing.networkReleased == true ? "Engine stays stopped until you start it." : "Shared across this Mac · Routing continues when this window closes.").font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 Button { NSApp.terminate(nil) } label: { Label("Quit GUI", systemImage: "power") }
             }.buttonStyle(.borderless).padding(.horizontal, 18).padding(.vertical, 10).modifier(MimoBarBackground())
@@ -109,87 +109,109 @@ struct DashboardView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
                     let wide = geometry.size.width >= 840
-                    let layout = wide ? AnyLayout(HStackLayout(alignment: .top, spacing: 14)) : AnyLayout(VStackLayout(spacing: 14))
+                    let layout = wide ? AnyLayout(HStackLayout(alignment: .top, spacing: 16)) : AnyLayout(VStackLayout(spacing: 16))
                     layout {
-                        connection.frame(width: wide ? max(300, (geometry.size.width - 50) * 0.34) : nil)
+                        connection.frame(width: wide ? max(320, (geometry.size.width - 48) * 0.36) : nil)
                         services.frame(maxWidth: .infinity)
-                    }.fixedSize(horizontal: false, vertical: true)
+                    }.frame(minHeight: wide ? max(568, geometry.size.height - 32) : nil)
                 }.padding(16)
             }
         }
     }
 
     private var connection: some View {
-        dashboardCard("Current connection", detail: presentation.isDirect ? "Direct" : accessTitle) {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 10) {
-                    Group { if let location { Text(location.countryFlag) } else { Image(systemName: "globe") } }
-                        .font(.system(size: primaryIconSize)).frame(width: primaryIconWidth)
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(routing.blockingIP != nil && routing.phase != .unavailable ? "IP that triggered blocking" : routing.displayedIP != nil ? (presentation.isDirect ? "Public IP" : "Checked proxy exit IP") : routing.phase == .checking ? "Checking IP…" : "IP unavailable")
-                            .font(.caption).foregroundStyle(.secondary).lineLimit(1)
-                        Text(routing.displayedIP?.address ?? "—").font(.system(size: primaryTextSize, weight: .medium, design: .monospaced))
-                            .lineLimit(1).minimumScaleFactor(0.65).textSelection(.enabled)
-                    }.frame(maxWidth: .infinity, alignment: .leading)
-                    if let address = routing.displayedIP?.address {
-                        MimoCopyButton(text: address, label: "Copy displayed IP address")
-                            .buttonStyle(.borderless)
-                    }
-                }.frame(height: 47)
-                VStack(spacing: 9) {
+        dashboardCard("Current connection", detail: "") {
+            VStack(alignment: .leading, spacing: 14) {
+                Picker("Traffic family", selection: Binding(get: { routing.configuration.networkFamily }, set: monitor.setNetworkFamily)) {
+                    ForEach(MimoNetworkFamily.allCases) { Text($0.title).tag($0) }
+                }.pickerStyle(.segmented).labelsHidden()
+                    .disabled(!monitor.canChangeSharedSettings || installer.isInstalling)
+                    .help("Applies to Rule and Global. Changing family requires fresh exit-IP verification.")
+                VStack(spacing: 8) {
+                    addressSlot(.ipv4)
+                    addressSlot(.ipv6)
+                }
+                VStack(spacing: 10) {
                     HStack { Text("Network").foregroundStyle(.secondary); Spacer(); Text(location?.organization ?? location?.locationSummary ?? "Unavailable").lineLimit(1).help(location?.locationSummary ?? "Location unavailable") }
                     HStack { Text("IP check").foregroundStyle(.secondary); Spacer(); if let date = routing.displayedIP?.checkedAt { Text(date, style: .relative) } else { Text("No result") } }
                     HStack {
                         Text("Allowed IPs").foregroundStyle(.secondary); Spacer()
                         Button { MimoSettingsNavigation.open(.allowedIPs) } label: {
-                            Text(savedSettingsKnown ? "\(monitor.allowedIPList.addresses.count) \(monitor.allowedIPList.addresses.count == 1 ? "address" : "addresses")" : "Unavailable")
+                            Text(savedSettingsKnown ? "\(monitor.allowedIPList.addresses.count) addresses" : "Unavailable")
                             Image(systemName: "arrow.right")
-                        }
-                            .buttonStyle(.plain)
+                        }.buttonStyle(.plain)
                     }
-                }.font(.callout).padding(.vertical, 4)
-                HStack { Label(monitor.preferences.refreshInterval.displayName, systemImage: "clock").lineLimit(1); Spacer(minLength: 4); Button("Configure") { MimoSettingsNavigation.open(.monitoring) }.buttonStyle(.plain) }
-                    .font(.caption).foregroundStyle(.secondary)
-                Divider()
-                VStack(alignment: .leading, spacing: 5) {
-                    HStack { Text("Proxy configuration").foregroundStyle(.secondary); Spacer(); Button { MimoSettingsNavigation.open(.proxy) } label: { Text("Edit"); Image(systemName: "arrow.right") }.buttonStyle(.plain) }
-                    Text(proxyTitle).font(.headline).lineLimit(1).help(proxyTitle)
-                }.font(.callout).padding(.top, 3)
+                }.font(.system(size: 13))
+                Spacer(minLength: 6)
                 HStack {
-                    VStack(alignment: .leading, spacing: 3) {
+                    Label(monitor.preferences.refreshInterval.displayName, systemImage: "clock").lineLimit(1)
+                    Spacer(minLength: 4)
+                    Button("Configure") { MimoSettingsNavigation.open(.monitoring) }.buttonStyle(.plain)
+                }.font(.system(size: 13)).foregroundStyle(.secondary)
+                Spacer(minLength: 6)
+                Divider()
+                VStack(alignment: .leading, spacing: 7) {
+                    HStack { Text("Proxy configuration").foregroundStyle(.secondary); Spacer(); Button { MimoSettingsNavigation.open(.proxy) } label: { Text("Edit"); Image(systemName: "arrow.right") }.buttonStyle(.plain) }
+                    Text(proxyTitle).font(.system(size: 14, weight: .medium)).lineLimit(1).help(proxyTitle)
+                }.font(.system(size: 13))
+                Divider()
+                HStack {
+                    VStack(alignment: .leading, spacing: 5) {
                         Text("Bypass blocks").foregroundStyle(.secondary)
                         Text("\(monitor.daemonState?.settings.effectiveBypassBlocks.filter(\.enabled).count ?? 0) enabled · Rule only")
                     }
                     Spacer()
                     Button("Edit blocks") { MimoSettingsNavigation.open(.bypass) }.buttonStyle(.plain)
-                }.font(.callout)
-                Divider().padding(.top, 4)
-                VStack(alignment: .leading, spacing: 7) {
-                    Text(monitor.installationInactive ? "Monitoring only" : "Using another VPN?").font(.headline)
-                    Text(monitor.installationInactive ? "Network controls released. IP monitoring continues while this app is open. Safe to delete Mimo.app." : "Stop the engine and release network controls.")
-                        .font(.caption).foregroundStyle(.secondary)
-                        .lineLimit(monitor.installationInactive ? 3 : 1).minimumScaleFactor(0.9)
-                    Button(installer.isInstalling ? "Working…" : monitor.installationInactive ? "Activate Mimo" : installer.hasError ? "Retry cleanup" : "Stop engine and use Direct") {
-                        if monitor.installationInactive { installer.install(activating: true) }
-                        else { installer.deactivate() }
-                    }.buttonStyle(.borderedProminent)
-                        .disabled(installer.isInstalling || (monitor.connected && (monitor.serviceOperation != nil || monitor.isChangingSettings)))
-                    if let message = installer.message { Text(message).font(.caption).foregroundStyle(.secondary) }
-
-                }
-                Spacer(minLength: 0)
-                Divider()
-                if monitor.installationInactive {
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text("Login items removed").font(.callout)
-                        Text("Monitoring stops when you quit this app. Activate Mimo to restore background services.")
-                            .font(.caption).foregroundStyle(.secondary)
-                    }
-                } else {
-                    LaunchAtLoginControl(compact: true, dashboardStyle: true).disabled(installer.isInstalling)
-                }
-            }.padding(14)
+                }.font(.system(size: 13))
+            }.padding(16)
         }
+    }
+
+    private func addressSlot(_ family: MimoAddressFamily) -> some View {
+        let ipv6 = family == .ipv6
+        let observation = ipv6 ? routing.ipv6Observation : routing.displayedIP
+        let snapshot = ipv6 ? routing.exitObservations?.ipv6 : location
+        let selected = !ipv6 || routing.configuration.networkFamily == .dual
+        let address = observation.flatMap { family.accepts($0.address) ? $0.address : nil }
+        return HStack(spacing: 10) {
+            Group { if let snapshot { Text(snapshot.countryFlag) } else { Image(systemName: "globe") } }
+                .font(.system(size: 24)).frame(width: 30)
+            VStack(alignment: .leading, spacing: 6) {
+                Text(ipv6 ? "IPv6" : "IPv4").font(.system(size: 12)).foregroundStyle(.secondary)
+                Text(address ?? (selected ? (monitor.status == .refreshing ? "Checking…" : "No result") : "Not selected"))
+                    .font(.system(size: 16, weight: .medium, design: .monospaced))
+                    .lineLimit(1).truncationMode(.middle).textSelection(.enabled)
+                    .help(address ?? (selected ? "No current observation" : "IPv6 is rejected for managed traffic"))
+            }.frame(maxWidth: .infinity, alignment: .leading)
+            if let address { MimoCopyButton(text: address, label: "Copy \(family.rawValue) address").buttonStyle(.borderless) }
+        }.padding(.horizontal, 12).frame(height: 78)
+            .background(Color.primary.opacity(0.035), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private var networkReleaseControls: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(monitor.installationInactive ? "Monitoring only" : "Using another VPN?").font(.system(size: 14, weight: .medium))
+            Text(monitor.installationInactive ? "Network controls released. IP monitoring continues while this app is open." : "Stop the engine and release network controls.")
+                .font(.system(size: 14)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            Button(installer.isInstalling ? "Working…" : monitor.installationInactive ? "Activate Mimo" : installer.hasError ? "Retry cleanup" : "Stop engine and use Direct") {
+                if monitor.installationInactive { installer.install(activating: true) } else { installer.deactivate() }
+            }.font(.system(size: 13)).buttonStyle(.borderedProminent)
+                .disabled(installer.isInstalling || (monitor.connected && (monitor.serviceOperation != nil || monitor.isChangingSettings)))
+            if let message = installer.message { Text(message).font(.system(size: 12)).foregroundStyle(.secondary) }
+        }.padding(.horizontal, 16).padding(.vertical, 12)
+    }
+
+    private var uninstallControls: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Text("Clean uninstall").font(.system(size: 14, weight: .medium))
+            HStack(spacing: 6) {
+                Text("brew uninstall --cask jxz345/tap/mimo").font(.system(size: 12, design: .monospaced)).textSelection(.enabled)
+                MimoCopyButton(text: "brew uninstall --cask jxz345/tap/mimo", label: "Copy uninstall command").buttonStyle(.plain)
+                Spacer(minLength: 0)
+            }
+            Text("Or stop the engine above, wait for cleanup, quit Mimo, then delete Mimo.app.")
+                .font(.system(size: 12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+        }.padding(.horizontal, 16).padding(.vertical, 12)
     }
 
     private var services: some View {
@@ -200,10 +222,10 @@ struct DashboardView: View {
                         .foregroundStyle(accessColor)
                         .frame(width: primaryIconWidth, height: 47).accessibilityLabel(presentation.accessibilityText)
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("Internet access").font(.caption).foregroundStyle(.secondary)
+                        Text("Internet access").font(.system(size: 12)).foregroundStyle(.secondary)
                         Text(accessHeading).font(.system(size: primaryTextSize, weight: .medium))
                             .lineLimit(1).help(accessHeading)
-                        Text(installer.isInstalling ? "Updating background installation…" : presentation.verificationProgress ?? presentation.detail).font(.caption).foregroundStyle(.secondary)
+                        Text(installer.isInstalling ? "Updating background installation…" : presentation.detail).font(.system(size: 14)).foregroundStyle(.secondary)
                             .lineLimit(2).fixedSize(horizontal: false, vertical: true).help(presentation.detail)
                         accessActions.frame(maxWidth: .infinity, alignment: .leading)
                     }.frame(maxWidth: .infinity, alignment: .leading)
@@ -216,12 +238,12 @@ struct DashboardView: View {
                         VStack(spacing: 0) { ForEach(MimoServiceID.allCases) { service in serviceRow(service, at: context.date) } }
                             .padding(.horizontal, 14)
                         Divider()
-                        Label(monitor.operationError ?? monitor.lookupStatusMessage ?? installer.message ?? (monitor.installationInactive ? "Services removed. System / other VPN manages networking." : monitor.connected
-                            ? monitor.lookupStatusMessage ?? (monitor.installationInactive ? "Monitoring in this app. Safe to delete Mimo.app." : routing.networkReleased == true ? "Engine stays stopped until you start it." : "Shared across this Mac · Services continue when Mimo closes.")
-                            : monitor.connectionSummary(at: context.date)), systemImage: "info.circle")
-                            .font(.caption2).foregroundStyle(.secondary).lineLimit(2, reservesSpace: true)
-                            .help(monitor.connected ? monitor.lookupStatusMessage ?? "" : monitor.connectionSummary(at: context.date))
-                            .padding(.horizontal, 14).frame(height: 30, alignment: .leading)
+                        networkReleaseControls
+                        Divider()
+                        uninstallControls
+                        if let error = monitor.operationError {
+                            Text(error).font(.system(size: 12)).foregroundStyle(.orange).padding(12)
+                        }
                     }
                 }
             }
@@ -231,11 +253,11 @@ struct DashboardView: View {
     private func infrastructureStatus(at date: Date) -> some View {
         let status = (routing.infrastructure ?? .init()).current(at: date)
         return VStack(spacing: 0) {
-            infrastructureIndicator("PF firewall", symbol: "shield.lefthalf.filled", health: status.pf, checkedAt: status.checkedAt, at: date)
+            infrastructureIndicator("Transition guard", symbol: "shield.lefthalf.filled", health: status.pf, checkedAt: status.checkedAt, at: date)
             Divider()
-            infrastructureIndicator("launchd monitor", symbol: "waveform.path.ecg", health: status.launchd, checkedAt: status.checkedAt, at: date)
+            infrastructureIndicator("Service monitor", symbol: "waveform.path.ecg", health: status.launchd, checkedAt: status.checkedAt, at: date)
         }
-        .help("Independent checks run every 10 seconds. " + (status.checkedAt.map { "Last check: \($0.formatted(date: .omitted, time: .standard))." } ?? "No current inspection is available.") + " PF reports the main firewall policy; launchd reports startup jobs and saved service intent. Intentional Stop choices are healthy.")
+        .help("Independent checks run every 10 seconds. " + (status.checkedAt.map { "Last check: \($0.formatted(date: .omitted, time: .standard))." } ?? "No current inspection is available.") + " The active firewall blocks native application fallback; launchd reports startup jobs and saved service intent. Intentional Stop choices are healthy.")
         .padding(.horizontal, 14).frame(height: serviceRowHeight * 2 + 1)
     }
 
@@ -247,7 +269,7 @@ struct DashboardView: View {
             Text(title).font(serviceTitleFont).lineLimit(1).frame(maxWidth: .infinity, alignment: .leading)
             HStack(spacing: 4) {
                 Circle().fill(color).frame(width: 5, height: 5)
-                Text(monitor.installationInactive ? (title == "PF firewall" ? "Released" : "Removed") : hasReport ? MimoHealthLabel.text(health == .stale ? "Stale" : health.title, checkedAt: checkedAt, at: date) : monitor.connection.rowTitle).lineLimit(1)
+                Text(monitor.installationInactive ? (title == "Transition guard" ? "Released" : "Removed") : hasReport ? MimoHealthLabel.text(health == .stale ? "Stale" : health.title, checkedAt: checkedAt, at: date) : monitor.connection.rowTitle).lineLimit(1)
             }.font(serviceStatusFont).monospacedDigit().foregroundStyle(color)
                 .frame(width: serviceStatusWidth, alignment: .leading)
                 .help(hasReport ? "The latest reported inspection result." : monitor.connection.detail + " " + monitor.connection.lastReplyText(at: date))
@@ -281,14 +303,12 @@ struct DashboardView: View {
         let status = routing.services.first { $0.id == id }
         let health = status?.health ?? .unavailable
         let hasReport = monitor.hasServiceReport(id, at: date)
-        let tailnetFailure = hasReport && id == .tailnetProvider && (health == .unavailable || health == .notInstalled
-            || (health == .stopped && routing.tailnetExpected == true))
         let title = monitor.serviceOperation == id ? "Working…" : status?.healthTitle(at: date) ?? "Unavailable"
         let stale = health == .running && title != "Healthy" && monitor.serviceOperation != id
-        let color = monitor.installationInactive ? Color.secondary : tailnetFailure ? Color.red : !hasReport || stale ? Color.orange : Color.secondary
+        let color = monitor.installationInactive ? Color.secondary : !hasReport || stale ? Color.orange : Color.secondary
         return VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 6) {
-                Image(systemName: serviceSymbol(id)).foregroundStyle(tailnetFailure ? Color.red : Color.secondary).frame(width: 20)
+                Image(systemName: serviceSymbol(id)).foregroundStyle(Color.secondary).frame(width: 20)
                 Text(id.title).font(serviceTitleFont).lineLimit(1).frame(maxWidth: .infinity, alignment: .leading)
                 HStack(spacing: 4) {
                     Circle().fill(color).frame(width: 5, height: 5)
@@ -299,14 +319,9 @@ struct DashboardView: View {
                 serviceButtons(id, health: health).disabled(!hasReport || installer.isInstalling).frame(width: serviceAccessoryWidth, alignment: .trailing)
             }
             HStack(spacing: 8) {
-                Text(serviceEndpoint(id, status: status)).font(.system(size: 10, design: .monospaced))
+                Text(serviceEndpoint(id, status: status)).font(.system(size: 12, design: .monospaced))
                     .lineLimit(1).textSelection(.enabled).foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                if id == .profileHosting {
-                    MimoCopyButton(text: MimoRuntime.blockingProfile.path, label: "Copy startup path", iconOnly: false)
-                        .font(.caption2).buttonStyle(.plain).foregroundStyle(.secondary)
-                        .help("Credential-free startup profile: \(MimoRuntime.blockingProfile.path)")
-                }
             }.padding(.leading, 26)
         }.frame(height: serviceRowHeight, alignment: .center)
             .overlay(alignment: .bottom) {
@@ -326,12 +341,12 @@ struct DashboardView: View {
                         if id == .mihomo && operation == .stop { installer.deactivate() }
                         else { monitor.changeService(id, operation: operation) }
                     }
-                        .disabled(monitor.serviceOperation != nil || (id == .tailnetProvider && (!monitor.canChangeSharedSettings || routing.networkReleaseRequested == true)) || (operation == .start && health == .running) || (operation != .start && health == .stopped))
+                        .disabled(monitor.serviceOperation != nil || (operation == .start && health == .running) || (operation != .start && health == .stopped))
                         .accessibilityLabel("\(operation.rawValue.capitalized) \(id.title)")
-                        .help(id == .tailnetProvider ? "Tailscale reconnecting starts this provider automatically. Stopping it while Tailscale is running reports a failure." : "\(operation.rawValue.capitalized) \(id.title)")
+                        .help("\(operation.rawValue.capitalized) \(id.title)")
                 }
             }
-        }.font(serviceControlFont).controlSize(.small)
+        }.font(serviceControlFont).controlSize(.small).frame(height: 22)
     }
 
     private func dashboardCard<Content: View>(_ title: String, detail: String, @ViewBuilder content: () -> Content) -> some View {
@@ -343,25 +358,18 @@ struct DashboardView: View {
             .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color(nsColor: .separatorColor).opacity(0.5)))
     }
     private func serviceSymbol(_ id: MimoServiceID) -> String {
-        switch id { case .core: "cpu"; case .mihomo, .tailnetProvider: "network"; case .profileHosting: "doc.text" }
+        switch id { case .core: "cpu"; case .mihomo: "network"; case .profileHosting: "doc.text" }
     }
     private func serviceEndpoint(_ id: MimoServiceID, status: MimoServiceStatus?) -> String {
         switch id {
         case .core: "XPC / Mach · No TCP port"
         case .profileHosting: "In memory · Unix socket · No TCP port"
         case .mihomo: routing.networkReleased == true ? "Proxy 7890 · DNS 1053 · Released" : "127.0.0.1 · Proxy \(String(status?.port ?? 7890)) · DNS \(String(MimoRuntime.dnsPort))"
-        case .tailnetProvider:
-            if routing.networkReleased == true { "127.0.0.1:18766 · Released" }
-            else if !monitor.connected { "Listener status unconfirmed" }
-            else if let port = status?.port, status?.bindingConfirmed == true {
-                "127.0.0.1:\(port) · HTTP"
-            } else { "Not listening · HTTP" }
         }
     }
     private var accessTitle: String {
         switch presentation.kind {
         case .directWarning: "Check failed"
-        case .tailnetWarning: "Tailnet unavailable"
         case .checking: presentation.isRestoringDirect ? "Switching to Direct" : presentation.isClosing ? "Applying mode" : presentation.trafficIsBlocked ? "Blocked · Checking" : "Checking"
         case .unavailable: "Unavailable"
         case .blocked: "Blocked"
@@ -379,14 +387,13 @@ struct DashboardView: View {
                 ? (presentation.isValidating ? "Blocked · Validating profile…" : presentation.isCheckingReadiness ? "Blocked · Checking readiness…" : "Blocked · Checking exit IP…")
                 : "Checking your exit IP…"
         case .directWarning: "Direct · IP check unavailable."
-        case .tailnetWarning: "Connected · Tailnet unavailable."
         case .unavailable: monitor.connected ? "Status is unavailable." : monitor.connection.phase == .connecting ? "Connecting to background service…" : "Service communication interrupted."
         }
     }
     private var accessColor: Color {
         switch presentation.kind {
         case .direct, .verified: .blue
-        case .checking, .directWarning, .tailnetWarning: .orange
+        case .checking, .directWarning: .orange
         case .blocked: .red
         case .unavailable: .secondary
         }
@@ -418,7 +425,7 @@ struct SettingsView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
                         Text(navigation.section.rawValue).font(.largeTitle.weight(.semibold))
-                        if navigation.section != .general && monitor.connected && monitor.daemonState?.initialized != true {
+                        if navigation.section != .general && navigation.section != .maintenance && monitor.connected && monitor.daemonState?.initialized != true {
                             MimoCard("Set up shared monitoring") {
                                 Text("Initialize this Mac’s monitoring settings before editing the proxy, allowed IPs, or lookup providers.")
                                     .font(.callout).foregroundStyle(.secondary)
@@ -440,6 +447,7 @@ struct SettingsView: View {
         case .bypass: MimoBypassView(monitor: monitor, draft: $bypassDraft)
         case .allowedIPs: allowlist
         case .monitoring: monitoring(scrollProxy: scrollProxy)
+        case .maintenance: maintenance
         case .general:
             Form {
                 Section("Login item & appearance") {
@@ -447,11 +455,11 @@ struct SettingsView: View {
                     Picker("Appearance", selection: $appearance) { Text("System").tag("system"); Text("Light").tag("light"); Text("Dark").tag("dark") }
                     Toggle("Reduce transparency", isOn: $reduceTransparency)
                 }
-                Section("Clean uninstall") {
-                    Text("brew uninstall --cask jxz345/tap/mimo").font(.system(.callout, design: .monospaced)).textSelection(.enabled)
-                    MimoCopyButton(text: "brew uninstall --cask jxz345/tap/mimo", label: "Copy uninstall command", iconOnly: false)
-                    Text("Use Stop engine and use Direct on the Dashboard. When Mimo reports inactive, all Mimo services, login items and network controls are removed and Mimo.app can be deleted. Activate Mimo restores the services with administrator authentication.")
-                        .font(.caption).foregroundStyle(.secondary)
+                Section("Traffic policy") {
+                    LabeledContent("Managed traffic", value: monitor.routingState.configuration.networkFamily.title)
+                    Text("IPv4 captures and rejects IPv6, including NAT64 and proxy-side IPv6 hostname connections. Dual-stack carries both families through the selected proxy. Native LAN and Tailnet routes remain native.")
+                    LabeledContent("Public ping / ping6", value: "Blocked without synthetic replies")
+                    Text("Public DNS uses encrypted queries through the proxy. Known private names use their native resolver; unavailable private resolvers fail locally. macOS search domains are preserved.")
                 }
                 Section("Menu bar") {
                     Picker("Display", selection: Binding(get: { monitor.preferences.menuBarDisplayStyle }, set: { value in var preferences = monitor.preferences; preferences.menuBarDisplayStyle = value; monitor.apply(preferences) })) {
@@ -463,6 +471,55 @@ struct SettingsView: View {
         }
     }
 
+    private var maintenance: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            MimoCard("Firewall rules") {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Core manages one PF anchor: com.apple/000.mimo. Every rule has a mimo: purpose label. The profile decides proxy routing; the active firewall prevents native application fallback.")
+                    DisclosureGroup("Active Rule / Global") {
+                        Text("Allows Mimo’s own TUN and loopback, engine-owned TCP/UDP, native LAN and link-local addresses, DHCP, local mDNS and IPv6 link control. Tailnet addresses are allowed only on a verified native tunnel. Synthetic addresses and Tailnet traffic on another path are dropped before other exceptions. All remaining native outbound traffic is silently dropped, for IPv4 and IPv6.")
+                            .padding(.top, 4)
+                        Text("Rules create no connection states. Engine ownership uses Mimo’s private group; root alone does not grant public access. Native LAN ranges are 10/8, 172.16/12, 192.168/16, 169.254/16, fc00::/7 and fe80::/10. Intentional native destinations remain outside proxy protection.")
+                            .padding(.top, 4)
+                        Text("For the signed Tailscale system extension, core permits root-owned UDP on its held source ports and HTTPS only to its observed control/relay addresses, including startup before its tunnel exists. Core refreshes these scopes during its existing audit. Private Tailnet traffic still requires its verified native interface. This native VPN transport is an explicit exception; other users and arbitrary root HTTPS destinations are not allowed.")
+                            .padding(.top, 4)
+                    }
+                    DisclosureGroup("Starting, verifying and recovering") {
+                        Text("Blocks ordinary traffic, including the public local proxy and DNS listeners. Allows local control, DHCP and IPv6 neighbor/router control. Verification temporarily permits only the engine group’s TCP connection to the selected proxy endpoint, or the fixed HTTPS resolver for proxy-hostname bootstrap. Existing IPv4/IPv6 states are cleared when closing.")
+                            .padding(.top, 4)
+                    }
+                    DisclosureGroup("Direct, Stop engine and uninstall") {
+                        Text("Direct removes Mimo’s TUN and DNS override and leaves its PF policy empty. Stop engine and uninstall also remove owned services and current or legacy firewall controls. Cleanup preserves other applications’ firewall rules and restores native network settings. Check Event Log for each cleanup step.")
+                            .padding(.top, 4)
+                    }
+                    maintenanceCommand("Inspect Mimo’s live rules", command: "sudo pfctl -a com.apple/000.mimo -sr", detail: "Read-only. Labels show each rule’s purpose; Direct has no Mimo packet rules.")
+                }
+            }
+            MimoCard("Maintenance CLI") {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Copy a command and run it in Terminal on this Mac. Administrator commands may ask for your password. These controls affect every account.")
+                    maintenanceCommand("Supervisor status", command: "sudo /Library/PrivilegedHelperTools/mimo-manage status", detail: "Shows launchd status. The dashboard reports the complete service health check.")
+                    maintenanceCommand("Inspect system DNS", command: "scutil --dns", detail: "Read-only. Mimo’s protected resolver uses 127.0.0.1:1053; native private scopes remain separate.")
+                    maintenanceCommand("Stop engine and release controls", command: "sudo /Library/PrivilegedHelperTools/mimo-manage deactivate", detail: "Runs the shared cleanup and keeps the open app available for IP monitoring. The installed helper is removed after successful cleanup.")
+                    maintenanceCommand("Install or restore all services", command: "sudo bash /Applications/Mimo.app/Contents/Resources/daemon.sh install", detail: "Requires Mimo.app. Restores all roles, checks health and asks before replacing conflicting services.")
+                    maintenanceCommand("Uninstall with Homebrew", command: "brew uninstall --cask jxz345/tap/mimo", detail: "Removes network controls and the installed app through the Homebrew uninstall hook.")
+                    maintenanceCommand("Remove services if the app was deleted", command: "sudo /Library/PrivilegedHelperTools/mimo-manage uninstall", detail: "Uses the retained helper to clean up services, DNS and current or older firewall rules. Local settings and logs are retained.")
+                }
+            }
+        }.font(.callout)
+    }
+
+    private func maintenanceCommand(_ title: String, command: String, detail: String) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(title).fontWeight(.medium)
+            HStack(alignment: .top, spacing: 8) {
+                Text(command).font(.system(size: 12, design: .monospaced)).textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
+                MimoCopyButton(text: command, label: "Copy \(title)")
+            }
+            Text(detail).foregroundStyle(.secondary)
+        }
+    }
+
     private var allowlist: some View {
         MimoCard("Allowed exit IPs") {
             VStack(alignment: .leading, spacing: 12) {
@@ -471,9 +528,9 @@ struct SettingsView: View {
                     HStack { Text(ip).monospaced().textSelection(.enabled); Spacer(); Button { monitor.removeAllowedIP(ip) } label: { Image(systemName: "minus.circle") }.accessibilityLabel("Remove \(ip)") }
                 }
                 HStack {
-                    TextField("IPv4 address", text: $address)
+                    TextField("IPv4 or IPv6 address", text: $address)
                     Button("Add") {
-                        guard let normalized = IPAddressValidator.normalize(address), !normalized.contains(":") else { validationError = "Enter a valid IPv4 address. Mimo does not support IPv6."; return }
+                        guard let normalized = IPAddressValidator.normalize(address) else { validationError = "Enter a valid IPv4 or IPv6 address."; return }
                         guard !monitor.allowedIPList.contains(normalized) else { validationError = "That address is already allowed."; return }
                         if monitor.addAllowedIP(normalized) { address = ""; validationError = nil }
                     }
@@ -503,8 +560,8 @@ struct SettingsView: View {
                         }.labelsHidden().fixedSize().disabled(!monitor.canChangeSharedSettings)
                     }
                     systemEvent("Network changes", action: "Rule / Global only")
-                    systemEvent("Traffic", action: monitor.routingState.configuration.mode.requiresVerification ? "Profile rejects IPv6" : "System / other VPN")
-                        .help("Rule and Global capture IPv6 in the TUN and reject it in the profile. Direct uses system networking.")
+                    systemEvent("Traffic", action: monitor.routingState.configuration.mode.requiresVerification ? (monitor.routingState.configuration.networkFamily == .ipv4 ? "IPv4; captured IPv6 blocked" : "IPv4 and IPv6 through proxy") : "System / other VPN")
+                        .help("Rule and Global enforce the selected family policy. Direct uses system networking.")
                     HStack(alignment: .firstTextBaseline, spacing: 24) {
                         HStack(alignment: .firstTextBaseline, spacing: 10) {
                             Text("Rule / Global")

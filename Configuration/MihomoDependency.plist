@@ -2,19 +2,30 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>version</key>
-	<string>1.19.34</string>
-	<key>formula</key>
-	<string>jxz345/tap/mihomo@1.19.34</string>
 	<key>architectures</key>
 	<dict>
 		<key>arm64</key>
 		<dict>
-			<key>archiveSHA256</key>
-			<string>1a7a20eca63fbbaec90137717465bfde488d0db2a3a79b8fadebf9b2545b6e4c</string>
 			<key>binarySHA256</key>
-			<string>a55a9073f9b7b1fa596a82c034d2dae3407ec34732102b6e42c5513ce3033f34</string>
+			<string>6925603de8a31decb3919c607a97cee2845afc5ea70aa4c2797620e775f143ca</string>
 		</dict>
 	</dict>
+	<key>capabilities</key>
+	<array>
+		<string>strict-ipv4-v1</string>
+		<string>probe-acl-v1</string>
+		<string>silent-echo-v1</string>
+		<string>native-dns-route-v1</string>
+	</array>
+	<key>distribution</key>
+	<string>bundled</string>
+	<key>patchSHA256</key>
+	<string>8970c459f41901788ebade6afb9edf989e81afb066bcc6c24c5b808ece087d78</string>
+	<key>sourceCommit</key>
+	<string>0455d0d28c4526937380505153e65a843d8612e8</string>
+	<key>toolchain</key>
+	<string>go1.26.11</string>
+	<key>version</key>
+	<string>1.19.34-mimo-v3.2</string>
 </dict>
 </plist>

@@ -1,0 +1,47 @@
+{
+  "scope": "human-operated Tailscale lifecycle in mimo-vm, Rule/dual",
+  "result": "INCONCLUSIVE_RECONNECT",
+  "connected_baseline": {
+    "A-fresh-1": true,
+    "A-fresh-2": true,
+    "A-fresh-3": true,
+    "AAAA-fresh-1": true,
+    "AAAA-fresh-2": true,
+    "AAAA-fresh-3": true,
+    "local-tcp": true,
+    "local-notcp": true,
+    "native-ping4": true,
+    "native-ping6": true
+  },
+  "disconnected_checks_matching_connected_baseline": {
+    "A-fresh-1": false,
+    "A-fresh-2": false,
+    "A-fresh-3": false,
+    "AAAA-fresh-1": false,
+    "AAAA-fresh-2": false,
+    "AAAA-fresh-3": false,
+    "local-tcp": false,
+    "local-notcp": false,
+    "native-ping4": false,
+    "native-ping6": false
+  },
+  "disconnected_backend": "Stopped",
+  "traffic": {
+    "native_attempts": 0,
+    "by_family": {
+      "4": 0,
+      "6": 0
+    }
+  },
+  "restoration": {
+    "at": 1795594863.679829,
+    "settings": true,
+    "configuration": true
+  },
+  "watchdog_finished_at": 1795594856.5187972,
+  "recorded_reconnect_backend": "Stopped",
+  "recorded_reconnect_want_running": false,
+  "operator_reported_tailscale_restart_required": true,
+  "reconnect_during_protected_mode_qualified": false,
+  "sleep_attempted": false
+}

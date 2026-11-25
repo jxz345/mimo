@@ -1,0 +1,2322 @@
+[
+  {
+    "run": "P07-S00-focused-c8bce3",
+    "status": "complete",
+    "profile": "P07",
+    "proxy_mode": "S00",
+    "scope": "focused",
+    "tested_at_utc": "2026-11-24T06:27:45.341994+00:00",
+    "engine_sha256": "ff21dbbad799783de14f4a13684b35531b455beff0335dc2e9d468e5bcbe52bd",
+    "runner_sha256": "34499140a0db063939d756dd1c786c3e0dcd55100d20ae6deebb64c6c5685df2",
+    "profile_sha256": "3eee09ece25771e8e8b71d2e3fa56536e25b8e02161d77095942f248b4bb61a1",
+    "checks": {
+      "native_before_4_http": true,
+      "native_before_4_https_verified": true,
+      "native_before_4_udp_nonce": true,
+      "fixture_4_https_verified": true,
+      "fixture_4_udp_nonce": true,
+      "native_before_6_http": true,
+      "native_before_6_https_verified": true,
+      "native_before_6_udp_nonce": true,
+      "fixture_6_https_verified": true,
+      "fixture_6_udp_nonce": true,
+      "data_routes_captured": true,
+      "control_route_native": true,
+      "global_zero_rules": true,
+      "live_proxy_selection": true,
+      "live_no_ping_stack": true,
+      "dns_unchanged_active": true,
+      "no_native_data_egress": true,
+      "no_native_fake_egress": true,
+      "both_data_families_entered_tun": true,
+      "no_native_nat64_egress": true,
+      "no_native_bootstrap_egress": true,
+      "captured_echo_requests_seen": true,
+      "no_synthetic_echo_replies": true,
+      "no_native_echo_forwarding": true,
+      "native_echoes_bypass_tun": true,
+      "native_echoes_real": true,
+      "engine_stopped": true,
+      "tun_removed": true,
+      "routes_restored": true,
+      "dns_restored": true,
+      "native_after_4_https_verified": true,
+      "native_after_4_udp_nonce": true,
+      "native_after_6_https_verified": true,
+      "native_after_6_udp_nonce": true
+    },
+    "cases": [
+      {
+        "id": "base-4-http",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 616,
+          "body_sha256": "957698bff4f16a5467a243f12e32fdc620400492b7c053e886fbc8027a8247da",
+          "elapsed_ms": 8
+        }
+      },
+      {
+        "id": "base-4-https_verified",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 626,
+          "body_sha256": "1add222f5ed25ca756dd9e1c30c32395bca977a88fc86bcccdbf1305457eff49",
+          "elapsed_ms": 5
+        }
+      },
+      {
+        "id": "base-4-udp_nonce",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 162,
+          "body_sha256": "9c6a46728db149123c1839f5593d675e6c0afffac294c058e87ceee8a91881f9",
+          "elapsed_ms": 2
+        }
+      },
+      {
+        "id": "base-6-http",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 6,
+          "bytes": 616,
+          "body_sha256": "271e9a321b53113acea00078ad898c9044487722ca90b00e15b54d39962fd68c",
+          "elapsed_ms": 2
+        }
+      },
+      {
+        "id": "base-6-https_verified",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 6,
+          "bytes": 626,
+          "body_sha256": "cdd44267876c9b0b69e65ec77704f4d3e3962aabf49591025bf908a4928a0f4e",
+          "elapsed_ms": 4
+        }
+      },
+      {
+        "id": "base-6-udp_nonce",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 6,
+          "bytes": 162,
+          "body_sha256": "88c8c234c1e08de405f3e9c542f5ed60ee370a23e3f6485764b9b3380401eb06",
+          "elapsed_ms": 2
+        }
+      },
+      {
+        "id": "F01-doh4-S00",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "value": {
+            "AD": false,
+            "Answer": [
+              {
+                "TTL": 2,
+                "data": "<DATA6>",
+                "name": "aaaaonly-277af9-doh4s00-3c7b.mimo-lab.test.",
+                "type": 28
+              }
+            ],
+            "CD": false,
+            "Question": [
+              {
+                "Name": "aaaaonly-277af9-doh4s00-3c7b.mimo-lab.test.",
+                "Qtype": 28,
+                "Qclass": 1
+              }
+            ],
+            "RA": true,
+            "RD": true,
+            "Status": 0,
+            "TC": false
+          }
+        }
+      },
+      {
+        "id": "F01-doh4-S04",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "value": {
+            "AD": false,
+            "Answer": [
+              {
+                "TTL": 2,
+                "data": "<DATA6>",
+                "name": "aaaaonly-277af9-doh4s04-67f8.mimo-lab.test.",
+                "type": 28
+              }
+            ],
+            "CD": false,
+            "Question": [
+              {
+                "Name": "aaaaonly-277af9-doh4s04-67f8.mimo-lab.test.",
+                "Qtype": 28,
+                "Qclass": 1
+              }
+            ],
+            "RA": true,
+            "RD": true,
+            "Status": 0,
+            "TC": false
+          }
+        }
+      },
+      {
+        "id": "F01-doh6-S00",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "value": {
+            "AD": false,
+            "Answer": [
+              {
+                "TTL": 2,
+                "data": "<DATA6>",
+                "name": "aaaaonly-277af9-doh6s00-548f.mimo-lab.test.",
+                "type": 28
+              }
+            ],
+            "CD": false,
+            "Question": [
+              {
+                "Name": "aaaaonly-277af9-doh6s00-548f.mimo-lab.test.",
+                "Qtype": 28,
+                "Qclass": 1
+              }
+            ],
+            "RA": true,
+            "RD": true,
+            "Status": 0,
+            "TC": false
+          }
+        }
+      },
+      {
+        "id": "F01-doh6-S04",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "value": {
+            "message": "all DNS requests failed, first error: requesting https://[<DATA6>]:60114/dns-query: Get \"https://[<DATA6>]:60114/dns-query?dns=AAABAAABAAAAAAAAHGFhYWFvbmx5LTI3N2FmOS1kb2g2czA0LTA1YjQIbWltby1sYWIEdGVzdAAAHAAB\": EOF (resErr:<nil>)"
+          }
+        }
+      },
+      {
+        "id": "F02-nodata6",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "value": {
+            "AD": false,
+            "CD": false,
+            "Question": [
+              {
+                "Name": "aaaaonly-277af9-nodata6-db65.mimo-lab.test.",
+                "Qtype": 28,
+                "Qclass": 1
+              }
+            ],
+            "RA": true,
+            "RD": true,
+            "Status": 0,
+            "TC": false
+          }
+        }
+      },
+      {
+        "id": "F02-recover-nodata6",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "value": {
+            "AD": false,
+            "Answer": [
+              {
+                "TTL": 2,
+                "data": "<DATA6>",
+                "name": "aaaaonly-277af9-recovery-nodata6-2b68.mimo-lab.test.",
+                "type": 28
+              }
+            ],
+            "CD": false,
+            "Question": [
+              {
+                "Name": "aaaaonly-277af9-recovery-nodata6-2b68.mimo-lab.test.",
+                "Qtype": 28,
+                "Qclass": 1
+              }
+            ],
+            "RA": true,
+            "RD": true,
+            "Status": 0,
+            "TC": false
+          }
+        }
+      },
+      {
+        "id": "F02-servfail",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "value": {
+            "message": "all DNS requests failed, first error: server failure: SERVFAIL"
+          }
+        }
+      },
+      {
+        "id": "F02-recover-servfail",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "value": {
+            "AD": false,
+            "Answer": [
+              {
+                "TTL": 2,
+                "data": "<DATA6>",
+                "name": "aaaaonly-277af9-recovery-servfail-61b9.mimo-lab.test.",
+                "type": 28
+              }
+            ],
+            "CD": false,
+            "Question": [
+              {
+                "Name": "aaaaonly-277af9-recovery-servfail-61b9.mimo-lab.test.",
+                "Qtype": 28,
+                "Qclass": 1
+              }
+            ],
+            "RA": true,
+            "RD": true,
+            "Status": 0,
+            "TC": false
+          }
+        }
+      },
+      {
+        "id": "F02-nxdomain",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "value": {
+            "AD": false,
+            "CD": false,
+            "Question": [
+              {
+                "Name": "aaaaonly-277af9-nxdomain-2880.mimo-lab.test.",
+                "Qtype": 28,
+                "Qclass": 1
+              }
+            ],
+            "RA": true,
+            "RD": true,
+            "Status": 3,
+            "TC": false
+          }
+        }
+      },
+      {
+        "id": "F02-recover-nxdomain",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "value": {
+            "AD": false,
+            "Answer": [
+              {
+                "TTL": 2,
+                "data": "<DATA6>",
+                "name": "aaaaonly-277af9-recovery-nxdomain-5199.mimo-lab.test.",
+                "type": 28
+              }
+            ],
+            "CD": false,
+            "Question": [
+              {
+                "Name": "aaaaonly-277af9-recovery-nxdomain-5199.mimo-lab.test.",
+                "Qtype": 28,
+                "Qclass": 1
+              }
+            ],
+            "RA": true,
+            "RD": true,
+            "Status": 0,
+            "TC": false
+          }
+        }
+      },
+      {
+        "id": "F02-timeout",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "error": "timeout: timed out"
+        }
+      },
+      {
+        "id": "F02-recover-timeout",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "value": {
+            "AD": false,
+            "Answer": [
+              {
+                "TTL": 2,
+                "data": "<DATA6>",
+                "name": "aaaaonly-277af9-recovery-timeout-ac1c.mimo-lab.test.",
+                "type": 28
+              }
+            ],
+            "CD": false,
+            "Question": [
+              {
+                "Name": "aaaaonly-277af9-recovery-timeout-ac1c.mimo-lab.test.",
+                "Qtype": 28,
+                "Qclass": 1
+              }
+            ],
+            "RA": true,
+            "RD": true,
+            "Status": 0,
+            "TC": false
+          }
+        }
+      },
+      {
+        "id": "F02-tls-untrusted",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "value": {
+            "message": "all DNS requests failed, first error: requesting https://<DATA4>:60114/dns-query: Get \"https://<DATA4>:60114/dns-query?dns=AAABAAABAAAAAAAAG2FhYWFvbmx5LTI3N2FmOS1iYWQtY2EtNGY5YQhtaW1vLWxhYgR0ZXN0AAAcAAE\": tls: failed to verify certificate: x509: certificate signed by unknown authority (resErr:<nil>)"
+          }
+        }
+      },
+      {
+        "id": "F02-tls-recovery",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "value": {
+            "AD": false,
+            "Answer": [
+              {
+                "TTL": 2,
+                "data": "<DATA6>",
+                "name": "aaaaonly-277af9-tls-recovered-2653.mimo-lab.test.",
+                "type": 28
+              }
+            ],
+            "CD": false,
+            "Question": [
+              {
+                "Name": "aaaaonly-277af9-tls-recovered-2653.mimo-lab.test.",
+                "Qtype": 28,
+                "Qclass": 1
+              }
+            ],
+            "RA": true,
+            "RD": true,
+            "Status": 0,
+            "TC": false
+          }
+        }
+      },
+      {
+        "id": "F03-F05-no_domain",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "error": "SSLEOFError: EOF occurred in violation of protocol (_ssl.c:1129)",
+          "elapsed_ms": 1
+        }
+      },
+      {
+        "id": "F03-F05-control-no_domain",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 622,
+          "body_sha256": "7c29643957133bae695de3d6f22e00be398dbe986f4fae81059f6ccc476652cc",
+          "elapsed_ms": 4
+        }
+      },
+      {
+        "id": "F03-F05-reply_3",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "error": "SSLEOFError: EOF occurred in violation of protocol (_ssl.c:1129)",
+          "elapsed_ms": 1
+        }
+      },
+      {
+        "id": "F03-F05-reply_7",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "error": "SSLEOFError: EOF occurred in violation of protocol (_ssl.c:1129)",
+          "elapsed_ms": 1
+        }
+      },
+      {
+        "id": "F03-F05-reply_8",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "error": "SSLEOFError: EOF occurred in violation of protocol (_ssl.c:1129)",
+          "elapsed_ms": 1
+        }
+      },
+      {
+        "id": "F03-F05-no_udp",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "error": "timeout: timed out",
+          "elapsed_ms": 2008
+        }
+      },
+      {
+        "id": "F03-F05-control-no_udp",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 619,
+          "body_sha256": "67d323f7d8b61ac262b79d9af1503271c4522f5253b86416af64775a391ada04",
+          "elapsed_ms": 5
+        }
+      },
+      {
+        "id": "F03-F05-drop_udp",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "error": "timeout: timed out",
+          "elapsed_ms": 2002
+        }
+      },
+      {
+        "id": "F03-F05-control-drop_udp",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 621,
+          "body_sha256": "281d85b534291a3a4a64454c1e2170da67d8304969d504229c98119dd776bbf0",
+          "elapsed_ms": 8
+        }
+      },
+      {
+        "id": "F03-F05-relay_unavailable",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "error": "timeout: timed out",
+          "elapsed_ms": 2003
+        }
+      },
+      {
+        "id": "F03-F05-control-relay_unavailable",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 630,
+          "body_sha256": "2d99626e4ad4fe6de59043f36af37a1f040cc1d64ea4c5dc2a0170def78bbba2",
+          "elapsed_ms": 9
+        }
+      },
+      {
+        "id": "F03-F05-association_close",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "error": "timeout: timed out",
+          "elapsed_ms": 2004
+        }
+      },
+      {
+        "id": "F03-F05-control-association_close",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 630,
+          "body_sha256": "50e9ae8dbd2caa6d6d8948916ecb32a316379891da2eefef7188bd471c80fb50",
+          "elapsed_ms": 5
+        }
+      },
+      {
+        "id": "F03-F05-auth",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "error": "SSLEOFError: EOF occurred in violation of protocol (_ssl.c:1129)",
+          "elapsed_ms": 3865
+        }
+      },
+      {
+        "id": "F03-F05-reset",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "error": "SSLEOFError: EOF occurred in violation of protocol (_ssl.c:1129)",
+          "elapsed_ms": 3
+        }
+      },
+      {
+        "id": "F05-password-False",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "error": "SSLEOFError: EOF occurred in violation of protocol (_ssl.c:1129)",
+          "elapsed_ms": 3155
+        }
+      },
+      {
+        "id": "F05-password-True",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 6,
+          "bytes": 608,
+          "body_sha256": "aa1033b3432accc8fdf93730ac258fabc0b64710d8e507ee0634f3f5bc8050c7",
+          "elapsed_ms": 6
+        }
+      },
+      {
+        "id": "F05-off-4-http",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "error": "RemoteDisconnected: Remote end closed connection without response",
+          "elapsed_ms": 3199
+        }
+      },
+      {
+        "id": "F05-off-4-udp_nonce",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "error": "timeout: timed out",
+          "elapsed_ms": 2004
+        }
+      },
+      {
+        "id": "F05-off-6-http",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "error": "RemoteDisconnected: Remote end closed connection without response",
+          "elapsed_ms": 2893
+        }
+      },
+      {
+        "id": "F05-off-6-udp_nonce",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "error": "timeout: timed out",
+          "elapsed_ms": 2003
+        }
+      },
+      {
+        "id": "F06-warm-S00",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 6,
+          "bytes": 611,
+          "body_sha256": "1ca57f51fba728f3822b52252abe1958c940fb7070f266cace30d793eef69634",
+          "elapsed_ms": 5
+        }
+      },
+      {
+        "id": "F06-warm-S04",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": false,
+          "error": "SSLEOFError: EOF occurred in violation of protocol (_ssl.c:1129)",
+          "elapsed_ms": 1
+        }
+      },
+      {
+        "id": "F06-warm-S00",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 6,
+          "bytes": 611,
+          "body_sha256": "cb2ba83ea9ab96ea07b9ba93967f89c5f1992fdb1f6f55edf7e62e45f6e17b4f",
+          "elapsed_ms": 4
+        }
+      },
+      {
+        "id": "F07-auto-S04",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "client_status": 35,
+          "note": "Automatic IPv4 retry is measured, not assumed after a successful local TUN TCP handshake."
+        }
+      },
+      {
+        "id": "F07-explicit-retry-S04",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ipv6": {
+            "ok": false,
+            "error": "SSLEOFError: EOF occurred in violation of protocol (_ssl.c:1129)",
+            "elapsed_ms": 1
+          },
+          "ipv4": {
+            "ok": true,
+            "upstream_family": 4,
+            "bytes": 609,
+            "body_sha256": "5a0890a2ec1ea4d3421bdedf5636cc35a7e3a1ad918af9138d1685ab63dce3b4",
+            "elapsed_ms": 4
+          }
+        }
+      },
+      {
+        "id": "F07-auto-S02",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "client_status": 28,
+          "note": "Automatic IPv4 retry is measured, not assumed after a successful local TUN TCP handshake."
+        }
+      },
+      {
+        "id": "F07-explicit-retry-S02",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ipv6": {
+            "ok": false,
+            "error": "timeout: _ssl.c:1112: The handshake operation timed out",
+            "elapsed_ms": 4008
+          },
+          "ipv4": {
+            "ok": true,
+            "upstream_family": 4,
+            "bytes": 609,
+            "body_sha256": "cd30376dbbc3d70e727d616cc6b59bef1838a1104b4212deecb3e078cb1a2604",
+            "elapsed_ms": 8
+          }
+        }
+      },
+      {
+        "id": "F09-udp-4-96",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 150,
+          "body_sha256": "214f821e630a3ed6a5949c11333cc3544acfae45c7cc1d590bbd2b8a967efcfb",
+          "elapsed_ms": 2
+        }
+      },
+      {
+        "id": "F09-udp-4-1232",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 1288,
+          "body_sha256": "a2e84903ffcbc37ad6bdcc6e6854d79401c31bdb092f4768897eab29d6a63649",
+          "elapsed_ms": 2
+        }
+      },
+      {
+        "id": "F09-udp-4-8224",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 8280,
+          "body_sha256": "7f05651678bab4d4c84fae5f9fbb691a796f0b49d8d1701696264a1d34c0c55a",
+          "elapsed_ms": 2
+        }
+      },
+      {
+        "id": "F09-https-4",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 233565,
+          "body_sha256": "854c35e1b5d9a09caa4a3345ef9873582bb9e29d96aa74ce51e098839ed08cd0",
+          "elapsed_ms": 8
+        }
+      },
+      {
+        "id": "F09-udp-6-96",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 6,
+          "bytes": 150,
+          "body_sha256": "20247b085f7f3c18190a1e9348362ea179e204b8c5f57d3d6ab168355881dc0d",
+          "elapsed_ms": 2
+        }
+      },
+      {
+        "id": "F09-udp-6-1232",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 6,
+          "bytes": 1288,
+          "body_sha256": "64f23d902ccbed3207ff4501cc0c11af57e6cc0db6fc8a87b8f306dbdd29dc05",
+          "elapsed_ms": 2
+        }
+      },
+      {
+        "id": "F09-udp-6-8224",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 6,
+          "bytes": 8280,
+          "body_sha256": "cb55b970b491648f1e12c38117b02c826ce83c3230c62d0a5468c4649ef9db6f",
+          "elapsed_ms": 2
+        }
+      },
+      {
+        "id": "F09-https-6",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 6,
+          "bytes": 233565,
+          "body_sha256": "fc08a5887815852054c70db4163b9c717f791728c936be84c9ebf8d134c45881",
+          "elapsed_ms": 6
+        }
+      },
+      {
+        "id": "F10-ping-0",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "exit_status": "timeout"
+        }
+      },
+      {
+        "id": "F10-ping-1",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "exit_status": "timeout"
+        }
+      },
+      {
+        "id": "F10-ping-2",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "exit_status": "timeout"
+        }
+      },
+      {
+        "id": "F10-ping-3",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "exit_status": "timeout"
+        }
+      },
+      {
+        "id": "F10-ping-4",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "exit_status": "timeout"
+        }
+      },
+      {
+        "id": "F10-ping-5",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "exit_status": "timeout"
+        }
+      },
+      {
+        "id": "F10-ping-6",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "exit_status": "timeout"
+        }
+      },
+      {
+        "id": "F11-native-ping-0",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "exit_status": 0
+        }
+      },
+      {
+        "id": "F11-native-ping-1",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "exit_status": 0
+        }
+      },
+      {
+        "id": "F11-native-ping-2",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "exit_status": 0
+        }
+      },
+      {
+        "id": "F11-native-ping-3",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "exit_status": 0
+        }
+      },
+      {
+        "id": "F11-magicdns-1",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "answer_count": 1,
+          "native_answer_count": 1,
+          "note": "Tailnet IPv6 address availability does not imply that Quad100 publishes an AAAA record."
+        }
+      },
+      {
+        "id": "F11-magicdns-28",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "answer_count": 0,
+          "native_answer_count": 0,
+          "note": "Tailnet IPv6 address availability does not imply that Quad100 publishes an AAAA record."
+        }
+      },
+      {
+        "id": "F12-0-S00-http",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "note": "Fixture mapping qualifies transport, not actual NAT64 translation.",
+          "ok": true,
+          "upstream_family": 6,
+          "bytes": 615,
+          "body_sha256": "a8ac78a4478e915fd6a8a12e24494910d7e3eeb96443891122214049589b6730",
+          "elapsed_ms": 3
+        }
+      },
+      {
+        "id": "F12-0-S00-udp_nonce",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "note": "Fixture mapping qualifies transport, not actual NAT64 translation.",
+          "ok": true,
+          "upstream_family": 6,
+          "bytes": 161,
+          "body_sha256": "9e368060aa86c5962ee2f13122be2e57021a7fc1d8646380d7bd409f998edafb",
+          "elapsed_ms": 2
+        }
+      },
+      {
+        "id": "F12-0-S04-http",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "note": "Fixture mapping qualifies transport, not actual NAT64 translation.",
+          "ok": false,
+          "error": "RemoteDisconnected: Remote end closed connection without response",
+          "elapsed_ms": 2
+        }
+      },
+      {
+        "id": "F12-0-S04-udp_nonce",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "note": "Fixture mapping qualifies transport, not actual NAT64 translation.",
+          "ok": false,
+          "error": "timeout: timed out",
+          "elapsed_ms": 2004
+        }
+      },
+      {
+        "id": "F12-1-S00-http",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "note": "Fixture mapping qualifies transport, not actual NAT64 translation.",
+          "ok": true,
+          "upstream_family": 6,
+          "bytes": 615,
+          "body_sha256": "916147c3e9820178bfb2da5d3c1e8abdc621f2e547f338f91277c28ac9cc78a7",
+          "elapsed_ms": 3
+        }
+      },
+      {
+        "id": "F12-1-S00-udp_nonce",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "note": "Fixture mapping qualifies transport, not actual NAT64 translation.",
+          "ok": true,
+          "upstream_family": 6,
+          "bytes": 161,
+          "body_sha256": "0f01a0ec5dc407debf1b95e95fd860a8c9acb1a6420301b01d9202670e470046",
+          "elapsed_ms": 2
+        }
+      },
+      {
+        "id": "F12-1-S04-http",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "note": "Fixture mapping qualifies transport, not actual NAT64 translation.",
+          "ok": false,
+          "error": "RemoteDisconnected: Remote end closed connection without response",
+          "elapsed_ms": 1
+        }
+      },
+      {
+        "id": "F12-1-S04-udp_nonce",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "note": "Fixture mapping qualifies transport, not actual NAT64 translation.",
+          "ok": false,
+          "error": "timeout: timed out",
+          "elapsed_ms": 2001
+        }
+      },
+      {
+        "id": "F14-reload-0",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {}
+      },
+      {
+        "id": "F14-reload-1",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {}
+      },
+      {
+        "id": "F14-reload-2",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {}
+      },
+      {
+        "id": "F14-reload-3",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {}
+      },
+      {
+        "id": "F14-stock-rejected",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {}
+      },
+      {
+        "id": "F14-occupied-port-preflight",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {}
+      }
+    ],
+    "blocked_ping_targets": [
+      "198.51.100.37",
+      "198.18.55.10",
+      "2001:db8::37",
+      "fdfe:dcba:9876::2",
+      "fdfe:dcba:9876:1::55",
+      "64:ff9b::c000:225",
+      "64:ff9b:1::c000:225"
+    ],
+    "native_ping_targets": [
+      "<BRIDGE4>",
+      "<DATA6>",
+      "<NATIVE_PEER_IPV4>",
+      "<NATIVE_PEER_IPV6>"
+    ],
+    "focused_limits": [
+      "Host packet capture unavailable: /dev/bpf is root-only; VM captures and real host socket/service records used.",
+      "No crafted ICMPv6 Packet Too Big injection; control preservation has existing packet-handler unit tests.",
+      "Wrong-hash rejection is enforced in preflight; no replacement binary executed."
+    ],
+    "packets": {
+      "en0_all_data4": 1,
+      "en0_data4": 0,
+      "en0_all_data6": 0,
+      "en0_data6": 0,
+      "en0_all_fake": 6,
+      "en0_fake": 0,
+      "en0_bootstrap": 0,
+      "en0_nat64": 0,
+      "en0_blocked_0_request": 0,
+      "en0_blocked_0_reply": 0,
+      "en0_blocked_1_request": 0,
+      "en0_blocked_1_reply": 0,
+      "en0_blocked_2_request": 0,
+      "en0_blocked_2_reply": 0,
+      "en0_blocked_3_request": 0,
+      "en0_blocked_3_reply": 0,
+      "en0_blocked_4_request": 0,
+      "en0_blocked_4_reply": 0,
+      "en0_blocked_5_request": 0,
+      "en0_blocked_5_reply": 0,
+      "en0_blocked_6_request": 0,
+      "en0_blocked_6_reply": 0,
+      "en0_native_0_request": 2,
+      "en0_native_0_reply": 2,
+      "en0_native_1_request": 2,
+      "en0_native_1_reply": 2,
+      "en0_native_2_request": 0,
+      "en0_native_2_reply": 0,
+      "en0_native_3_request": 0,
+      "en0_native_3_reply": 0,
+      "utun238_all_data4": 153,
+      "utun238_data4": 153,
+      "utun238_all_data6": 108,
+      "utun238_data6": 108,
+      "utun238_all_fake": 291,
+      "utun238_fake": 83,
+      "utun238_bootstrap": 0,
+      "utun238_nat64": 26,
+      "utun238_blocked_0_request": 2,
+      "utun238_blocked_0_reply": 0,
+      "utun238_blocked_1_request": 2,
+      "utun238_blocked_1_reply": 0,
+      "utun238_blocked_2_request": 2,
+      "utun238_blocked_2_reply": 0,
+      "utun238_blocked_3_request": 2,
+      "utun238_blocked_3_reply": 0,
+      "utun238_blocked_4_request": 2,
+      "utun238_blocked_4_reply": 0,
+      "utun238_blocked_5_request": 2,
+      "utun238_blocked_5_reply": 0,
+      "utun238_blocked_6_request": 2,
+      "utun238_blocked_6_reply": 0,
+      "utun238_native_0_request": 0,
+      "utun238_native_0_reply": 0,
+      "utun238_native_1_request": 0,
+      "utun238_native_1_reply": 0,
+      "utun238_native_2_request": 0,
+      "utun238_native_2_reply": 0,
+      "utun238_native_3_request": 0,
+      "utun238_native_3_reply": 0,
+      "utun2_all_data4": 0,
+      "utun2_data4": 0,
+      "utun2_all_data6": 0,
+      "utun2_data6": 0,
+      "utun2_all_fake": 0,
+      "utun2_fake": 0,
+      "utun2_bootstrap": 0,
+      "utun2_nat64": 0,
+      "utun2_blocked_0_request": 0,
+      "utun2_blocked_0_reply": 0,
+      "utun2_blocked_1_request": 0,
+      "utun2_blocked_1_reply": 0,
+      "utun2_blocked_2_request": 0,
+      "utun2_blocked_2_reply": 0,
+      "utun2_blocked_3_request": 0,
+      "utun2_blocked_3_reply": 0,
+      "utun2_blocked_4_request": 0,
+      "utun2_blocked_4_reply": 0,
+      "utun2_blocked_5_request": 0,
+      "utun2_blocked_5_reply": 0,
+      "utun2_blocked_6_request": 0,
+      "utun2_blocked_6_reply": 0,
+      "utun2_native_0_request": 0,
+      "utun2_native_0_reply": 0,
+      "utun2_native_1_request": 0,
+      "utun2_native_1_reply": 0,
+      "utun2_native_2_request": 2,
+      "utun2_native_2_reply": 2,
+      "utun2_native_3_request": 2,
+      "utun2_native_3_reply": 2
+    },
+    "counts": {
+      "PASS_FOCUSED": 83
+    },
+    "passed": true
+  },
+  {
+    "run": "P08-S00-focused-19f00f",
+    "status": "complete",
+    "profile": "P08",
+    "proxy_mode": "S00",
+    "scope": "focused",
+    "tested_at_utc": "2026-11-24T06:28:55.547331+00:00",
+    "engine_sha256": "ff21dbbad799783de14f4a13684b35531b455beff0335dc2e9d468e5bcbe52bd",
+    "runner_sha256": "34499140a0db063939d756dd1c786c3e0dcd55100d20ae6deebb64c6c5685df2",
+    "profile_sha256": "c5a1e1992fe567b42a56e91f7de424377ed1e991a57829fc04afca4734d1ab54",
+    "checks": {
+      "native_before_4_http": true,
+      "native_before_4_https_verified": true,
+      "native_before_4_udp_nonce": true,
+      "fixture_4_https_verified": true,
+      "fixture_4_udp_nonce": true,
+      "native_before_6_http": true,
+      "native_before_6_https_verified": true,
+      "native_before_6_udp_nonce": true,
+      "fixture_6_https_verified": true,
+      "fixture_6_udp_nonce": true,
+      "data_routes_captured": true,
+      "control_route_native": true,
+      "global_zero_rules": true,
+      "live_proxy_selection": true,
+      "live_no_ping_stack": true,
+      "dns_unchanged_active": true,
+      "no_native_data_egress": true,
+      "no_native_fake_egress": true,
+      "both_data_families_entered_tun": true,
+      "no_native_nat64_egress": true,
+      "no_native_bootstrap_egress": true,
+      "engine_stopped": true,
+      "tun_removed": true,
+      "routes_restored": true,
+      "dns_restored": true,
+      "native_after_4_https_verified": true,
+      "native_after_4_udp_nonce": true,
+      "native_after_6_https_verified": true,
+      "native_after_6_udp_nonce": true
+    },
+    "cases": [
+      {
+        "id": "base-4-http",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 616,
+          "body_sha256": "d882039ca5f05d108242b571596fe5268bc763a926149791e51be26fb3f3f085",
+          "elapsed_ms": 3
+        }
+      },
+      {
+        "id": "base-4-https_verified",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 626,
+          "body_sha256": "c4047312f5d0dd7d0b686640b57ae5f0ab8d8b450a8fa54223b12c8a64580cbe",
+          "elapsed_ms": 5
+        }
+      },
+      {
+        "id": "base-4-udp_nonce",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 162,
+          "body_sha256": "8fbf1e184673f71a6e799ea90427c2054705e0336ee4846650252fc004cfb4f9",
+          "elapsed_ms": 2
+        }
+      },
+      {
+        "id": "base-6-http",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 6,
+          "bytes": 616,
+          "body_sha256": "34e5085183f38e94af94b7ebdb871c3652f23c4ced5d42accfe4fb5897153699",
+          "elapsed_ms": 2
+        }
+      },
+      {
+        "id": "base-6-https_verified",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 6,
+          "bytes": 626,
+          "body_sha256": "e19cadf06a6557e638aa631b7a679ea864b9760d09169baee1aa541242e0d971",
+          "elapsed_ms": 4
+        }
+      },
+      {
+        "id": "base-6-udp_nonce",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 6,
+          "bytes": 162,
+          "body_sha256": "7767984f92d3f7276b890e9372dd9905ee6097c4ce709184554b5c5e07b86e6d",
+          "elapsed_ms": 2
+        }
+      },
+      {
+        "id": "F07-prefer6-aonly",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 153,
+          "body_sha256": "996acca7fe20acbedbbc4390e5e35c966cbaf6c49ee2f7d1230849e3c4fe50e4",
+          "elapsed_ms": 13
+        }
+      },
+      {
+        "id": "F07-prefer6-aaaaonly",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 6,
+          "bytes": 156,
+          "body_sha256": "2d2d0ea12ab7c547376e63b26c9dc2b758b8a471c89329f634925d780fdc841b",
+          "elapsed_ms": 2
+        }
+      },
+      {
+        "id": "F07-prefer6-dual4",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 6,
+          "bytes": 153,
+          "body_sha256": "bc076b44c6d1a1d610f4036ada9014e4bbd4fddf09a8fbe85553bde26d56c20f",
+          "elapsed_ms": 2
+        }
+      },
+      {
+        "id": "F07-prefer6-dual6",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 6,
+          "bytes": 153,
+          "body_sha256": "5a66b8b2170674d95dce578e4408c91ce8da1defe4dd945cdf92c349a4ef0054",
+          "elapsed_ms": 2
+        }
+      }
+    ],
+    "packets": {
+      "en0_all_data4": 0,
+      "en0_data4": 0,
+      "en0_all_data6": 0,
+      "en0_data6": 0,
+      "en0_all_fake": 0,
+      "en0_fake": 0,
+      "en0_bootstrap": 0,
+      "en0_nat64": 0,
+      "utun238_all_data4": 17,
+      "utun238_data4": 17,
+      "utun238_all_data6": 17,
+      "utun238_data6": 17,
+      "utun238_all_fake": 21,
+      "utun238_fake": 4,
+      "utun238_bootstrap": 0,
+      "utun238_nat64": 0,
+      "utun2_all_data4": 0,
+      "utun2_data4": 0,
+      "utun2_all_data6": 0,
+      "utun2_data6": 0,
+      "utun2_all_fake": 0,
+      "utun2_fake": 0,
+      "utun2_bootstrap": 0,
+      "utun2_nat64": 0
+    },
+    "counts": {
+      "PASS_FOCUSED": 10
+    },
+    "passed": true
+  },
+  {
+    "run": "P09-S00-focused-d0facf",
+    "status": "complete",
+    "profile": "P09",
+    "proxy_mode": "S00",
+    "scope": "focused",
+    "tested_at_utc": "2026-11-24T06:37:08.437185+00:00",
+    "engine_sha256": "ff21dbbad799783de14f4a13684b35531b455beff0335dc2e9d468e5bcbe52bd",
+    "runner_sha256": "0286a7cba9a74a69028a58f5585e9c2e01d7c72c8f33dc91e40ae9f1c9309276",
+    "profile_sha256": "a730ff533fe148b45d9551c6688a3bd28c20216e0d6e8328629add4061c21484",
+    "checks": {
+      "native_before_4_http": true,
+      "native_before_4_https_verified": true,
+      "native_before_4_udp_nonce": true,
+      "fixture_4_https_verified": true,
+      "fixture_4_udp_nonce": true,
+      "native_before_6_http": true,
+      "native_before_6_https_verified": true,
+      "native_before_6_udp_nonce": true,
+      "fixture_6_https_verified": true,
+      "fixture_6_udp_nonce": true,
+      "data_routes_captured": true,
+      "control_route_native": true,
+      "global_zero_rules": true,
+      "live_proxy_selection": true,
+      "live_no_ping_stack": true,
+      "dns_unchanged_active": true,
+      "no_native_data_egress": true,
+      "no_native_fake_egress": true,
+      "both_data_families_entered_tun": true,
+      "no_native_nat64_egress": true,
+      "no_native_bootstrap_egress": true,
+      "engine_stopped": true,
+      "tun_removed": true,
+      "routes_restored": true,
+      "dns_restored": true,
+      "native_after_4_https_verified": true,
+      "native_after_4_udp_nonce": true,
+      "native_after_6_https_verified": true,
+      "native_after_6_udp_nonce": true
+    },
+    "cases": [
+      {
+        "id": "base-4-http",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 616,
+          "body_sha256": "df85586181ff6848ba7f794a55e37bffb83d72ec51b3a40d7aea07fd98ba0cc9",
+          "elapsed_ms": 4
+        }
+      },
+      {
+        "id": "base-4-https_verified",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 626,
+          "body_sha256": "27440b843030f867171f99a5e7f72a09893c4dd2738564ceeafbe70d4c0e63cf",
+          "elapsed_ms": 4
+        }
+      },
+      {
+        "id": "base-4-udp_nonce",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 162,
+          "body_sha256": "b4d4481828c5423d6d5df06ea1cf775790367e1530df492f59c7705c27ff19c7",
+          "elapsed_ms": 2
+        }
+      },
+      {
+        "id": "base-6-http",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 6,
+          "bytes": 616,
+          "body_sha256": "5af34cde49b198a0adc4789c3ee3476952e999721bc23d1eab0fd6f1bdc2665f",
+          "elapsed_ms": 2
+        }
+      },
+      {
+        "id": "base-6-https_verified",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 6,
+          "bytes": 626,
+          "body_sha256": "7c3cd99cc13940e6c5feabf7eccb4ce74abb0ba54cfd02d63dab915bce952ea5",
+          "elapsed_ms": 5
+        }
+      },
+      {
+        "id": "base-6-udp_nonce",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 6,
+          "bytes": 162,
+          "body_sha256": "53d733c88c5ad71b04013396a55984dc635ee513c7ac2ecf0bb40b86cc3adb70",
+          "elapsed_ms": 2
+        }
+      },
+      {
+        "id": "F08-redir-aonly-1",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {}
+      },
+      {
+        "id": "F08-redir-aonly-28",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {}
+      },
+      {
+        "id": "F08-redir-aaaaonly-1",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {}
+      },
+      {
+        "id": "F08-redir-aaaaonly-28",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {}
+      },
+      {
+        "id": "F08-redir-dual4-1",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {}
+      },
+      {
+        "id": "F08-redir-dual4-28",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {}
+      },
+      {
+        "id": "F08-redir-dual6-1",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {}
+      },
+      {
+        "id": "F08-redir-dual6-28",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {}
+      },
+      {
+        "id": "F08-redir-nx-1",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {}
+      },
+      {
+        "id": "F08-redir-nx-28",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {}
+      },
+      {
+        "id": "F08-mixed-4-False-tcp",
+        "kind": "focused",
+        "result": "FAIL_FUNCTIONAL",
+        "observation": {
+          "ok": true,
+          "upstream_family": 6,
+          "bytes": 620,
+          "body_sha256": "717507b2c7a63f682ed42bd14911093890cb8007d9748ef22102f09305e299cb",
+          "elapsed_ms": 4
+        }
+      },
+      {
+        "id": "F08-mixed-4-False-udp",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 161,
+          "body_sha256": "6d70f925d738141c3eca07ef6acf1e88f4704b86a8cdf010505d1fdc58debdd4",
+          "elapsed_ms": 2
+        }
+      },
+      {
+        "id": "F08-mixed-4-True-tcp",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 619,
+          "body_sha256": "28a0c4e497b881309ae71211cfc3086405946497386ced4a307c069bcd016a5f",
+          "elapsed_ms": 4
+        }
+      },
+      {
+        "id": "F08-mixed-4-True-udp",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 160,
+          "body_sha256": "12fa8be3c86d330115d24bae4f304ca23109a8bab519f14c7080d944a2945bd5",
+          "elapsed_ms": 3
+        }
+      },
+      {
+        "id": "F08-mixed-6-False-tcp",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 6,
+          "bytes": 620,
+          "body_sha256": "de44617fb22bcb9ea839440d14dede24b51ff0dc328e0ef8d23f2c3c69dff63e",
+          "elapsed_ms": 4
+        }
+      },
+      {
+        "id": "F08-mixed-6-False-udp",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 6,
+          "bytes": 161,
+          "body_sha256": "43b698a7971ee221716daf6ddd23da51e4af68918a62f3cf49209a1f0d055059",
+          "elapsed_ms": 2
+        }
+      },
+      {
+        "id": "F08-mixed-6-True-tcp",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 6,
+          "bytes": 619,
+          "body_sha256": "ecb19cbf6b25c1418f5ad423ca331600d5613382be15b293fbd82225902df7dc",
+          "elapsed_ms": 4
+        }
+      },
+      {
+        "id": "F08-mixed-6-True-udp",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 6,
+          "bytes": 160,
+          "body_sha256": "123961710e2be53989756f120532fb2fd543327dd25c8e0f46aa8225640abda0",
+          "elapsed_ms": 2
+        }
+      }
+    ],
+    "packets": {
+      "en0_all_data4": 0,
+      "en0_data4": 0,
+      "en0_all_data6": 0,
+      "en0_data6": 0,
+      "en0_all_fake": 2,
+      "en0_fake": 0,
+      "en0_bootstrap": 0,
+      "en0_nat64": 0,
+      "utun238_all_data4": 16,
+      "utun238_data4": 16,
+      "utun238_all_data6": 17,
+      "utun238_data6": 17,
+      "utun238_all_fake": 16,
+      "utun238_fake": 0,
+      "utun238_bootstrap": 0,
+      "utun238_nat64": 0,
+      "utun2_all_data4": 0,
+      "utun2_data4": 0,
+      "utun2_all_data6": 0,
+      "utun2_data6": 0,
+      "utun2_all_fake": 0,
+      "utun2_fake": 0,
+      "utun2_bootstrap": 0,
+      "utun2_nat64": 0
+    },
+    "counts": {
+      "PASS_FOCUSED": 23,
+      "FAIL_FUNCTIONAL": 1
+    },
+    "passed": false
+  },
+  {
+    "run": "P10-S00-focused-523ec8",
+    "status": "complete",
+    "profile": "P10",
+    "proxy_mode": "S00",
+    "scope": "focused",
+    "tested_at_utc": "2026-11-24T06:31:40.565108+00:00",
+    "engine_sha256": "ff21dbbad799783de14f4a13684b35531b455beff0335dc2e9d468e5bcbe52bd",
+    "runner_sha256": "0ae4ab80597b3bac2b965a02e8919574890a448e87fc37ed9d3d61ac4a48ab5e",
+    "profile_sha256": "b09fd30954210bf99a4ab22946585acbf9bb0d65247287398c53e30c7bff69b4",
+    "checks": {
+      "native_before_4_http": true,
+      "native_before_4_https_verified": true,
+      "native_before_4_udp_nonce": true,
+      "fixture_4_https_verified": true,
+      "fixture_4_udp_nonce": true,
+      "native_before_6_http": true,
+      "native_before_6_https_verified": true,
+      "native_before_6_udp_nonce": true,
+      "fixture_6_https_verified": true,
+      "fixture_6_udp_nonce": true,
+      "data_routes_captured": true,
+      "control_route_native": true,
+      "global_zero_rules": true,
+      "live_proxy_selection": true,
+      "live_no_ping_stack": true,
+      "no_native_data_egress": true,
+      "no_native_fake_egress": true,
+      "both_data_families_entered_tun": true,
+      "no_native_nat64_egress": true,
+      "no_native_bootstrap_egress": true,
+      "engine_stopped": true,
+      "tun_removed": true,
+      "routes_restored": true,
+      "dns_restored": true,
+      "native_after_4_https_verified": true,
+      "native_after_4_udp_nonce": true,
+      "native_after_6_https_verified": true,
+      "native_after_6_udp_nonce": true
+    },
+    "cases": [
+      {
+        "id": "base-4-http",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 616,
+          "body_sha256": "6c50456bb18a907f81749270e0560daef26cf5f11630e4415f5b11efbd14ecff",
+          "elapsed_ms": 9
+        }
+      },
+      {
+        "id": "base-4-https_verified",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 626,
+          "body_sha256": "0d6cada537e7ac2adde275f129751df31fa46b03a4e177c59c2d95570e96ddf2",
+          "elapsed_ms": 5
+        }
+      },
+      {
+        "id": "base-4-udp_nonce",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 162,
+          "body_sha256": "455476b5c85b184a6dcd92c8d48b96e413a907fdcbc7bde43a3b7674148c4de7",
+          "elapsed_ms": 2
+        }
+      },
+      {
+        "id": "base-6-http",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 6,
+          "bytes": 616,
+          "body_sha256": "7edd7d846555ab8ea3cc7b7a22eaa6252d3847d7120fc5dcddcbb81db8dbde4b",
+          "elapsed_ms": 2
+        }
+      },
+      {
+        "id": "base-6-https_verified",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 6,
+          "bytes": 626,
+          "body_sha256": "a7822791e96041fda046b6e4c881432caf24b94d4d2ffe352e72a3df5ebaf04f",
+          "elapsed_ms": 4
+        }
+      },
+      {
+        "id": "base-6-udp_nonce",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 6,
+          "bytes": 162,
+          "body_sha256": "035c028468b5df79fa59357f56ee3fdba5e1eae773fb464463a4dbdf231f2f6b",
+          "elapsed_ms": 2
+        }
+      },
+      {
+        "id": "F13-system-dns-registered",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {}
+      },
+      {
+        "id": "F13-system-aonly",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "families": [
+            4,
+            6
+          ],
+          "status": 0
+        }
+      },
+      {
+        "id": "F13-system-https-aonly",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "status": 0,
+          "upstream_family": 4
+        }
+      },
+      {
+        "id": "F13-system-aaaaonly",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "families": [
+            4,
+            6
+          ],
+          "status": 0
+        }
+      },
+      {
+        "id": "F13-system-https-aaaaonly",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "status": 0,
+          "upstream_family": 6
+        }
+      },
+      {
+        "id": "F13-system-dual4",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "families": [
+            4,
+            6
+          ],
+          "status": 0
+        }
+      },
+      {
+        "id": "F13-system-https-dual4",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "status": 0,
+          "upstream_family": 4
+        }
+      },
+      {
+        "id": "F07-safari-real-ipv6",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "exit_status": 0,
+          "ipv6_service_seen": true,
+          "automation_error": ""
+        }
+      },
+      {
+        "id": "F13-crash-dns-cleanup",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {}
+      },
+      {
+        "id": "F15-crash-tun-removed",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "note": "Native networking resumes after engine exit; no standalone fail-closed guarantee."
+        }
+      }
+    ],
+    "packets": {
+      "en0_all_data4": 0,
+      "en0_data4": 0,
+      "en0_all_data6": 0,
+      "en0_data6": 0,
+      "en0_all_fake": 1,
+      "en0_fake": 0,
+      "en0_bootstrap": 0,
+      "en0_nat64": 0,
+      "utun238_all_data4": 18,
+      "utun238_data4": 18,
+      "utun238_all_data6": 16,
+      "utun238_data6": 16,
+      "utun238_all_fake": 201,
+      "utun238_fake": 78,
+      "utun238_bootstrap": 0,
+      "utun238_nat64": 0,
+      "utun2_all_data4": 0,
+      "utun2_data4": 0,
+      "utun2_all_data6": 0,
+      "utun2_data6": 0,
+      "utun2_all_fake": 0,
+      "utun2_fake": 0,
+      "utun2_bootstrap": 0,
+      "utun2_nat64": 0
+    },
+    "counts": {
+      "PASS_FOCUSED": 16
+    },
+    "passed": true
+  },
+  {
+    "run": "P07-S00-watchdog-39c403",
+    "status": "complete",
+    "profile": "P07",
+    "proxy_mode": "S00",
+    "scope": "watchdog",
+    "tested_at_utc": "2026-11-24T06:30:30.446072+00:00",
+    "engine_sha256": "ff21dbbad799783de14f4a13684b35531b455beff0335dc2e9d468e5bcbe52bd",
+    "runner_sha256": "a69130fce8a526ef1915fd8a2fa76b81d5847b708f253d1dc8bfd23ed53e15f7",
+    "profile_sha256": "ea5a7687cecf4f334c86cd0d1bb48f1270aff3011c71bbebcc64d7f539c63486",
+    "checks": {
+      "native_before_4_http": true,
+      "native_before_4_https_verified": true,
+      "native_before_4_udp_nonce": true,
+      "fixture_4_https_verified": true,
+      "fixture_4_udp_nonce": true,
+      "native_before_6_http": true,
+      "native_before_6_https_verified": true,
+      "native_before_6_udp_nonce": true,
+      "fixture_6_https_verified": true,
+      "fixture_6_udp_nonce": true,
+      "data_routes_captured": true,
+      "control_route_native": true,
+      "global_zero_rules": true,
+      "live_proxy_selection": true,
+      "live_no_ping_stack": true,
+      "dns_unchanged_active": true,
+      "watchdog_removed_tun": true,
+      "watchdog_restored_routes": true,
+      "watchdog_restored_dns": true,
+      "watchdog_native_https_4": true,
+      "watchdog_native_https_6": true
+    },
+    "cases": [
+      {
+        "id": "F14-parent-loss-watchdog",
+        "kind": "focused",
+        "result": "PASS_FOCUSED"
+      }
+    ],
+    "passed": true,
+    "counts": {
+      "PASS_FOCUSED": 1
+    }
+  },
+  {
+    "run": "P07-S00-focus-invalid-engine-17363b",
+    "status": "complete",
+    "profile": "P07",
+    "proxy_mode": "S00",
+    "scope": "focus-invalid-engine",
+    "tested_at_utc": "2026-11-24T06:32:04.539347+00:00",
+    "engine_sha256": "ff21dbbad799783de14f4a13684b35531b455beff0335dc2e9d468e5bcbe52bd",
+    "runner_sha256": "0ae4ab80597b3bac2b965a02e8919574890a448e87fc37ed9d3d61ac4a48ab5e",
+    "profile_sha256": "3f75a67706235181f69f96c8c37bd4a899170d515346942543bb59058cf1e2d1",
+    "checks": {
+      "engine_stopped": true,
+      "tun_removed": true,
+      "routes_restored": true,
+      "dns_restored": true,
+      "native_after_4_https_verified": true,
+      "native_after_4_udp_nonce": true,
+      "native_after_6_https_verified": true,
+      "native_after_6_udp_nonce": true
+    },
+    "cases": [
+      {
+        "id": "F14-focus-invalid-engine",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "refusal": "AssertionError: Test engine checksum mismatch",
+          "engine_started": false
+        }
+      }
+    ],
+    "packets": {},
+    "counts": {
+      "PASS_FOCUSED": 1
+    },
+    "passed": true
+  },
+  {
+    "run": "P07-S00-focus-occupied-38fcac",
+    "status": "complete",
+    "profile": "P07",
+    "proxy_mode": "S00",
+    "scope": "focus-occupied",
+    "tested_at_utc": "2026-11-24T06:37:52.612218+00:00",
+    "engine_sha256": "ff21dbbad799783de14f4a13684b35531b455beff0335dc2e9d468e5bcbe52bd",
+    "runner_sha256": "3b4409aadb181b31d8056142585caa3aa21b983e1b2a3987305de7e338e18853",
+    "profile_sha256": "67988ae0fbec285e6222b68da68c19d591c467965a697f38dfa3b15b6328ef26",
+    "checks": {
+      "engine_stopped": true,
+      "tun_removed": true,
+      "routes_restored": true,
+      "dns_restored": true,
+      "native_after_4_https_verified": true,
+      "native_after_4_udp_nonce": true,
+      "native_after_6_https_verified": true,
+      "native_after_6_udp_nonce": true
+    },
+    "cases": [
+      {
+        "id": "F14-focus-occupied",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "refusal": "OSError: [Errno 48] Address already in use",
+          "engine_started": false
+        }
+      }
+    ],
+    "packets": {},
+    "counts": {
+      "PASS_FOCUSED": 1
+    },
+    "passed": true
+  },
+  {
+    "run": "P07-S00-focus-extra-adf9fb",
+    "status": "complete",
+    "profile": "P07",
+    "proxy_mode": "S00",
+    "scope": "focus-extra",
+    "tested_at_utc": "2026-11-24T06:35:00.394864+00:00",
+    "engine_sha256": "ff21dbbad799783de14f4a13684b35531b455beff0335dc2e9d468e5bcbe52bd",
+    "runner_sha256": "00ce59743f1f1399033bcf71f2bd61994deaeabfe0068cac5ba310b704f0f148",
+    "profile_sha256": "3997644a5defaf29ad15fbeeb4cb875e94d5d6dd59b4b13fdcdc1096153a5e26",
+    "checks": {
+      "native_before_4_http": true,
+      "native_before_4_https_verified": true,
+      "native_before_4_udp_nonce": true,
+      "fixture_4_https_verified": true,
+      "fixture_4_udp_nonce": true,
+      "native_before_6_http": true,
+      "native_before_6_https_verified": true,
+      "native_before_6_udp_nonce": true,
+      "fixture_6_https_verified": true,
+      "fixture_6_udp_nonce": true,
+      "data_routes_captured": true,
+      "control_route_native": true,
+      "global_zero_rules": true,
+      "live_proxy_selection": true,
+      "live_no_ping_stack": true,
+      "dns_unchanged_active": true,
+      "no_native_data_egress": true,
+      "no_native_fake_egress": true,
+      "both_data_families_entered_tun": true,
+      "no_native_nat64_egress": true,
+      "no_native_bootstrap_egress": true,
+      "engine_stopped": true,
+      "tun_removed": true,
+      "routes_restored": true,
+      "dns_restored": true,
+      "native_after_4_https_verified": true,
+      "native_after_4_udp_nonce": true,
+      "native_after_6_https_verified": true,
+      "native_after_6_udp_nonce": true
+    },
+    "cases": [
+      {
+        "id": "extra-base-4",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 611,
+          "body_sha256": "1b4ddbd740868b5ef9a0730d68232cf82570acea0a1f8782a24b3d44b16f7f24",
+          "elapsed_ms": 8
+        }
+      },
+      {
+        "id": "extra-base-6",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 6,
+          "bytes": 611,
+          "body_sha256": "ad28f494b8f3cd521d96ad4447d6712b26af62612554f5876badc7e66af35755",
+          "elapsed_ms": 6
+        }
+      },
+      {
+        "id": "F08-mixed-4-False-tcp",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 620,
+          "body_sha256": "30ecae666d9d5408516bca20e46cf570bd8549c87cfc8de5af6bfb3f40929d25",
+          "elapsed_ms": 5
+        }
+      },
+      {
+        "id": "F08-mixed-4-False-udp",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 161,
+          "body_sha256": "56c86a65b06f2b7693a1965bb695a1a13e4d3a95fa7f80d04070b455d83d5f2b",
+          "elapsed_ms": 2
+        }
+      },
+      {
+        "id": "F08-mixed-4-True-tcp",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 619,
+          "body_sha256": "5238d1a68ff94e16f75b13cbdeb2fc10ba4254396e6a6b9d3d414963d17e1b90",
+          "elapsed_ms": 5
+        }
+      },
+      {
+        "id": "F08-mixed-4-True-udp",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 4,
+          "bytes": 160,
+          "body_sha256": "8057f439c9b7459591448244706af2d12e72e03304dfd71eda56635290de07aa",
+          "elapsed_ms": 19
+        }
+      },
+      {
+        "id": "F08-mixed-6-False-tcp",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 6,
+          "bytes": 620,
+          "body_sha256": "dbef33a80bd198999121f9f577c5ea9cc729ec1103a777398756c66b13ebc41a",
+          "elapsed_ms": 4
+        }
+      },
+      {
+        "id": "F08-mixed-6-False-udp",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 6,
+          "bytes": 161,
+          "body_sha256": "54a3e6ecea7ce5c66ba13761d23784f63df39fc02e8dd25cdb80306ac00a1fb3",
+          "elapsed_ms": 2
+        }
+      },
+      {
+        "id": "F08-mixed-6-True-tcp",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 6,
+          "bytes": 619,
+          "body_sha256": "1d98d4a1a858d4fe7bdcc1aede5ce3881faab6bd5e25ce8c38073b57cd4fea97",
+          "elapsed_ms": 4
+        }
+      },
+      {
+        "id": "F08-mixed-6-True-udp",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "upstream_family": 6,
+          "bytes": 160,
+          "body_sha256": "72a35d1235a42f8776c82f07bec0502f2eb56212cc700bfaf6b14543040c7649",
+          "elapsed_ms": 2
+        }
+      },
+      {
+        "id": "F02-expired-cache-during-fault",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "stale_answer_returned": true,
+          "upstream_fault_seen": true,
+          "note": "A retained DNS answer does not prove that a new upstream query succeeded."
+        }
+      },
+      {
+        "id": "F02-expired-cache-recovery",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "ok": true,
+          "value": {
+            "AD": false,
+            "Answer": [
+              {
+                "TTL": 2,
+                "data": "<DATA6>",
+                "name": "aaaaonly-582eb9-expiry-recovery-3f4d.mimo-lab.test.",
+                "type": 28
+              }
+            ],
+            "CD": false,
+            "Question": [
+              {
+                "Name": "aaaaonly-582eb9-expiry-recovery-3f4d.mimo-lab.test.",
+                "Qtype": 28,
+                "Qclass": 1
+              }
+            ],
+            "RA": true,
+            "RD": true,
+            "Status": 0,
+            "TC": false
+          }
+        }
+      },
+      {
+        "id": "F04-udp-association-revoked",
+        "kind": "focused",
+        "result": "PASS_FOCUSED",
+        "observation": {
+          "initial_reply": true,
+          "after_close_denied": true,
+          "service_requests": 1
+        }
+      }
+    ],
+    "packets": {
+      "en0_all_data4": 0,
+      "en0_data4": 0,
+      "en0_all_data6": 0,
+      "en0_data6": 0,
+      "en0_all_fake": 1,
+      "en0_fake": 0,
+      "en0_bootstrap": 0,
+      "en0_nat64": 0,
+      "utun238_all_data4": 10,
+      "utun238_data4": 10,
+      "utun238_all_data6": 10,
+      "utun238_data6": 10,
+      "utun238_all_fake": 10,
+      "utun238_fake": 0,
+      "utun238_bootstrap": 0,
+      "utun238_nat64": 0,
+      "utun2_all_data4": 0,
+      "utun2_data4": 0,
+      "utun2_all_data6": 0,
+      "utun2_data6": 0,
+      "utun2_all_fake": 0,
+      "utun2_fake": 0,
+      "utun2_bootstrap": 0,
+      "utun2_nat64": 0
+    },
+    "counts": {
+      "PASS_FOCUSED": 13
+    },
+    "passed": true
+  }
+]

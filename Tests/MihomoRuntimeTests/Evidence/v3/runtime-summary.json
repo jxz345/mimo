@@ -1,0 +1,94 @@
+{
+  "updated_at_utc": "2026-11-24T18:02:10.581896+00:00",
+  "status": "completed_expectations_met",
+  "planned": {
+    "matrix": 3120,
+    "focused": 500,
+    "total": 3620
+  },
+  "unique_cases_executed": 3620,
+  "counts": {
+    "PASS_FOCUSED": 500,
+    "PASS_SERVICE": 812,
+    "PASS_EXPECTED_DENIAL_NO_EGRESS": 340,
+    "EXPECTED_DNS_SUPPRESSION": 288,
+    "PASS_DNS_EXPECTATION": 1680
+  },
+  "not_run": 0,
+  "matrix": {
+    "cells_reported": 24,
+    "cells_passed": 24,
+    "counts": {
+      "PASS_SERVICE": 812,
+      "PASS_EXPECTED_DENIAL_NO_EGRESS": 340,
+      "EXPECTED_DNS_SUPPRESSION": 288,
+      "PASS_DNS_EXPECTATION": 1680
+    }
+  },
+  "focused": {
+    "runs_reported": 35,
+    "counts": {
+      "PASS_FOCUSED": 500
+    }
+  },
+  "failed_checks": [],
+  "preliminary_runs_retained": 2,
+  "scope": "V3 canonical renderer templates and pinned v3 engine in isolated mimo-vm; production DNS owner used for system/native DNS scopes. Installed-app evidence is separate.",
+  "per_configuration": {
+    "T4R": {
+      "PASS_SERVICE": 144,
+      "PASS_EXPECTED_DENIAL_NO_EGRESS": 72,
+      "EXPECTED_DNS_SUPPRESSION": 144,
+      "PASS_DNS_EXPECTATION": 420,
+      "PASS_FOCUSED": 125
+    },
+    "T4G": {
+      "PASS_SERVICE": 144,
+      "PASS_EXPECTED_DENIAL_NO_EGRESS": 72,
+      "EXPECTED_DNS_SUPPRESSION": 144,
+      "PASS_DNS_EXPECTATION": 420,
+      "PASS_FOCUSED": 125
+    },
+    "T6R": {
+      "PASS_SERVICE": 262,
+      "PASS_DNS_EXPECTATION": 420,
+      "PASS_EXPECTED_DENIAL_NO_EGRESS": 98,
+      "PASS_FOCUSED": 125
+    },
+    "T6G": {
+      "PASS_SERVICE": 262,
+      "PASS_DNS_EXPECTATION": 420,
+      "PASS_EXPECTED_DENIAL_NO_EGRESS": 98,
+      "PASS_FOCUSED": 125
+    }
+  },
+  "shutdown_observations": [
+    {
+      "profile": "T4G",
+      "native_fake_packets_after_stop_began": 0,
+      "limitation": "Standalone shutdown ends route enforcement; queued OS DNS may use the former TUN DNS endpoint over the native route before resolver removal propagates."
+    },
+    {
+      "profile": "T4R",
+      "native_fake_packets_after_stop_began": 0,
+      "limitation": "Standalone shutdown ends route enforcement; queued OS DNS may use the former TUN DNS endpoint over the native route before resolver removal propagates."
+    },
+    {
+      "profile": "T6G",
+      "native_fake_packets_after_stop_began": 0,
+      "limitation": "Standalone shutdown ends route enforcement; queued OS DNS may use the former TUN DNS endpoint over the native route before resolver removal propagates."
+    },
+    {
+      "profile": "T6R",
+      "native_fake_packets_after_stop_began": 0,
+      "limitation": "Standalone shutdown ends route enforcement; queued OS DNS may use the former TUN DNS endpoint over the native route before resolver removal propagates."
+    }
+  ],
+  "qualification_limits": [
+    "D03/D04/D07 use this VM's own native Tailscale DNS name when no same-tailnet peer exists; the shared-device FQDN is covered separately by F11.",
+    "D10 changes temporary default/supplemental DNS and search entries; no physical primary-network switch or saved preference mutation was tested.",
+    "D11 injects process death immediately after DNS registration, not an internal engine initialization error.",
+    "No installed-app integration, supplied remote proxy IPv6 qualification, host packet capture, crafted PMTU packet or public NAT64 translator test.",
+    "The engine does not own system DNS in v3. Core DNS owner removal/drain is exercised; full PF/launchd teardown is covered separately by installed tests."
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "checks": {
+    "native_dns_A": true,
+    "native_dns_AAAA": true,
+    "native_ping4": true,
+    "native_ping6": true,
+    "saved_settings": true,
+    "saved_configuration": true,
+    "managed_direct": true,
+    "services_healthy": true,
+    "mimo_pf_empty": true,
+    "lab_pf_empty": true,
+    "owned_dns_removed": true,
+    "captures_stopped": true,
+    "pflog_removed": true,
+    "tailscale_running": true,
+    "vm_certificate_retained": true
+  },
+  "helper_sha256": "d04b44fe9645512bc1d5e15e09c4ab020f1745d666050872e11c2bd7b8529351"
+}

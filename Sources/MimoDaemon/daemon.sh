@@ -142,9 +142,9 @@ dependency_source() {
     case "$architecture" in arm64) prefix=/opt/homebrew ;; *) echo 'Mimo requires an Apple silicon Mac.' >&2; return 1 ;; esac
     expected_hash=$(/usr/bin/plutil -extract "architectures.$architecture.binarySHA256" raw -o - "$SCRIPT_DIR/MihomoDependency.plist") || return 1
     [[ "$expected_hash" =~ ^[a-f0-9]{64}$ ]] || return 1
-    dependency="$prefix/opt/mihomo@1.19.34/bin/mihomo"
+    dependency="$SCRIPT_DIR/mihomo-v3.bin"
     [ -f "$dependency" ] || {
-        echo "Setup incomplete: run '$SCRIPT_DIR/setup.command' as the installing account to install Homebrew and the pinned mihomo dependency." >&2
+        echo "Setup incomplete: the bundled v3 engine is missing. Reinstall the complete Mimo app." >&2
         return 1
     }
 }
@@ -213,7 +213,7 @@ engine_conflict_snapshot() {
 
 resource_conflict_pids() {
     local result=0 output
-    output=$(/usr/sbin/lsof -nP -t -iTCP:7890 -iTCP:1053 -iTCP:18766 -sTCP:LISTEN 2>/dev/null) || result=$?
+    output=$(/usr/sbin/lsof -nP -t -iTCP:7890 -iTCP:1053 -sTCP:LISTEN 2>/dev/null) || result=$?
     [ "$result" -le 1 ] || return 1
     printf '%s\n' "$output"
     result=0
@@ -339,7 +339,7 @@ check_engine_conflicts() {
         install_event conflict_detected "${targets[index]:-standalone}" "${pids[index]}" || return 1
     done
     message=$(printf '%s\n' 'Another engine or service occupies resources needed by Mimo:' "${descriptions[@]}" '' \
-        'Mimo needs these processes stopped. This will disconnect their connections. Required ports: proxy 7890, DNS 1053 and provider 18766.' \
+        'Mimo needs these processes stopped. This will disconnect their connections. Required ports: proxy 7890 and DNS 1053.' \
         'Mimo will replace these running engines. Listed launchd services will be disabled and unloaded so they do not restart at login or reboot. Their apps and settings are kept.' \
         'If installation fails and you want the old proxy back, re-enable it in its app or service manager.')
     printf '%s\n' "$message" >&2
@@ -655,7 +655,7 @@ install_service() (
     /usr/bin/install -o root -g wheel -m 0755 "$dependency" "$stage/mihomo" || return 1
     actual_hash=$(/usr/bin/shasum -a 256 "$stage/mihomo") || return 1
     [ "${actual_hash%% *}" = "$expected_hash" ] || { echo 'Pinned mihomo checksum verification failed; existing services are unchanged.' >&2; return 1; }
-    run "$stage/mihomo" -v | /usr/bin/grep -q 'Mihomo Meta v1.19.34 ' || return 1
+    run "$stage/mihomo" -v | /usr/bin/grep -q 'Mihomo Meta v1.19.34-mimo-v3.2 ' || return 1
     run "$stage/new" --migrate-legacy-names || return 1
     printf '%s\n' "$expected_hash" > "$stage/engine.sha256" || return 1
     for path in core engine supervisor; do
@@ -866,6 +866,10 @@ uninstall_service() (
         user_name_operation uninstall || return 1
     fi
     if [ -x "$EXECUTABLE" ] && [ -f "$SUPERVISOR_PLIST" ]; then run "$EXECUTABLE" --begin-maintenance || return 1; fi
+    release_script="$SCRIPT_DIR/release-network.pl"
+    [ -f "$release_script" ] || release_script="$DIR/release-network.pl"
+    [ -f "$release_script" ] || { echo 'Network release helper missing; reinstall the complete app.' >&2; return 1; }
+    bounded_command 30 dns-drain /usr/bin/perl "$release_script" --prepare || return 1
     # Stop the independent repair job before removing the services it protects.
     unload "$INFRASTRUCTURE" && unload "$BOOT_GUARD" && unload "$LABEL" && unload "$ENGINE" && unload "$SUPERVISOR" && unload "$LEGACY-http" && unload "$LEGACY" || return 1
     wait_mimo_workers || return 1

@@ -1,0 +1,7 @@
+{
+  "source_run": "T6R-S00-focus-native-dns-f7421b",
+  "profile": "T6R",
+  "unqualified_AAAA_queries": 5,
+  "correlated_fake_AAAA_replies": 5,
+  "method": "Matched DNS IDs and unqualified AAAA questions/replies in VM TUN pcap; native identities omitted."
+}

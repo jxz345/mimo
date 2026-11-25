@@ -1,0 +1,58 @@
+[
+  {
+    "id": "ipv4-rule-core-stall",
+    "native_attempts_before_fault": 0,
+    "native_attempts_after_fault": 0,
+    "native_attempts_by_family": {
+      "4": 0,
+      "6": 0
+    },
+    "first_native_attempt_seconds": null,
+    "first_sampled_closed_seconds": 6.5003,
+    "recovered": false,
+    "error": "Effective recovery timed out: The core heartbeat expired. Verification is required.",
+    "result": "FAIL_RECOVERY"
+  },
+  {
+    "id": "ipv4-global-core-stall",
+    "native_attempts_before_fault": 0,
+    "native_attempts_after_fault": 0,
+    "native_attempts_by_family": {
+      "4": 0,
+      "6": 0
+    },
+    "first_native_attempt_seconds": null,
+    "first_sampled_closed_seconds": 5.7181,
+    "recovered": false,
+    "error": "Effective recovery timed out: The core heartbeat expired. Verification is required.",
+    "result": "FAIL_RECOVERY"
+  },
+  {
+    "id": "dual-rule-core-stall",
+    "native_attempts_before_fault": 0,
+    "native_attempts_after_fault": 0,
+    "native_attempts_by_family": {
+      "4": 0,
+      "6": 0
+    },
+    "first_native_attempt_seconds": null,
+    "first_sampled_closed_seconds": 5.7783,
+    "recovered": false,
+    "error": "Effective recovery timed out: The core heartbeat expired. Verification is required.",
+    "result": "FAIL_RECOVERY"
+  },
+  {
+    "id": "dual-global-core-stall",
+    "native_attempts_before_fault": 0,
+    "native_attempts_after_fault": 0,
+    "native_attempts_by_family": {
+      "4": 0,
+      "6": 0
+    },
+    "first_native_attempt_seconds": null,
+    "first_sampled_closed_seconds": 6.0104,
+    "recovered": false,
+    "error": "Effective recovery timed out: The core heartbeat expired. Verification is required.",
+    "result": "FAIL_RECOVERY"
+  }
+]

@@ -34,8 +34,8 @@ public enum MimoService {
     public static let controlLabel = "com.mimo.core.control"
     public static let supervisorControlLabel = "com.mimo.supervisor.control"
     public static let installedAppIdentity = URL(fileURLWithPath: "/Library/Application Support/Mimo/app.cdhash")
-    // Shared proxy catalogs and refresh outcomes require a matching 2.1 client.
-    public static let protocolVersion = 7
+    // v3 family observations and service identities require a matching client.
+    public static let protocolVersion = 8
     public static let executable = "/Library/PrivilegedHelperTools/mimo-core"
     public static let plist = "/Library/LaunchDaemons/\(label).plist"
     public static let support = URL(fileURLWithPath: "/Library/Application Support/Mimo", isDirectory: true)
@@ -51,18 +51,16 @@ public struct MachineSettings: Codable, Equatable, Sendable {
     public var refreshInterval: RefreshInterval
     public var allowlist: AllowedIPList
     public var diagnostics: DiagnosticPreferences
-    public var tailscaleProviderEnabled: Bool
     public var bypassBlocks: [MimoBypassBlock]?
     public var effectiveBypassBlocks: [MimoBypassBlock] { bypassBlocks ?? MimoBypassBlock.defaults }
 
     public init(preferences: MonitoringPreferences = MonitoringPreferences(), allowlist: AllowedIPList = AllowedIPList(),
-                diagnostics: DiagnosticPreferences = DiagnosticPreferences(), tailscaleProviderEnabled: Bool = false) {
+                diagnostics: DiagnosticPreferences = DiagnosticPreferences()) {
         provider = preferences.provider
         providerPool = preferences.providerPool
         refreshInterval = preferences.refreshInterval
         self.allowlist = allowlist
         self.diagnostics = diagnostics
-        self.tailscaleProviderEnabled = tailscaleProviderEnabled
     }
 
     public var monitoring: MonitoringPreferences {
@@ -70,7 +68,7 @@ public struct MachineSettings: Codable, Equatable, Sendable {
     }
 
     public func affectsVerification(comparedTo previous: MachineSettings, mode: ProxyMode = .rule) -> Bool {
-        monitoring != previous.monitoring || allowlist != previous.allowlist ||
+        provider != previous.provider || providerPool != previous.providerPool || allowlist != previous.allowlist ||
             (mode == .rule && effectiveBypassBlocks != previous.effectiveBypassBlocks)
     }
 
@@ -132,8 +130,6 @@ public struct DaemonState: Codable, Sendable {
     public var credentialError: String?
     public var allowlistEventID: UUID?
     public var errorEventID: UUID?
-    public var providerStatus: TailscaleVergeStatus?
-    public var providerError: String?
     public var storageError: String?
     public var routing: MimoRoutingState? = nil
     public var manualRefresh: MimoManualRefresh? = nil
@@ -163,7 +159,6 @@ public struct DaemonState: Codable, Sendable {
 public enum DaemonCommand: String, Codable, Sendable {
     case state, subscribe, refresh, testProvider, configure, initialize, presentation, setToken, removeToken, events
     case configureRouting, saveProxy, removeProxy, selectProxy, supervisor, networkChanged
-    case startTailnetProvider
 }
 
 public struct DaemonRequest: Codable, Sendable {

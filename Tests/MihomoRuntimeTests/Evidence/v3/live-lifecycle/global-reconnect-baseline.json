@@ -1,0 +1,37 @@
+{
+  "result": "BASELINE_ONLY",
+  "checks": {
+    "A-fresh-1": true,
+    "A-fresh-2": true,
+    "A-fresh-3": true,
+    "AAAA-fresh-1": true,
+    "AAAA-fresh-2": true,
+    "AAAA-fresh-3": true,
+    "local-tcp": true,
+    "local-notcp": true,
+    "native-ping4": true,
+    "native-ping6": true
+  },
+  "snapshot": {
+    "at": 1795599476.195691,
+    "phase": "active",
+    "mode": "global",
+    "family": "dual",
+    "effective_mode": "global",
+    "tailscale": "Running",
+    "tailscale_want_running": true,
+    "observation_deadline": 1795604854.300884,
+    "pf_kind": "active"
+  },
+  "traffic_recorder": {
+    "at": 1795599497.8798459,
+    "mode": "global",
+    "family": "dual",
+    "echo_matcher": "source-id-sequence-payload",
+    "ipv4_checksum": "odd-payload-padded"
+  },
+  "recorders_running": {
+    "global-traffic-observer": true,
+    "global-connect-observer": true
+  }
+}

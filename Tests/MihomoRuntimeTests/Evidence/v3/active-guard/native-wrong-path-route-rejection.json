@@ -1,0 +1,166 @@
+[
+  {
+    "id": "native-wrong-path-direct-control",
+    "result": "PASS",
+    "family_packet_counts": [
+      2,
+      2
+    ]
+  },
+  {
+    "id": "ipv4-rule-native-wrong-path",
+    "result": "NOT_QUALIFIED",
+    "mimo_denied_packets": 2,
+    "native_attempts": 0,
+    "socket_outcomes": [
+      {
+        "family": 2,
+        "kind": 1,
+        "sent": false,
+        "errno": null,
+        "error_type": "timeout",
+        "pf_denied_packets": 1
+      },
+      {
+        "family": 2,
+        "kind": 2,
+        "sent": true,
+        "pf_denied_packets": 1
+      },
+      {
+        "family": 30,
+        "kind": 1,
+        "sent": false,
+        "errno": 65,
+        "error_type": "OSError",
+        "pf_denied_packets": 0
+      },
+      {
+        "family": 30,
+        "kind": 2,
+        "sent": false,
+        "errno": 65,
+        "error_type": "OSError",
+        "pf_denied_packets": 0
+      }
+    ],
+    "scope": "Engine-owned TCP/UDP bound to physical interface; IPv4 Quad100 and Tailnet ULA DNS destination"
+  },
+  {
+    "id": "ipv4-global-native-wrong-path",
+    "result": "NOT_QUALIFIED",
+    "mimo_denied_packets": 2,
+    "native_attempts": 0,
+    "socket_outcomes": [
+      {
+        "family": 2,
+        "kind": 1,
+        "sent": false,
+        "errno": null,
+        "error_type": "timeout",
+        "pf_denied_packets": 1
+      },
+      {
+        "family": 2,
+        "kind": 2,
+        "sent": true,
+        "pf_denied_packets": 1
+      },
+      {
+        "family": 30,
+        "kind": 1,
+        "sent": false,
+        "errno": 65,
+        "error_type": "OSError",
+        "pf_denied_packets": 0
+      },
+      {
+        "family": 30,
+        "kind": 2,
+        "sent": false,
+        "errno": 65,
+        "error_type": "OSError",
+        "pf_denied_packets": 0
+      }
+    ],
+    "scope": "Engine-owned TCP/UDP bound to physical interface; IPv4 Quad100 and Tailnet ULA DNS destination"
+  },
+  {
+    "id": "dual-rule-native-wrong-path",
+    "result": "NOT_QUALIFIED",
+    "mimo_denied_packets": 2,
+    "native_attempts": 0,
+    "socket_outcomes": [
+      {
+        "family": 2,
+        "kind": 1,
+        "sent": false,
+        "errno": null,
+        "error_type": "timeout",
+        "pf_denied_packets": 1
+      },
+      {
+        "family": 2,
+        "kind": 2,
+        "sent": true,
+        "pf_denied_packets": 1
+      },
+      {
+        "family": 30,
+        "kind": 1,
+        "sent": false,
+        "errno": 65,
+        "error_type": "OSError",
+        "pf_denied_packets": 0
+      },
+      {
+        "family": 30,
+        "kind": 2,
+        "sent": false,
+        "errno": 65,
+        "error_type": "OSError",
+        "pf_denied_packets": 0
+      }
+    ],
+    "scope": "Engine-owned TCP/UDP bound to physical interface; IPv4 Quad100 and Tailnet ULA DNS destination"
+  },
+  {
+    "id": "dual-global-native-wrong-path",
+    "result": "NOT_QUALIFIED",
+    "mimo_denied_packets": 2,
+    "native_attempts": 0,
+    "socket_outcomes": [
+      {
+        "family": 2,
+        "kind": 1,
+        "sent": false,
+        "errno": null,
+        "error_type": "timeout",
+        "pf_denied_packets": 1
+      },
+      {
+        "family": 2,
+        "kind": 2,
+        "sent": true,
+        "pf_denied_packets": 1
+      },
+      {
+        "family": 30,
+        "kind": 1,
+        "sent": false,
+        "errno": 65,
+        "error_type": "OSError",
+        "pf_denied_packets": 0
+      },
+      {
+        "family": 30,
+        "kind": 2,
+        "sent": false,
+        "errno": 65,
+        "error_type": "OSError",
+        "pf_denied_packets": 0
+      }
+    ],
+    "scope": "Engine-owned TCP/UDP bound to physical interface; IPv4 Quad100 and Tailnet ULA DNS destination"
+  }
+]

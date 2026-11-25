@@ -54,7 +54,9 @@ sub read_file {
     secure($path, 0);
     open my $f, '<', $path or die "Cannot read $path\n";
     local $/;
-    return <$f>;
+    # An empty file is a valid expected policy in Direct and active v3 modes.
+    # Missing files are distinguished by the caller before opening them.
+    return scalar(<$f>) // '';
 }
 
 sub atomic_write {
@@ -215,6 +217,7 @@ sub stamp_mutation {
     my $bytes;
     read($random, $bytes, 16) == 16 or die "Cannot read PF mutation token\n";
     atomic_write("$runtime/pf-mutation.epoch", unpack('H*', $bytes));
+    atomic_write("$runtime/pf-close.epoch", unpack('H*', $bytes)) if $pf_revoking;
 }
 
 sub pf_snapshot_identity {
@@ -232,28 +235,14 @@ sub inspect_pf_snapshot {
     my $info = required('/sbin/pfctl', '-s', 'info');
     my $children_valid = 1;
     my $withdrawn = 0;
-    if ($state eq 'active') {
-        # Active routing belongs exclusively to the profile. The sole parent
-        # reference is passive unless an independent transition closes it.
-        $children_valid = 0 unless $live =~ /^anchor "power-guard" out quick all\s*$/;
-        my $barrier = required('/sbin/pfctl', '-a', "$anchor/power-guard", '-sr');
-        if ($barrier =~ /\S/) { $withdrawn = 1; $state = 'blocked'; }
-    }
-    $children_valid = 0 if $state eq 'direct' && $live =~ /\S/;
-    if ($live =~ /^anchor "permission"/m) {
-        for my $child (['probe-policy', $probe], ['open-policy', $final]) {
-            my $actual = required('/sbin/pfctl', '-a', $anchor . '/' . $child->[0], '-sr');
-            $children_valid = 0 unless defined($child->[1]) && $actual eq $child->[1];
-        }
-        if ($state eq 'active') {
-            my $grant = required('/sbin/pfctl', '-a', "$anchor/permission", '-sr');
-            if ($grant =~ /^\s*$/) {
-                $withdrawn = 1;
-                $state = 'blocked';
-            } else {
-                $children_valid = 0 unless $grant =~ /^anchor "(?:[^"\n]*\/)?open-policy" out quick all\s*$/;
-            }
-        }
+    if ($state eq 'direct') {
+        $children_valid = 0 if $live =~ /\S/;
+    } elsif ($state eq 'active') {
+        $children_valid = 0 if $live =~ /^anchor /m;
+        $children_valid = 0 unless $live =~ /^block drop out quick all label "mimo:active:deny-native-fallback"\n?\z/m;
+    } else {
+        $children_valid = 0 if $live =~ /^anchor /m;
+        $children_valid = 0 unless $live =~ /^block drop out quick all label "mimo:(?:transition|probe):deny"$/m;
     }
     my $references = required('/sbin/pfctl', '-s', 'References');
     die "Cannot inspect PF enable references\n" unless $references =~ /TOKENS:/ || $references =~ /^No pf starter references held\s*$/;

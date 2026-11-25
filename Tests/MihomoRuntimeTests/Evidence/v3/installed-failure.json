@@ -1,0 +1,122 @@
+{
+  "scope": "Installed final candidate with unavailable/untrusted local HTTPS fixture. Closed role recovery and Mimo-only rule-removal repair; timing is observation, not a packet leakage bound. No global PF disable.",
+  "cases": [
+    {
+      "id": "ipv4-rule-failed-verification-closed",
+      "passed": true
+    },
+    {
+      "id": "ipv4-rule-public-listeners-blocked",
+      "passed": true
+    },
+    {
+      "id": "ipv4-rule-flat-no-child-grants",
+      "passed": true
+    },
+    {
+      "id": "ipv4-rule-direct-restored",
+      "passed": true
+    },
+    {
+      "id": "ipv4-global-failed-verification-closed",
+      "passed": true
+    },
+    {
+      "id": "ipv4-global-public-listeners-blocked",
+      "passed": true
+    },
+    {
+      "id": "ipv4-global-flat-no-child-grants",
+      "passed": true
+    },
+    {
+      "id": "ipv4-global-direct-restored",
+      "passed": true
+    },
+    {
+      "id": "dual-rule-failed-verification-closed",
+      "passed": true
+    },
+    {
+      "id": "dual-rule-public-listeners-blocked",
+      "passed": true
+    },
+    {
+      "id": "dual-rule-flat-no-child-grants",
+      "passed": true
+    },
+    {
+      "id": "dual-rule-direct-restored",
+      "passed": true
+    },
+    {
+      "id": "dual-global-failed-verification-closed",
+      "passed": true
+    },
+    {
+      "id": "dual-global-public-listeners-blocked",
+      "passed": true
+    },
+    {
+      "id": "dual-global-flat-no-child-grants",
+      "passed": true
+    },
+    {
+      "id": "dual-global-direct-restored",
+      "passed": true
+    },
+    {
+      "id": "closed-baseline",
+      "passed": true
+    },
+    {
+      "id": "closed-roles-000",
+      "passed": true,
+      "recovery_seconds": 24.587
+    },
+    {
+      "id": "closed-roles-001",
+      "passed": true,
+      "recovery_seconds": 20.248
+    },
+    {
+      "id": "closed-roles-010",
+      "passed": true,
+      "recovery_seconds": 14.502
+    },
+    {
+      "id": "closed-roles-011",
+      "passed": true,
+      "recovery_seconds": 9.986
+    },
+    {
+      "id": "closed-roles-100",
+      "passed": true,
+      "recovery_seconds": 24.561
+    },
+    {
+      "id": "closed-roles-101",
+      "passed": true,
+      "recovery_seconds": 0.2
+    },
+    {
+      "id": "closed-roles-110",
+      "passed": true,
+      "recovery_seconds": 25.152
+    },
+    {
+      "id": "closed-roles-111",
+      "passed": true,
+      "recovery_seconds": 0.124
+    },
+    {
+      "id": "closed-parent-restored-after-removal",
+      "passed": true,
+      "recovery_seconds": 1.679
+    },
+    {
+      "id": "final-direct",
+      "passed": true
+    }
+  ]
+}
