@@ -4,6 +4,20 @@ Release identity: **3.0 / 11**, immutable tag `v3.0-build.11`. Homebrew keeps th
 marketing version `3.0` and selects this build through its URL and checksum.
 Build 10 is retained as a separate release; none of its assets are replaced.
 
+Published on **26 November 2026 at 08:15 UTC**:
+[Mimo 3.0 (build 11)](https://github.com/jxz345/mimo/releases/tag/v3.0-build.11).
+The [distribution evidence](../Tests/ReleaseEvidence/v3-build11/distribution.json)
+records source commit `7fe4b7c2caf21b33724db1001e203cc1a4f0ce0c`, the Homebrew
+cask/documentation commits and all uploaded SHA-256 digests. All five GitHub
+asset digests matched the tested local files before publication.
+
+After publication, mimo-vm fetched the public ZIP through the updated Homebrew
+cask. Its SHA-256, sealed signature, 3.0/build-11 identity and GUI/core hashes
+matched the installed package. Homebrew's marketing version remains `3.0`;
+existing 3.0 installations use `brew update` followed by
+`brew reinstall --cask jxz345/tap/mimo`. This distribution check did not repeat
+the earlier Homebrew uninstall/reinstall lifecycle campaign.
+
 ## Included behavior
 
 - One fresh IPv4 approval receipt for both IPv4 and Dual-stack traffic, with no

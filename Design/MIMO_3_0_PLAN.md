@@ -5,7 +5,11 @@ Status: the original v3 implementation was approved on 2026-11-25. The
 Implemented and installed in mimo-vm; the automated IPv4-approval matrix and
 Direct/Stop/Start checks pass. Native blocked-Global navigation completed all six
 Settings sections; the original intermittent slowdown and simultaneous two-account
-navigation remain unqualified. Publication is not part of this revision.
+navigation remain unqualified. Publication was subsequently requested and
+completed as **3.0 build 11** on 2026-11-26. The final package passed 14 installed
+Direct smoke checks; the public Homebrew download matched its signature, identity
+and binary hashes. See the [release record](MIMO_V3_BUILD11_RELEASE_CHECKS.md).
+Earlier candidate evidence below retains its original artifact scope.
 
 The user approved the Delta design preview and authorized implementation, local
 installation in mimo-vm and the relevant test campaigns. GitHub publication is

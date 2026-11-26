@@ -1,0 +1,36 @@
+{
+  "version": "3.0",
+  "build": "11",
+  "tag": "v3.0-build.11",
+  "release_url": "https://github.com/jxz345/mimo/releases/tag/v3.0-build.11",
+  "published_at": "2026-11-26T08:15:00Z",
+  "source_commit": "7fe4b7c2caf21b33724db1001e203cc1a4f0ce0c",
+  "tap_commit": "a745c72b7e3560637fe532753428d5395e6dddff",
+  "tap_readme_commit": "8a2901e5c18912a86852a07fe8d14e66368087d9",
+  "release_asset_sha256": {
+    "install.sh": "8a17663f490d38c60ea3899c504546ab2582ea153fa1b6ad0e780a6fe39c2711",
+    "Mimo-3.0.pkg": "2a5cd458492d56ec003c683b572863fbf0ecac40eda4cac72dba694f02ba95fd",
+    "Mimo-3.0.zip": "15bda33947f44a8abcb9bba2bfa810a978b8d04e91ac7104f4d51c67f51a9414",
+    "release-build.json": "f74d234af30f0608a495633b6073647c58bd3aa5b3576865bc6d820d6978d74d",
+    "SHA256SUMS": "d5a7148b36608e74c2b8d99149a1bb020a07b072c114075db2369842e7dcb15b"
+  },
+  "github_digests_match_tested_artifacts": true,
+  "homebrew": {
+    "version": "3.0",
+    "url": "https://github.com/jxz345/mimo/releases/download/v3.0-build.11/Mimo-3.0.zip",
+    "sha256": "15bda33947f44a8abcb9bba2bfa810a978b8d04e91ac7104f4d51c67f51a9414"
+  },
+  "homebrew_download": {
+    "homebrew_fetch_passed": true,
+    "version": "3.0",
+    "build": "11",
+    "zip_sha256": "15bda33947f44a8abcb9bba2bfa810a978b8d04e91ac7104f4d51c67f51a9414",
+    "sealed_signature": true,
+    "binary_sha256": {
+      "mimo-core": "40ed7c04a5aba55950d56cc107edf3dd7e2615ecb637c28bc808bc9401c44821",
+      "mimo-gui": "1ba8436c5010f4f15071ca49c731dee5273f36769b3154d880c1d28791c4e919"
+    },
+    "matches_installed_package": true
+  },
+  "scope": "Final package installed in mimo-vm and passed 14 settled Direct smoke checks. Homebrew fetched the published ZIP; signature, identity and binary hashes match the package. No new Homebrew uninstall/reinstall cycle or protected-mode campaign is claimed."
+}
