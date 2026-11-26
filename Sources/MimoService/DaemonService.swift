@@ -35,6 +35,7 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
         let cleaned = try MimoLocalSettings.migrate(storage, legacy: credentials)
         credentialMigrationWarning = cleaned ? nil : "Credentials saved locally. Legacy Keychain cleanup needs retry after restarting core."
         try MimoLocalSettings.migrateMonitoring(storage)
+        let removedIPv6Entries = try MimoLocalSettings.migrateIPv4Allowlist(storage)
         let localCredentials = MimoLocalCredentials(storage: storage)
         if let data = storage.data(forKey: "service.settings") {
             settings = try JSONDecoder().decode(MachineSettings.self, from: data).validated()
@@ -70,6 +71,9 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
         engine.allowlistChecksEnabled = routingConfiguration.mode.requiresVerification
         engine.networkEventChecksEnabled = routingConfiguration.mode.requiresVerification
         RuntimeLog.shared.configure(settings.diagnostics)
+        if removedIPv6Entries > 0 {
+            RuntimeLog.shared.info("mimo_ipv4_allowlist_migrated", fields: ["removedIPv6Entries": String(removedIPv6Entries)])
+        }
         observation = engine.objectWillChange.sink { [weak self] in
             Task { @MainActor [weak self] in self?.schedulePublication() }
         }
@@ -84,7 +88,7 @@ final class DaemonService: NSObject, NSXPCListenerDelegate {
         }
         if let routing {
             engine.networkConfigurationChanged = { routing.supervisorNetworkChanged() }
-            engine.requiredCheckUnavailable = { reason in Task { await routing.invalidate(reason: reason) } }
+            engine.requiredCheckUnavailable = { routing.requiredCheckUnavailable(reason: $0) }
 
         }
     }

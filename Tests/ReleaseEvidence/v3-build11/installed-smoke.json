@@ -1,0 +1,29 @@
+{
+  "version": "3.0",
+  "build": "11",
+  "package_sha256": "2a5cd458492d56ec003c683b572863fbf0ecac40eda4cac72dba694f02ba95fd",
+  "binary_sha256": {
+    "mimo-core": "40ed7c04a5aba55950d56cc107edf3dd7e2615ecb637c28bc808bc9401c44821",
+    "mimo-gui": "1ba8436c5010f4f15071ca49c731dee5273f36769b3154d880c1d28791c4e919"
+  },
+  "observation_seconds": 40,
+  "checks": {
+    "version_build": true,
+    "sealed_signature": true,
+    "installed_core_matches_bundle": true,
+    "all_services_controller_infrastructure_healthy": true,
+    "direct_ipv4_preserved": true,
+    "core_ready": true,
+    "supervisor_health_advances": true,
+    "direct_pf_empty": true,
+    "owned_dns_absent": true,
+    "no_unrequested_verification_or_gate_change": true,
+    "no_storage_failure": true,
+    "no_error_events": true,
+    "runtime_segments_within_limit": true,
+    "machine_log_lock_present": true
+  },
+  "event_counts": {},
+  "passed": true,
+  "scope": "Exact release package installation and settled Direct smoke; no fresh protected-mode matrix or UI clicks."
+}

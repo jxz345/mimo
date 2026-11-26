@@ -18,12 +18,142 @@ Existing evidence and frozen working profiles retain their original scope.
 
 ## Current state
 
-Current release: **3.0 build 10**. See the
-[incoming-access and recovery record](MIMO_V3_INBOUND_ACCESS_FIX.md) for its
+Current release: **3.0 build 11**. See the
+[build 11 distribution and validation record](MIMO_V3_BUILD11_RELEASE_CHECKS.md)
+for final artifact identity and the scope of earlier candidate evidence. The
+historical notes below retain the tested hashes and their original qualification.
+
+Build 10's
+[incoming-access and recovery record](MIMO_V3_INBOUND_ACCESS_FIX.md) covers its
 219 shared tests, 60 failure/recovery simulations, four pending-lookup Direct
 cancellation cases, 22 installed exception/repair cases, incoming TCP checks
 and 16 baseline/fault regressions. The native dashboard now follows the approved
 mock; rendered UI checks and actual desktop click-through remain distinct.
+
+### Log rotation and retention — 26 November
+
+Build 11 rotates runtime events at 5 MiB and UTC day
+boundaries, expires managed logs by the shared retention preference (7 days by
+default), and bounds each log directory to 64 MiB / 128 files. Core/supervisor
+maintain machine logs; each GUI maintains its account's logs. Startup and
+60-second utility-queue sweeps include launchd output without restarting services.
+The asynchronous disk backlog is bounded, and maintenance/drop/failure counts
+appear in Event Log without requesting a network check.
+
+238 shared tests, the service suite, all five logger integration cases and the
+unsigned arm64 Release build pass. The original oversized-file regression was
+reproduced before the change; concurrency, timer expiry and storage-failure
+recovery are covered. See [policy, evidence and copy/truncate limits](MIMO_LOG_RETENTION.md).
+The subsequent release check installed the exact package in mimo-vm; all 14
+startup, health, networking-release and logging smoke assertions passed. See the
+[release record](MIMO_V3_BUILD11_RELEASE_CHECKS.md) for final identity and scope.
+
+### Approved unpublished IPv4 approval revision — 26 November
+
+Build 11's current source uses one fresh IPv4 receipt in Rule/Global and both
+traffic-family settings. It removes IPv6 approval requirements and allowlist
+entries, preserves rejected/last-known display distinctions, and retains all
+capture/fallback controls. See the [approved plan and current results](MIMO_3_0_PLAN.md#approved-ipv4-approval-and-monitoring-recovery-revision--2026-11-26).
+Earlier paired-approval results below are historical and do not qualify this revision.
+
+Current validation: 226 shared tests, app/service suites, four installed
+mode/family cells, 16 active fault/recovery cases, four 429/Retry-After checks and
+22 Direct/Stop/Start assertions pass. Installed migration preserves settings and
+credentials. The subsequent [navigation follow-up](MIMO_NAVIGATION_RESPONSIVENESS.md)
+completed native blocked-Global navigation through all six Settings sections and
+Dashboard after removing redundant GUI work. The user's intermittent multi-second
+stall was not reproduced; physical-Mac and simultaneous two-account navigation
+remain unqualified. See
+[exact hashes, results and limits](MIMO_IPV4_APPROVAL_RESULTS.md).
+
+### Family-switch event audit — 26 November
+
+The subsequent [event-trigger audit](MIMO_EVENT_TRIGGER_AUDIT.md) accounts for
+37 historical checks and reproduces duplicate pre/post-commit closure during
+family edits. The corrected local core is
+`0583d13ef48e9ab7443d75a52871e95323ef581316b08a2db611cc785e88c05b`.
+Eight family/outcome/mode cases, four invalid-barrier cases, the service suite,
+226 shared tests and the local Release package pass. Installed native family
+switching passes separately in Rule and Global: two fresh checks/two standalone
+closes per two edits, with 41–57 seconds of settled observation. After adding the
+observed proxy exit IPv4 through core, approved-state native switching also
+passes in both modes, with two checks/two openings per two edits and 42–63 seconds
+settled. Separate 90-second Dashboard/all-six-Settings windows produce no lookup,
+gate command, configuration write, warning or recovery event; health timestamps
+continue advancing. The incomplete first Rule navigation run is preserved and
+excluded from qualification. The audit also
+records a recurring initial protected-startup preparation failure (recovered by
+explicit Refresh), plus two source-only over-trigger candidates. This is not a
+clean-startup or blanket release qualification; build 11 remains unpublished.
+
+### Compact, stable dashboard — 26 November
+
+The initial dashboard refinement sized its cards to their contents, removed the expanding gaps
+in the connection column, and used 16-point section spacing and equal 40-point
+service rows. A fixed 160-point status area reserves space for multiline reasons
+and recovery actions so checking/blocked/approved updates do not shift the
+services or Stop controls. At that checkpoint, the default 1040×660 and minimum
+880×520 window sizes remained unchanged; smaller windows scrolled the content
+beneath the fixed toolbar.
+
+Local validation passed: 226 shared tests, a Release app build and 59 native
+renders (21 dashboard scenarios in both appearances, five narrow dashboard
+states and six Settings pages in both appearances). Reviewed narrow long-text
+and paused-provider recovery controls as well as normal and checking layouts.
+Synthetic previews: [light](../Previews/mimo-dashboard-stable-light.png),
+[dark/checking](../Previews/mimo-dashboard-stable-dark.png),
+[narrow/recovery](../Previews/mimo-dashboard-stable-blocked-narrow.png).
+
+The signed app bundle was installed in mimo-vm without replacing or restarting
+the running core. GUI SHA-256:
+`e11c17bc855290796cd680444d9007f16f97ceade3139447b455595965e19b04`.
+The core remains the event-audited `0583d13ef48e9ab7443d75a52871e95323ef581316b08a2db611cc785e88c05b`.
+The user's current Direct/IPv4 selection, empty allowlist and 15-minute interval
+were preserved. This is an unpublished build 11 GUI update, not a new release
+or a change to routing, firewall or refresh behavior.
+
+Native Direct navigation through Dashboard and all six Settings sections passed
+a 90-second event observation: no lookup, gate command, configuration write,
+warning or recovery event; the core, settings and observation stayed unchanged,
+and infrastructure checks continued. All seven selections reached the AppKit
+window-update callback in 19–71 ms (not a Screen Sharing presentation latency
+measurement). [Sanitized evidence](../Tests/MimoAppTests/Evidence/dashboard-layout-2026-11-26/navigation-direct.json).
+The [first incomplete observation](../Tests/MimoAppTests/Evidence/dashboard-layout-2026-11-26/navigation-direct-first.json)
+is retained: it visited only General and overlapped a correctly labelled periodic
+refresh, so it did not satisfy the zero-lookup/navigation-coverage test. An earlier
+approved-mode invocation stopped at its precondition because the VM was already
+Direct; no mode was changed to satisfy the test. Native protected-mode audits
+above apply to the unchanged core; this GUI's failure states were rendered,
+not induced again on the VM.
+
+The follow-up aligns both card bottoms to the taller card's intrinsic height;
+the left column shares its remaining space around Monitoring. It reduces the
+standard window to 1040×640, retaining the 160-point dynamic status reservation
+and 40-point service rows. Older standard-width frames are shortened with their
+top edge retained; custom widths remain unchanged. The dashboard uses explicit
+window minimums rather than hosting-controller minimum-size inference, so hidden
+Settings or narrow content cannot expand the window. The minimum stays 880×520
+with scrolling content. All 59 renders and 226 shared tests passed again; the
+Release build passed. The previews above now show this aligned layout.
+The intermediate installed 45-second navigation audit also passed, before the
+saved-window height correction:
+[evidence](../Tests/MimoAppTests/Evidence/dashboard-layout-2026-11-26/navigation-aligned-direct-before-window-fit.json).
+
+The final window-fit GUI was installed in mimo-vm, SHA-256
+`28e045c902a6c767422dc404851fa3f937a0fe84bcac513accd6e5cd16f47eb0`.
+Native inspection confirmed aligned card bottoms and the normal 16-point gap
+above the footer, including after returning from Settings. The running core and
+saved network settings were retained. A 60-second Direct observation recorded
+seven completed navigation selections (25–65 ms to the window-update callback),
+no new lookup, gate/configuration command, warning or recovery event, and advancing
+health checks. It did not cover General and Maintenance, so the all-six-sections
+assertion remains **incomplete for this final window-fit binary**, rather than
+being reported as a full pass. The preceding binary's all-six-section audit is
+linked above. [Final observation](../Tests/MimoAppTests/Evidence/dashboard-layout-2026-11-26/navigation-aligned-direct-window-fit.json).
+An [earlier launch observation](../Tests/MimoAppTests/Evidence/dashboard-layout-2026-11-26/navigation-aligned-direct-launch-incomplete.json)
+ended before navigation and is also retained as incomplete. Raw VM screenshots
+are not included because they contain private network and desktop details; the
+synthetic previews show the same layout.
 
 ### Earlier v3 qualification checkpoint
 

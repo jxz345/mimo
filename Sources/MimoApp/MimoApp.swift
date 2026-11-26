@@ -178,14 +178,21 @@ final class DashboardWindowController: NSObject, NSWindowDelegate {
         LaunchDiagnostics.record("dashboard_closed")
     }
 
+    func windowDidUpdate(_ notification: Notification) {
+        MimoSettingsNavigation.shared.didUpdateWindow()
+    }
+
     private func makeWindow(monitor: PublicIPMonitor) -> NSWindow {
         // Content scrolls when needed, while the footer remains available.
         let hostingController = fixedSizeHostingController(
             DashboardView(monitor: monitor)
                 .frame(minWidth: 880, minHeight: 520)
         )
+        // The explicit window minimum below owns sizing. Hidden Settings and
+        // the narrow card layout must not inflate the current window height.
+        hostingController.sizingOptions = []
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 1040, height: 660),
+            contentRect: NSRect(x: 0, y: 0, width: 1040, height: 640),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
@@ -193,7 +200,7 @@ final class DashboardWindowController: NSObject, NSWindowDelegate {
         window.identifier = NSUserInterfaceItemIdentifier("mimo-dashboard")
         window.title = "Mimo"
         window.contentViewController = hostingController
-        window.setContentSize(NSSize(width: 1040, height: 660))
+        window.setContentSize(NSSize(width: 1040, height: 640))
         // Keep all mode controls visible. Narrower sizes clip the shared
         // toolbar, including the recovery controls, before content can scroll.
         window.contentMinSize = NSSize(width: 880, height: 520)
@@ -206,6 +213,16 @@ final class DashboardWindowController: NSObject, NSWindowDelegate {
         let restored = window.setFrameUsingName("MimoDashboard")
         window.setFrameAutosaveName("MimoDashboard")
         if restored {
+            // Trim old standard-width frames, including those previously enlarged
+            // by hosting minimums. Preserve their top edge and custom widths.
+            let contentSize = window.contentRect(forFrameRect: window.frame).size
+            if abs(contentSize.width - 1040) < 1 && contentSize.height > 640 {
+                let excessHeight = contentSize.height - 640
+                var frame = window.frame
+                frame.origin.y += excessHeight
+                frame.size.height -= excessHeight
+                window.setFrame(frame, display: false)
+            }
             keepWindowOnScreen(window)
         } else { placeOnActiveScreen(window) }
         return window

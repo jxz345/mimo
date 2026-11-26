@@ -184,7 +184,7 @@ def main():
         settings = current['settings']
         settings.update(provider='ipWhois', providerPool=['ipWhois', 'ipapiCo', 'ipapiIs'],
                         refreshInterval=-1, bypassBlocks=[],
-                        allowlist={'addresses': ['203.0.113.10', '2001:db8::10']})
+                        allowlist={'addresses': ['203.0.113.10']})
         t.request('configure', settings=settings)
         old = next((p for p in current['routing']['configuration']['proxies'] if p['proxy']['name'] == NAME), None)
         t.request('saveProxy', proxy={'name': NAME, 'type': 'socks5', 'server': fixture['bridge4'],
@@ -194,16 +194,15 @@ def main():
         t.request('selectProxy', proxyID=entry['id'])
         t.route('rule', 'dual')
         report(t.wait_active('rule', 100))
-    elif operation in ('approve', 'empty', 'reject4', 'reject6'):
+    elif operation in ('approve', 'empty', 'reject4'):
         if operation == 'approve':
             t.route(sys.argv[3], sys.argv[4])
         settings = t.state()['settings']
-        addresses = {'approve': ['203.0.113.10', '2001:db8::10'], 'empty': [],
-                     'reject4': ['192.0.2.1', '2001:db8::10'], 'reject6': ['203.0.113.10']}[operation]
+        addresses = {'approve': ['203.0.113.10'], 'empty': [],
+                     'reject4': ['192.0.2.1']}[operation]
         settings['allowlist'] = {'addresses': addresses}
         t.request('configure', settings=settings)
-        expected = {'empty': 'No exit IPs are approved', 'reject4': 'IPv4 exit IP is not approved',
-                    'reject6': 'IPv6 exit IP is not approved'}
+        expected = {'empty': 'No exit IPs are approved', 'reject4': 'IPv4 exit IP is not approved'}
         report(wait(lambda s: s['routing']['phase'] == 'active' if operation == 'approve' else
                     s['routing']['phase'] == 'blocked' and expected[operation] in s['routing']['reason']))
     elif operation == 'loopback':

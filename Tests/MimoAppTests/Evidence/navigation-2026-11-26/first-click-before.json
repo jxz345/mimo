@@ -1,0 +1,123 @@
+{
+  "candidate_gui_sha256": "fcb96c10dc5eb41a5d5d020a4020cea309d510e6a5a9476b2d48f04a100c2171",
+  "events": [
+    {
+      "event": "mimo_navigation_requested",
+      "fields": {
+        "navigation_id": "9AA92106-B4E9-444D-8E5E-16DD4D7FFC18",
+        "section": "Maintenance",
+        "tab": "Settings"
+      },
+      "timestamp": "2026-11-26T03:05:56.455Z"
+    },
+    {
+      "event": "mimo_navigation_applied",
+      "fields": {
+        "duration_ms": "8",
+        "navigation_id": "9AA92106-B4E9-444D-8E5E-16DD4D7FFC18",
+        "section": "Maintenance",
+        "tab": "Settings"
+      },
+      "timestamp": "2026-11-26T03:05:56.463Z"
+    },
+    {
+      "event": "mimo_navigation_requested",
+      "fields": {
+        "navigation_id": "1BF23F3F-E018-4B97-9F21-428A29C4A672",
+        "section": "Maintenance",
+        "tab": "Dashboard"
+      },
+      "timestamp": "2026-11-26T03:06:40.369Z"
+    },
+    {
+      "event": "mimo_navigation_applied",
+      "fields": {
+        "duration_ms": "9",
+        "navigation_id": "1BF23F3F-E018-4B97-9F21-428A29C4A672",
+        "section": "Maintenance",
+        "tab": "Dashboard"
+      },
+      "timestamp": "2026-11-26T03:06:40.379Z"
+    },
+    {
+      "event": "mimo_navigation_requested",
+      "fields": {
+        "navigation_id": "B9E62EF9-287E-4F31-A5F4-1C2C3C42CDDD",
+        "section": "Maintenance",
+        "tab": "Settings"
+      },
+      "timestamp": "2026-11-26T03:06:47.265Z"
+    },
+    {
+      "event": "mimo_navigation_applied",
+      "fields": {
+        "duration_ms": "8",
+        "navigation_id": "B9E62EF9-287E-4F31-A5F4-1C2C3C42CDDD",
+        "section": "Maintenance",
+        "tab": "Settings"
+      },
+      "timestamp": "2026-11-26T03:06:47.274Z"
+    },
+    {
+      "event": "mimo_navigation_requested",
+      "fields": {
+        "navigation_id": "B4D1AA41-06C3-4046-BCCA-1FBE401FA847",
+        "section": "Monitoring",
+        "tab": "Settings"
+      },
+      "timestamp": "2026-11-26T03:06:54.392Z"
+    },
+    {
+      "event": "mimo_navigation_applied",
+      "fields": {
+        "duration_ms": "24",
+        "navigation_id": "B4D1AA41-06C3-4046-BCCA-1FBE401FA847",
+        "section": "Monitoring",
+        "tab": "Settings"
+      },
+      "timestamp": "2026-11-26T03:06:54.417Z"
+    },
+    {
+      "event": "mimo_navigation_requested",
+      "fields": {
+        "navigation_id": "B6C8673A-B52F-49B6-A9B0-56ED2D20469F",
+        "section": "General",
+        "tab": "Settings"
+      },
+      "timestamp": "2026-11-26T03:07:31.782Z"
+    },
+    {
+      "event": "mimo_navigation_applied",
+      "fields": {
+        "duration_ms": "21",
+        "navigation_id": "B6C8673A-B52F-49B6-A9B0-56ED2D20469F",
+        "section": "General",
+        "tab": "Settings"
+      },
+      "timestamp": "2026-11-26T03:07:31.804Z"
+    }
+  ],
+  "manual_observations": [
+    {
+      "action": "single click General, Finder active, Mimo showing Monitoring",
+      "result": "Mimo activated; Monitoring remained selected; no navigation event before second click",
+      "tool_started_utc": "2026-11-26T03:07:12.101Z"
+    },
+    {
+      "action": "second click General, Mimo active",
+      "result": "General selected; applied in 21 ms"
+    },
+    {
+      "action": "single click Dashboard from Finder; single click Settings and Monitoring with Mimo active",
+      "result": "selected on first click"
+    }
+  ],
+  "outer_modifier_retest": {
+    "first_click_utc": "2026-11-26T03:13:03.473Z",
+    "gui_sha256": "37295ce57c9039a06f7833860eacf049388cdbec7a396e9d6383ba01d38d49dc",
+    "result": "Mimo activated; Monitoring remained selected; applying the activation modifier to List alone did not fix the failure.",
+    "second_click_utc": "2026-11-26T03:13:10.216Z",
+    "selection_applied_utc": "2026-11-26T03:13:10.591Z",
+    "selection_requested_utc": "2026-11-26T03:13:10.567Z"
+  }
+}

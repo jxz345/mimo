@@ -264,6 +264,9 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 progress: (@Sendable (DaemonResponse) -> Void)? = nil) async -> DaemonResponse {
         guard request.protocolVersion == MimoService.protocolVersion else { return DaemonResponse(failure: .incompatible) }
         guard request.command == .supervisor, let message = request.supervisor else { return DaemonResponse(failure: .invalidRequest) }
+        if ![.heartbeat, .state].contains(message.command) {
+            RuntimeLog.shared.info("mimo_supervisor_command_received", fields: message.diagnosticFields)
+        }
         do {
             if message.command == .service || message.command == .profile {
                 guard installedApp || uid == 0 || ServiceAuthorization.validate(request.authorization) else { throw DaemonFailure.unauthorized }
@@ -285,7 +288,11 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 let previousProcess = commandFence.processID
                 guard commandFence.accept(stamp, peer: pid, currentCore: runtime.runningProcessID(MimoService.label),
                                           enabled: coreEnabled, heartbeat: message.command == .heartbeat) else {
-                    RuntimeLog.shared.info("mimo_command_rejected", fields: ["command": message.command.rawValue, "reason": "ordering_or_core_identity"])
+                    var fields = message.diagnosticFields
+                    fields["reason"] = "ordering_or_core_identity"
+                    fields["peerPID"] = String(pid)
+                    fields["currentCorePID"] = runtime.runningProcessID(MimoService.label).map(String.init)
+                    RuntimeLog.shared.info("mimo_command_rejected", fields: fields)
                     throw DaemonFailure.conflict
                 }
                 // Every ordered request from the live core proves liveness. Profile
@@ -302,7 +309,9 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                     let saved = try runtime.savedRouting()
                     guard MimoCommandFence.matchesSavedRouting(message, configuration: saved.configuration,
                                                                revision: saved.revision) else {
-                        RuntimeLog.shared.info("mimo_command_rejected", fields: ["command": message.command.rawValue, "reason": "saved_configuration_changed"])
+                        var fields = message.diagnosticFields
+                        fields["reason"] = "saved_configuration_changed"; fields["savedRevision"] = String(saved.revision)
+                        RuntimeLog.shared.info("mimo_command_rejected", fields: fields)
                         throw DaemonFailure.conflict
                     }
                 }
@@ -330,12 +339,13 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 // A lookup/provider failure revokes traffic approval, not a
                 // previously qualified unchanged profile. The next prepare
                 // still clears connections and requires a fresh allowed IP.
-                close("Network or configuration changed. Verification is required.", strictOnly: true)
+                close(message.reason ?? "Network or configuration changed. Verification is required.", strictOnly: true)
             case .direct:
                 if runtime.networkReleaseRequested {
                     // Heartbeats and saved Direct cannot reacquire networking.
                     return response()
                 }
+                consumeVerificationRecovery(message, outcome: "direct")
                 if policy.state.phase == .active, policy.state.effectiveMode == .direct,
                    !runtime.closed, runtime.gateState == "direct" {
                     // A startup request may arrive after startup already restored
@@ -378,6 +388,11 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 validated.profileHostingEnabled = profileEnabled; validated.mihomoEnabled = engineEnabled
                 guard coreEnabled, engineEnabled, profileEnabled else { throw MimoRuntimeError.unavailable("A required background service is stopped.") }
                 guard let metadata = validated.proxy else { throw MimoRuntimeError.unavailable("Save a proxy in Settings.") }
+                // Recovery requests one fresh attempt, not an approved address.
+                // A healthy lookup can legitimately remain blocked by policy.
+                // Consume before suspending; a new runtime/liveness failure
+                // below may independently arm another recovery attempt.
+                consumeVerificationRecovery(message, outcome: "prepare")
                 let runtime = self.runtime
                 let policyMode = validated.mode
                 let literalAddress = IPAddressValidator.normalize(metadata.server)
@@ -564,7 +579,10 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 permissionTiming.record("permit_private_probe")
                 timing.record("private_probe_join")
                 RuntimeLog.shared.info("mimo_private_probe_barrier_ready", fields: ["attempt": check.id.uuidString])
-                RuntimeLog.shared.info("mimo_private_probe_ready", fields: ["revision": String(revision), "generation": String(network), "attempt": check.id.uuidString])
+                var probeFields = message.diagnosticFields
+                probeFields["revision"] = String(revision); probeFields["generation"] = String(network)
+                probeFields["attempt"] = check.id.uuidString
+                RuntimeLog.shared.info("mimo_private_probe_ready", fields: probeFields)
                 ready.routing?.supervisorCheckedAt = .now
                 return ready
             case .approve:
@@ -574,19 +592,18 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                       let activeProfile, let proxy, endpoint != nil else { throw DaemonFailure.conflict }
                 guard let observations = message.exitObservations, let since = check.startedAt,
                       observations.isValid(for: check, family: policy.state.configuration.networkFamily, since: since) else {
-                    throw MimoRuntimeError.unavailable("Fresh exit observations for every selected family are required.")
+                    throw MimoRuntimeError.unavailable("A fresh IPv4 exit observation is required.")
                 }
-                if !allowlist.contains(observations.ipv4.ipAddress) ||
-                    (observations.ipv6.map { !allowlist.contains($0.ipAddress) } ?? false) {
+                if !allowlist.contains(observations.ipv4.ipAddress) {
                     _ = policy.approve(observations: observations, allowlist: allowlist, verification: check, runtimeMatches: false)
                     try runtime.holdApplicationGate()
                     RuntimeLog.shared.info("mimo_exit_ip_rejected", fields: ["attempt": check.id.uuidString,
-                        "family": policy.state.configuration.networkFamily.rawValue,
+                        "family": policy.state.configuration.networkFamily.rawValue, "approvalFamily": "ipv4",
                         "emptyAllowlist": String(allowlist.isEmpty), "reason": policy.state.reason])
                     finishEventCycle(); return response()
                 }
                 let activationGeneration = generation
-                RuntimeLog.shared.info("mimo_exits_approved", fields: ["attempt": check.id.uuidString, "family": policy.state.configuration.networkFamily.rawValue])
+                RuntimeLog.shared.info("mimo_exits_approved", fields: ["attempt": check.id.uuidString, "family": policy.state.configuration.networkFamily.rawValue, "approvalFamily": "ipv4"])
                 guard let readinessCheck else { throw DaemonFailure.conflict }
                 policy.waitingForReadiness(address: address, verification: check)
                 if completedReadiness == nil { progress?(response()) }
@@ -756,6 +773,14 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
 
     private func verifiedRecovery() {
         verificationRecoveryPending = false
+    }
+
+    private func consumeVerificationRecovery(_ message: MimoSupervisorRequest, outcome: String) {
+        guard verificationRecoveryPending else { return }
+        verificationRecoveryPending = false
+        var fields = message.diagnosticFields
+        fields["outcome"] = outcome
+        RuntimeLog.shared.info("mimo_recovery_verification_consumed", fields: fields)
     }
 
     private func cancelReadiness() {

@@ -76,7 +76,7 @@ public struct MachineSettings: Codable, Equatable, Sendable {
         guard !providerPool.isEmpty, providerPool.count <= ProviderID.allCases.count,
               Set(providerPool).count == providerPool.count, providerPool.contains(provider),
               [1, 7, 30].contains(diagnostics.retentionDays), allowlist.addresses.count <= 1024,
-              allowlist.addresses.allSatisfy({ IPAddressValidator.normalize($0) == $0 }) else {
+              allowlist.addresses.allSatisfy({ IPAddressValidator.normalize($0) == $0 && MimoAddressFamily.ipv4.accepts($0) }) else {
             throw DaemonFailure.invalidRequest
         }
         var result = self

@@ -61,6 +61,8 @@ enum EventLogTests {
         CredentialAppTests.require(model.lines.isEmpty, "Paused view must not update")
         model.isPaused = false
         CredentialAppTests.require(model.copyText.contains("route added on en0"), "Copy All must include readable triggers")
+        CredentialAppTests.require(model.copyText.contains("Core: not yet received") && model.copyText.contains("Supervisor: not yet received"),
+                                   "Copied timeline must expose missing sources, not imply complete service history")
         CredentialAppTests.require(model.diagnosticsText.contains("mimo_network_changed") &&
                                    model.diagnosticsText.contains("=== Supervisor"),
                                    "Diagnostics must preserve raw names and identify missing sources")

@@ -13,6 +13,10 @@ enum CredentialAppTests {
         defer { defaults.removePersistentDomain(forName: MimoAppGroup.identifier) }
         let output = URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
         try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
+        if CommandLine.arguments.contains("--navigation-only") {
+            try await MimoNavigationTests.run(output: output)
+            return
+        }
         if CommandLine.arguments.contains("--released-only") {
             try await ReleasedMonitorTests.run(output: output)
             return
@@ -49,6 +53,7 @@ enum CredentialAppTests {
         }
 
         try await ReleasedMonitorTests.run(output: output)
+        try await MimoNavigationTests.run(output: output)
         try await MonitoringV21Tests.run()
 
         require(SingleInstanceController.isCurrentUserProcess(getpid()), "The current user's process must match")

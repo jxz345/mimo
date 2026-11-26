@@ -21,6 +21,8 @@ final class MimoCoordinator {
     // Keep the observation separate so a temporary repair/blocked reply cannot
     // erase it before Direct recovers. Never carry it across mode changes.
     private var directObservation: MimoIPObservation?
+    // Display-only history for this selected proxy. Never used for approval.
+    private var lastExitObservation: MimoSnapshot?
     private let transport: Transport
     private let pulse: @MainActor (MimoSupervisorRequest) async throws -> Void
     private let heartbeatChannel: MimoHeartbeatChannel?
@@ -30,6 +32,7 @@ final class MimoCoordinator {
     private var pollSequence: UInt64 = 0
     private var appliedPollSequence: UInt64 = 0
     private var configurationChangesInFlight = 0
+    private var configurationBarrier: (network: UInt64, transition: UInt64)?
     private let controllerID = UUID()
     private var commandSequence: UInt64 = 0
 
@@ -79,6 +82,7 @@ final class MimoCoordinator {
 
     func stop() {
         directObservation = nil
+        lastExitObservation = nil
         heartbeat?.cancel()
         heartbeat = nil
         heartbeatPulse?.cancel()
@@ -90,6 +94,7 @@ final class MimoCoordinator {
 
     func beginConfigurationChange(reason: String, selectingDirect: Bool = false) async {
         configurationChangesInFlight += 1
+        configurationBarrier = nil
         if selectingDirect {
             // Cancel old verification without closing the gate. Direct is an
             // explicit opt-out of proxy/IP approval; persistence must still
@@ -98,18 +103,22 @@ final class MimoCoordinator {
             transitionGeneration &+= 1
             return
         }
-        await invalidate(reason: reason)
+        if await invalidate(reason: reason) {
+            configurationBarrier = (networkGeneration, transitionGeneration)
+        }
     }
 
     func endConfigurationChange() {
         precondition(configurationChangesInFlight > 0)
         configurationChangesInFlight -= 1
+        if configurationChangesInFlight == 0 { configurationBarrier = nil }
     }
 
     func adoptNetworkRelease(configuration: MimoConfiguration, revision: Int) {
         self.configuration = configuration; self.revision = revision
         networkGeneration &+= 1; transitionGeneration &+= 1
         directObservation = nil
+        lastExitObservation = nil; state.lastExitObservation = nil
         state.configuration = configuration
         state.networkReleaseRequested = true
         state.networkReleased = false
@@ -139,7 +148,18 @@ final class MimoCoordinator {
     }
 
     func update(configuration: MimoConfiguration, allowlist: AllowedIPList, revision: Int, preservingAccess: Bool = false) async {
+        // The edit already closed traffic before persistence. Reuse only that
+        // acknowledged barrier, within the same edit and unchanged epochs.
+        // Failed/superseded closes and intervening network events cannot qualify.
+        let hasCurrentBarrier = configurationChangesInFlight > 0 && state.phase == .blocked &&
+            configurationBarrier?.network == networkGeneration &&
+            configurationBarrier?.transition == transitionGeneration
+        configurationBarrier = nil
         if self.configuration.mode != configuration.mode { directObservation = nil }
+        if configuration.mode == .direct || self.configuration.mode == .direct ||
+            self.configuration.proxy != configuration.proxy || self.configuration.activeProxyID != configuration.activeProxyID {
+            lastExitObservation = nil; state.lastExitObservation = nil
+        }
         self.configuration = configuration; self.allowlist = allowlist; self.revision = revision
         state.configuration = configuration
         if preservingAccess {
@@ -151,6 +171,13 @@ final class MimoCoordinator {
         }
         networkGeneration &+= 1; directRestored = false
         if configuration.mode == .direct { await restoreDirect() }
+        else if hasCurrentBarrier {
+            markPending("Configuration changed. Verification is required.")
+            RuntimeLog.shared.info("mimo_configuration_barrier_reused", fields: [
+                "revision": String(revision), "generation": String(networkGeneration),
+                "mode": configuration.mode.rawValue, "family": configuration.networkFamily.rawValue
+            ])
+        }
         else { await invalidate(reason: "Configuration changed. Verification is required.") }
     }
 
@@ -170,12 +197,37 @@ final class MimoCoordinator {
         markPending("System or network changed. Preparing a fresh exit-IP check.")
     }
 
-    func invalidate(reason: String) async {
+    @discardableResult
+    func invalidate(reason: String, lookupID: UUID? = nil) async -> Bool {
         networkGeneration &+= 1
-        guard configuration.mode.requiresVerification else { return }
+        guard configuration.mode.requiresVerification else { return false }
         markPending(reason)
-        do { _ = try await send(MimoSupervisorRequest(.close)) }
-        catch { /* A superseded close must not replace a newer state. */ }
+        var message = MimoSupervisorRequest(.close)
+        message.reason = reason; message.lookupID = lookupID
+        do { return try await send(message).phase == .blocked }
+        catch { return false /* A superseded close must not replace a newer state. */ }
+    }
+
+    /// Scheduler status is not a new network event. A failed lookup has already
+    /// closed its gate; do not close it again for both failed and coolingDown.
+    /// Capture the epoch before scheduling so a late notification cannot revoke
+    /// a newer private probe, approval, configuration edit or Direct selection.
+    func requiredCheckUnavailable(reason: String) {
+        guard configuration.mode.requiresVerification else { return }
+        guard state.phase != .blocked || transitionsInFlight > 0 else {
+            RuntimeLog.shared.info("mimo_required_check_close_skipped", fields: ["reason": "already_blocked", "phase": state.phase.rawValue])
+            return
+        }
+        let network = networkGeneration, transition = transitionGeneration
+        Task { [weak self] in
+            guard let self, self.networkGeneration == network,
+                  self.transitionGeneration == transition,
+                  self.configuration.mode.requiresVerification else {
+                RuntimeLog.shared.info("mimo_required_check_close_skipped", fields: ["reason": "superseded_notification"])
+                return
+            }
+            await self.invalidate(reason: reason)
+        }
     }
 
     private func restoreDirect() async {
@@ -204,6 +256,7 @@ final class MimoCoordinator {
             // One request owns closure and preparation, avoiding a duplicate
             // full firewall transaction solely to display progress.
             var message = MimoSupervisorRequest(.prepare)
+            message.lookupID = lookup.lookupID
             message.configuration = configuration; message.allowlist = allowlist
             message.revision = revision; message.networkGeneration = generation
             let result = try await send(message)
@@ -221,7 +274,19 @@ final class MimoCoordinator {
             var timing = MimoTransitionTiming("lookup")
             func observe(_ family: MimoAddressFamily?) async throws -> MimoSnapshot {
                 try willRequest?(lookup.provider)
-                let request = LookupConfiguration(provider: lookup.provider, ipinfoToken: lookup.ipinfoToken, family: family)
+                let request = LookupConfiguration(provider: lookup.provider, ipinfoToken: lookup.ipinfoToken, family: family, lookupID: lookup.lookupID)
+                let started = ProcessInfo.processInfo.systemUptime
+                var fields = ["provider": lookup.provider.rawValue, "family": family?.rawValue ?? "native",
+                              "path": mode.requiresVerification ? "private_proxy_probe" : "native_direct",
+                              "phase": state.phase.rawValue]
+                fields["lookup"] = lookup.lookupID?.uuidString; fields["attempt"] = check?.id.uuidString
+                RuntimeLog.shared.info("mimo_probe_http_started", fields: fields)
+                var outcome = "failed"
+                defer {
+                    fields["outcome"] = outcome
+                    fields["duration_ms"] = String(Int((ProcessInfo.processInfo.systemUptime - started) * 1000))
+                    RuntimeLog.shared.info("mimo_probe_http_finished", fields: fields)
+                }
                 let value: MimoSnapshot
                 if let lookupOverride { value = try await lookupOverride(request, mode.requiresVerification) }
                 else {
@@ -232,21 +297,22 @@ final class MimoCoordinator {
                 if let family, !family.accepts(value.ipAddress) {
                     throw LookupError.transport("The provider did not return the requested \(family.rawValue) exit.")
                 }
+                outcome = "succeeded"
                 return value
             }
             let result = try await observe(mode.requiresVerification ? .ipv4 : nil)
-            var ipv6: MimoSnapshot?
-            if mode.requiresVerification, configuration.networkFamily.requiresIPv6 {
-                try Task.checkCancellation()
-                guard generation == networkGeneration, revision == self.revision else { throw CancellationError() }
-                ipv6 = try await observe(.ipv6)
-            }
             timing.record("exit_ip")
             try Task.checkCancellation()
             guard generation == networkGeneration, revision == self.revision else { throw CancellationError() }
             if let check {
+                lastExitObservation = result
+                state.lastExitObservation = result
+                state.observedIP = .init(address: result.ipAddress, checkedAt: result.checkedAt)
+                state.reason = "IPv4 exit received. Checking approval and runtime readiness. Internet remains blocked."
+                changed?()
                 var message = MimoSupervisorRequest(.approve); message.verification = check; message.address = result.ipAddress
-                message.exitObservations = MimoExitObservations(verification: check, ipv4: result, ipv6: ipv6)
+                message.lookupID = lookup.lookupID
+                message.exitObservations = MimoExitObservations(verification: check, ipv4: result)
                 _ = try await send(message)
             } else {
                 directObservation = MimoIPObservation(address: result.ipAddress, checkedAt: result.checkedAt)
@@ -256,7 +322,7 @@ final class MimoCoordinator {
             return result
         } catch {
             if generation == networkGeneration, revision == self.revision, !(error is CancellationError) {
-                await invalidate(reason: "The required IP check failed. Internet remains blocked.")
+                await invalidate(reason: "The IPv4 exit-IP check failed. Internet remains blocked. Retry the check or use Direct.", lookupID: lookup.lookupID)
             }
             throw error
         }
@@ -264,7 +330,8 @@ final class MimoCoordinator {
 
     func confirm(primaryProvider: ProviderID, token: String?) async throws -> MimoSnapshot {
         let generation = networkGeneration, revision = revision
-        let session = try makeSession(protected: configuration.mode.requiresVerification)
+        let session = try makeSession(protected: configuration.mode.requiresVerification,
+                                      family: configuration.mode.requiresVerification ? .ipv4 : nil)
         defer { session.invalidateAndCancel() }
         try willRequest?(CountryChangeConfirmationPolicy.secondaryProvider(for: primaryProvider))
         let result = try await PublicIPLookupClient(session: session).confirmCountryChange(primaryProvider: primaryProvider, ipinfoToken: token)
@@ -292,6 +359,9 @@ final class MimoCoordinator {
         message.stamp = MimoCommandStamp(controller: controllerID, sequence: commandSequence)
         message.revision = revision
         message.networkGeneration = networkGeneration
+        let started = ProcessInfo.processInfo.systemUptime
+        var diagnostic = message.diagnosticFields
+        if !isPoll { RuntimeLog.shared.info("mimo_core_command_started", fields: diagnostic) }
         let generation = transitionGeneration
         let pollCanPublish = transitionsInFlight == 0
         pollSequence &+= 1
@@ -315,6 +385,7 @@ final class MimoCoordinator {
                     && interim.verification == message.verification && interim.observedIP != nil
                 guard preparing || waiting else { return }
                 self.state = interim
+                self.state.lastExitObservation = self.lastExitObservation
                 self.state.configuration.mode = self.configuration.mode
                 self.state.configuration.networkFamily = self.configuration.networkFamily
                 self.state.configuration.proxy = self.configuration.proxy
@@ -326,7 +397,11 @@ final class MimoCoordinator {
                 }
                 self.changed?()
             }
+            diagnostic["phase"] = result.phase.rawValue
+            diagnostic["attempt"] = (message.verification ?? result.verification)?.id.uuidString
+            diagnostic["duration_ms"] = String(Int((ProcessInfo.processInfo.systemUptime - started) * 1000))
             guard isCurrent() else { throw CancellationError() }
+            if !isPoll { RuntimeLog.shared.info("mimo_core_command_finished", fields: diagnostic) }
             if isPoll { appliedPollSequence = sequence }
             // Selected configuration is owned by core, while supervisor reports the actual gate.
             result.configuration.mode = configuration.mode
@@ -337,9 +412,16 @@ final class MimoCoordinator {
             if configuration.mode == .direct, result.effectiveMode == .direct {
                 result.observedIP = directObservation
             }
+            result.lastExitObservation = configuration.mode.requiresVerification ? lastExitObservation : nil
             state = result; changed?()
             return result
         } catch {
+            if !isPoll {
+                diagnostic["outcome"] = isCurrent() && !(error is CancellationError) ? "failed" : "superseded"
+                diagnostic["errorType"] = String(describing: type(of: error))
+                diagnostic["duration_ms"] = String(Int((ProcessInfo.processInfo.systemUptime - started) * 1000))
+                RuntimeLog.shared.info("mimo_core_command_failed", fields: diagnostic)
+            }
             guard isCurrent(), !(error is CancellationError) else { throw CancellationError() }
             if isPoll { appliedPollSequence = sequence }
             unavailable(error)

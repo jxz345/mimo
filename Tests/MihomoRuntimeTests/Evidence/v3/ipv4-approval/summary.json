@@ -1,0 +1,22 @@
+{
+  "date": "2026-11-26",
+  "version": "3.0",
+  "build": 11,
+  "published": false,
+  "core_sha256": "fff99947b06a44095736bc1f212aef37e81860db7568a90e6bcb0f671fc1bb30",
+  "pkg_sha256": "d2f2cb4cf69cba2d9e2d4b0b20b29116e46bd161ddfb3992db5dd430b219db62",
+  "zip_sha256": "f765bf44c75c84b6402a6d116664f13ccc3f236d5a0da1260382121064459790",
+  "shared_tests": 226,
+  "service_suite": "PASS: including 60 failure/recovery simulations and four pending-lookup Direct cancellations",
+  "app_suite": "PASS: native light/dark last-known render and presentation checks",
+  "template_parser_checks": 2,
+  "installed_mode_family_cells": 4,
+  "installed_active_fault_recovery_cases": 16,
+  "installed_rejected_explicit_refreshes": 12,
+  "installed_retry_after_cases": 4,
+  "installed_direct_lifecycle_assertions": 22,
+  "migration": "PASS",
+  "red_regression": "Pre-change Direct→Rule/Dual requested unavailable IPv6 after successful IPv4; combined scheduler/coordinator assertion failed.",
+  "ui_qualification": "PARTIAL; live failed-state Monitoring navigation and two GUI accounts remain unqualified",
+  "qualification_scope": "Closed Delta fixture, installed mimo-vm; no public release or full historical campaign rerun."
+}

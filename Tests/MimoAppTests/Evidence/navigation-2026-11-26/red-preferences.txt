@@ -1,0 +1,1 @@
+main/credential_test.swift:246: Fatal error: Health-only status updates must not rewrite local monitoring preferences (extra writes: 150)

@@ -1,0 +1,161 @@
+{
+  "mode": "global",
+  "family": "ipv4",
+  "started": "2026-11-26T04:17:38.994Z",
+  "finished": "2026-11-26T04:18:14.210Z",
+  "seconds": 35,
+  "passed": false,
+  "checks": {
+    "no_new_lookup": false,
+    "no_recovery_loop": false,
+    "still_rejected_and_monitor_ready": true,
+    "same_core": true,
+    "settings_unchanged": true,
+    "routing_unchanged": true,
+    "health_checks_continue": true,
+    "rejected_observation_retained": false
+  },
+  "events": [
+    {
+      "timestamp": "2026-11-26T04:17:46.156Z",
+      "event": "mimo_network_changed",
+      "fields": {
+        "source": "infrastructure_recovered"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T04:17:46.159Z",
+      "event": "refresh_requested",
+      "fields": {
+        "trigger": "network_configuration",
+        "lookup": "F557B214-F236-4967-9E1F-BA7796931690"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T04:17:46.242Z",
+      "event": "lookup_started",
+      "fields": {
+        "trigger": "network_configuration",
+        "lookup": "F557B214-F236-4967-9E1F-BA7796931690"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T04:17:46.259Z",
+      "event": "mimo_core_command_started",
+      "fields": {
+        "command": "prepare",
+        "lookup": "F557B214-F236-4967-9E1F-BA7796931690"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T04:17:50.028Z",
+      "event": "mimo_core_command_started",
+      "fields": {
+        "command": "approve",
+        "lookup": "F557B214-F236-4967-9E1F-BA7796931690",
+        "attempt": "07A83961-B3E9-4E51-86BD-6374B66081CD"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T04:17:50.702Z",
+      "event": "mimo_exit_ip_rejected",
+      "fields": {
+        "attempt": "07A83961-B3E9-4E51-86BD-6374B66081CD"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T04:17:57.489Z",
+      "event": "mimo_network_changed",
+      "fields": {
+        "source": "infrastructure_recovered"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T04:17:57.493Z",
+      "event": "refresh_requested",
+      "fields": {
+        "trigger": "network_configuration",
+        "lookup": "90FAB9F0-B359-4760-BEE3-38F993B066BE"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T04:17:57.576Z",
+      "event": "lookup_started",
+      "fields": {
+        "trigger": "network_configuration",
+        "lookup": "90FAB9F0-B359-4760-BEE3-38F993B066BE"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T04:17:57.594Z",
+      "event": "mimo_core_command_started",
+      "fields": {
+        "command": "prepare",
+        "lookup": "90FAB9F0-B359-4760-BEE3-38F993B066BE"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T04:18:04.018Z",
+      "event": "mimo_core_command_started",
+      "fields": {
+        "command": "approve",
+        "lookup": "90FAB9F0-B359-4760-BEE3-38F993B066BE",
+        "attempt": "85D3B9CA-53C4-4389-9248-2B2142283D9D"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T04:18:04.948Z",
+      "event": "mimo_exit_ip_rejected",
+      "fields": {
+        "attempt": "85D3B9CA-53C4-4389-9248-2B2142283D9D"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T04:18:08.925Z",
+      "event": "mimo_network_changed",
+      "fields": {
+        "source": "infrastructure_recovered"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T04:18:08.930Z",
+      "event": "refresh_requested",
+      "fields": {
+        "trigger": "network_configuration",
+        "lookup": "F0D1F94E-433C-4C6F-A0B2-20D1A1DA7B50"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T04:18:09.013Z",
+      "event": "lookup_started",
+      "fields": {
+        "trigger": "network_configuration",
+        "lookup": "F0D1F94E-433C-4C6F-A0B2-20D1A1DA7B50"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T04:18:09.031Z",
+      "event": "mimo_core_command_started",
+      "fields": {
+        "command": "prepare",
+        "lookup": "F0D1F94E-433C-4C6F-A0B2-20D1A1DA7B50"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T04:18:12.347Z",
+      "event": "mimo_core_command_started",
+      "fields": {
+        "command": "approve",
+        "lookup": "F0D1F94E-433C-4C6F-A0B2-20D1A1DA7B50",
+        "attempt": "3FCD0D11-F81C-4299-8D9F-9962E9E43978"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T04:18:12.946Z",
+      "event": "mimo_exit_ip_rejected",
+      "fields": {
+        "attempt": "3FCD0D11-F81C-4299-8D9F-9962E9E43978"
+      }
+    }
+  ]
+}

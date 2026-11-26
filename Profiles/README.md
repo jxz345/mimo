@@ -16,6 +16,12 @@ Edit the app's Settings rather than its generated runtime file. Never publish
 the runtime file with its local credentials. Current qualification and remaining
 limits are in [the implementation record](../Design/MIMO_3_0_IMPLEMENTATION.md).
 
+In the current unpublished candidate, core approves both traffic settings using
+one fresh IPv4 exit and one IPv4 allowlist. The private listener has no IPv6
+verification user. Dual-stack IPv6 destinations still use the proxy and fail
+without native fallback when unsupported; IPv4 approval is not an IPv6
+connectivity/exit claim. The templates below were regenerated from that renderer.
+
 The older standalone profiles and their historical results below are retained.
 
 ## Rule and Global templates

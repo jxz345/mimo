@@ -33,8 +33,8 @@ from datetime import datetime, timedelta
 
 path, since = sys.argv[1], sys.argv[2]
 NETWORK = {"network_path", "network_configuration", "route_change", "system_wake"}
-# Timestamps have one-second resolution: the event window (5 s) plus a lookup that starts right after an
-# in-flight one completes.
+# Keep the existing slack for older whole-second records as well as current
+# millisecond records, including a lookup after an in-flight one completes.
 DIRECT = timedelta(seconds=2)
 MERGED = timedelta(seconds=8)
 # Documented reasons a network change legitimately does not start a lookup: every enabled provider is
@@ -46,7 +46,7 @@ def excused(entry):
     return entry["event"] in EXCUSED
 
 def ts(value):
-    return datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ")
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
 
 events = []
 with open(path) as handle:

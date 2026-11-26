@@ -9,6 +9,7 @@ enum DaemonMain {
     static func main() {
         guard geteuid() == 0 else { fputs("Run the installed service through launchd.\n", stderr); exit(1) }
         umask(0o077)
+        defer { RuntimeLog.shared.flush() }
         do {
 #if MIMO_VM_ACCEPTANCE
             try MimoSystemRuntime.requireAcceptanceVM()
@@ -105,6 +106,7 @@ enum DaemonMain {
                 let arguments = [MimoRuntime.engine.path, "-d", MimoRuntime.profileDirectory.path, "-f", MimoRuntime.blockingProfile.path]
                 var argv = arguments.map { strdup($0) } + [nil]
                 defer { argv.forEach { free($0) } }
+                RuntimeLog.shared.flush()
                 execv(MimoRuntime.engine.path, &argv)
                 throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
             case ["--check-installation"]:
@@ -154,7 +156,7 @@ enum DaemonMain {
                 supervisor.start()
                 signal(SIGTERM, SIG_IGN)
                 let termination = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
-                termination.setEventHandler { supervisor.stop(); listener.invalidate(); controls?.invalidate(); exit(0) }
+                termination.setEventHandler { supervisor.stop(); listener.invalidate(); controls?.invalidate(); RuntimeLog.shared.flush(); exit(0) }
                 termination.resume()
                 withExtendedLifetime((supervisor, listener, controls, termination)) { RunLoop.main.run() }
                 return
@@ -216,7 +218,7 @@ enum DaemonMain {
             if controls == nil { RuntimeLog.shared.error("mimo_installed_app_control_unavailable") }
             signal(SIGTERM, SIG_IGN)
             let termination = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
-            termination.setEventHandler { service.stop(); listener.invalidate(); controls?.invalidate(); exit(0) }
+            termination.setEventHandler { service.stop(); listener.invalidate(); controls?.invalidate(); RuntimeLog.shared.flush(); exit(0) }
             termination.resume()
             Task { await service.start() }
             RuntimeLog.shared.info("daemon_started", fields: ["pid": String(getpid())])
@@ -224,6 +226,7 @@ enum DaemonMain {
         } catch {
             RuntimeLog.shared.error("daemon_start_failed", fields: ["error": error.localizedDescription])
             fputs("Mimo service operation failed: \(error.localizedDescription)\n", stderr)
+            RuntimeLog.shared.flush()
             exit(1)
         }
     }

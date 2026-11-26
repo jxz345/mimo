@@ -3,6 +3,11 @@ import Foundation
 @MainActor
 enum MimoCoordinatorTests {
     static func run() async throws {
+        try await familyChangeClosesOnce()
+        try await configurationBarrierCannotOutliveItsEdit()
+        try await ipv4ApprovalKeepsProviderHealthy()
+        try await schedulerFailureClosesOnce()
+        try await obsoleteSchedulerNoticeCannotCloseNewProbe()
         try await staleHeartbeatAfterClose()
         try await outOfOrderHeartbeats()
         try await heartbeatDuringTransition()
@@ -23,6 +28,153 @@ enum MimoCoordinatorTests {
         try await exceptionRecoveryMatrix()
         try await directCancelsPendingLookupMatrix()
         print("PASS: stale supervisor replies, interrupted preparation/probes, credential mutation fencing and Direct failure isolation")
+    }
+
+    private static func familyChangeClosesOnce() async throws {
+        for mode in [ProxyMode.rule, .global] {
+            for family in MimoNetworkFamily.allCases {
+                for approved in [false, true] {
+                    let fixture = Fixture(mode: mode, family: family)
+                    fixture.allowed = approved ? Fixture.allowed : AllowedIPList(addresses: [])
+                    let coordinator = fixture.coordinator()
+                    _ = try await coordinator.lookup(Fixture.lookupConfiguration)
+                    var next = fixture.configuration
+                    next.networkFamily = family == .ipv4 ? .dual : .ipv4
+                    let before = fixture.closeRequests
+                    await coordinator.beginConfigurationChange(reason: "Changing traffic family")
+                    await coordinator.update(configuration: next, allowlist: fixture.allowed, revision: 2)
+                    coordinator.endConfigurationChange()
+                    print("Family change \(mode)/\(family)/approved=\(approved): \(fixture.closeRequests - before) close commands")
+                    require(fixture.closeRequests - before == 1,
+                            "one family edit must reuse its acknowledged pre-commit closure, not close twice")
+                    _ = try await coordinator.lookup(Fixture.lookupConfiguration)
+                    require(fixture.lookupCount == 2 && fixture.approvals.last?.revision == 2,
+                            "one family edit requires one fresh IPv4 lookup at the committed revision")
+                    require(coordinator.state.configuration.networkFamily == next.networkFamily &&
+                            coordinator.state.allowsTraffic == approved,
+                            "family changes preserve the actual allowlist outcome")
+                }
+            }
+        }
+    }
+
+    private static func configurationBarrierCannotOutliveItsEdit() async throws {
+        for invalidation in ["failed_close", "network_change", "finished_edit", "standalone_update"] {
+            let fixture = Fixture()
+            let coordinator = fixture.coordinator()
+            _ = try await coordinator.lookup(Fixture.lookupConfiguration)
+            var next = fixture.configuration; next.networkFamily = .dual
+            if invalidation != "standalone_update" {
+                fixture.failClose = invalidation == "failed_close"
+                await coordinator.beginConfigurationChange(reason: "Changing traffic family")
+                fixture.failClose = false
+                if invalidation == "network_change" { coordinator.supervisorNetworkChanged() }
+                if invalidation == "finished_edit" { coordinator.endConfigurationChange() }
+            }
+            let before = fixture.closeRequests
+            await coordinator.update(configuration: next, allowlist: Fixture.allowed, revision: 2)
+            require(fixture.closeRequests == before + 1,
+                    "\(invalidation): an unconfirmed, invalidated or expired barrier must not suppress closure")
+            if invalidation == "failed_close" || invalidation == "network_change" { coordinator.endConfigurationChange() }
+            _ = try await coordinator.lookup(Fixture.lookupConfiguration)
+            require(coordinator.state.allowsTraffic, "fresh preparation still verifies before opening")
+        }
+    }
+
+    private static func ipv4ApprovalKeepsProviderHealthy() async throws {
+        for mode in [ProxyMode.rule, .global] {
+            for family in MimoNetworkFamily.allCases {
+                let suite = "com.mimo.tests.ipv4-approval." + UUID().uuidString
+                let storage = UserDefaults(suiteName: suite)!
+                defer { storage.removePersistentDomain(forName: suite) }
+                MonitoringPreferences(provider: .ipWhois, providerPool: [.ipWhois], refreshInterval: .never).save(to: storage)
+                let fixture = Fixture(mode: .direct, family: family)
+                fixture.allowed = AllowedIPList(addresses: ["192.0.2.99"])
+                fixture.lookupFailure = .transport("IPv6 proxy connection refused")
+                fixture.failureFamily = .ipv6
+                let coordinator = fixture.coordinator()
+                await coordinator.update(configuration: fixture.configuration, allowlist: fixture.allowed, revision: 1)
+                var protected = fixture.configuration; protected.mode = mode
+                await coordinator.update(configuration: protected, allowlist: fixture.allowed, revision: 2)
+                let engine = MonitoringEngine(preferencesStore: storage, observeSystem: false,
+                    snapshotStore: SnapshotStore(defaults: storage), cooldownStore: ProviderCooldownStore(defaults: storage),
+                    refreshAttemptStore: RefreshAttemptStore(defaults: storage), lookupBudgetStore: LookupBudgetStore(defaults: storage),
+                    indicatorStore: IndicatorStore(defaults: storage), allowedIPStore: AllowedIPStore(defaults: storage),
+                    providerHealthStore: ProviderHealthStore(defaults: storage), diagnosticPreferencesStore: DiagnosticPreferencesStore(defaults: storage),
+                    client: MimoLookupClient(coordinator))
+                engine.setAllowedIPList(fixture.allowed)
+                coordinator.willRequest = { try engine.accountActualRequest($0) }
+                engine.requiredCheckUnavailable = { coordinator.requiredCheckUnavailable(reason: $0) }
+                engine.start()
+                defer { engine.stop() }
+                try await wait { fixture.lookupCount > 0 && !engine.lookupInFlight }
+                require(fixture.lookupCount == 1 && !engine.isCoolingDown,
+                        "Direct→\(mode)/\(family): successful IPv4 must not request IPv6 or pause the healthy provider")
+                require(coordinator.state.rejectedExit?.address == Fixture.snapshot.ipAddress,
+                        "Display the rejected IPv4 instead of hiding it")
+                require(engine.providerHealth[.ipWhois]?.lastSuccess != nil && engine.providerHealth[.ipWhois]?.lastError == nil,
+                        "Allowlist rejection is a successful provider request")
+                await coordinator.refreshSupervisorState()
+                require(coordinator.state.displayedIP?.address == Fixture.snapshot.ipAddress, "Polling retains the rejected address")
+                fixture.allowed = Fixture.allowed
+                engine.setAllowedIPList(fixture.allowed)
+                await coordinator.update(configuration: protected, allowlist: fixture.allowed, revision: 3)
+                await engine.refresh(force: true, bypassMinimumInterval: true)
+                require(coordinator.state.allowsTraffic && fixture.lookupCount == 2 && !engine.isCoolingDown,
+                        "Allowlist-only repair opens after one fresh IPv4 check without changing proxy, token or mode")
+            }
+        }
+        print("PASS: 4 IPv4 approval/provider-health cases across Rule/Global and IPv4/Dual-stack")
+    }
+
+    /// Exercise the real scheduler AND coordinator. Coordinator-only tests miss
+    /// status notifications which can enqueue additional supervisor commands.
+    private static func schedulerFailureClosesOnce() async throws {
+        let suite = "com.mimo.tests.blocked-retry." + UUID().uuidString
+        let storage = UserDefaults(suiteName: suite)!
+        defer { storage.removePersistentDomain(forName: suite) }
+        MonitoringPreferences(provider: .ipWhois, providerPool: [.ipWhois], refreshInterval: .never).save(to: storage)
+        let fixture = Fixture()
+        fixture.lookupFailure = .transport("Temporary proxy outage")
+        let coordinator = fixture.coordinator()
+        let engine = MonitoringEngine(preferencesStore: storage, observeSystem: false,
+            snapshotStore: SnapshotStore(defaults: storage), cooldownStore: ProviderCooldownStore(defaults: storage),
+            refreshAttemptStore: RefreshAttemptStore(defaults: storage), lookupBudgetStore: LookupBudgetStore(defaults: storage),
+            indicatorStore: IndicatorStore(defaults: storage), allowedIPStore: AllowedIPStore(defaults: storage),
+            providerHealthStore: ProviderHealthStore(defaults: storage), diagnosticPreferencesStore: DiagnosticPreferencesStore(defaults: storage),
+            client: MimoLookupClient(coordinator))
+        coordinator.willRequest = { try engine.accountActualRequest($0) }
+        // Same wiring as DaemonService; scheduler and coordinator both run.
+        engine.requiredCheckUnavailable = { coordinator.requiredCheckUnavailable(reason: $0) }
+        engine.start()
+        defer { engine.stop() }
+        try await wait { engine.isCoolingDown && !engine.lookupInFlight }
+        print("Scheduler failure regression: \(fixture.lookupCount) lookup, \(fixture.closeRequests) close commands")
+        require(fixture.lookupCount == 1 && fixture.closeRequests == 1,
+                "one failed lookup must close once; scheduler status changes must not enqueue extra closes")
+        fixture.lookupFailure = nil
+        await engine.refresh(force: true, bypassMinimumInterval: true)
+        require(fixture.lookupCount == 2 && coordinator.state.allowsTraffic && engine.manualRefresh?.phase == .succeeded,
+                "the actual scheduler must retry a repaired connection in the same protected session")
+    }
+
+    private static func obsoleteSchedulerNoticeCannotCloseNewProbe() async throws {
+        let fixture = Fixture()
+        let coordinator = fixture.coordinator()
+        _ = try await coordinator.lookup(Fixture.lookupConfiguration)
+        coordinator.requiredCheckUnavailable(reason: "Old scheduler failure")
+        fixture.holdPrepare = true
+        let release = Task {
+            try await wait { fixture.prepareGate.waiting }
+            fixture.prepareGate.resume(fixture.policy.state)
+        }
+        _ = try await coordinator.lookup(Fixture.lookupConfiguration)
+        try await release.value
+        require(fixture.closeRequests == 0 && coordinator.state.allowsTraffic,
+                "a queued old status notification must not revoke a newer probe")
+        coordinator.requiredCheckUnavailable(reason: "Real fresh-check refusal")
+        try await wait { fixture.closeRequests == 1 }
+        require(!coordinator.state.allowsTraffic, "an unfulfilled required check must still revoke active approval")
     }
 
     private static func directCancelsPendingLookupMatrix() async throws {
@@ -70,8 +222,8 @@ enum MimoCoordinatorTests {
                         require(coordinator.state.allowsTraffic, "\(name): establish the starting mode")
                         let count = fixture.approvals.count
                         fixture.lookupFailure = failure
-                        // A successful IPv4 leg must never authorize a failed IPv6 leg.
-                        fixture.failureFamily = family == .dual ? .ipv6 : .ipv4
+                        // Required IPv4 failures block both traffic settings.
+                        fixture.failureFamily = .ipv4
                         var protected = fixture.configuration; protected.mode = mode
                         if startInDirect {
                             await coordinator.update(configuration: protected, allowlist: fixture.allowed, revision: 2)
@@ -89,8 +241,14 @@ enum MimoCoordinatorTests {
                                 coordinator.state.effectiveMode == nil && fixture.approvals.count == count &&
                                 coordinator.state.configuration.mode == mode,
                                 "\(name): no cached approval, partial-family approval or automatic Direct fallback")
+                        require(coordinator.state.observedIP == nil && coordinator.state.rejectedExit == nil,
+                                "A failed request returns no fresh address or allowlist verdict")
+                        require((coordinator.state.lastKnownExit != nil) == !startInDirect,
+                                "Show last known protected exit only when this proxy previously returned an address")
                         let failedCalls = fixture.lookupCount
                         for _ in 0..<5 { await coordinator.refreshSupervisorState() }
+                        require((coordinator.state.lastKnownExit != nil) == !startInDirect,
+                                "Status polling preserves display-only history")
                         require(fixture.lookupCount == failedCalls && !coordinator.state.allowsTraffic,
                                 "Status polling must not trigger a failure/retry loop")
                         var direct = protected; direct.mode = .direct
@@ -107,7 +265,7 @@ enum MimoCoordinatorTests {
                         rows += 1
                     }
                     var rejectedLists = [AllowedIPList(addresses: []), AllowedIPList(addresses: ["192.0.2.99"])]
-                    if family == .dual { rejectedLists.append(AllowedIPList(addresses: ["192.0.2.10"])) }
+                    if family == .dual { rejectedLists.append(AllowedIPList(addresses: ["2001:db8::10"])) }
                     for rejected in rejectedLists {
                         let fixture = Fixture(mode: startInDirect ? .direct : mode, family: family)
                         let coordinator = fixture.coordinator()
@@ -459,6 +617,7 @@ enum MimoCoordinatorTests {
         var holdDirectDelivery = false
         var holdCloseDelivery = false
         var closeRequests = 0
+        var failClose = false
         var failPrepareClose = false
         var lastProgress: MimoCoordinator.Progress?
         var commandFence = MimoCommandFence()
@@ -521,6 +680,7 @@ enum MimoCoordinatorTests {
                 if failHeartbeat { throw DaemonFailure.unavailable }
             case .close:
                 closeRequests += 1
+                if failClose { throw DaemonFailure.unavailable }
                 policy.block("Verification required")
             case .direct:
                 if failDirect { throw DaemonFailure.unavailable }

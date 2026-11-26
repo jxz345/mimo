@@ -366,6 +366,11 @@ final class MonitoringEngine: ObservableObject {
             operation.phase = operation.startedAt == nil ? .deferred : .failed
             let prefix = operation.startedAt == nil ? "No lookup ran." : "Refresh failed."
             operation.message = "\(prefix) Providers are paused or out of budget until \(date.formatted(date: .omitted, time: .shortened))."
+            if preferences.providerPool.contains(where: {
+                cooldownStore.allowsExplicitRetry(for: $0, health: providerHealth[$0], now: currentDate)
+            }) {
+                operation.message = "\(prefix) Automatic checks pause until \(date.formatted(date: .omitted, time: .shortened)). Fix the connection, then Retry verification."
+            }
         case .waitingForIPinfoToken:
             operation.phase = .deferred
             operation.message = "Not refreshed. Save an IPinfo token or enable another provider."
@@ -476,8 +481,8 @@ final class MonitoringEngine: ObservableObject {
         ])
     }
 
-    /// Tests exactly `provider`, bypassing the spacing gate. A paused or budget-exhausted provider is not
-    /// called (and rotation must not quietly test another one instead): honoring the pause is not optional.
+    /// Tests exactly `provider`. Explicit tests may retry local failures, but
+    /// provider restrictions and daily budgets still prohibit a request.
     func testProvider(_ provider: ProviderID) async {
         guard preferences.providerPool.contains(provider) else { return }
         if provider == .ipinfoLite, isIPinfoTokenUnavailable {
@@ -485,6 +490,7 @@ final class MonitoringEngine: ObservableObject {
             return
         }
         let now = currentDate
+        permitExplicitLocalRetry(preferred: provider, pool: [provider])
         if let retryNotBefore = cooldownStore.retryNotBefore(for: provider), retryNotBefore > now {
             status = .providerPaused(provider, retryNotBefore)
             RuntimeLog.shared.info("provider_test_skipped", fields: [
@@ -555,6 +561,7 @@ final class MonitoringEngine: ObservableObject {
         urgency urgencyOverride: RefreshUrgency? = nil,
         preferredProvider: ProviderID? = nil
     ) async {
+        let refreshID = UUID()
         if trigger == .manual { beginManualRefresh() }
         let urgency = urgencyOverride ?? trigger.urgency
         if controlHolds > 0 {
@@ -568,6 +575,7 @@ final class MonitoringEngine: ObservableObject {
             "trigger": trigger.rawValue,
             "urgency": urgency.logName,
             "force": String(force),
+            "lookup": refreshID.uuidString,
             "startupBypass": String(bypassMinimumInterval),
             "provider": (preferredProvider ?? preferences.provider).rawValue
         ])
@@ -580,7 +588,8 @@ final class MonitoringEngine: ObservableObject {
                 recheckUrgency = max(recheckUrgency ?? urgency, urgency)
                 recheckBypassesMinimumInterval = recheckBypassesMinimumInterval || bypassMinimumInterval
             }
-            RuntimeLog.shared.info("refresh_coalesced_in_flight", fields: ["trigger": trigger.rawValue])
+            RuntimeLog.shared.info("refresh_coalesced_in_flight", fields: ["trigger": trigger.rawValue, "lookup": refreshID.uuidString,
+                                                                       "activeLookup": activeLookupID?.uuidString ?? "none"])
             return
         }
         var providerFollowUp = false
@@ -600,6 +609,10 @@ final class MonitoringEngine: ObservableObject {
             return
         }
 
+        if urgency == .manual {
+            permitExplicitLocalRetry(preferred: activeProvider,
+                                     pool: preferredProvider.map { [$0] } ?? preferences.providerPool)
+        }
         var budget = lookupBudgetStore.load(now: currentDate)
         // One shared decision covers refusal cooldowns, daily budgets, the per-provider gap, and the burst
         // allowance. A paused provider is skipped by normal rotation; the refused request itself was never
@@ -661,7 +674,13 @@ final class MonitoringEngine: ObservableObject {
             status = .coolingDown(resumeAt)
             RuntimeLog.shared.info("lookup_all_providers_paused", fields: [
                 "trigger": trigger.rawValue,
-                "resumeAt": resumeAt.formatted(.iso8601)
+                "resumeAt": resumeAt.formatted(.iso8601), "lookup": refreshID.uuidString,
+                "restrictions": preferences.providerPool.map { provider in
+                    let kind = budget.isExhausted(provider, now: currentDate) ? "daily_budget" :
+                        (cooldownStore.allowsExplicitRetry(for: provider, health: providerHealth[provider], now: currentDate)
+                         ? "local_backoff" : "provider_or_legacy_pause")
+                    return "\(provider.rawValue):\(kind)"
+                }.joined(separator: ", ")
             ])
             scheduleRetry(after: secondsUntil(resumeAt))
             return
@@ -680,7 +699,8 @@ final class MonitoringEngine: ObservableObject {
         updateProviderHealth(activeProvider) { record in
             record.lastAttempt = currentDate
         }
-        let lookupID = UUID()
+        let lookupID = refreshID
+        let lookupStarted = ProcessInfo.processInfo.systemUptime
         activeLookupID = lookupID
         isRefreshing = true
         status = .refreshing
@@ -689,9 +709,10 @@ final class MonitoringEngine: ObservableObject {
             manualRefresh?.phase = .checking
             manualRefresh?.message = "Checking the exit IP…"
         }
-        RuntimeLog.shared.info("lookup_started", fields: ["provider": activeProvider.rawValue, "lookup": lookupID.uuidString])
+        RuntimeLog.shared.info("lookup_started", fields: ["provider": activeProvider.rawValue, "lookup": lookupID.uuidString, "trigger": trigger.rawValue])
         defer {
-            RuntimeLog.shared.info("lookup_finished", fields: ["lookup": lookupID.uuidString])
+            RuntimeLog.shared.info("lookup_finished", fields: ["lookup": lookupID.uuidString,
+                "duration_ms": String(Int((ProcessInfo.processInfo.systemUptime - lookupStarted) * 1000))])
             if activeLookupID == lookupID {
                 activeLookupID = nil
                 activeLookupTask = nil
@@ -710,7 +731,7 @@ final class MonitoringEngine: ObservableObject {
 
         do {
             let token = activeProvider == .ipinfoLite ? ipinfoToken : nil
-            let configuration = LookupConfiguration(provider: activeProvider, ipinfoToken: token)
+            let configuration = LookupConfiguration(provider: activeProvider, ipinfoToken: token, lookupID: lookupID)
             let request = Task { try await self.lookup(configuration: configuration) }
             activeLookupTask = request
             var fetched = try await request.value
@@ -746,13 +767,14 @@ final class MonitoringEngine: ObservableObject {
             }
             RuntimeLog.shared.info("lookup_succeeded", fields: [
                 "provider": fetched.provider.rawValue,
+                "lookup": lookupID.uuidString,
                 "country": fetched.countryCode
             ])
         } catch {
             guard isStarted, refreshGeneration == lifecycleGeneration else { cancelManualRefresh(); return }
             if error is CancellationError {
                 cancelManualRefresh()
-                RuntimeLog.shared.info("lookup_cancelled", fields: ["provider": activeProvider.rawValue])
+                RuntimeLog.shared.info("lookup_cancelled", fields: ["provider": activeProvider.rawValue, "lookup": lookupID.uuidString])
                 return
             }
             consecutiveFailures += 1
@@ -765,16 +787,18 @@ final class MonitoringEngine: ObservableObject {
             status = .failed(message)
             setError("Unable to check the exit IP with \(activeProvider.displayName): \(message)")
             RuntimeLog.shared.error("lookup_failed", fields: [
-                "provider": activeProvider.rawValue, "message": message, "category": lookupErrorCategory(error)
+                "provider": activeProvider.rawValue, "message": message, "category": lookupErrorCategory(error), "lookup": lookupID.uuidString
             ])
             // A routing/service preparation failure is not evidence that a
             // provider failed. Only actual lookup errors pause that provider.
             guard let lookupError = error as? LookupError else { return }
             let resumeAt = ProviderFailurePolicy.resumeAt(after: lookupError, now: currentDate)
-            cooldownStore.save(retryNotBefore: resumeAt, for: activeProvider)
+            let explicitRetry = ProviderFailurePolicy.allowsExplicitRetry(after: lookupError)
+            cooldownStore.save(retryNotBefore: resumeAt, for: activeProvider, allowsExplicitRetry: explicitRetry)
             RuntimeLog.shared.info("provider_failure_paused", fields: [
-                "provider": activeProvider.rawValue, "reason": lookupError.category,
-                "resumeAt": resumeAt.formatted(.iso8601), "seconds": String(Int(resumeAt.timeIntervalSince(currentDate)))
+                "provider": activeProvider.rawValue, "reason": lookupError.category, "lookup": lookupID.uuidString,
+                "resumeAt": resumeAt.formatted(.iso8601), "seconds": String(Int(resumeAt.timeIntervalSince(currentDate))),
+                "explicitRetry": String(explicitRetry)
             ])
             if let next = advanceProvider(after: activeProvider) {
                 RuntimeLog.shared.info("provider_rotated_after_failure", fields: [
@@ -879,17 +903,20 @@ final class MonitoringEngine: ObservableObject {
     /// also budgets its bounded preparation/activation; its HTTP session still
     /// independently limits provider resource time to 15 seconds.
     /// Managed clients account each actual HTTP request after preparation,
-    /// including both family observations and country confirmation.
+    /// including the required IPv4 observation and any explicit country confirmation.
     func accountActualRequest(_ provider: ProviderID) throws {
         let now = currentDate
         var budget = lookupBudgetStore.load(now: now)
         guard !budget.isExhausted(provider, now: now),
               (cooldownStore.retryNotBefore(for: provider) ?? .distantPast) <= now else {
+            RuntimeLog.shared.info("lookup_http_refused", fields: ["provider": provider.rawValue,
+                "lookup": activeLookupID?.uuidString ?? "none",
+                "reason": budget.isExhausted(provider, now: now) ? "daily_budget" : "provider_pause"])
             throw LookupError.rateLimited(retryAfter: cooldownStore.retryNotBefore(for: provider))
         }
         budget.recordCall(to: provider, now: now)
         lookupBudgetStore.save(budget); lookupBudget = budget
-        RuntimeLog.shared.info("lookup_http_request", fields: ["provider": provider.rawValue])
+        RuntimeLog.shared.info("lookup_http_request", fields: ["provider": provider.rawValue, "lookup": activeLookupID?.uuidString ?? "none"])
     }
 
     private func lookup(configuration: LookupConfiguration) async throws -> MimoSnapshot {
@@ -952,6 +979,18 @@ final class MonitoringEngine: ObservableObject {
             }
         }
         return cooldowns
+    }
+
+    /// One explicit user action releases at most one local backoff. Automatic
+    /// retry/rotation never calls this with manual urgency, so a continuing
+    /// outage still settles instead of looping through paused providers.
+    private func permitExplicitLocalRetry(preferred: ProviderID, pool: [ProviderID]) {
+        let candidates = [preferred] + pool.filter { $0 != preferred }
+        guard let provider = candidates.first(where: {
+            cooldownStore.allowsExplicitRetry(for: $0, health: providerHealth[$0], now: currentDate)
+        }) else { return }
+        cooldownStore.clear(for: provider)
+        RuntimeLog.shared.info("provider_local_retry_requested", fields: ["provider": provider.rawValue])
     }
 
     private func selectProvider(_ provider: ProviderID) {

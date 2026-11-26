@@ -8,11 +8,16 @@ final class StatusItemController: NSObject {
     private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let monitor: PublicIPMonitor
     private var observation: AnyCancellable?
+    private var updatePending = false
     private var hostingView: StatusLabelHostingView?
     private let statusMenu: MimoStatusMenu
 
     var isVisible: Bool { item.isVisible }
     private(set) var displayedPresentation: MimoStatusPresentation?
+    #if MIMO_TEST_HOST
+    private(set) var updateCount = 0
+    private(set) var labelLayoutCount = 0
+    #endif
 
     init(monitor: PublicIPMonitor) {
         self.monitor = monitor
@@ -26,15 +31,34 @@ final class StatusItemController: NSObject {
         // Publish after all properties are assigned. DispatchQueue also runs while an NSMenu
         // tracks events; RunLoop.main's default mode can leave the icon stale until it closes.
         observation = monitor.objectWillChange.sink { [weak self] _ in
-            DispatchQueue.main.async { self?.update() }
+            self?.scheduleUpdate()
         }
         RuntimeLog.shared.info("status_item_created")
     }
 
+    private func scheduleUpdate() {
+        // One daemon reply assigns several @Published properties. Read the
+        // completed state once next turn, rather than queuing a native layout
+        // for every assignment (and every reply in the same burst).
+        guard !updatePending else { return }
+        updatePending = true
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.updatePending = false
+            self.update()
+        }
+    }
+
     private func update() {
+        #if MIMO_TEST_HOST
+        updateCount += 1
+        #endif
         guard let button = item.button else { return }
         statusMenu.update()
         let label = MimoMenuBarLabel(presentation: statusMenu.presentation)
+        // Health timestamps and connection ages still update menu actions,
+        // but must not replace and synchronously measure an unchanged label.
+        guard displayedPresentation != label.presentation else { return }
         let statusChanged = displayedPresentation?.visualKey != label.presentation.visualKey
         displayedPresentation = label.presentation
         let host = hostingView ?? StatusLabelHostingView(rootView: label)
@@ -45,6 +69,9 @@ final class StatusItemController: NSObject {
             button.addSubview(host)
             hostingView = host
         }
+        #if MIMO_TEST_HOST
+        labelLayoutCount += 1
+        #endif
         let size = host.fittingSize
         item.length = ceil(size.width) + 12
         host.frame = NSRect(x: 6, y: (button.bounds.height - size.height) / 2,

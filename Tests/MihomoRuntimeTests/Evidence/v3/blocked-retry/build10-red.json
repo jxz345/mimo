@@ -1,0 +1,134 @@
+{
+  "installed": {
+    "version": "3.0",
+    "build": "10",
+    "core_sha256": "a6ea3a02701f5ed4e05f83c7feeba2fa379d17ceac295b0a072c41dc936893c9"
+  },
+  "result": "FAIL",
+  "scope": "Same-session recovery after a transient local proxy failure; Rule/IPv4",
+  "baseline_rejected": true,
+  "fresh_rejected_lookups": 3,
+  "allowlist_only_repair": "PASS",
+  "fixture_repaired": true,
+  "failure_status": {
+    "coolingDown": {
+      "_0": 817323497.28572
+    }
+  },
+  "failure_reason": "A fresh required IP check is unavailable.",
+  "recovery_status": {
+    "coolingDown": {
+      "_0": 817323497.28572
+    }
+  },
+  "recovery_reason": "Network or configuration changed. Verification is required.",
+  "manual_refresh": {
+    "finishedAt": 817322903.49719,
+    "id": "536B2CF6-2504-43F8-9CD2-3B8253C161AD",
+    "message": "No lookup ran. Providers are paused or out of budget until 2:18\u202fAM.",
+    "phase": "deferred",
+    "requestedAt": 817322903.493486
+  },
+  "fresh_provider_requests_after_repair": 0,
+  "recovery_seconds": 27.863,
+  "same_core_instance": true,
+  "mode_unchanged": true,
+  "credential_unchanged_during_fault_and_recovery": true,
+  "cooldown_or_clock_reset": false,
+  "incoming_services_reachable": true,
+  "cleanup": {
+    "settings_restored": true,
+    "routing_restored": true,
+    "credentials_unchanged": true
+  },
+  "failure_and_recovery_events": [
+    {
+      "event": "lookup_started",
+      "timestamp": "2026-11-25T18:08:05Z"
+    },
+    {
+      "event": "manual_refresh_queued",
+      "timestamp": "2026-11-25T18:08:05Z"
+    },
+    {
+      "event": "provider_health_changed",
+      "timestamp": "2026-11-25T18:08:05Z"
+    },
+    {
+      "event": "refresh_requested",
+      "timestamp": "2026-11-25T18:08:05Z"
+    },
+    {
+      "event": "lookup_http_request",
+      "timestamp": "2026-11-25T18:08:10Z"
+    },
+    {
+      "event": "user_presentation_changed",
+      "timestamp": "2026-11-25T18:08:15Z"
+    },
+    {
+      "event": "indicator_error_set",
+      "timestamp": "2026-11-25T18:08:17Z"
+    },
+    {
+      "event": "lookup_failed",
+      "timestamp": "2026-11-25T18:08:17Z"
+    },
+    {
+      "event": "lookup_finished",
+      "timestamp": "2026-11-25T18:08:17Z"
+    },
+    {
+      "event": "provider_failure_paused",
+      "timestamp": "2026-11-25T18:08:17Z"
+    },
+    {
+      "event": "provider_health_changed",
+      "timestamp": "2026-11-25T18:08:17Z"
+    },
+    {
+      "event": "manual_refresh_finished",
+      "timestamp": "2026-11-25T18:08:17Z"
+    },
+    {
+      "event": "diagnostic_preferences_changed",
+      "timestamp": "2026-11-25T18:08:21Z"
+    },
+    {
+      "event": "refresh_requested",
+      "timestamp": "2026-11-25T18:08:21Z"
+    },
+    {
+      "event": "shared_settings_changed",
+      "timestamp": "2026-11-25T18:08:21Z"
+    },
+    {
+      "event": "lookup_all_providers_paused",
+      "timestamp": "2026-11-25T18:08:22Z"
+    },
+    {
+      "event": "lookup_all_providers_paused",
+      "timestamp": "2026-11-25T18:08:23Z"
+    },
+    {
+      "event": "manual_refresh_finished",
+      "timestamp": "2026-11-25T18:08:23Z"
+    },
+    {
+      "event": "manual_refresh_queued",
+      "timestamp": "2026-11-25T18:08:23Z"
+    },
+    {
+      "event": "refresh_requested",
+      "timestamp": "2026-11-25T18:08:23Z"
+    }
+  ],
+  "scheduler_regression": {
+    "lookups": 1,
+    "actual_close_commands": 3,
+    "expected_close_commands": 1,
+    "result": "FAIL"
+  },
+  "initial_user_failure_trigger_reproduced": false,
+  "harness_sha256": "4f4eaee422de286607da14948f4ea429b20423cfecb52a9612fd554bdcd61120"
+}

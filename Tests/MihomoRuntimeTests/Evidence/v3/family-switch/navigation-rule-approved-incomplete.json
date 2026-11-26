@@ -1,0 +1,59 @@
+{
+  "mode": "rule",
+  "family": "dual",
+  "verdict": "approved",
+  "started": "2026-11-26T05:45:34.958Z",
+  "finished": "2026-11-26T05:47:05.166Z",
+  "seconds": 90.0,
+  "passed": false,
+  "checks": {
+    "no_new_lookup": true,
+    "no_recovery_loop": true,
+    "no_warning_or_error": true,
+    "no_unexpected_control_or_failure_event": true,
+    "expected_verdict_and_monitor_ready": true,
+    "same_core": true,
+    "settings_unchanged": true,
+    "routing_unchanged": true,
+    "health_checks_continue": true,
+    "rejected_observation_retained": true,
+    "observed_ip_unchanged": true,
+    "both_tabs_observed": false,
+    "all_settings_sections_observed": false,
+    "every_navigation_completed": true
+  },
+  "events": [
+    {
+      "timestamp": "2026-11-26T05:45:39.076Z",
+      "event": "mimo_navigation_requested",
+      "level": "info",
+      "fields": {
+        "navigation_id": "079A654C-38CC-4983-9004-D93C44DC9DE0",
+        "tab": "Settings",
+        "section": "Maintenance"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:45:39.086Z",
+      "event": "mimo_navigation_applied",
+      "level": "info",
+      "fields": {
+        "navigation_id": "079A654C-38CC-4983-9004-D93C44DC9DE0",
+        "tab": "Settings",
+        "section": "Maintenance",
+        "duration_ms": "10"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:45:39.105Z",
+      "event": "mimo_navigation_window_updated",
+      "level": "info",
+      "fields": {
+        "navigation_id": "079A654C-38CC-4983-9004-D93C44DC9DE0",
+        "tab": "Settings",
+        "section": "Maintenance",
+        "duration_ms": "28"
+      }
+    }
+  ]
+}

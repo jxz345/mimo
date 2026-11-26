@@ -45,10 +45,10 @@ public struct MimoStatusPresentation: Equatable, Sendable {
             }
             else { kind = .verified }
         }
-        address = kind == .unavailable ? nil : routing.displayedIP?.address
+        address = kind == .unavailable ? nil : routing.displayedIP?.address ?? routing.lastKnownExit?.ipAddress
         let locationIsCurrent = snapshot?.ipAddress == routing.observedIP?.address
         let shownAddress = address
-        let shownSnapshot = routing.exitObservations?.ipv6.flatMap { $0.ipAddress == shownAddress ? $0 : nil } ?? snapshot
+        let shownSnapshot = routing.lastExitObservation.flatMap { $0.ipAddress == shownAddress ? $0 : nil } ?? snapshot
         country = shownSnapshot?.hasValidCountryCode == true &&
             ((kind == .blocked && shownSnapshot?.ipAddress == address) || ((isDirect || kind == .verified) && locationIsCurrent))
             ? shownSnapshot?.menuBarLabel(style: preferences.menuBarDisplayStyle) : nil
@@ -79,6 +79,10 @@ public struct MimoStatusPresentation: Equatable, Sendable {
             detail = "Checking the exit IP. Direct remains selected."
         } else if kind == .unavailable, routing.phase != .unavailable {
             detail = "The routing state could not be confirmed. Open Dashboard to reconnect."
+        } else if kind == .blocked, let previous = routing.lastKnownExit {
+            let failure = lookupError ?? routing.reason
+            let retry = Self.blockedLookupMessage(monitoringStatus).map { " \($0)" } ?? ""
+            detail = "Last known IPv4: \(previous.ipAddress), checked \(previous.checkedAt.formatted(date: .abbreviated, time: .shortened)). Current check failed. \(failure)\(retry)"
         } else if kind == .blocked, routing.rejectedExit == nil,
                   let paused = Self.blockedLookupMessage(monitoringStatus) {
             // Monitoring enters its bounded cooldown immediately after a lookup
@@ -101,7 +105,7 @@ public struct MimoStatusPresentation: Equatable, Sendable {
     private static func blockedLookupMessage(_ status: MonitoringStatus) -> String? {
         switch status {
         case .coolingDown(let until), .waitingForMinimumInterval(let until):
-            return "Exit-IP checking is paused until \(until.formatted(date: .omitted, time: .shortened)). Review the proxy and IP provider, or use Direct."
+            return "Automatic exit-IP checks are paused until \(until.formatted(date: .omitted, time: .shortened)). Repair the proxy/provider and retry, or use Direct. Provider limits still apply."
         case .providerPaused(let provider, let until):
             return "\(provider.displayName) is paused until \(until.formatted(date: .omitted, time: .shortened)). Choose another IP provider, or use Direct."
         case .waitingForIPinfoToken:
@@ -117,7 +121,7 @@ public struct MimoStatusPresentation: Equatable, Sendable {
         switch kind {
         case .checking where trafficIsBlocked:
             return isValidating ? "Traffic blocked → Validate profile → Check IP → Reopen if allowed"
-                : isCheckingReadiness ? "Traffic blocked → Exit IP approved → Checking readiness" : "Traffic blocked → Checking exit IP → Reopen if allowed"
+                : isCheckingReadiness ? "Traffic blocked → Exit IP received → Checking approval and readiness" : "Traffic blocked → Checking exit IP → Reopen if allowed"
         case .verified:
             return "Traffic blocked → Exit IP approved → Internet reopened"
         default: return nil

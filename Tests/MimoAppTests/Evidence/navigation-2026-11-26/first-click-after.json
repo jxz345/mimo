@@ -1,0 +1,313 @@
+{
+  "environment": "mimo-vm, Global/IPv4 with empty allowlist",
+  "events": [
+    {
+      "event": "mimo_navigation_requested",
+      "fields": {
+        "navigation_id": "9E8906DB-D91C-46AE-A28F-DD17D9E01C50",
+        "section": "General",
+        "tab": "Settings"
+      },
+      "timestamp": "2026-11-26T03:16:28.527Z"
+    },
+    {
+      "event": "mimo_navigation_applied",
+      "fields": {
+        "duration_ms": "15",
+        "navigation_id": "9E8906DB-D91C-46AE-A28F-DD17D9E01C50",
+        "section": "General",
+        "tab": "Settings"
+      },
+      "timestamp": "2026-11-26T03:16:28.543Z"
+    },
+    {
+      "event": "mimo_navigation_requested",
+      "fields": {
+        "navigation_id": "16CA891E-4BBD-4D2C-BA28-90B1EC7BB43F",
+        "section": "Monitoring",
+        "tab": "Settings"
+      },
+      "timestamp": "2026-11-26T03:16:37.542Z"
+    },
+    {
+      "event": "mimo_navigation_applied",
+      "fields": {
+        "duration_ms": "36",
+        "navigation_id": "16CA891E-4BBD-4D2C-BA28-90B1EC7BB43F",
+        "section": "Monitoring",
+        "tab": "Settings"
+      },
+      "timestamp": "2026-11-26T03:16:37.578Z"
+    },
+    {
+      "event": "mimo_navigation_requested",
+      "fields": {
+        "navigation_id": "094A891B-42F4-45BB-835A-4367D3F488BD",
+        "section": "General",
+        "tab": "Settings"
+      },
+      "timestamp": "2026-11-26T03:17:00.845Z"
+    },
+    {
+      "event": "mimo_navigation_applied",
+      "fields": {
+        "duration_ms": "23",
+        "navigation_id": "094A891B-42F4-45BB-835A-4367D3F488BD",
+        "section": "General",
+        "tab": "Settings"
+      },
+      "timestamp": "2026-11-26T03:17:00.868Z"
+    },
+    {
+      "event": "mimo_navigation_requested",
+      "fields": {
+        "navigation_id": "83282383-AF29-4DA7-A371-F40B19817AE6",
+        "section": "Monitoring",
+        "tab": "Settings"
+      },
+      "timestamp": "2026-11-26T03:17:22.150Z"
+    },
+    {
+      "event": "mimo_navigation_applied",
+      "fields": {
+        "duration_ms": "30",
+        "navigation_id": "83282383-AF29-4DA7-A371-F40B19817AE6",
+        "section": "Monitoring",
+        "tab": "Settings"
+      },
+      "timestamp": "2026-11-26T03:17:22.181Z"
+    },
+    {
+      "event": "mimo_navigation_requested",
+      "fields": {
+        "navigation_id": "9D61F12E-471A-45DF-A37C-42A7FD5F1720",
+        "section": "Allowed IPs",
+        "tab": "Settings"
+      },
+      "timestamp": "2026-11-26T03:17:28.595Z"
+    },
+    {
+      "event": "mimo_navigation_applied",
+      "fields": {
+        "duration_ms": "12",
+        "navigation_id": "9D61F12E-471A-45DF-A37C-42A7FD5F1720",
+        "section": "Allowed IPs",
+        "tab": "Settings"
+      },
+      "timestamp": "2026-11-26T03:17:28.608Z"
+    },
+    {
+      "event": "mimo_navigation_requested",
+      "fields": {
+        "navigation_id": "F8481BAF-8ADA-4DC4-BE46-7B25D01AC1AB",
+        "section": "General",
+        "tab": "Settings"
+      },
+      "timestamp": "2026-11-26T03:17:42.114Z"
+    },
+    {
+      "event": "mimo_navigation_applied",
+      "fields": {
+        "duration_ms": "19",
+        "navigation_id": "F8481BAF-8ADA-4DC4-BE46-7B25D01AC1AB",
+        "section": "General",
+        "tab": "Settings"
+      },
+      "timestamp": "2026-11-26T03:17:42.133Z"
+    },
+    {
+      "event": "mimo_navigation_requested",
+      "fields": {
+        "navigation_id": "4EA1E1E4-A193-4BB3-BCA7-6A89F9C927DF",
+        "section": "Allowed IPs",
+        "tab": "Settings"
+      },
+      "timestamp": "2026-11-26T03:17:46.956Z"
+    },
+    {
+      "event": "mimo_navigation_applied",
+      "fields": {
+        "duration_ms": "10",
+        "navigation_id": "4EA1E1E4-A193-4BB3-BCA7-6A89F9C927DF",
+        "section": "Allowed IPs",
+        "tab": "Settings"
+      },
+      "timestamp": "2026-11-26T03:17:46.967Z"
+    },
+    {
+      "event": "mimo_navigation_requested",
+      "fields": {
+        "navigation_id": "E20C3535-5CA1-42E6-8216-BD539B3AE078",
+        "section": "Allowed IPs",
+        "tab": "Dashboard"
+      },
+      "timestamp": "2026-11-26T03:17:58.755Z"
+    },
+    {
+      "event": "mimo_navigation_applied",
+      "fields": {
+        "duration_ms": "12",
+        "navigation_id": "E20C3535-5CA1-42E6-8216-BD539B3AE078",
+        "section": "Allowed IPs",
+        "tab": "Dashboard"
+      },
+      "timestamp": "2026-11-26T03:17:58.767Z"
+    },
+    {
+      "event": "mimo_navigation_requested",
+      "fields": {
+        "navigation_id": "E50778DE-1726-4091-BC9A-B4EA3F4B5E85",
+        "section": "Allowed IPs",
+        "tab": "Settings"
+      },
+      "timestamp": "2026-11-26T03:24:16.390Z"
+    },
+    {
+      "event": "mimo_navigation_applied",
+      "fields": {
+        "duration_ms": "13",
+        "navigation_id": "E50778DE-1726-4091-BC9A-B4EA3F4B5E85",
+        "section": "Allowed IPs",
+        "tab": "Settings"
+      },
+      "timestamp": "2026-11-26T03:24:16.403Z"
+    },
+    {
+      "event": "mimo_navigation_requested",
+      "fields": {
+        "navigation_id": "F58AD7F0-B6ED-42E2-82EA-8C920EF6DBEC",
+        "section": "Monitoring",
+        "tab": "Settings"
+      },
+      "timestamp": "2026-11-26T03:24:52.802Z"
+    },
+    {
+      "event": "mimo_navigation_applied",
+      "fields": {
+        "duration_ms": "23",
+        "navigation_id": "F58AD7F0-B6ED-42E2-82EA-8C920EF6DBEC",
+        "section": "Monitoring",
+        "tab": "Settings"
+      },
+      "timestamp": "2026-11-26T03:24:52.826Z"
+    },
+    {
+      "event": "mimo_navigation_requested",
+      "fields": {
+        "navigation_id": "FD482B87-5656-4D8E-8D42-84BFADF58E76",
+        "section": "General",
+        "tab": "Settings"
+      },
+      "timestamp": "2026-11-26T03:24:53.295Z"
+    },
+    {
+      "event": "mimo_navigation_applied",
+      "fields": {
+        "duration_ms": "21",
+        "navigation_id": "FD482B87-5656-4D8E-8D42-84BFADF58E76",
+        "section": "General",
+        "tab": "Settings"
+      },
+      "timestamp": "2026-11-26T03:24:53.317Z"
+    },
+    {
+      "event": "mimo_navigation_requested",
+      "fields": {
+        "navigation_id": "EF0FDEEC-B2B7-4AD3-AF3C-848DAA6702D9",
+        "section": "Proxy",
+        "tab": "Settings"
+      },
+      "timestamp": "2026-11-26T03:25:02.065Z"
+    },
+    {
+      "event": "mimo_navigation_applied",
+      "fields": {
+        "duration_ms": "27",
+        "navigation_id": "EF0FDEEC-B2B7-4AD3-AF3C-848DAA6702D9",
+        "section": "Proxy",
+        "tab": "Settings"
+      },
+      "timestamp": "2026-11-26T03:25:02.092Z"
+    },
+    {
+      "event": "mimo_navigation_requested",
+      "fields": {
+        "navigation_id": "F2712A12-72AA-46E0-A166-443F2FB3BD51",
+        "section": "Bypass",
+        "tab": "Settings"
+      },
+      "timestamp": "2026-11-26T03:25:02.632Z"
+    },
+    {
+      "event": "mimo_navigation_applied",
+      "fields": {
+        "duration_ms": "29",
+        "navigation_id": "F2712A12-72AA-46E0-A166-443F2FB3BD51",
+        "section": "Bypass",
+        "tab": "Settings"
+      },
+      "timestamp": "2026-11-26T03:25:02.661Z"
+    },
+    {
+      "event": "mimo_navigation_requested",
+      "fields": {
+        "navigation_id": "315E0CE1-5EBF-4524-8FD0-F9FCC219F39D",
+        "section": "Maintenance",
+        "tab": "Settings"
+      },
+      "timestamp": "2026-11-26T03:25:03.223Z"
+    },
+    {
+      "event": "mimo_navigation_applied",
+      "fields": {
+        "duration_ms": "25",
+        "navigation_id": "315E0CE1-5EBF-4524-8FD0-F9FCC219F39D",
+        "section": "Maintenance",
+        "tab": "Settings"
+      },
+      "timestamp": "2026-11-26T03:25:03.249Z"
+    }
+  ],
+  "gui_sha256": "3de7420cfa5051819feb3ad9e3ea9273c3b31d262094710c398557364e53d21a",
+  "limits": [
+    "Physical affected Mac and simultaneous-account navigation unqualified",
+    "macOS 14 first-click behavior unqualified",
+    "No active-window lost click reproduced",
+    "Screen Sharing unavailable for final supplementary Bypass visual check"
+  ],
+  "manual_checks": [
+    {
+      "case": "inactive Monitoring to General, single click",
+      "result": "pass: General visually selected without another click",
+      "tool_started_utc": "2026-11-26T03:17:00.457Z"
+    },
+    {
+      "case": "inactive General to Monitoring, single click",
+      "result": "pass: Monitoring visually selected",
+      "tool_started_utc": "2026-11-26T03:17:21.788Z"
+    },
+    {
+      "case": "General from focused unsaved Allowed IPs field",
+      "result": "pass: General visually selected; draft retained on return; later cleared without saving",
+      "tool_started_utc": "2026-11-26T03:17:41.744Z"
+    },
+    {
+      "case": "Dashboard from focused field, single click",
+      "result": "pass",
+      "tool_started_utc": "2026-11-26T03:17:58.390Z"
+    },
+    {
+      "case": "inactive Dashboard to Settings, single click",
+      "result": "pass",
+      "tool_started_utc": "2026-11-26T03:24:16.021Z"
+    },
+    {
+      "case": "sidebar Down arrow from Monitoring",
+      "result": "pass: General visually selected"
+    },
+    {
+      "case": "six Settings sections",
+      "result": "all request/applied events match; Bypass pixels not separately confirmed, other five visually confirmed"
+    }
+  ]
+}

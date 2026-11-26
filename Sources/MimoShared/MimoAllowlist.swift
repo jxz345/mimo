@@ -41,6 +41,7 @@ public enum IPAddressValidator {
     }
 }
 
+/// Exact IPv4 exits approved for both IPv4 and Dual-stack traffic settings.
 public struct AllowedIPList: Codable, Equatable, Sendable {
     public private(set) var addresses: [String]
 
@@ -49,6 +50,7 @@ public struct AllowedIPList: Codable, Equatable, Sendable {
         var keys = Set<String>()
         for value in addresses {
             guard let normalized = IPAddressValidator.normalize(value),
+                  MimoAddressFamily.ipv4.accepts(normalized),
                   let key = IPAddressValidator.canonicalKey(normalized),
                   !keys.contains(key) else { continue }
             unique.append(normalized)
@@ -60,13 +62,13 @@ public struct AllowedIPList: Codable, Equatable, Sendable {
     public var isEmpty: Bool { addresses.isEmpty }
 
     public func contains(_ address: String) -> Bool {
-        guard let key = IPAddressValidator.canonicalKey(address) else { return false }
+        guard MimoAddressFamily.ipv4.accepts(address), let key = IPAddressValidator.canonicalKey(address) else { return false }
         return addresses.contains { IPAddressValidator.canonicalKey($0) == key }
     }
 
     @discardableResult
     public mutating func insert(_ address: String) -> Bool {
-        guard let normalized = IPAddressValidator.normalize(address), !contains(normalized) else { return false }
+        guard let normalized = IPAddressValidator.normalize(address), MimoAddressFamily.ipv4.accepts(normalized), !contains(normalized) else { return false }
         addresses.append(normalized)
         return true
     }

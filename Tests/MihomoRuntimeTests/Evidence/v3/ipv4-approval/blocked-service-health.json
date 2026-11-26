@@ -1,0 +1,20 @@
+{
+  "rpc_ms": [
+    195.3,
+    203.7,
+    202.2,
+    182.8,
+    199.1
+  ],
+  "services": {
+    "core": "running",
+    "mihomo": "running",
+    "profileHosting": "running"
+  },
+  "pf": "healthy",
+  "launchd": "healthy",
+  "phase": "blocked",
+  "last_known": "203.0.113.10",
+  "no_current_observation": true,
+  "same_instance": true
+}

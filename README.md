@@ -1,18 +1,23 @@
 # Mimo for macOS
 
-**Mimo 3.0 (build 10)** provides strict IPv4 or dual-stack proxy routing and exit-IP
+**Mimo 3.0 (build 11)** provides strict IPv4 or dual-stack proxy routing and exit-IP
 monitoring. The [current implementation record](Design/MIMO_3_0_IMPLEMENTATION.md)
 separates code, executed tests and remaining qualification. Each published build
 has a distinct build number, including updates with the same marketing version.
 
-Build 10 preserves incoming TCP services while outbound access is blocked and
-improves failure messages, recovery actions and the dashboard layout. See the
-[fix and qualification record](Design/MIMO_V3_INBOUND_ACCESS_FIX.md).
+Build 11 uses one fresh allowlisted IPv4 exit for both traffic settings, preserves
+rejected addresses, and improves blocked-session recovery and event handling.
+It also tightens dashboard layout and adds bounded log rotation and retention.
+See the [release and validation record](Design/MIMO_V3_BUILD11_RELEASE_CHECKS.md).
 
 Requires Apple silicon and macOS 14 or later; Control Center integration requires
 macOS 26. V3 bundles the pinned, patched Mihomo engine described in
 [the dependency manifest](Configuration/MihomoDependency.plist). It verifies the
 binary hash and runtime capabilities; a stock engine is not a compatible substitute.
+
+The behavior below describes build 11. Earlier build 10 used paired approval in
+Dual-stack; upgrading migrates legacy IPv6 allowlist entries while preserving
+the IPv4 list, proxy credentials and traffic policy.
 
 ## Install and activate
 
@@ -51,9 +56,9 @@ appear in Event Log. Other apps and their configuration remain installed.
 ## First launch
 
 1. Add an HTTP or SOCKS5 proxy in Settings → Proxy and select it. None permits Direct only.
-2. Add allowed exit addresses in Settings → Allowlist. Dual stack needs both actual exit families approved.
+2. Add allowed IPv4 exit addresses in Settings → Allowed IPs. The same list applies to both traffic settings.
 3. Choose **IPv4** or **Dual stack** on the dashboard, then select Rule or Global.
-4. Use **Refresh now** for a fresh observation. Protected modes close, verify the current profile and required exit families, then reopen only on success.
+4. Use **Refresh now** for a fresh observation. Protected modes close, verify the current profile and fresh IPv4 exit, then reopen only on success.
 
 Proxy lists/passwords and the IPinfo token live in root-owned local storage shared
 across accounts. New values are not written to Keychain. Credentials are omitted
@@ -69,7 +74,7 @@ forward it. Legacy Keychain import is read-only.
 | Rule | Apply enabled bypass blocks, then the selected proxy. |
 | Global | Actual Mihomo Global mode; GLOBAL selects Proxy only. Rule bypass blocks are saved but inactive. |
 | IPv4 | Capture IPv6/NAT64 and reject it; pin hostname outbound connections to A records before SOCKS/CONNECT so a proxy cannot re-resolve them to AAAA. Applies in Rule and Global. |
-| Dual stack | Capture and proxy IPv4/IPv6. Require fresh allowlisted exits from both families in the same revision and verification attempt. Unsupported IPv6 fails closed; no native fallback. |
+| Dual stack | Capture and proxy IPv4/IPv6. Require one fresh allowlisted IPv4 exit in the current revision and verification attempt. No IPv6 exit check or allowlist. Unsupported IPv6 fails closed; no native fallback. |
 
 Public captured ping and ping6 requests are silently dropped. There are no
 synthetic echo replies. Native LAN/Tailnet exclusions retain real ping and IPv6
@@ -126,8 +131,15 @@ outside the fallback-containment claim. See the [v3 plan](Design/MIMO_3_0_PLAN.m
 The dashboard implements the approved Delta mockup: family control and fixed-width
 address rows with country flags on the left; compact equal-height service rows,
 Stop/Activate and uninstall command with an animated copy icon on the right.
-IPv6 text truncates within its slot instead of moving the layout; the full address
-is available for copying. Shared-account scope is beside the routing footer.
+Both cards share the taller card’s content height and align along their bottom
+edges. The 1040×640 default window removes the unused area above the footer; the
+left column distributes its sections within the shared height. The right reserves a 160-point status area
+so approved, checking and blocked messages do not move the 40-point service rows
+or the Stop/Activate controls. Smaller windows scroll the content while the
+toolbar and footer remain available.
+The IPv4 row shows the actual returned address, country and check time. The second
+row describes IPv6 traffic policy, not a measured IPv6 exit. Failed requests show
+a timestamped “Last known · check failed” result, or “No address received”. Shared-account scope is beside the routing footer.
 Traffic, ping, DNS and login-item controls are in Settings → General. Proxy and
 Bypass use distinct icons; there is no duplicate family switch in Proxy.
 
@@ -145,25 +157,25 @@ Activate uses the same installation/conflict-consent process and restores all ro
 
 | Feature | Behavior |
 | --- | --- |
-| Native app, menu bar, widgets | Dashboard/Settings aligned with the approved mock: fixed address rows with country flags and family verdict/time, compact equal service rows, Stop/Activate and uninstall controls. Default 1040×660 window; minimum 880×520 keeps routing controls visible. Direct/Allowed/blocked indicators, Event Log, widgets and macOS 26 Control Center entry. |
+| Native app, menu bar, widgets | Dashboard/Settings aligned with the approved mock: fixed address rows with country flags and family verdict/time, aligned card bottoms, reserved status-message height, compact equal service rows, Stop/Activate and uninstall controls. Default 1040×640 window; minimum 880×520 keeps routing controls visible. Status updates coalesce native menu work; unchanged health updates do not rewrite local fallback preferences. Settings drafts survive navigation; page navigation accepts window-activating clicks on macOS 15 and later. Direct/Allowed/blocked indicators, Event Log, widgets and macOS 26 Control Center entry. |
 | Shared state and ownership | Core serializes shared settings, credentials, routing, quotas, service actions and revisions across accounts. GUI clients only request actions and display results. |
 | Proxy catalog | Multiple HTTP/SOCKS5 entries; one active or None. Inactive edits save without reload. Active edits reverify protected modes; removal/None restores Direct. |
 | Local credentials | Owner-only shared password/token storage; legacy migration/import only uses Keychain. No credentials in public snapshots or artifacts. |
-| Modes and family control | Direct, Rule, Global; strict IPv4 and dual stack as described above. Family control appears only on the dashboard. |
+| Modes and family control | Direct, Rule, Global; strict IPv4 and dual stack as described above. Family control appears only on the dashboard. Every effective protected family edit performs fresh IPv4 verification; its confirmed pre-commit block is reused only within the same unchanged transaction. |
 | Editable bypass | Add/edit/remove/reorder domain blocks and toggle each block. Apply reloads and verifies Rule; Global/Direct save for future Rule use. |
-| Allowlist and verification | Fresh family-specific observations, same-attempt/revision/generation binding, full profile/process/DNS/readiness checks and stale-result rejection. |
-| Failure and recovery | Clear exit-rejection/lookup-error messages and provider pause deadlines; relevant settings, retry and explicit Direct actions. Core owns bounded scheduling and cancellation; polling does not retry a failed lookup. Direct does not require an approved exit or working IP provider. |
+| Allowlist and verification | One fresh IPv4 observation in Rule/Global and both traffic settings; same-attempt/revision/generation binding, full readiness checks and stale-result rejection. Core migrates legacy IPv6 entries out without changing IPv4 entries or credentials. |
+| Failure and recovery | Distinct exit rejection, local connection backoff and provider restrictions. Explicit Retry/repair can retry one local failure while real Retry-After and quotas remain enforced. Core owns closure, cancellation and scheduling; polling does not retry. Direct needs no approved exit or working IP provider. |
 | Canonical private profiles | Annotated templates and installed profiles from one typed renderer; escaped credentials, stdin syntax checks, private controller reload; credential-free startup profile. |
 | Native/private DNS | Core-owned temporary override, search/split-scope preservation, Quad100 policy, private negative answers and no public fallback. Disconnected suffix knowledge is retained without retaining stale resolver addresses. |
 | Firewall protection | Flat closed/probe/active guard, exact readback and close epochs; native application fallback denied in protected modes; incoming TCP services use interface-bound states, while outbound grants remain stateless; scoped signed Tailscale transport including pre-interface startup; private Tailnet traffic requires its verified native interface. Direct/cleanup releases filtering. Independent boot/power/session/health handling; no utun provider. |
 | Failure recovery | Detected process/profile/DNS/route failures close and reverify. Stopped-service intent and completed release prevent unwanted restart/reblocking. |
 | Monitoring | One-hour default, Never disables periodic checks only; manual/startup/event/recovery checks, provider rotation, ten-minute failure cooldown and server Retry-After. |
-| Providers and quotas | IPinfo Lite, ipapi.co, IPWho.is, ipapi.is; per-provider daily caps and shared cooldown/budget. Managed IPv4/IPv6 observations each count as actual HTTP requests. |
+| Providers and quotas | IPinfo Lite, ipapi.co, IPWho.is, ipapi.is; per-provider daily caps and shared cooldown/budget. Each actual required IPv4 HTTP request counts once; IPv6 traffic support does not add an approval request. |
 | Country metadata | Display only; unknown country shows a globe. Country-only changes do not authorize traffic or add a verification cycle. |
 | Services and communication | Core-owned bounded health snapshots and uniform ages; cross-account GUI reconnection does not run health repair. |
 | Cleanup and coexistence | Full Stop/uninstall removes current and older owned firewall/DNS settings, restores saved IPv6 settings and checks native Tailnet DNS. Unrelated VPNs remain untouched. |
 | Installation restoration | Install/reinstall/upgrade/Activate restore all roles, verify health, ask before replacing conflicts, preserve settings and journal rollback. |
-| Diagnostics | Shared installation, transition, verification, cleanup and failure events; privacy settings, bounded commands, Copy Diagnostics and persistent machine logs. |
+| Diagnostics | Shared installation, transition, verification, cleanup and failure events; privacy settings, bounded commands, Copy Diagnostics and persistent machine logs. Runtime rotation at 5 MiB/UTC day, scheduled retention (7 days by default), and 64 MiB/128-file budgets per log directory; service output rotates without restarting services. |
 | Maintenance reference | Settings → Maintenance documents active/transition/released firewall rules and offers copyable inspection, release, reinstall and uninstall commands, including when core is disconnected. Commands do not execute from the reference page. |
 | Release identity | Distinct monotonically increasing build per publication; matching app, manifest, packages and checksums. Local rebuilds do not advance the published build. |
 | Legacy migration | Old names/settings/secrets are migration and cleanup inputs only; old provider runtime code is removed. |
@@ -336,12 +348,16 @@ the named disposable test VM and are not host cleanup commands.
 ## Unapproved exit IPs and incoming access
 
 Rule/Global keeps outbound application traffic blocked when the allowlist is empty
-or either required exit is unapproved. It never adds the observed address to the
-allowlist or silently selects Direct. The dashboard retains separate IPv4/IPv6
-observations and offers **Review allowed IPs**, **Change proxy**, **Retry verification**
+or the fresh IPv4 exit is unapproved. It never adds the observed address to the
+allowlist or silently selects Direct. The dashboard retains the rejected IPv4 and offers **Review allowed IPs**, **Change proxy**, **Retry verification**
 and **Use Direct**. A successful IP lookup with denied access reports that distinction
 in Refresh now and Event Log; it is not a provider failure. The warning does not
 activate the app or steal keyboard focus from another app.
+
+If a later request returns no IP, the earlier observation is labelled last-known
+with its timestamp and never authorizes access. Changing proxy context clears
+that history. A working IPv4 checker stays healthy even if IPv6 destinations
+are unreachable through the proxy; those destinations fail without native fallback.
 
 Mimo tracks peer-initiated TCP connections on interfaces other than its own TUN or loopback,
 so SSH, Screen Sharing and TCP web servers can send replies during a block.
@@ -355,16 +371,95 @@ asymmetric return routes require separate qualification. See
 
 If the proxy or IP provider fails, the dashboard retains the failure reason and
 shows the provider pause deadline. Use **Change proxy** or **Check IP provider**
-to correct it, then retry when the provider permits. **Use Direct** restores
+to correct it, then **Retry verification**. A local connection/transient failure
+can be retried explicitly without waiting for the ten-minute automatic backoff;
+provider restrictions and daily limits still apply. **Use Direct** restores
 native networking without an approved exit or a successful lookup, including
 when verification is pending. A failed cleanup is shown as an error rather than
 claiming Direct is ready. Core owns scheduling and cancellation; opening multiple
 dashboards or polling health does not create additional verification loops.
 
+Build 10's earlier repair tests reset a fixture credential and missed a
+same-session cooldown lockout. Its unchanged installed binary fails the new
+regression. The build 11 candidate passed it in the VM across
+Rule/Global and IPv4/dual-stack, while preserving real provider restrictions. See the
+[reproduction and recovery record](Design/MIMO_BLOCKED_VERIFICATION_RECOVERY.md).
+
+The revised IPv4-only approval candidate passed all four installed mode/family
+cases, 16 active failure/recovery cases and 22 Direct/Stop/Start assertions.
+Its 226 shared tests and app/service suites pass. Rejected addresses remain
+visible; failed requests show timestamped last-known history without authorizing
+traffic. The subsequent [navigation investigation](Design/MIMO_NAVIGATION_RESPONSIVENESS.md)
+removes duplicate GUI work and verifies native navigation through all Settings
+sections during blocked Global. The reported intermittent slowdown remains
+distinct from those tests. See [IPv4 approval results](Design/MIMO_IPV4_APPROVAL_RESULTS.md)
+and the navigation report for the subsequent GUI candidate's exact identity.
+
+Recovery after supervisor startup or runtime failure requests one fresh
+verification attempt. A successfully checked but rejected IPv4 remains blocked
+without repeating that recovery check at every infrastructure audit. Health
+monitoring continues; explicit Refresh, settings changes and genuine network
+events can request another check. Navigation does not request one.
+The installed regression covers supervisor restart, rejected-state stability,
+manual retry and Direct recovery in all four mode/family combinations. Native
+Dashboard/all-six-Settings navigation is also checked against GUI, core and
+supervisor events, with no network work during its 90-second observation. See
+the [correlated evidence and remaining limits](Design/MIMO_NAVIGATION_RESPONSIVENESS.md#installed-correction-and-event-audit--26-november).
+
 ## Runtime diagnostics
 
+Runtime event files rotate before exceeding **5 MiB** and on the first write of
+each UTC day. A utility-queue sweep runs at startup, after a diagnostics preference
+change, and every **60 seconds** (up to 5 seconds of scheduling leeway). It expires
+old logs using the shared retention preference: **7 days by default**, with the
+existing 1/7/30-day values supported. Size/count limits take precedence over age:
+the oldest managed log segments are removed until each directory is within
+**64 MiB and 128 files**. These are independent limits for `/Library/Logs/Mimo`
+and each account's `~/Library/Application Support/Mimo/Logs`.
+
+The core/supervisor executable maintains machine logs even without an open GUI;
+each GUI maintains only its own account's logs. Runtime writers and cleanup use
+a cross-process lock. The active `core.log`, `supervisor.log`, `engine.log` and
+`infrastructure.log` files retain their inode: cleanup archives a bounded recent
+tail and truncates the original, so launchd/engine output continues without a
+restart. Those external writers are not transactionally locked: output arriving
+during copy/truncate can be lost, and their size may exceed the budget between
+sweeps. The installation journal retains its separate 256-KiB cap and writer
+lock; expired contents are cleared in place. Old oversized runtime logs are
+trimmed to their newest complete lines.
+
+Disk writes are asynchronous with a 2-MiB/1,024-record pending-queue limit. Queue
+overflow/write failures and rotation/deletion counts appear as
+`mimo_log_maintenance`; `mimo_log_maintenance_failed` identifies unavailable log
+storage. Cleanup does not request an IP check or change firewall/DNS/service state.
+Only owned regular files with recognized log names are managed; unrelated files,
+symlinks and hard links are left alone. Live launch-heartbeat markers and the
+small coordination lock are excluded from the log budget; expired heartbeat
+files are removed. Stop/uninstall retains logs for diagnosis; after every Mimo
+process is stopped, no cleanup timer runs until Mimo starts again. User-created
+diagnostic exports and macOS Unified Logging remain outside this policy.
+
+Validation: [log-store tests](Tests/MimoSharedTests/MimoLogStoreTests.swift),
+[cross-process/logger/timer tests](Tests/MimoLogTests/run.sh), and
+[the implementation record](Design/MIMO_LOG_RETENTION.md).
+
+The [network-check trigger audit](Design/MIMO_EVENT_TRIGGER_AUDIT.md) separates
+required routing verification from navigation, status publication, healthy
+infrastructure scans and owned network notifications. Three observed family
+edits produced three checks plus one legitimate provider fallback; an independent
+hourly timer also fired shortly afterwards. User checks do not currently reset
+that timer. The audit reproduced duplicate pre/post-commit close commands and
+records the correction and its qualification limits.
+The approved-state repeat in mimo-vm passes native IPv4/Dual-stack switches in
+Rule and Global, plus separate 90-second Dashboard/all-six-Settings observations
+with zero lookup or gate command. The observed exit IPv4 remains allowed. Startup
+preparation and two source-audit gaps remain explicitly open in that report.
+
 Event Log includes `mimo_installation`, `mimo_pf_policy_installed`,
-`mimo_gate_closed`, `mimo_exit_ip_rejected`, `mimo_blocked_native_transport_updated`,
+`mimo_ipv4_allowlist_migrated` (removed entry count only),
+`mimo_gate_closed`, `mimo_exit_ip_rejected` (traffic family and IPv4 approval family), `mimo_blocked_native_transport_updated`,
+`mimo_recovery_verification_consumed` (pending recovery taken by a fresh attempt or cleared by Direct),
+`mimo_configuration_barrier_reused` (same edit's confirmed block retained; fresh verification still required),
 `mimo_blocked_native_transport_failed`, `manual_refresh_finished` (including `blocked`), `mimo_private_probe_ready`, `mimo_readiness_passed`,
 `mimo_traffic_opened`, `mimo_active_firewall_installed`, `mimo_native_egress_updated` (scope counts only; historically `mimo_transition_firewall_released`),
 `mimo_dns_removed_and_drained`, `mimo_direct_network_released`,
@@ -372,6 +467,24 @@ Event Log includes `mimo_installation`, `mimo_pf_policy_installed`,
 `mimo_cleanup_step` and deactivation outcomes. `lookup_http_request` records quota
 accounting without tokens; `lookup_succeeded`/`lookup_failed` record outcomes.
 Communication events distinguish disconnected GUI clients from service failure.
+Full GUI diagnostics correlate `mimo_navigation_requested`,
+`mimo_navigation_transaction`, `mimo_navigation_applied` and
+`mimo_navigation_window_updated` by navigation ID. They record the selected tab,
+Settings section, current input-event age when available, whether the content
+transaction is animated, selection-to-SwiftUI time and the subsequent AppKit
+window-update callback. A current event may be stale for programmatic navigation;
+these timestamps do not measure compositor/Screen Sharing presentation. No form
+contents, key values or mouse coordinates are recorded.
+On macOS 15 and later, navigation accepts the click that activates Mimo's window;
+the sidebar should not require a second click just to select a Settings page.
+The timeline now includes millisecond UTC time and process/check/attempt/command
+identifiers, request admission/refusal, per-family private HTTP requests and
+command replies/supersession. `provider_local_retry_requested` distinguishes an
+explicit local retry from automatic backoff; provider restrictions retain their
+deadline. Copy All includes core/supervisor source availability. Routine ignored
+Wi-Fi telemetry remains available in Copy Diagnostics. These records add no
+credentials or profile contents and retain the Diagnostics IP-redaction setting.
+`Scripts/check-refresh-log.sh` accepts both legacy and millisecond timestamps.
 
 Manual validation must inspect effective profile, DNS, routes and PF, not only the
 selected mode or launchd PID. For owned rules:
@@ -383,6 +496,6 @@ scutil --dns
 ```
 
 All newly generated packet rules have a `mimo:` context label. Active Rule/Global
-and Direct should have no owned packet rules. Stop/uninstall must also remove
+retains the native-fallback guard described above; Direct has no owned packet rules. Stop/uninstall must also remove
 historical unreferenced child anchors. Do not flush global PF or stop Tailscale to
 repair Mimo; use the cleanup procedure above.

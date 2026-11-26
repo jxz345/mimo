@@ -88,11 +88,13 @@ public struct LookupConfiguration: Sendable {
     public let provider: ProviderID
     public let ipinfoToken: String?
     public let family: MimoAddressFamily?
+    public let lookupID: UUID?
 
-    public init(provider: ProviderID, ipinfoToken: String?, family: MimoAddressFamily? = nil) {
+    public init(provider: ProviderID, ipinfoToken: String?, family: MimoAddressFamily? = nil, lookupID: UUID? = nil) {
         self.provider = provider
         self.ipinfoToken = ipinfoToken
         self.family = family
+        self.lookupID = lookupID
     }
 }
 

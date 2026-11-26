@@ -55,12 +55,11 @@ def guest_main():
         remove_token()
         settings = t.state()['settings']
         settings.update(provider='ipinfoLite', providerPool=['ipinfoLite'], refreshInterval=-1,
-                        bypassBlocks=[], allowlist={'addresses': ['203.0.113.10', '2001:db8::10']})
+                        bypassBlocks=[], allowlist={'addresses': ['203.0.113.10']})
         t.request('configure', settings=settings)
         direct()
         proxy(sys.argv[3] == 'refused')
-        addresses = {'empty': [], 'reject4': ['192.0.2.1', '2001:db8::10'],
-                     'reject6': ['203.0.113.10']}.get(sys.argv[3], ['203.0.113.10', '2001:db8::10'])
+        addresses = {'empty': [], 'reject4': ['192.0.2.1']}.get(sys.argv[3], ['203.0.113.10'])
         settings['allowlist'] = {'addresses': addresses}
         t.request('configure', settings=settings)
     elif operation in ('start', 'repair'):
@@ -68,7 +67,7 @@ def guest_main():
         if operation == 'repair':
             proxy()
             settings = t.state()['settings']
-            settings['allowlist'] = {'addresses': ['203.0.113.10', '2001:db8::10']}
+            settings['allowlist'] = {'addresses': ['203.0.113.10']}
             t.request('configure', settings=settings)
         t.route(sys.argv[3], sys.argv[4])
         assert t.state()['routing']['configuration']['mode'] != 'direct'
@@ -147,7 +146,7 @@ def host_main():
 
     try:
         for family, mode in itertools.product(('ipv4', 'dual'), ('rule', 'global')):
-            faults = ['refused', 'auth', 'provider503', 'empty', 'reject4'] + (['reject6'] if family == 'dual' else [])
+            faults = ['refused', 'auth', 'provider503', 'empty', 'reject4']
             for fault in faults:
                 label = family + '-direct-to-' + mode + '-' + fault
                 control(fault)
@@ -156,9 +155,8 @@ def host_main():
                 blocked = wait(lambda s: s['phase'] == 'blocked' and
                                (bool(s['blockingIP']) or any(k in s['status'] for k in ('failed', 'coolingDown', 'providerPaused'))))
                 assert blocked['effective'] is None and blocked['mode'] == mode
-                if fault in ('empty', 'reject4', 'reject6'):
-                    expected = {'empty': 'No exit IPs are approved', 'reject4': 'IPv4 exit IP is not approved',
-                                'reject6': 'IPv6 exit IP is not approved'}[fault]
+                if fault in ('empty', 'reject4'):
+                    expected = {'empty': 'No exit IPs are approved', 'reject4': 'IPv4 exit IP is not approved'}[fault]
                     assert expected in blocked['reason']
                 else:
                     assert blocked['lookup_error'], 'Paused failure must retain the lookup error'

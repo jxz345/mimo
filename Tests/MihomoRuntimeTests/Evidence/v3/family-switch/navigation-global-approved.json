@@ -1,0 +1,283 @@
+{
+  "mode": "global",
+  "family": "dual",
+  "verdict": "approved",
+  "started": "2026-11-26T05:42:05.197Z",
+  "finished": "2026-11-26T05:43:35.419Z",
+  "seconds": 90.0,
+  "passed": true,
+  "checks": {
+    "no_new_lookup": true,
+    "no_recovery_loop": true,
+    "no_warning_or_error": true,
+    "no_unexpected_control_or_failure_event": true,
+    "expected_verdict_and_monitor_ready": true,
+    "same_core": true,
+    "settings_unchanged": true,
+    "routing_unchanged": true,
+    "health_checks_continue": true,
+    "rejected_observation_retained": true,
+    "observed_ip_unchanged": true,
+    "both_tabs_observed": true,
+    "all_settings_sections_observed": true,
+    "every_navigation_completed": true
+  },
+  "events": [
+    {
+      "timestamp": "2026-11-26T05:42:09.643Z",
+      "event": "mimo_navigation_requested",
+      "level": "info",
+      "fields": {
+        "navigation_id": "48D91DEE-1B04-4DF2-9593-96EC4EB2EE44",
+        "tab": "Settings",
+        "section": "General"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:42:09.660Z",
+      "event": "mimo_navigation_applied",
+      "level": "info",
+      "fields": {
+        "navigation_id": "48D91DEE-1B04-4DF2-9593-96EC4EB2EE44",
+        "tab": "Settings",
+        "section": "General",
+        "duration_ms": "17"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:42:09.681Z",
+      "event": "mimo_navigation_window_updated",
+      "level": "info",
+      "fields": {
+        "navigation_id": "48D91DEE-1B04-4DF2-9593-96EC4EB2EE44",
+        "tab": "Settings",
+        "section": "General",
+        "duration_ms": "39"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:42:15.251Z",
+      "event": "mimo_navigation_requested",
+      "level": "info",
+      "fields": {
+        "navigation_id": "F90795E3-333F-4394-A820-E935F5E70443",
+        "tab": "Settings",
+        "section": "Proxy"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:42:15.284Z",
+      "event": "mimo_navigation_applied",
+      "level": "info",
+      "fields": {
+        "navigation_id": "F90795E3-333F-4394-A820-E935F5E70443",
+        "tab": "Settings",
+        "section": "Proxy",
+        "duration_ms": "33"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:42:15.319Z",
+      "event": "mimo_navigation_window_updated",
+      "level": "info",
+      "fields": {
+        "navigation_id": "F90795E3-333F-4394-A820-E935F5E70443",
+        "tab": "Settings",
+        "section": "Proxy",
+        "duration_ms": "67"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:42:15.807Z",
+      "event": "mimo_navigation_requested",
+      "level": "info",
+      "fields": {
+        "navigation_id": "C5CF8B9E-F708-4017-AF22-01056F715137",
+        "tab": "Settings",
+        "section": "Bypass"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:42:15.833Z",
+      "event": "mimo_navigation_applied",
+      "level": "info",
+      "fields": {
+        "navigation_id": "C5CF8B9E-F708-4017-AF22-01056F715137",
+        "tab": "Settings",
+        "section": "Bypass",
+        "duration_ms": "25"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:42:15.885Z",
+      "event": "mimo_navigation_window_updated",
+      "level": "info",
+      "fields": {
+        "navigation_id": "C5CF8B9E-F708-4017-AF22-01056F715137",
+        "tab": "Settings",
+        "section": "Bypass",
+        "duration_ms": "77"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:42:16.360Z",
+      "event": "mimo_navigation_requested",
+      "level": "info",
+      "fields": {
+        "navigation_id": "D4DE7D6A-F295-4654-BBE7-F5538E91FEEC",
+        "tab": "Settings",
+        "section": "Allowed IPs"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:42:16.377Z",
+      "event": "mimo_navigation_applied",
+      "level": "info",
+      "fields": {
+        "navigation_id": "D4DE7D6A-F295-4654-BBE7-F5538E91FEEC",
+        "tab": "Settings",
+        "section": "Allowed IPs",
+        "duration_ms": "17"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:42:16.388Z",
+      "event": "mimo_navigation_window_updated",
+      "level": "info",
+      "fields": {
+        "navigation_id": "D4DE7D6A-F295-4654-BBE7-F5538E91FEEC",
+        "tab": "Settings",
+        "section": "Allowed IPs",
+        "duration_ms": "27"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:42:16.902Z",
+      "event": "mimo_navigation_requested",
+      "level": "info",
+      "fields": {
+        "navigation_id": "5E376308-6623-4246-8F9A-F3AD4012CEFB",
+        "tab": "Settings",
+        "section": "Monitoring"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:42:16.930Z",
+      "event": "mimo_navigation_applied",
+      "level": "info",
+      "fields": {
+        "navigation_id": "5E376308-6623-4246-8F9A-F3AD4012CEFB",
+        "tab": "Settings",
+        "section": "Monitoring",
+        "duration_ms": "28"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:42:16.943Z",
+      "event": "mimo_navigation_window_updated",
+      "level": "info",
+      "fields": {
+        "navigation_id": "5E376308-6623-4246-8F9A-F3AD4012CEFB",
+        "tab": "Settings",
+        "section": "Monitoring",
+        "duration_ms": "42"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:42:24.768Z",
+      "event": "mimo_navigation_requested",
+      "level": "info",
+      "fields": {
+        "navigation_id": "8AD8861A-03AF-4EB2-B6AD-DAD342BF64BE",
+        "tab": "Settings",
+        "section": "General"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:42:24.788Z",
+      "event": "mimo_navigation_applied",
+      "level": "info",
+      "fields": {
+        "navigation_id": "8AD8861A-03AF-4EB2-B6AD-DAD342BF64BE",
+        "tab": "Settings",
+        "section": "General",
+        "duration_ms": "19"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:42:24.806Z",
+      "event": "mimo_navigation_window_updated",
+      "level": "info",
+      "fields": {
+        "navigation_id": "8AD8861A-03AF-4EB2-B6AD-DAD342BF64BE",
+        "tab": "Settings",
+        "section": "General",
+        "duration_ms": "38"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:42:25.312Z",
+      "event": "mimo_navigation_requested",
+      "level": "info",
+      "fields": {
+        "navigation_id": "EFF49409-BB4B-40F9-AB47-2975CC0FFAF3",
+        "tab": "Settings",
+        "section": "Maintenance"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:42:25.334Z",
+      "event": "mimo_navigation_applied",
+      "level": "info",
+      "fields": {
+        "navigation_id": "EFF49409-BB4B-40F9-AB47-2975CC0FFAF3",
+        "tab": "Settings",
+        "section": "Maintenance",
+        "duration_ms": "21"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:42:25.347Z",
+      "event": "mimo_navigation_window_updated",
+      "level": "info",
+      "fields": {
+        "navigation_id": "EFF49409-BB4B-40F9-AB47-2975CC0FFAF3",
+        "tab": "Settings",
+        "section": "Maintenance",
+        "duration_ms": "34"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:42:25.876Z",
+      "event": "mimo_navigation_requested",
+      "level": "info",
+      "fields": {
+        "navigation_id": "7DDCE815-DA6D-4B3E-ACAB-07E26DA79890",
+        "tab": "Dashboard",
+        "section": "Maintenance"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:42:25.889Z",
+      "event": "mimo_navigation_applied",
+      "level": "info",
+      "fields": {
+        "navigation_id": "7DDCE815-DA6D-4B3E-ACAB-07E26DA79890",
+        "tab": "Dashboard",
+        "section": "Maintenance",
+        "duration_ms": "12"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:42:25.908Z",
+      "event": "mimo_navigation_window_updated",
+      "level": "info",
+      "fields": {
+        "navigation_id": "7DDCE815-DA6D-4B3E-ACAB-07E26DA79890",
+        "tab": "Dashboard",
+        "section": "Maintenance",
+        "duration_ms": "32"
+      }
+    }
+  ]
+}

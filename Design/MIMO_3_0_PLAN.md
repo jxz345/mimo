@@ -1,6 +1,11 @@
 # Mimo 3.0 implementation and qualification plan
 
-Status: approved for implementation and VM qualification on 2026-11-25.
+Status: the original v3 implementation was approved on 2026-11-25. The
+2026-11-26 IPv4 approval revision was **approved for both traffic settings**.
+Implemented and installed in mimo-vm; the automated IPv4-approval matrix and
+Direct/Stop/Start checks pass. Native blocked-Global navigation completed all six
+Settings sections; the original intermittent slowdown and simultaneous two-account
+navigation remain unqualified. Publication is not part of this revision.
 
 The user approved the Delta design preview and authorized implementation, local
 installation in mimo-vm and the relevant test campaigns. GitHub publication is
@@ -10,6 +15,273 @@ This file is the complete v3 design contract. Sections 6 and 7 define the firewa
 and event workflows for implementation; earlier-version workflows are not
 incorporated by reference. Historical documents and source files provide evidence
 and refactoring context only. A material behavior change must be specified here.
+
+## Approved IPv4 approval and monitoring recovery revision — 2026-11-26
+
+**Recovery-loop correction:** a correlated installed trace found repeated
+`infrastructure_recovered` events before the reported Dashboard clicks. The
+supervisor's startup recovery flag remained armed until an exit was approved;
+a healthy but rejected observation therefore retriggered verification on every
+healthy infrastructure scan. The new 35-second installed regression failed on
+the unchanged candidate before production edits. A valid protected `prepare`
+now consumes that recovery request before asynchronous work starts. An explicit
+Direct command also clears it. New runtime/liveness failures independently rearm
+recovery; policy rejection alone does not. Manual retry and real settings/network
+changes retain their normal verification behavior. The installed four-cell
+restart/denial/retry/Direct matrix passed, with 35 seconds of stable rejection in
+each cell. A separate 90-second native Dashboard/all-six-Settings audit passed
+with no new verification or configuration change. Full event reconciliation
+found one recovery request per injected restart and no continuing loop. Bounded
+startup heartbeat failures and their misleading conflict wording are recorded
+explicitly in the [results](MIMO_NAVIGATION_RESPONSIVENESS.md#installed-correction-and-event-audit--26-november).
+This does not by itself close the visible Screen Sharing latency report.
+
+**Settings → Dashboard delay follow-up:** the user confirms a directional delay
+in mimo-vm. Keep this open separately from the inactive-window first-click fix.
+Measure current-event age, content transaction animation, applied selection and
+the next AppKit window-update callback before changing navigation behavior.
+Separate direction-specific results from pooled timing; neither an offscreen
+render test nor a window-update callback qualifies final visible latency. See
+the [navigation investigation](MIMO_NAVIGATION_RESPONSIVENESS.md).
+
+The subsequent Screen Sharing check found a Standard connection over the local
+VM network. Five native transitions reached AppKit window-update callbacks in
+30–41 ms; a temporary Full Quality comparison did not reproduce the directional
+delay, and Adaptive Quality was restored. Screenshot observation waits prevent
+using those captures as precise remote-display latency measurements. Screen
+Sharing remains a possible cause, pending a same-session local-console comparison;
+no additional navigation behavior was changed on this evidence.
+
+**Navigation follow-up:** the user reported sluggish Dashboard/Settings switches
+again after this revision. The [navigation investigation](MIMO_NAVIGATION_RESPONSIVENESS.md)
+records two new red tests before functional edits: excessive menu updates and
+unchanged fallback-preference writes. The local candidate coalesces native menu
+updates, skips unchanged label layout and persists fallback data only on change.
+This applies equally to Direct, Rule and Global; core ownership, drafts and
+provider behavior remain unchanged. The installed GUI completed all six Settings
+sections under failed-state status delivery, with 11–38 ms selection-to-view
+updates; the VM retained-window test completed 36 switches below 89 ms. Do not infer that these
+optimizations resolve an intermittent multi-second hang merely from passing
+render timing tests; retain the affected-Mac/two-account qualification limits.
+
+**First-click clarification:** reproduce activation separately from rendering.
+The installed sidebar consumed the first click when Mimo was inactive; the
+second click selected its page. Sidebar rows now use explicit navigation buttons
+with window-activation events on supported macOS; applying the modifier to List
+alone failed the live retest. Preserve unrelated routing/service controls. Qualification
+must include one click from another active app, one click while Mimo is already
+active, and a sidebar selection after editing a field. Do not substitute direct
+model mutation or selection-to-render timing for these mouse-input checks.
+The installed candidate passed inactive-window General/Monitoring/Settings
+clicks, navigation from a focused field, draft retention and sidebar arrow keys.
+The reproduced inactive-window failure is closed in mimo-vm. macOS 14, the
+affected physical Mac and simultaneous-account navigation remain unqualified.
+
+**Approval:** the user approved implementation after review, explicitly covering
+strict IPv4 and Dual-stack. A new combined scheduler/coordinator regression failed
+on the unchanged code before production edits; `.build/ipv4-approval-red2.log`
+records the failure. The installed candidate is qualified separately below.
+This section supersedes the earlier paired IPv4/IPv6 approval design. Existing
+qualification records remain historical evidence, not passes for this proposal.
+
+### Problems established and remaining uncertainty
+
+1. **Traffic-family selection incorrectly determines approval-family selection.**
+   Current Dual-stack checks IPv4 and then IPv6, requiring both results before
+   sending an approval receipt. In the reported VM sequence all three enabled
+   providers returned IPv4 successfully, followed by an IPv6 failure. Core then
+   paused each provider and eventually exhausted the pool. The IPv4 allowlist
+   decision was never reached in those attempts.
+2. **The configured proxy cannot reach the tested IPv6 destinations.** Independent
+   SOCKS5 requests from the VM, while Direct released Mimo's gate, returned IPv4
+   results from IPWHOIS and ipapi.is. IPv6 attempts to ipapi.co, IPWHOIS, IPinfo's
+   v6 endpoint and api6.ipify.org all received SOCKS reply 4 (host unreachable).
+   This establishes failure for those tested destinations, not a claim about
+   every possible IPv6 destination. The proxy's IPv4 listening address itself is
+   not the problem: SOCKS5 can carry IPv6 destinations over an IPv4 connection.
+3. **Provider API support and provider transport support are different.** The
+   public DNS query for `api.ipapi.is` returned no AAAA record. Its ability to
+   accept an IPv6 address as a lookup argument does not mean it can measure an
+   IPv6 exit through a forced IPv6 connection. ipapi.co also returned HTTP 429
+   during the independent comparison; genuine provider limits remain separate.
+4. **Successful observations disappear on a later failure.** Core waits for the
+   full paired operation before publishing the address. An IPv6 error discards
+   the successful IPv4 result from the dashboard. A subsequent failed request
+   can also leave the address blank despite an earlier known exit. Current
+   feedback does not distinguish an unapproved address from no returned address.
+5. **Paused providers are easily confused with stopped infrastructure.** During
+   the captured failure, core, engine and profile hosting remained running; PF
+   and launchd checks were current. The provider rows were paused. These records
+   do not prove an event deadlock. Successful lookup, allowlist decision, provider
+   backoff and daemon communication must be presented separately.
+6. **The reported intermittent navigation stall remains unqualified.** Native
+   click-through in blocked Global completed Dashboard and all six Settings
+   sections. The navigation follow-up removed redundant GUI work and added
+   timing diagnostics. No multi-second stall was reproduced. Physical-Mac and
+   simultaneous two-account checks remain outstanding; do not mark the original
+   report fixed merely from passing rendering tests or changing approval policy.
+
+Private reproduction material is under `.build/direct-global-build11-report/`:
+initial state/logs, public provider DNS results, redacted transport outcomes and
+GUI sample. Raw guest responses remain owner-only. No credentials or real exit
+addresses belong in committed evidence. The unchanged core also failed a new
+regression expecting IPv4-only Dual-stack approval: its successful IPv4 lookup
+was followed by the deliberately failing IPv6 lookup. Preliminary test/source
+edits were removed when implementation was paused; the failure log is retained.
+
+### Required behavior
+
+| Situation | Gate and monitoring behavior | User-visible result |
+| --- | --- | --- |
+| Rule or Global, either traffic family, fresh IPv4 is allowed | Finish existing runtime/readiness checks, then open. Provider healthy; no failure pause. | Actual IPv4, timestamp and provider; “IPv4 exit approved”. |
+| Fresh IPv4 is not allowed, including an empty list | Keep application traffic blocked. The provider request succeeded: no provider failure or cooldown. Keep monitoring and recovery controls available. | The rejected IPv4 remains visible with “Not allowed” and an Allowed IPs action. |
+| No address returned because of connection/provider failure | Keep protected traffic blocked; record the real request error and bounded retry policy. A manual retry may release eligible local backoff, preserving actual provider restrictions. | Show last known exit with its timestamp and “Last known · check failed”; if none exists, “No address received”. Never invent a failed address. |
+| IPv6 destination unavailable while IPv4 checking works | No IPv6 approval request is made, so it cannot pause a healthy IPv4 checker or block approval. | No IPv6 allowlist or IPv6 approval badge. Dual-stack describes traffic routing, not verified IPv6 connectivity. |
+| Provider returns 429 / Retry-After, authentication refusal or quota exhausted | Respect the provider restriction; try another eligible provider without repeatedly closing/reopening. | Explain the restriction/deadline, separately from daemon health and IP rejection. |
+| User selects Direct | Restore native networking independently of provider state; no exit approval required. Preserve the existing distinction between Direct with engine and Stop/released Direct. | Direct remains available throughout failure and recovery. |
+
+A healthy response and a policy rejection are independent. A completed usable IP
+response must not be reclassified as provider failure because that IP is unapproved
+or because an unrelated family/connection fails. IPv6 verification is removed from
+this workflow entirely; monitoring eligibility follows the required IPv4 request.
+Actual failed requests may use bounded automatic backoff. Success clears only the
+applicable local failure state, never a separate server-mandated restriction.
+
+**One IPv4 allowlist:** Rule and Global use the same list in strict IPv4 and
+Dual-stack. Remove IPv6 entries during a core-owned migration; preserve all IPv4
+entries, proxy secrets and unrelated preferences. An old IPv6-only list becomes
+empty and visibly blocks until the user adds an IPv4 exit. Settings and daemon
+validation accept IPv4 entries only. Migration logs a count, not private addresses.
+
+**Traffic policy stays distinct:** strict IPv4 still captures/rejects public IPv6;
+Dual-stack still routes public IPv4/IPv6 through the selected proxy. The existing
+capture, DNS, ICMP and native-fallback firewall protections remain in force. IPv4
+approval does not prove the proxy supports IPv6 or establish its IPv6 exit address.
+An unsupported IPv6 connection may fail while IPv4 works; it must never fall back
+to native public egress. No automatic downgrade to Direct or IPv4 traffic mode.
+
+### Approved implementation sequence
+
+1. Restore the failing regression as the first test, using the real scheduler and
+   coordinator. Cover Direct→Rule and Direct→Global, both traffic-family settings,
+   with successful IPv4 and deliberately unavailable IPv6. Assert one required
+   IPv4 provider request, no IPv6 probe, correct allowlist decision and no provider
+   cooldown for successful/rejected results. Preserve pre-fix failure evidence.
+2. Change coordinator and supervisor approval together. Every receipt contains a
+   fresh IPv4 observation tied to the current attempt, revision, proxy and network
+   generation. Preserve readiness, cancellation and stale-command fences. Country
+   metadata and cached observations never authorize access. Remove paired-family
+   approval requirements and obsolete IPv6 verification state/claims; retain only
+   decoding/migration compatibility actually needed for older stored state.
+3. Migrate and enforce the IPv4-only allowlist in core. Keep machine-wide ownership
+   and multi-user serialization. Log migration and distinguish policy rejection
+   from transport/provider failure. Count actual HTTP requests, not selected
+   traffic families. Confirm explicit Refresh and settings repair still work in
+   the same blocked session without resetting credentials, clocks or processes.
+4. Publish the returned IPv4 before slower approval/readiness completes. Keep the
+   rejected address visible across status polls. Maintain separate display-only
+   history for requests that return no address, with timestamp, provider and proxy
+   context. Never label history as current/approved; clear or explicitly identify
+   previous-proxy history after a proxy change. No stale result may open the gate.
+5. Update dashboard, menu status, Allowed IPs and Monitoring. Explain IPv4-only
+   approval in Dual-stack; remove “both exits approved” and IPv6 allowlist inputs.
+   Show provider reachability/retry state separately from service health. Keep
+   family-routing controls and fixed layout. Measure Monitoring-tab latency during
+   failure/rotation; investigate and fix any reproduced main-thread/XPC stall.
+6. Update README, event workflows, this plan, profile annotations where relevant
+   and the dual-stack test plan. Clearly mark earlier paired-approval qualification
+   as historical. Preserve traffic/leakage tests: changed approval expectations
+   must not weaken their packet-level assertions.
+7. Build a local candidate only after the regression and shared/service/app tests
+   pass. Install it in `mimo-vm` and execute the acceptance matrix below. Report
+   actual results and remaining limits before any new release claim. Local build/install/testing are authorized; a new public release is not.
+
+### Acceptance and evidence
+
+Run all four base combinations: Rule/IPv4, Global/IPv4, Rule/Dual-stack and
+Global/Dual-stack. Start each transition case in Direct; also repeat fault/recovery
+from an already active protected session.
+
+- Allowed IPv4: one fresh required HTTP request, no IPv6 lookup, active gate,
+  healthy provider, fresh dashboard result. In Dual-stack, independently refuse
+  proxy IPv6 while IPv4 approval still succeeds; also test a provider without AAAA.
+- Disallowed IPv4 and empty list: stable block, actual rejected IPv4 visible,
+  provider healthy/unpaused, no event loop, bounded RPC response. Explicit Refresh
+  obtains a new result; allowlist-only repair reopens after fresh verification.
+- Proxy down, timeout and authentication failure: correct error classification,
+  no invented fresh IP; last known address clearly timestamped where available.
+  Repair transient failure and Refresh without Direct, restart, token/store/clock
+  resets. Old results and late replies cannot authorize the recovered session.
+- Real provider restriction: 429/Retry-After and exhausted quota stay enforced.
+  Other eligible providers can work; a valid response outside the allowlist does
+  not create a failure cooldown. Provider rows never imply all daemons stopped.
+- Recovery controls: Direct works in every failure state; SSH/Screen Sharing replies
+  remain reachable. Stop/Activate behavior and both Direct engine states regress.
+- Migration: mixed/IPv6-only lists, restart persistence, malformed additions,
+  retained IPv4 entries/secrets and consistent state across two GUI accounts.
+- Native UI: rejected, never-observed and last-known addresses; copy action,
+  country flag where a matching observation exists, stable layout, clear reasons
+  and responsive Monitoring navigation during failures and provider rotation.
+- Leakage regression: captured public IPv6 stays proxied or fails locally;
+  verify no native fallback with proxy IPv6 refusal in both Rule and Global.
+  Existing active/transition guard, DNS and incoming-service checks remain.
+
+Record the installed binary hash, mode, traffic family, approval family, request
+count, provider status, cooldown classification, receipt/revision IDs, displayed
+address freshness and recovery timing. Correlate lookup→gate→decision events;
+respect IP redaction and never include credentials. A test that merely observes
+“blocked” is insufficient: it must verify explanation, provider health, usable
+recovery controls and the absence of repeated event cycles.
+
+### Implementation and qualification progress — IPv4 approval revision
+
+The combined scheduler/coordinator regression was recorded red before production
+changes (`.build/ipv4-approval-red2.log`): Direct→Rule/Dual requested IPv6 after
+IPv4 success and paused its healthy provider. The revised case now passes all
+four mode/family combinations. Shared tests currently pass **226 cases**; app
+and service suites pass, including 60 exception/recovery simulations and four
+pending-lookup Direct cancellations. No traffic-family/PF policy was relaxed.
+
+Core and supervisor now require one fresh IPv4 receipt. Core publishes a returned
+address before readiness finishes and maintains separate, proxy-scoped display
+history. The GUI labels failed-request history and replaces the IPv6 exit row
+with traffic policy. Core migrates legacy IPv6 allowlist entries atomically;
+settings/XPC validation reject new ones. Installed migration preserved the other
+settings and credential digests and emitted one count-only event. Historical
+paired-approval results do not qualify this revision.
+
+Installed acceptance passed all four cells: Rule/IPv4, Global/IPv4, Rule/Dual and
+Global/Dual. Each made 14 IPv4 provider requests and zero IPv6 provider requests;
+all 12 explicit rejected-state refreshes obtained fresh results without pausing
+the healthy provider. All four allowlist-only repairs opened after fresh IPv4
+verification. Sixteen active failure/recovery cases passed (proxy down,
+authentication, timeout and HTTP 503); four real 429/Retry-After cases retained
+their restriction. Proxy-down repair took 7.116–11.984 seconds, with unchanged
+mode, core instance and credential. Incoming SSH and Screen Sharing remained
+reachable. IPv4 application traffic worked; strict IPv4 sent no IPv6 request to
+the proxy, Dual-stack attempted IPv6 through it, and all four captures recorded
+zero native IPv6 packets when the proxy refused/dropped IPv6.
+
+All 22 Direct/Stop/Start assertions passed: managed Direct retained its engine;
+full Stop removed owned PF/DNS/TUN and services; Activate restored all services,
+native release checks passed, and settings/credentials survived. The guest's
+original configuration was restored after each campaign. Migration was checked
+on the installed app, with mixed/IPv6-only lists also covered by shared tests.
+
+Native last-known light/dark renders passed visual review. Actual Direct→Monitoring
+navigation completed in 616 ms, but this is not the reported failed-state case.
+Later live Global/Dual inspection was unavailable because the computer-use tool
+could not access Delta's window. Five blocked-state RPC samples took 183–204 ms;
+core, engine and profile hosting remained running, with healthy PF/launchd. This
+does not establish that the reported slow tab or every multi-user hang is fixed.
+
+The candidate is unpublished **3.0 build 11**, installed core SHA256
+`fff99947b06a44095736bc1f212aef37e81860db7568a90e6bcb0f671fc1bb30`.
+See [the complete result record](MIMO_IPV4_APPROVAL_RESULTS.md) and
+[sanitized evidence](../Tests/MihomoRuntimeTests/Evidence/v3/ipv4-approval/summary.json).
+Hashes distinguish it from earlier unpublished build-11 binaries; no published
+build identity was reused. Historical broad traffic/fault campaigns were not
+rerun or counted as new passes.
 
 ## Approved containment revision — 2026-11-25
 
@@ -127,7 +399,7 @@ conflict handling. Introduce two shared network settings, IPv4 and Dual-stack.
 | Setting or action | Required behavior |
 | --- | --- |
 | IPv4, the migration default | IPv4-only for traffic managed by Mimo in both Rule and Global. Reject captured IPv6 literals, NAT64 destinations and proxy-side IPv6 hostname connections. Preserve explicitly native LAN/Tailnet exceptions. Do not disable IPv6 on macOS network services. |
-| Dual-stack | Capture public IPv4 and IPv6; proxy both. Require fresh, explicitly allowlisted exits for both families before opening protected access. If either family cannot be verified, remain blocked; do not silently downgrade. |
+| Dual-stack | Capture public IPv4 and IPv6; proxy both. Require one fresh, explicitly allowlisted IPv4 exit before opening protected access. IPv6 destinations remain proxied, with no separate IPv6 check/list and no native fallback; see the approved 2026-11-26 revision. |
 | Rule | Apply enabled user domain-bypass blocks, subject to the selected family policy. Unmatched public traffic uses the selected proxy; unsupported traffic fails closed. |
 | Global | Use the selected proxy for captured public traffic. Ordinary Rule bypass blocks do not apply. Family restrictions, private-probe access restrictions and ping blocking still apply. |
 | Direct | Release Mimo routing and owned DNS. The system and other VPNs determine native connectivity. Save the family choice for the next protected activation. |
@@ -292,29 +564,28 @@ a family change invalidates the whole verification attempt. Bump the daemon wire
 protocol from 7 to 8, and make incompatible GUI/core pairs request reconnection or
 upgrade rather than misinterpret missing fields.
 
-Represent observed exit state per family: address, check time, provider, result
-and approval status. A verification receipt binds both observations to the same
-attempt, settings revision, selected proxy, profile hash and network generation.
-IPv4 opens only with an approved IPv4 observation. Dual-stack opens only after
-both fresh observations are approved. Country metadata never grants approval.
-Do not reuse an IPv4 observation from a prior generation with a new IPv6 result.
+Implemented revision: represent the fresh IPv4 exit, its timestamp/provider and the
+approval decision independently of the traffic-family selection. The receipt is
+bound to the current attempt, revision, selected proxy and network generation.
+Both traffic modes require only a fresh approved IPv4 exit. Display-only history
+must be explicitly stale and cannot authorize access. Country metadata never
+supplies approval. See the approved 2026-11-26 revision and its qualification limits.
 
-Request a real family-specific HTTPS connection through the restricted proxy
-probe. Do not infer the exit family from the DNS record or the proxy's outer IPv4
-address. Keep the provider pool and quotas, count actual requests, and skip a
-provider that cannot serve the requested family. IPinfo provides explicit
-`v4.api.ipinfo.io/lite/me` and `v6.api.ipinfo.io/lite/me` endpoints; extend the
-exact-host credential allowlist if used. Token transmission remains limited to
+Request a real IPv4 HTTPS connection through the restricted proxy probe in both
+traffic modes. Keep the provider pool and quotas and count actual requests. Do
+not request an IPv6 exit, maintain IPv6 approval entries or pause a successful
+IPv4 provider for an IPv6 failure. IPinfo uses its fixed v4 endpoint for protected
+approval. Token transmission remains limited to
 the selected provider's authenticated request, never URLs, diagnostics or the site.
 
 Reference: https://ipinfo.io/developers/lite-api
 
 Protected activation and changes always require the complete applicable receipt.
-Disable optimistic opening for the initial v3 qualification rather than opening
-after IPv4 while IPv6 is pending. Retain one serialized cycle with coalesced
-external events; discard stale results. A proxy without IPv6 produces an explicit
-IPv6 verification failure in Dual-stack and remains blocked. IPv4 still works
-when deliberately selected and approved.
+No optimistic opening is permitted: the fresh IPv4 receipt and full runtime
+readiness must both pass. Retain one serialized cycle with coalesced external
+events; discard stale results. A proxy without IPv6 can still pass IPv4 approval
+in Dual-stack. Its unsupported IPv6 application connections fail without native
+fallback and do not pause the working IPv4 checker.
 
 Keep monitoring defaults of one hour, Never, ten-minute unavailable-provider
 cooldown, manual refresh and monitoring-only Direct. Never disables periodic
@@ -334,18 +605,25 @@ protected-family promise.
 - Put traffic policy, public ping/ping6 behavior and DNS policy details in
 Settings → General. Keep uninstall instructions and the copyable Homebrew
 command on the dashboard, including the Stop → cleanup → quit → delete path.
-- Keep connection, address and proxy information in the left column with clear
-spacing between sections. Distribute the connection, monitoring and routing
-groups through the card; Proxy configuration and Bypass sit near the bottom
-with a normal bottom inset, rather than leaving unused space below them. Align
+- Keep connection, address and proxy information in the left column with compact
+16-point minimum section gaps. Following the 26 November layout refinement, both
+cards share the taller card's content height, aligning their bottom edges without
+stretching to the viewport. Distribute the left column's remaining height around
+Monitoring; keep Proxy configuration and Bypass at the normal bottom inset.
+Reserve 160 points for the right column's changing status,
+including failure details and recovery actions, so service rows stay in place
+across approved, checking, blocked and communication states. Align
 both columns to common 16 px horizontal insets. Place Stop/Activate beneath the services in the right
 column, above uninstall instructions. Keep “Show menu-bar app at login” in
 Settings → General only.
-Use one compact row height for both infrastructure and service rows (48 px in
-the desktop preview; the narrow layout reserves equal extra space for controls).
-Fit service names/buttons and endpoint text into separate 22 px and 16 px tracks,
-with consistent 4 px vertical row padding. Right-column sections use 12 px
-vertical and 16 px horizontal insets; supporting text must not exceed its track.
+Use one compact 40-point row height for both infrastructure and service rows.
+Keep endpoint text below names/buttons with consistent row alignment. The status
+and Stop sections use 12-point vertical insets, uninstall uses 10, and all use
+16-point horizontal insets. Supporting text must not exceed its track. Keep the
+1040×640 default window to remove the unused bottom area; trim older standard-width
+frames while retaining their top edge and custom widths. Explicit window minimums,
+not the hidden Settings tree, own sizing. Shorter windows scroll content without hiding the toolbar
+or footer. This is a presentation refinement, not a new verification trigger.
 - Use a consistent dashboard type scale: 14 px labels, service status
 and section headings (weight distinguishes headings); 12 px secondary metadata;
 13 px right-column action buttons; 16 px for both IP address families and the main access-status heading. Retain
@@ -362,8 +640,9 @@ brief checkmark feedback after successful copying; respect reduced motion
 and do not report success when clipboard access fails.
 - Keep the shared proxy list, active selection or None, local credential storage,
 Rule bypass editor, distinct Proxy/Bypass icons and all prior editing behavior.
-- Accept IPv6 allowlist entries with canonical equality; adding one is explicit,
-never an automatic outcome of selecting Dual-stack.
+- Proposed revision: accept IPv4 allowlist entries only; core migrates old IPv6
+entries out while preserving IPv4 entries. Selecting Dual-stack does not add any
+address or require an IPv6 approval entry.
 - Remove Tailscale-specific service/status controls. Keep equal service rows and
 `Healthy(n secs)` timestamps; communication loss means unconfirmed status, not
 a fabricated stopped daemon or healthy firewall.
@@ -488,6 +767,18 @@ pending-lookup Direct cancellation cases and 22 installed exception/repair rows.
 Installed state queries took at most 1.597 seconds; explicit Direct restored
 native IPv4/IPv6 HTTP in 9.903–12.492 seconds. Those measured bounds and the short
 settled-state observations are evidence, not a guarantee against every OS hang.
+**Reopened:** these installed repairs changed the fixture token after Direct,
+clearing cooldown. They did not qualify same-blocked-session repair. Build 10
+fails that regression; the candidate and new diagnostic contract are recorded in
+[`MIMO_BLOCKED_VERIFICATION_RECOVERY.md`](MIMO_BLOCKED_VERIFICATION_RECOVERY.md).
+Require one coordinator-owned failure close, epoch-fenced scheduler notices,
+explicit retry of local/transient backoff, and unchanged enforcement of genuine
+provider restrictions. Link every HTTP/command outcome to the check/attempt in
+logs, retaining source availability and secret/IP redaction.
+Unpublished build 11 now passes the installed same-session regression in all four
+Rule/Global × IPv4/dual-stack combinations, with real HTTP 429/Retry-After still
+enforced and one correlated close per injected transport failure. The user's
+original first private HTTP failure trigger is still unproven.
 Final cleanup/release must not globally flush states, disable PF, flush foreign
 rules or release another owner's enable reference.
 
@@ -602,7 +893,7 @@ follow section 6.2; a saved marker is not live enforcement evidence.
 | ID / trigger | Protected Rule/Global | Direct / full deactivation |
 | --- | --- | --- |
 | V01 Boot, core/supervisor restart | Inspect durable intent; close before protected setup, honor service Stop/maintenance, restore intended roles and verify a new receipt. Supervisor restart also invalidates approval. | Managed Direct restores without approval. Completed deactivation leaves jobs absent; interrupted release resumes cleanup before activation. |
-| V02 Mode, active proxy or family change | Validate candidate, admit revision, close and run section 7.5. IPv4 requires fresh approved IPv4; Dual-stack requires both fresh approved families from this attempt. | Save proxy/family without activation. Selecting None/removing the active proxy restores Direct. No selected proxy permits Direct only. |
+| V02 Mode, active proxy or family change | Validate candidate, admit revision, close and run section 7.5. Both traffic-family settings require one fresh approved IPv4 from this attempt (approved 2026-11-26 revision). | Save proxy/family without activation. Selecting None/removing the active proxy restores Direct. No selected proxy permits Direct only. |
 | V03 Bypass Apply | Rule validates and reloads under a fresh cycle; Global saves blocks for later Rule use without reload. Invalid drafts cause no mutation. | Save only while core is active. Full deactivation cannot create a second machine-settings owner. |
 | V04 Inactive proxy CRUD, drafts, display/login preferences, refresh interval | Persist or display only; no unrelated profile reload, lookup or close. Editing the active proxy is V02. | Same admission rules; no protection cycle. Released refresh preferences are isolated to that monitor. |
 | V05 Allowlist, verification-provider selection or active provider credential | Invalidate the affected receipt and verify with the new revision. Removing an approved address cannot leave the old receipt effective. Country metadata never grants approval. | Observe under updated preferences when relevant, with no native-traffic gate. Machine credentials remain unavailable to released monitoring. |
@@ -659,9 +950,15 @@ proxy, protected mode/family, allowlist and verification credentials invalidate
 approval. Validate domain blocks and credentials without logging their contents.
 A bad draft or revision conflict does not modify routing or persisted settings.
 
-After admission, commit the desired revision and operation state, fence the old
-receipt and request closure for an affected protected configuration. Only a
-confirmed close allows profile/service mutation. Runtime failure after persistence
+After admission, fence the old receipt and confirm closure before committing an
+affected protected configuration. Commit may reuse that pre-commit acknowledgement
+only within the same in-flight edit, with unchanged network/transition generations
+and a still-blocked state. Otherwise close again. Clear the reusable barrier when
+the edit finishes; never reuse a failed or superseded reply. Preparation and fresh
+IPv4 verification remain mandatory for effective protected family changes. Emit
+`mimo_configuration_barrier_reused` when omitting the duplicate standalone close.
+Direct family selection is save-only. Only a confirmed close allows profile/service
+mutation. Runtime failure after persistence
 retains the desired revision but reports its failed application; it must not claim
 that the old profile satisfies the new settings or silently roll back credentials.
 
@@ -671,6 +968,12 @@ outputs are used and discard results from obsolete generations. Manual refreshes
 join an already applicable check; unrelated settings cannot be merged into an
 already-approved receipt. External changes mark the cycle dirty and schedule a
 coalesced follow-up, not simultaneous profile reloads.
+
+The [26 November event audit](MIMO_EVENT_TRIGGER_AUDIT.md) identifies non-trigger
+classes and preserves the failing-before-fix duplicate-close trace. Provider
+fallback after a real failure is not an extra user event. The current hourly
+timer retains its scheduled cadence after user checks, so it can legitimately
+fire shortly afterwards; changing that cadence is outside this correction.
 
 Direct/Stop invalidates protected work first. Cancellation cleans temporary
 credentials/artifacts and settles only that generation's tickets/holds. It cannot
@@ -684,13 +987,13 @@ cancels GUI requests, not shared operations.
 2. Load and confirm Closed, including rule/reachability readback and existing-state revocation. A failed stage is unconfirmed and aborts dependent mutation. End old engine connections before permitting private verification transport.
 3. If the selected proxy needs hostname bootstrap, unregister Mimo's resolver and drain/cancel queued DNS while the previous TUN/listener is alive, then retire that TUN under the guard. Grant only the fixed encrypted bootstrap transport, resolve the proxy's literal IPv4 address, revoke bootstrap and install the exact proxy grant. Literal proxies skip bootstrap.
 4. Load the exact final family/mode profile once. Engine-owned macOS DNS registration is disabled; core/supervisor publishes the protected resolver with native scopes/search domains preserved. Verify binary capabilities, process/profile identity, controller, listener ownership and complete IPv4/IPv6 capture including NAT64. Strict IPv4 still captures IPv6 in order to reject it.
-5. Keep ordinary listeners/TUN traffic closed. Permit authenticated family-specific provider HTTPS through the restricted private listener; its ACL executes before actual Global dispatch. Run IPv4 verification, and IPv6 verification for Dual-stack, with credential-host and quota constraints. Proxy outer address family does not prove exit family.
-6. Join full critical readiness and all required fresh allowlist results from this attempt. Recheck revision, proxy/family, process/profile identity, network/session epochs, active holds and unresolved classifications. A missing/mismatched family, failure, timeout or pending event cannot open. No warm optimistic exception exists.
+5. Keep ordinary listeners/TUN traffic closed. Permit authenticated IPv4 provider HTTPS through the restricted private listener; its ACL executes before actual Global dispatch. Run one required IPv4 verification in both traffic settings, with credential-host and quota constraints. No IPv6 approval request is made. Proxy outer address family does not prove application connectivity.
+6. Join full critical readiness and the fresh allowlisted IPv4 result from this attempt. Recheck revision, proxy/traffic family, process/profile identity, network/session epochs, active holds and unresolved classifications. A missing/stale IPv4 receipt, failure, timeout or pending event cannot open. No warm optimistic exception exists.
 7. Under the shared PF protocol, satisfy only this operation's holds and install the prepared active guard if nothing newer supersedes it. Confirm live readback, then publish the receipt and Active state. No profile reload occurs after approval. Subsequent audits detect drift and can revoke, but never substitute for the pre-open checks.
 
 The family restriction is part of readiness: IPv4 rejects public IPv6/NAT64
 literals and pins hostname outbounds to resolved IPv4 addresses; Dual-stack allows
-proxied IPv6 only after both exits are approved. Unsupported proxy UDP rejects,
+proxied IPv6 after the IPv4 exit is approved; no IPv6 exit allowlist is maintained. Unsupported proxy UDP rejects,
 not DIRECT. Captured ping/ping6 is silently dropped in both modes. Prove these
 capabilities in engine tests; a successful exit lookup alone does not prove them.
 
@@ -747,18 +1050,18 @@ refresh, not manual requests or mandatory protected startup/event/fault checks.
 Direct observes without approval; ordinary network/session events alone do not
 schedule managed Direct lookups. Released monitoring can follow native VPN changes.
 
-A provider unavailable for a requested family is skipped or paused for ten minutes,
+A provider whose required IPv4 request fails is skipped or paused for ten minutes,
 or longer when Retry-After requires it; try another eligible provider within the
 operation deadline. Keep per-machine budgets across restarts/accounts. No eligible
-provider for a required family leaves protected access closed. Service, profile,
+provider for IPv4 approval leaves protected access closed. Service, profile,
 DNS-readiness and PF faults are their own errors, not provider cooldowns. Count
-actual requests, and never merge an old IPv4 result with a new IPv6 attempt.
+actual requests; display history cannot replace the current attempt's IPv4 result.
 
 | Timer / bound | Initial v3 contract | Expiry or failure |
 | --- | --- | --- |
 | Periodic exit refresh | One hour by default; Never is available. | Admitted work follows section 7.5 in protected mode; Direct stays native. |
-| Provider local cooldown | Ten minutes, extended by longer Retry-After. | Retry only eligible providers within machine quotas. |
-| Managed lookup operation | Bounded overall deadline, initially 60 seconds, including required family observations and provider attempts. | Cancel/fence late work; required-family failure cannot open. |
+| Provider local cooldown | Ten minutes for automatic retries; longer Retry-After remains binding. | An explicit repair/Retry may retry one local/transient failure. Never bypass provider restrictions or machine quotas; no automatic loop. |
+| Managed lookup operation | Bounded overall deadline, initially 60 seconds, including required IPv4 observation and provider attempts. | Cancel/fence late work; missing IPv4 approval cannot open. |
 | Core liveness / supervisor watchdog | Separate authenticated pulse and watchdog at one-second intervals; expire a lease after five seconds without a valid pulse. | Protected close/recovery; liveness is not exit approval. |
 | Independent infrastructure inspection | Ten-second cadence; stored health older than 35 seconds is stale. | Read actual policy/jobs; close/repair only as permitted by durable intent. |
 | Console/session sampling | 500 ms; bounded separate display work, with stale responses discarded. | Unknown relevant observation invalidates protected approval without blocking loginwindow on the query. |
@@ -856,7 +1159,7 @@ sequences and policies in this plan take precedence over older implementations.
 
 | V3 contract | Refactoring locations | Required qualification |
 | --- | --- | --- |
-| Shared admission, settings and family receipt | `DaemonService`, `MimoCoordinator`, `MimoCommandFence`, `MimoLookupSession`, shared routing/storage models | Concurrent edits, expected revisions, paired observations, late-result rejection, quotas and Never/manual results. |
+| Shared admission, settings and family receipt | `DaemonService`, `MimoCoordinator`, `MimoCommandFence`, `MimoLookupSession`, shared routing/storage models | Concurrent edits, expected revisions, fresh IPv4 approval, late-result rejection, quotas and Never/manual results (approved revision). |
 | Flat PF and independent holds | `MimoFirewallPolicy`, `MimoSystemRuntime`, `MimoPowerGuard`, `Sources/MimoDaemon/pf-guard.pl` | Parsed/live rule order, state revocation, wrong-owner probe denial, independent close versus stale open, partial failures, disabled PF and foreign-rule preservation. |
 | Network/power/session faults | `MimoNetworkObserver`, `MimoSupervisor`, readiness/session observers | Mixed batches, exact owned recognition, events during follow-up, all eight core/supervisor/engine presence combinations from closed and active states, hung processes and physical login/sleep. |
 | Native DNS and strict family capture | `MimoDNSConfiguration`, `MimoProtectedDNS`, `MihomoProfile`, pinned engine patches | All prior short-name failures, custom split DNS, IPv4 destination pinning, actual Rule/Global, proxy failures, NAT64, silent echo drops and native exceptions. |
@@ -876,7 +1179,7 @@ capability checks; cover migration and concurrent GUI edits before UI wiring.
 IPv4, dual-stack, private probes and ping behavior in isolated VM fixtures.
 3. Implement core-owned DNS corrections, remove the provider, and replace the PF
 hierarchy with the flat policies and shared mutation protocol. Unify guarded
-release/recovery; add generation-safe paired verification and diagnostics.
+release/recovery; use generation-safe IPv4 verification and diagnostics in both traffic modes.
 4. Implement the approved native UI, snapshot/menu/widget states and shared
 settings commands. Keep product copy free of internal implementation details.
 5. Update installer, dependency manifests and legacy cleanup. Install a local
@@ -900,8 +1203,9 @@ for strict IPv4, actual Global restrictions and bare-name DNS. Preserve the old
 results as the baseline. Expected denial is not counted as successful connectivity.
 
 Repeat all applicable transport, DNS and lifecycle scenarios through the installed
-app. Its paired-approval gate changes outcomes: a dual-stack proxy that cannot
-verify IPv6 must remain blocked for both families. Create an explicit installed
+app. Under the approved IPv4 approval policy, a proxy that cannot reach IPv6
+may still open after approved IPv4 verification; IPv6 attempts must fail without
+native fallback. Earlier paired-approval gate results are historical. Create an explicit installed
 case manifest with gate expectations; do not describe a standalone profile test
 as installed-app qualification. Use VM-only controlled provider responses and
 temporary fixture trust where required, retaining production hostname, TLS and
@@ -913,8 +1217,9 @@ Add these mandatory regression groups beyond the existing profile cases:
 mixed records, explicit SOCKS and HTTP CONNECT, NAT64 TCP/UDP, cache/warm reuse,
 proxy IPv6 rejection and unsupported UDP; no native fallback in captures.
 - Dual-stack: real Delta IPv4/IPv6 HTTP/TCP/UDP exchanges by name and address,
-DNS answers and routing provenance, one-family failure, and both-family approval.
-- Approval: empty list, one family missing/mismatched, lookup unavailable, timeout,
+DNS answers and routing provenance, IPv6 connection failure with healthy IPv4
+approval, and no native fallback.
+- Approval: empty/nonmatching IPv4 list, IPv6-only legacy list migration, lookup unavailable, timeout,
 revision race, proxy/family/network changes mid-check and late provider responses.
 - Private listener: arbitrary destinations, bad credentials, wrong port/protocol,
 ordinary public listener traffic and Global dispatch cannot evade its ACL.
@@ -931,8 +1236,16 @@ Capture before, during and after each transition and attribute actual egress.
 files, reinstall after engine removal, upgrade, uninstall, interrupted cleanup,
 occupied ports, declined/accepted takeover and unrelated VPN rule preservation.
 - Monitoring/UI: fresh manual results with Never selected, cooldown semantics,
-IPv6 allowlist normalization, independent family times, draft/focus preservation,
+IPv4-only allowlist migration, rejected/last-known address freshness, draft/focus preservation,
 communication uncertainty and consistent state in two account sessions.
+- Correlate every native UI and failure/recovery run with GUI, core and supervisor
+events. Record the expected trigger, command, verification attempt and terminal
+state; fail on unexplained retries, stale commands, gate changes, service loss or
+work that never settles. A visible healthy dashboard alone is not a pass. Observe
+settled failures for at least 35 seconds (multiple infrastructure scans), including
+supervisor startup while the existing exit is rejected in all four mode/family
+combinations. Read-only navigation through Dashboard and all Settings sections
+must not cause settings writes, network-change dispatch or exit verification.
 - Firewall/failure matrix: map every T01–T14 case to an installed test, an explicit
 architectural limit or a physical-Mac follow-up. Exercise all eight combinations
 of core/supervisor/engine presence from closed and active states, plus hung
@@ -977,6 +1290,18 @@ Correlate requested/confirmed close, actual policy readback, receipt approval,
 release, native verification and cleanup completion separately. A successful
 request or GUI presentation is not an enforcement result. Preserve installer/
 cleanup events after daemon removal.
+
+The 26 November diagnostic-storage implementation adds 5-MiB/UTC-day runtime
+segments, a 60-second utility-queue retention sweep (7 days by default), and a
+64-MiB/128-file budget per machine/account log directory. Machine maintenance
+stays in the core/supervisor executable; the GUI manages only its own logs.
+Storage work cannot initiate verification or hold a network actor. Service
+stdout/stderr rotates by bounded tail-copy and in-place truncation, preserving
+open descriptors without restarts. Account for its between-sweep overshoot and
+copy/truncate race; do not claim lossless service-output capture. Keep live
+readiness markers outside budget eviction, retain the locked 256-KiB installer
+journal, and report cleanup/dropped-record counters. Implementation and test
+evidence: [MIMO_LOG_RETENTION.md](MIMO_LOG_RETENTION.md).
 
 The preview's Full plan page and Markdown download mirror this file exactly.
 Label v3 behavior as proposed until implemented; do not present preview simulation

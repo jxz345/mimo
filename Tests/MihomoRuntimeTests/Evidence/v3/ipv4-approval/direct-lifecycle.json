@@ -1,0 +1,90 @@
+[
+  {
+    "id": "managed-direct-pf-empty",
+    "passed": true
+  },
+  {
+    "id": "managed-direct-dns-released",
+    "passed": true
+  },
+  {
+    "id": "managed-direct-tun-absent",
+    "passed": true
+  },
+  {
+    "id": "managed-direct-native-verification",
+    "passed": true
+  },
+  {
+    "id": "managed-direct-engine-running",
+    "passed": true
+  },
+  {
+    "id": "stop-completed",
+    "passed": true
+  },
+  {
+    "id": "released-direct-pf-empty",
+    "passed": true
+  },
+  {
+    "id": "released-direct-dns-released",
+    "passed": true
+  },
+  {
+    "id": "released-direct-tun-absent",
+    "passed": true
+  },
+  {
+    "id": "released-direct-native-verification",
+    "passed": true
+  },
+  {
+    "id": "released-direct-services-absent",
+    "passed": true
+  },
+  {
+    "id": "released-direct-monitoring-marker",
+    "passed": true
+  },
+  {
+    "id": "activate-completed",
+    "passed": true
+  },
+  {
+    "id": "activate-restores-all-services",
+    "passed": true
+  },
+  {
+    "id": "reactivated-direct-pf-empty",
+    "passed": true
+  },
+  {
+    "id": "reactivated-direct-dns-released",
+    "passed": true
+  },
+  {
+    "id": "reactivated-direct-tun-absent",
+    "passed": true
+  },
+  {
+    "id": "reactivated-direct-native-verification",
+    "passed": true
+  },
+  {
+    "id": "migration-survives-restart",
+    "passed": true
+  },
+  {
+    "id": "credentials-retained",
+    "passed": true
+  },
+  {
+    "id": "original-routing-restored",
+    "passed": true
+  },
+  {
+    "id": "original-settings-restored",
+    "passed": true
+  }
+]

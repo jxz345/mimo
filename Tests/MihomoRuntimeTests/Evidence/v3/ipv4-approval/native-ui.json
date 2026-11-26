@@ -1,0 +1,7 @@
+{
+  "status": "partial",
+  "live_monitoring_navigation_ms": 616,
+  "scope": "Direct navigation and live Rule dashboard observed; subsequent live blocked Global/Dual check unavailable",
+  "limitation": "CUA cgWindowNotFound/noWindowsAvailable; no user handoff completion",
+  "rendered_last_known_light_dark": "visually verified"
+}

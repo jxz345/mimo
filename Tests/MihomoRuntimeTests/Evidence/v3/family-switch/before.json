@@ -1,0 +1,28 @@
+{
+  "started": "2026-11-26T05:18:50.038Z",
+  "finished": "2026-11-26T05:19:21.124Z",
+  "checks": {
+    "exact_user_changes": true,
+    "one_settings_check_per_change": true,
+    "only_explained_provider_followups": true,
+    "all_lookups_finished": true,
+    "one_precommit_close_per_change": false,
+    "each_lookup_has_one_preparation": true,
+    "each_success_has_one_approval": true,
+    "successful_checks_remain_rejected": true,
+    "no_unexplained_event": true,
+    "no_unexplained_warning": true
+  },
+  "counts": {
+    "user_changes": 3,
+    "lookups": 4,
+    "provider_failures": 1,
+    "provider_rotations": 1,
+    "commands": {
+      "close": 7,
+      "prepare": 4,
+      "approve": 3
+    }
+  },
+  "passed": false
+}

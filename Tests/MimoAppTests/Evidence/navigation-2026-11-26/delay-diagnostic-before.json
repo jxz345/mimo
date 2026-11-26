@@ -1,0 +1,160 @@
+{
+  "scope": "mimo-vm, installed diagnostic GUI, actual clicks; event age is not compositor latency",
+  "records": [
+    {
+      "timestamp": "2026-11-26T03:51:04.378Z",
+      "event": "mimo_navigation_requested",
+      "fields": {
+        "section": "General",
+        "tab": "Dashboard",
+        "navigation_id": "56BC8B5A-C91E-4687-AA6B-A898492CF971",
+        "input_type": "NSEventType(rawValue: 2)",
+        "input_age_ms": "4"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T03:51:04.380Z",
+      "event": "mimo_navigation_transaction",
+      "fields": {
+        "navigation_id": "56BC8B5A-C91E-4687-AA6B-A898492CF971",
+        "animated": "false",
+        "disables_animations": "false",
+        "animation": "none"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T03:51:04.391Z",
+      "event": "mimo_navigation_applied",
+      "fields": {
+        "duration_ms": "13",
+        "section": "General",
+        "tab": "Dashboard",
+        "navigation_id": "56BC8B5A-C91E-4687-AA6B-A898492CF971"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T03:52:07.927Z",
+      "event": "mimo_navigation_requested",
+      "fields": {
+        "tab": "Settings",
+        "input_type": "NSEventType(rawValue: 2)",
+        "navigation_id": "B93C4D62-F644-4709-932A-422C62FB0A48",
+        "section": "General",
+        "input_age_ms": "10"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T03:52:07.957Z",
+      "event": "mimo_navigation_transaction",
+      "fields": {
+        "navigation_id": "B93C4D62-F644-4709-932A-422C62FB0A48",
+        "animated": "false",
+        "disables_animations": "false",
+        "animation": "none"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T03:52:08.028Z",
+      "event": "mimo_navigation_applied",
+      "fields": {
+        "tab": "Settings",
+        "duration_ms": "89",
+        "navigation_id": "B93C4D62-F644-4709-932A-422C62FB0A48",
+        "section": "General"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T03:52:08.479Z",
+      "event": "mimo_navigation_requested",
+      "fields": {
+        "tab": "Dashboard",
+        "input_type": "NSEventType(rawValue: 2)",
+        "navigation_id": "EA1F73CD-96DB-4271-8CEC-A8B93EDD7A9D",
+        "input_age_ms": "7",
+        "section": "General"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T03:52:08.483Z",
+      "event": "mimo_navigation_transaction",
+      "fields": {
+        "disables_animations": "false",
+        "animation": "none",
+        "animated": "false",
+        "navigation_id": "EA1F73CD-96DB-4271-8CEC-A8B93EDD7A9D"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T03:52:08.511Z",
+      "event": "mimo_navigation_applied",
+      "fields": {
+        "tab": "Dashboard",
+        "section": "General",
+        "navigation_id": "EA1F73CD-96DB-4271-8CEC-A8B93EDD7A9D",
+        "duration_ms": "32"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T03:52:09.012Z",
+      "event": "mimo_navigation_requested",
+      "fields": {
+        "tab": "Settings",
+        "section": "General",
+        "navigation_id": "A9AFD2AD-05BB-4C7D-ABA3-951CBFAFE1B4",
+        "input_type": "NSEventType(rawValue: 2)",
+        "input_age_ms": "2"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T03:52:09.018Z",
+      "event": "mimo_navigation_transaction",
+      "fields": {
+        "animation": "none",
+        "disables_animations": "false",
+        "animated": "false",
+        "navigation_id": "A9AFD2AD-05BB-4C7D-ABA3-951CBFAFE1B4"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T03:52:09.066Z",
+      "event": "mimo_navigation_applied",
+      "fields": {
+        "section": "General",
+        "duration_ms": "53",
+        "tab": "Settings",
+        "navigation_id": "A9AFD2AD-05BB-4C7D-ABA3-951CBFAFE1B4"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T03:52:09.562Z",
+      "event": "mimo_navigation_requested",
+      "fields": {
+        "tab": "Dashboard",
+        "input_type": "NSEventType(rawValue: 2)",
+        "navigation_id": "4FFE743E-AA3A-4841-88B3-601E787F4DC9",
+        "input_age_ms": "5",
+        "section": "General"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T03:52:09.583Z",
+      "event": "mimo_navigation_transaction",
+      "fields": {
+        "disables_animations": "false",
+        "animated": "false",
+        "animation": "none",
+        "navigation_id": "4FFE743E-AA3A-4841-88B3-601E787F4DC9"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T03:52:09.598Z",
+      "event": "mimo_navigation_applied",
+      "fields": {
+        "tab": "Dashboard",
+        "navigation_id": "4FFE743E-AA3A-4841-88B3-601E787F4DC9",
+        "section": "General",
+        "duration_ms": "36"
+      }
+    }
+  ]
+}

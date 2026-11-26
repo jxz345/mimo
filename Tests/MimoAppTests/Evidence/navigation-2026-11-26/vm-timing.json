@@ -1,0 +1,218 @@
+[
+  {
+    "milliseconds": 88.94579166371841,
+    "round": 0,
+    "section": "Proxy",
+    "tab": "Settings"
+  },
+  {
+    "milliseconds": 42.24662500200793,
+    "round": 0,
+    "section": "Proxy",
+    "tab": "Dashboard"
+  },
+  {
+    "milliseconds": 83.63787501002662,
+    "round": 0,
+    "section": "Bypass",
+    "tab": "Settings"
+  },
+  {
+    "milliseconds": 28.432791674276814,
+    "round": 0,
+    "section": "Bypass",
+    "tab": "Dashboard"
+  },
+  {
+    "milliseconds": 39.751333330059424,
+    "round": 0,
+    "section": "Allowed IPs",
+    "tab": "Settings"
+  },
+  {
+    "milliseconds": 21.411624999018386,
+    "round": 0,
+    "section": "Allowed IPs",
+    "tab": "Dashboard"
+  },
+  {
+    "milliseconds": 53.49674999888521,
+    "round": 0,
+    "section": "Monitoring",
+    "tab": "Settings"
+  },
+  {
+    "milliseconds": 27.286791664664634,
+    "round": 0,
+    "section": "Monitoring",
+    "tab": "Dashboard"
+  },
+  {
+    "milliseconds": 54.6628333395347,
+    "round": 0,
+    "section": "General",
+    "tab": "Settings"
+  },
+  {
+    "milliseconds": 28.26341666514054,
+    "round": 0,
+    "section": "General",
+    "tab": "Dashboard"
+  },
+  {
+    "milliseconds": 56.81779165752232,
+    "round": 0,
+    "section": "Maintenance",
+    "tab": "Settings"
+  },
+  {
+    "milliseconds": 27.29770833684597,
+    "round": 0,
+    "section": "Maintenance",
+    "tab": "Dashboard"
+  },
+  {
+    "milliseconds": 66.78724999073893,
+    "round": 1,
+    "section": "Proxy",
+    "tab": "Settings"
+  },
+  {
+    "milliseconds": 23.64458332885988,
+    "round": 1,
+    "section": "Proxy",
+    "tab": "Dashboard"
+  },
+  {
+    "milliseconds": 50.572666674270295,
+    "round": 1,
+    "section": "Bypass",
+    "tab": "Settings"
+  },
+  {
+    "milliseconds": 26.512750002439134,
+    "round": 1,
+    "section": "Bypass",
+    "tab": "Dashboard"
+  },
+  {
+    "milliseconds": 36.682833335362375,
+    "round": 1,
+    "section": "Allowed IPs",
+    "tab": "Settings"
+  },
+  {
+    "milliseconds": 20.53383333259262,
+    "round": 1,
+    "section": "Allowed IPs",
+    "tab": "Dashboard"
+  },
+  {
+    "milliseconds": 46.162666665622965,
+    "round": 1,
+    "section": "Monitoring",
+    "tab": "Settings"
+  },
+  {
+    "milliseconds": 28.007250002701767,
+    "round": 1,
+    "section": "Monitoring",
+    "tab": "Dashboard"
+  },
+  {
+    "milliseconds": 59.40529167128261,
+    "round": 1,
+    "section": "General",
+    "tab": "Settings"
+  },
+  {
+    "milliseconds": 22.375333326635882,
+    "round": 1,
+    "section": "General",
+    "tab": "Dashboard"
+  },
+  {
+    "milliseconds": 37.677791668102145,
+    "round": 1,
+    "section": "Maintenance",
+    "tab": "Settings"
+  },
+  {
+    "milliseconds": 27.457625008537434,
+    "round": 1,
+    "section": "Maintenance",
+    "tab": "Dashboard"
+  },
+  {
+    "milliseconds": 52.062583330553025,
+    "round": 2,
+    "section": "Proxy",
+    "tab": "Settings"
+  },
+  {
+    "milliseconds": 27.605874987784773,
+    "round": 2,
+    "section": "Proxy",
+    "tab": "Dashboard"
+  },
+  {
+    "milliseconds": 55.55600000661798,
+    "round": 2,
+    "section": "Bypass",
+    "tab": "Settings"
+  },
+  {
+    "milliseconds": 35.48925000359304,
+    "round": 2,
+    "section": "Bypass",
+    "tab": "Dashboard"
+  },
+  {
+    "milliseconds": 40.48745833279099,
+    "round": 2,
+    "section": "Allowed IPs",
+    "tab": "Settings"
+  },
+  {
+    "milliseconds": 24.43495833722409,
+    "round": 2,
+    "section": "Allowed IPs",
+    "tab": "Dashboard"
+  },
+  {
+    "milliseconds": 40.50000000279397,
+    "round": 2,
+    "section": "Monitoring",
+    "tab": "Settings"
+  },
+  {
+    "milliseconds": 24.789083341602236,
+    "round": 2,
+    "section": "Monitoring",
+    "tab": "Dashboard"
+  },
+  {
+    "milliseconds": 49.647916661342606,
+    "round": 2,
+    "section": "General",
+    "tab": "Settings"
+  },
+  {
+    "milliseconds": 30.390333326067775,
+    "round": 2,
+    "section": "General",
+    "tab": "Dashboard"
+  },
+  {
+    "milliseconds": 56.63320832536556,
+    "round": 2,
+    "section": "Maintenance",
+    "tab": "Settings"
+  },
+  {
+    "milliseconds": 25.608249998185784,
+    "round": 2,
+    "section": "Maintenance",
+    "tab": "Dashboard"
+  }
+]

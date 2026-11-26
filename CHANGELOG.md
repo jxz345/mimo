@@ -1,5 +1,45 @@
 # Mimo changelog
 
+## 3.0 (build 11) — 2026-11-26
+
+- Rotate runtime logs at 5 MiB and UTC-day boundaries; expire logs every minute
+  and bound each log directory to 64 MiB/128 files. Rotate launchd output in place,
+  preserve installation-journal locking, and report cleanup/drop counts. Disk
+  maintenance runs off UI and routing threads without network checks or restarts.
+
+- Tighten dashboard spacing: align both card bottoms to their content height and
+  trim the default window to remove the unused bottom area. Reserve a stable top status area for checks and recovery
+  controls; use equal compact service rows without changing network behavior.
+
+- Audit GUI/core/supervisor triggers and reproduce redundant pre/post-commit
+  closure on family changes. Reuse only the same edit's confirmed, current block;
+  preserve fresh IPv4 verification for every effective protected family edit.
+  Add eight outcome/direction/mode cases and four invalid-barrier regressions.
+  Qualify native family changes with rejected and approved exits in Rule/Global;
+  approved Dashboard/all-six-Settings navigation produces no network work.
+
+- Consume supervisor recovery when a fresh verification attempt starts, so a
+  rejected exit does not cause a new lookup every infrastructure audit. Add a
+  failing-before-fix installed regression and event-correlated navigation checks
+  spanning multiple audit intervals; retain health checks and explicit recovery.
+
+- Extend navigation diagnostics through the subsequent AppKit window update, with current-event age and animation metadata. Keep the reported Settings → Dashboard display delay open until reproduced and fixed; passing selection timings alone do not close it.
+
+- Navigation follow-up: reproduce the inactive Settings sidebar consuming its
+  first click; use explicit row buttons with window-activation events on macOS
+  15 and later. Confirm one-click inactive-window navigation, focused-field
+  navigation, draft retention and arrow keys in the installed mimo-vm app.
+
+- Coalesce native menu updates from completed status deliveries and avoid remeasuring unchanged labels or rewriting unchanged fallback monitoring preferences. Add failing-before-fix regressions and retained-window navigation checks across all Settings sections. Track the reported intermittent slowdown separately from eliminated duplicate work in `Design/MIMO_NAVIGATION_RESPONSIVENESS.md`.
+
+- Require one fresh allowlisted IPv4 exit in Rule and Global, for both strict IPv4 and Dual-stack traffic. IPv6 transport failure no longer discards a successful IPv4 result or pauses its provider. Keep capture/proxy/no-native-fallback protections unchanged.
+- Preserve the actual rejected IPv4 and timestamped display-only last-known results on later request failures. Remove IPv6 approval UI and migrate legacy IPv6 allowlist entries in core, retaining IPv4 settings and credentials.
+- Qualify the revised installed candidate across Rule/Global × IPv4/Dual-stack, 16 active fault/recovery cases and 22 Direct/Stop/Start assertions. Preserve 429/Retry-After restrictions and verify zero native IPv6 escape in the rejecting-proxy fixture. Record the remaining live failed-state UI qualification in `Design/MIMO_IPV4_APPROVAL_RESULTS.md`.
+
+- Record millisecond timestamps, process identity, lookup/verification IDs and ordered supervisor commands. Show private IP-request outcomes, retry restrictions, skipped duplicate closes and the actual blocking reason in Event Log. Copy All includes core/supervisor source availability; routine ignored Wi-Fi telemetry remains in full diagnostics.
+- Allow an explicit retry after a local connection failure without waiting for the automatic ten-minute backoff. Preserve provider Retry-After, rate limits and daily budgets. Avoid duplicate failure closes and fence queued notifications from newer verification attempts.
+- First reproduce the blocked-session cooldown lockout on unchanged build 10 and the three-close scheduler regression. Pass installed Rule/Global × IPv4/dual-stack repair tests, preserve real HTTP 429/Retry-After and verify actual log correlation. Record evidence and the still-unproven initial HTTP failure trigger in `Design/MIMO_BLOCKED_VERIFICATION_RECOVERY.md`.
+
 ## 3.0 (build 10) — 2026-11-26
 
 - Preserve peer-initiated TCP service replies and tracked incoming sessions while rejecting an exit IP. Keep outgoing grants and loopback stateless; selectively revoke original outbound states in core, the independent guard and cleanup.

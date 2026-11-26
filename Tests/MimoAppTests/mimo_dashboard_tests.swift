@@ -30,7 +30,7 @@ enum MimoDashboardTests {
         ]
         for index in routing.services.indices { routing.services[index].checkedAt = now.addingTimeInterval(Double(-index - 2)) }
         for dark in [false, true] {
-            for scenario in ["released", "releasing", "release-failed", "direct", "rule", "background-audit", "global", "blocked", "checking", "empty", "long-text", "proxy-failed", "provider-paused", "direct-checking", "direct-failed", "unqualified", "infrastructure-failed", "infrastructure-stale", "services-stale", "services-unknown"] {
+            for scenario in ["released", "releasing", "release-failed", "direct", "rule", "background-audit", "global", "blocked", "checking", "empty", "long-text", "proxy-failed", "provider-paused", "last-known", "direct-checking", "direct-failed", "unqualified", "infrastructure-failed", "infrastructure-stale", "services-stale", "services-unknown"] {
                 var value = routing
                 value.configuration.mode = scenario.hasPrefix("direct") ? .direct : scenario == "global" ? .global : .rule
                 value.phase = .active; value.effectiveMode = value.configuration.mode
@@ -71,6 +71,13 @@ enum MimoDashboardTests {
                         ? .failed("The proxy connection failed. Review the proxy server and credentials, or use Direct.")
                         : .providerPaused(.ipinfoLite, now.addingTimeInterval(600))
                 }
+                if scenario == "last-known" {
+                    value.configuration.mode = .global; value.configuration.networkFamily = .dual
+                    value.phase = .blocked; value.effectiveMode = nil; value.observedIP = nil
+                    value.lastExitObservation = state.snapshot
+                    value.reason = "The IPv4 exit-IP check failed. Retry or use Direct."
+                    state.status = .failed("Proxy connection refused")
+                }
                 state.indicators = MonitorIndicatorState(errorMessage: scenario == "provider-paused"
                     ? "Unable to check the exit IP with IPinfo Lite: The proxy connection timed out." : nil)
                 if scenario == "unqualified" {
@@ -85,17 +92,21 @@ enum MimoDashboardTests {
                     CredentialAppTests.require(monitor.canChangeSharedSettings,
                         "Blocked/pending verification must leave the Direct mode action enabled")
                 }
+                if scenario == "last-known" {
+                    CredentialAppTests.require(monitor.statusPresentation.address == state.snapshot?.ipAddress &&
+                        monitor.statusPresentation.detail.contains("Last known IPv4"), "Failed checks show clearly stale history")
+                }
                 if scenario == "provider-paused" {
                     CredentialAppTests.require(monitor.statusPresentation.detail.contains("proxy connection timed out") &&
                         monitor.statusPresentation.detail.contains("paused until") && monitor.statusPresentation.detail.contains("use Direct"),
                         "Dashboard must retain the cause, deadline and Direct escape during cooldown")
                 }
-                try CredentialAppTests.render(DashboardView(monitor: monitor), size: NSSize(width: 1040, height: 660), dark: dark,
+                try CredentialAppTests.render(DashboardView(monitor: monitor), size: NSSize(width: 1040, height: 640), dark: dark,
                     to: output.appendingPathComponent("dashboard-\(scenario)-\(dark ? "dark" : "light").png"), padding: 0)
-                if scenario == "blocked" && !dark {
+                if ["rule", "checking", "blocked", "long-text", "provider-paused"].contains(scenario) && !dark {
                     for width in [880] {
                         try CredentialAppTests.render(DashboardView(monitor: monitor), size: NSSize(width: width, height: 760), dark: false,
-                            to: output.appendingPathComponent("dashboard-blocked-width-\(width).png"), padding: 0)
+                            to: output.appendingPathComponent("dashboard-\(scenario)-width-\(width).png"), padding: 0)
                     }
                 }
             }

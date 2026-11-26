@@ -1,0 +1,218 @@
+{
+  "scope": "Installed mimo-vm, 3.0 unpublished build 11. App-side navigation callbacks only, not compositor or remote frame delivery.",
+  "initialQualityPreference": "Adapt quality to network conditions; initial session menu checkmark not exposed by accessibility.",
+  "fullQualitySelectedBefore": "2026-11-26T04:09:16Z",
+  "restoredSessionQuality": "Adaptive Quality",
+  "events": [
+    {
+      "timestamp": "2026-11-26T04:08:44.614Z",
+      "event": "mimo_navigation_requested",
+      "fields": {
+        "navigation_id": "6D9E9F27-6933-4956-8853-237F4CCB5A47",
+        "tab": "Dashboard",
+        "section": "General",
+        "current_event_age_ms": "5",
+        "current_event_type": "NSEventType(rawValue: 2)"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T04:08:44.617Z",
+      "event": "mimo_navigation_transaction",
+      "fields": {
+        "navigation_id": "6D9E9F27-6933-4956-8853-237F4CCB5A47",
+        "animated": "false",
+        "animation": "none",
+        "disables_animations": "false"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T04:08:44.628Z",
+      "event": "mimo_navigation_applied",
+      "fields": {
+        "navigation_id": "6D9E9F27-6933-4956-8853-237F4CCB5A47",
+        "tab": "Dashboard",
+        "section": "General",
+        "duration_ms": "14"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T04:08:44.648Z",
+      "event": "mimo_navigation_window_updated",
+      "fields": {
+        "navigation_id": "6D9E9F27-6933-4956-8853-237F4CCB5A47",
+        "tab": "Dashboard",
+        "section": "General",
+        "duration_ms": "33",
+        "after_apply_ms": "19"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T04:08:52.864Z",
+      "event": "mimo_navigation_requested",
+      "fields": {
+        "navigation_id": "571961C9-3CE3-43D2-9749-89B37CABDCF0",
+        "tab": "Settings",
+        "section": "General",
+        "current_event_age_ms": "13",
+        "current_event_type": "NSEventType(rawValue: 2)"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T04:08:52.868Z",
+      "event": "mimo_navigation_transaction",
+      "fields": {
+        "navigation_id": "571961C9-3CE3-43D2-9749-89B37CABDCF0",
+        "animated": "false",
+        "animation": "none",
+        "disables_animations": "false"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T04:08:52.881Z",
+      "event": "mimo_navigation_applied",
+      "fields": {
+        "navigation_id": "571961C9-3CE3-43D2-9749-89B37CABDCF0",
+        "tab": "Settings",
+        "section": "General",
+        "duration_ms": "16"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T04:08:52.901Z",
+      "event": "mimo_navigation_window_updated",
+      "fields": {
+        "navigation_id": "571961C9-3CE3-43D2-9749-89B37CABDCF0",
+        "tab": "Settings",
+        "section": "General",
+        "duration_ms": "37",
+        "after_apply_ms": "20"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T04:09:16.998Z",
+      "event": "mimo_navigation_requested",
+      "fields": {
+        "navigation_id": "D6AC3E4A-2B22-45FE-B0B1-90C8AAD00F38",
+        "tab": "Dashboard",
+        "section": "General",
+        "current_event_age_ms": "2",
+        "current_event_type": "NSEventType(rawValue: 2)"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T04:09:17.000Z",
+      "event": "mimo_navigation_transaction",
+      "fields": {
+        "navigation_id": "D6AC3E4A-2B22-45FE-B0B1-90C8AAD00F38",
+        "animated": "false",
+        "animation": "none",
+        "disables_animations": "false"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T04:09:17.009Z",
+      "event": "mimo_navigation_applied",
+      "fields": {
+        "navigation_id": "D6AC3E4A-2B22-45FE-B0B1-90C8AAD00F38",
+        "tab": "Dashboard",
+        "section": "General",
+        "duration_ms": "11"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T04:09:17.028Z",
+      "event": "mimo_navigation_window_updated",
+      "fields": {
+        "navigation_id": "D6AC3E4A-2B22-45FE-B0B1-90C8AAD00F38",
+        "tab": "Dashboard",
+        "section": "General",
+        "duration_ms": "30",
+        "after_apply_ms": "18"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T04:09:25.437Z",
+      "event": "mimo_navigation_requested",
+      "fields": {
+        "navigation_id": "19FDFA07-29B6-404C-8F3A-0FE41F7C9240",
+        "tab": "Settings",
+        "section": "General",
+        "current_event_age_ms": "1",
+        "current_event_type": "NSEventType(rawValue: 2)"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T04:09:25.441Z",
+      "event": "mimo_navigation_transaction",
+      "fields": {
+        "navigation_id": "19FDFA07-29B6-404C-8F3A-0FE41F7C9240",
+        "animated": "false",
+        "animation": "none",
+        "disables_animations": "false"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T04:09:25.455Z",
+      "event": "mimo_navigation_applied",
+      "fields": {
+        "navigation_id": "19FDFA07-29B6-404C-8F3A-0FE41F7C9240",
+        "tab": "Settings",
+        "section": "General",
+        "duration_ms": "17"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T04:09:25.478Z",
+      "event": "mimo_navigation_window_updated",
+      "fields": {
+        "navigation_id": "19FDFA07-29B6-404C-8F3A-0FE41F7C9240",
+        "tab": "Settings",
+        "section": "General",
+        "duration_ms": "41",
+        "after_apply_ms": "23"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T04:09:37.904Z",
+      "event": "mimo_navigation_requested",
+      "fields": {
+        "navigation_id": "AFA5B0C8-9610-4856-9AFE-9FBF738D4332",
+        "tab": "Dashboard",
+        "section": "General",
+        "current_event_age_ms": "0",
+        "current_event_type": "NSEventType(rawValue: 2)"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T04:09:37.907Z",
+      "event": "mimo_navigation_transaction",
+      "fields": {
+        "navigation_id": "AFA5B0C8-9610-4856-9AFE-9FBF738D4332",
+        "animated": "false",
+        "animation": "none",
+        "disables_animations": "false"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T04:09:37.919Z",
+      "event": "mimo_navigation_applied",
+      "fields": {
+        "navigation_id": "AFA5B0C8-9610-4856-9AFE-9FBF738D4332",
+        "tab": "Dashboard",
+        "section": "General",
+        "duration_ms": "14"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T04:09:37.939Z",
+      "event": "mimo_navigation_window_updated",
+      "fields": {
+        "navigation_id": "AFA5B0C8-9610-4856-9AFE-9FBF738D4332",
+        "tab": "Dashboard",
+        "section": "General",
+        "duration_ms": "35",
+        "after_apply_ms": "20"
+      }
+    }
+  ]
+}

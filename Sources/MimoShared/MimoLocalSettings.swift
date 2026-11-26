@@ -8,6 +8,38 @@ public enum MimoLocalSettings {
     private static let migratedKey = "service.local-credentials.v2.1"
     private static let cleanupKey = "service.keychain-cleanup.v2.1"
 
+    /// Core runs this before validating saved settings. Decode the old shape,
+    /// remove IPv6 entries only, and atomically update both shared representations.
+    /// Invalid non-IP data remains an error instead of silently granting access.
+    @discardableResult
+    public static func migrateIPv4Allowlist(_ storage: FilePreferenceStorage) throws -> Int {
+        var changes: [String: Any?] = [:]
+        var removed = 0
+        if let data = storage.data(forKey: "service.settings") {
+            var settings = try JSONDecoder().decode(MachineSettings.self, from: data)
+            let previous = settings.allowlist.addresses
+            guard previous.allSatisfy({ IPAddressValidator.normalize($0) == $0 }) else { throw DaemonFailure.invalidRequest }
+            let count = previous.filter { MimoAddressFamily.ipv6.accepts($0) }.count
+            if count > 0 {
+                settings.allowlist = AllowedIPList(addresses: previous)
+                changes["service.settings"] = try JSONEncoder().encode(settings.validated())
+                changes[MimoPreferenceKey.allowedIPs] = try JSONEncoder().encode(settings.allowlist)
+                changes["service.revision"] = storage.integer(forKey: "service.revision") + 1
+                removed = count
+            }
+        }
+        if changes[MimoPreferenceKey.allowedIPs] == nil, let data = storage.data(forKey: MimoPreferenceKey.allowedIPs) {
+            let old = try JSONDecoder().decode(AllowedIPList.self, from: data)
+            let count = old.addresses.filter { MimoAddressFamily.ipv6.accepts($0) }.count
+            if count > 0 {
+                changes[MimoPreferenceKey.allowedIPs] = try JSONEncoder().encode(AllowedIPList(addresses: old.addresses))
+                removed = count
+            }
+        }
+        if !changes.isEmpty { try storage.update(changes) }
+        return removed
+    }
+
     public static func passwords(in storage: any PreferenceStorage) throws -> [UUID: String] {
         guard let data = storage.data(forKey: passwordsKey) else { return [:] }
         return try JSONDecoder().decode([UUID: String].self, from: data)

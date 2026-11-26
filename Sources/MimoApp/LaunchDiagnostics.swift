@@ -40,6 +40,7 @@ enum LaunchDiagnostics {
         timer = nil
         record("app_terminating")
         try? FileManager.default.removeItem(at: stateURL)
+        RuntimeLog.shared.flush()
     }
 
     private static func writeHeartbeat() {

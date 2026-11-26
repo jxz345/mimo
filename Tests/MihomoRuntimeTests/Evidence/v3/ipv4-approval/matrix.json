@@ -1,0 +1,238 @@
+[
+  {
+    "mode": "rule",
+    "family": "ipv4",
+    "result": "PASS",
+    "mismatch_visible_healthy_stable": true,
+    "allowlist_only_repair": "PASS",
+    "traffic": {
+      "ipv4_proxied": true,
+      "ipv6_failed": true,
+      "native_ipv6_packets": 0
+    },
+    "last_known_after_failure": true,
+    "recovery_seconds": 8.107,
+    "fresh_provider_requests_after_repair": 1,
+    "same_core_instance": true,
+    "mode_unchanged": true,
+    "incoming_services_reachable": true,
+    "additional_failures": [
+      {
+        "fault": "proxy-authentication",
+        "recovered": true,
+        "recovery_seconds": 3.851,
+        "incoming_services": true
+      },
+      {
+        "fault": "proxy-timeout",
+        "recovered": true,
+        "recovery_seconds": 5.078,
+        "incoming_services": true
+      },
+      {
+        "fault": "provider-503",
+        "recovered": true,
+        "recovery_seconds": 5.113,
+        "incoming_services": true
+      }
+    ],
+    "provider_retry_after_preserved": true,
+    "all_provider_requests_ipv4": 14,
+    "cleanup": {
+      "settings_restored": true,
+      "routing_restored": true,
+      "credentials_unchanged": true
+    },
+    "identity": {
+      "version": "3.0",
+      "build": "11",
+      "core_sha256": "fff99947b06a44095736bc1f212aef37e81860db7568a90e6bcb0f671fc1bb30"
+    },
+    "empty_list_rejected_ipv4": "203.0.113.10",
+    "successful_rejected_provider_failures": 0,
+    "rejected_explicit_refreshes": 3,
+    "provider_http_requests": 14,
+    "provider_http_ipv6_requests": 0,
+    "proxy_ipv6_tcp_attempts": 0,
+    "proxy_ipv6_udp_attempts": 0,
+    "failed_request_current_ip": null,
+    "last_known_display_only": "203.0.113.10"
+  },
+  {
+    "mode": "global",
+    "family": "ipv4",
+    "result": "PASS",
+    "mismatch_visible_healthy_stable": true,
+    "allowlist_only_repair": "PASS",
+    "traffic": {
+      "ipv4_proxied": true,
+      "ipv6_failed": true,
+      "native_ipv6_packets": 0
+    },
+    "last_known_after_failure": true,
+    "recovery_seconds": 7.147,
+    "fresh_provider_requests_after_repair": 1,
+    "same_core_instance": true,
+    "mode_unchanged": true,
+    "incoming_services_reachable": true,
+    "additional_failures": [
+      {
+        "fault": "proxy-authentication",
+        "recovered": true,
+        "recovery_seconds": 4.521,
+        "incoming_services": true
+      },
+      {
+        "fault": "proxy-timeout",
+        "recovered": true,
+        "recovery_seconds": 5.803,
+        "incoming_services": true
+      },
+      {
+        "fault": "provider-503",
+        "recovered": true,
+        "recovery_seconds": 3.858,
+        "incoming_services": true
+      }
+    ],
+    "provider_retry_after_preserved": true,
+    "all_provider_requests_ipv4": 14,
+    "cleanup": {
+      "settings_restored": true,
+      "routing_restored": true,
+      "credentials_unchanged": true
+    },
+    "identity": {
+      "version": "3.0",
+      "build": "11",
+      "core_sha256": "fff99947b06a44095736bc1f212aef37e81860db7568a90e6bcb0f671fc1bb30"
+    },
+    "empty_list_rejected_ipv4": "203.0.113.10",
+    "successful_rejected_provider_failures": 0,
+    "rejected_explicit_refreshes": 3,
+    "provider_http_requests": 14,
+    "provider_http_ipv6_requests": 0,
+    "proxy_ipv6_tcp_attempts": 0,
+    "proxy_ipv6_udp_attempts": 0,
+    "failed_request_current_ip": null,
+    "last_known_display_only": "203.0.113.10"
+  },
+  {
+    "mode": "rule",
+    "family": "dual",
+    "result": "PASS",
+    "mismatch_visible_healthy_stable": true,
+    "allowlist_only_repair": "PASS",
+    "traffic": {
+      "ipv4_proxied": true,
+      "ipv6_failed": true,
+      "native_ipv6_packets": 0
+    },
+    "last_known_after_failure": true,
+    "recovery_seconds": 7.116,
+    "fresh_provider_requests_after_repair": 1,
+    "same_core_instance": true,
+    "mode_unchanged": true,
+    "incoming_services_reachable": true,
+    "additional_failures": [
+      {
+        "fault": "proxy-authentication",
+        "recovered": true,
+        "recovery_seconds": 7.675,
+        "incoming_services": true
+      },
+      {
+        "fault": "proxy-timeout",
+        "recovered": true,
+        "recovery_seconds": 3.896,
+        "incoming_services": true
+      },
+      {
+        "fault": "provider-503",
+        "recovered": true,
+        "recovery_seconds": 4.492,
+        "incoming_services": true
+      }
+    ],
+    "provider_retry_after_preserved": true,
+    "all_provider_requests_ipv4": 14,
+    "cleanup": {
+      "settings_restored": true,
+      "routing_restored": true,
+      "credentials_unchanged": true
+    },
+    "identity": {
+      "version": "3.0",
+      "build": "11",
+      "core_sha256": "fff99947b06a44095736bc1f212aef37e81860db7568a90e6bcb0f671fc1bb30"
+    },
+    "empty_list_rejected_ipv4": "203.0.113.10",
+    "successful_rejected_provider_failures": 0,
+    "rejected_explicit_refreshes": 3,
+    "provider_http_requests": 14,
+    "provider_http_ipv6_requests": 0,
+    "proxy_ipv6_tcp_attempts": 1,
+    "proxy_ipv6_udp_attempts": 1,
+    "failed_request_current_ip": null,
+    "last_known_display_only": "203.0.113.10"
+  },
+  {
+    "mode": "global",
+    "family": "dual",
+    "result": "PASS",
+    "mismatch_visible_healthy_stable": true,
+    "allowlist_only_repair": "PASS",
+    "traffic": {
+      "ipv4_proxied": true,
+      "ipv6_failed": true,
+      "native_ipv6_packets": 0
+    },
+    "last_known_after_failure": true,
+    "recovery_seconds": 11.984,
+    "fresh_provider_requests_after_repair": 1,
+    "same_core_instance": true,
+    "mode_unchanged": true,
+    "incoming_services_reachable": true,
+    "additional_failures": [
+      {
+        "fault": "proxy-authentication",
+        "recovered": true,
+        "recovery_seconds": 10.943,
+        "incoming_services": true
+      },
+      {
+        "fault": "proxy-timeout",
+        "recovered": true,
+        "recovery_seconds": 7.071,
+        "incoming_services": true
+      },
+      {
+        "fault": "provider-503",
+        "recovered": true,
+        "recovery_seconds": 7.094,
+        "incoming_services": true
+      }
+    ],
+    "provider_retry_after_preserved": true,
+    "all_provider_requests_ipv4": 14,
+    "cleanup": {
+      "settings_restored": true,
+      "routing_restored": true,
+      "credentials_unchanged": true
+    },
+    "identity": {
+      "version": "3.0",
+      "build": "11",
+      "core_sha256": "fff99947b06a44095736bc1f212aef37e81860db7568a90e6bcb0f671fc1bb30"
+    },
+    "empty_list_rejected_ipv4": "203.0.113.10",
+    "successful_rejected_provider_failures": 0,
+    "rejected_explicit_refreshes": 3,
+    "provider_http_requests": 14,
+    "provider_http_ipv6_requests": 0,
+    "proxy_ipv6_tcp_attempts": 1,
+    "proxy_ipv6_udp_attempts": 1,
+    "failed_request_current_ip": null,
+    "last_known_display_only": "203.0.113.10"
+  }
+]

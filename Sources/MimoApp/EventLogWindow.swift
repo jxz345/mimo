@@ -19,7 +19,9 @@ final class EventLogModel: ObservableObject {
     private var supervisorStatus = "not yet received"
     private var polling: Task<Void, Never>?
 
-    var copyText: String { lines.isEmpty ? "" : lines.joined(separator: "\n") + "\n" }
+    var copyText: String {
+        "Log sources · \(sourceStatus)\n" + (lines.isEmpty ? "No events received.\n" : lines.joined(separator: "\n") + "\n")
+    }
 
     func start() {
         guard observer == nil else { return }

@@ -135,7 +135,7 @@ def main():
         write('detector.json', dict(counts={str(af): sum(p['family'] == af for p in detected) for af in (4, 6)}))
         assert all(any(p['family'] == af for p in detected) for af in (4, 6))
         settings = dict(original['settings'], provider='ipWhois', providerPool=['ipWhois'],
-                        refreshInterval=-1, allowlist={'addresses': ['203.0.113.10', '2001:db8::10']}, bypassBlocks=[])
+                        refreshInterval=-1, allowlist={'addresses': ['203.0.113.10']}, bypassBlocks=[])
         t.request('configure', settings=settings)
         t.request('saveProxy', proxy={'name': 'V3 live lifecycle qualification', 'type': 'socks5',
                   'server': ft.F['bridge4'], 'port': ft.F['proxy_port'], 'username': ''}, proxyPassword='')

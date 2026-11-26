@@ -63,7 +63,8 @@ public final class SnapshotStore: @unchecked Sendable {
     }
 }
 
-/// Persists a provider-specific Retry-After deadline so an app restart cannot accidentally retry early.
+/// Automatic backoff and provider restrictions survive restarts. Only an
+/// explicitly retryable local/transient failure can be retried by a user action.
 public final class ProviderCooldownStore: @unchecked Sendable {
     private let defaults: any PreferenceStorage
 
@@ -75,12 +76,29 @@ public final class ProviderCooldownStore: @unchecked Sendable {
         defaults.object(forKey: key(for: provider)) as? Date
     }
 
-    public func save(retryNotBefore date: Date, for provider: ProviderID) {
+    public func save(retryNotBefore date: Date, for provider: ProviderID, allowsExplicitRetry: Bool = false) {
+        if let file = defaults as? FilePreferenceStorage {
+            try? file.update([key(for: provider): date, key(for: provider) + ".explicitRetry": allowsExplicitRetry])
+            return
+        }
+        // If interrupted between ordinary preference writes, retain the more
+        // restrictive interpretation rather than inheriting an older allowance.
+        defaults.set(false, forKey: key(for: provider) + ".explicitRetry")
         defaults.set(date, forKey: key(for: provider))
+        defaults.set(allowsExplicitRetry, forKey: key(for: provider) + ".explicitRetry")
+    }
+
+    public func allowsExplicitRetry(for provider: ProviderID, health: ProviderHealthRecord?, now: Date) -> Bool {
+        guard let deadline = retryNotBefore(for: provider), deadline > now else { return false }
+        if let allowed = defaults.object(forKey: key(for: provider) + ".explicitRetry") as? Bool { return allowed }
+        // Build 10 stored only the deadline. A recorded transport failure cannot
+        // contain a server Retry-After; other legacy deadlines remain restricted.
+        return health?.lastError == "transport" && health?.lastFailure != nil
     }
 
     public func clear(for provider: ProviderID) {
         defaults.removeObject(forKey: key(for: provider))
+        defaults.removeObject(forKey: key(for: provider) + ".explicitRetry")
     }
 
     private func key(for provider: ProviderID) -> String {

@@ -1,0 +1,1531 @@
+{
+  "started": "2026-11-26T05:39:00Z",
+  "finished": "2026-11-26T05:50:43.222Z",
+  "records": 679,
+  "counts": {
+    "mimo_core_command_started": 21,
+    "mimo_supervisor_command_received": 21,
+    "widget_reload_requested": 112,
+    "mimo_transition_timing": 168,
+    "mimo_gate_closed": 14,
+    "mimo_core_command_finished": 21,
+    "mimo_configuration_barrier_reused": 7,
+    "diagnostic_preferences_changed": 1,
+    "shared_settings_changed": 1,
+    "refresh_requested": 7,
+    "provider_health_changed": 14,
+    "lookup_started": 7,
+    "mimo_parallel_preparation_started": 7,
+    "mimo_pf_policy_installed": 7,
+    "allowlist_warning_cleared": 1,
+    "mimo_access_presentation_changed": 80,
+    "mimo_tailnet_change_scope": 7,
+    "mimo_final_profile_reused": 1,
+    "mimo_runtime_inspection_started": 7,
+    "mimo_private_probe_barrier_ready": 7,
+    "mimo_private_probe_ready": 7,
+    "lookup_http_request": 7,
+    "mimo_probe_http_started": 7,
+    "mimo_readiness_started": 7,
+    "mimo_readiness_passed": 7,
+    "mimo_probe_http_finished": 7,
+    "mimo_exits_approved": 7,
+    "mimo_opening_barrier_ready": 7,
+    "mimo_active_firewall_installed": 7,
+    "mimo_traffic_opened": 7,
+    "lookup_succeeded": 7,
+    "lookup_finished": 7,
+    "mimo_proxy_catalog_changed": 6,
+    "mimo_final_profile_loaded": 6,
+    "mimo_navigation_requested": 18,
+    "mimo_navigation_transaction": 18,
+    "mimo_navigation_applied": 18,
+    "mimo_navigation_window_updated": 18
+  },
+  "commands": {
+    "close": 7,
+    "prepare": 7,
+    "approve": 7
+  },
+  "checks": {
+    "one_allowlist_edit": true,
+    "six_routing_changes": true,
+    "seven_settings_checks": true,
+    "all_lookups_completed": true,
+    "all_approved": true,
+    "no_unexplained_warning": true,
+    "no_network_dispatch": true,
+    "no_failed_commands": true
+  },
+  "passed": true,
+  "events": [
+    {
+      "timestamp": "2026-11-26T05:39:57.304Z",
+      "event": "mimo_core_command_started",
+      "level": "info",
+      "fields": {
+        "revision": "1662",
+        "sequence": "23",
+        "command": "close",
+        "processRole": "core",
+        "pid": "64063"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:39:58.031Z",
+      "event": "mimo_core_command_finished",
+      "level": "info",
+      "fields": {
+        "revision": "1662",
+        "pid": "64063",
+        "sequence": "23",
+        "command": "close",
+        "phase": "blocked",
+        "duration_ms": "727",
+        "processRole": "core"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:39:58.080Z",
+      "event": "mimo_configuration_barrier_reused",
+      "level": "info",
+      "fields": {
+        "family": "dual",
+        "revision": "1663",
+        "mode": "global",
+        "processRole": "core",
+        "pid": "64063"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:39:58.083Z",
+      "event": "shared_settings_changed",
+      "level": "info",
+      "fields": {
+        "revision": "1663",
+        "pid": "64063",
+        "processRole": "core"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:39:58.168Z",
+      "event": "lookup_started",
+      "level": "info",
+      "fields": {
+        "processRole": "core",
+        "lookup": "679D6CE7-1D26-4A1B-8FE5-57A63D3B276B",
+        "trigger": "settings_changed",
+        "pid": "64063",
+        "provider": "ipapiCo"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:39:58.193Z",
+      "event": "mimo_core_command_started",
+      "level": "info",
+      "fields": {
+        "revision": "1663",
+        "sequence": "24",
+        "command": "prepare",
+        "lookup": "679D6CE7-1D26-4A1B-8FE5-57A63D3B276B",
+        "processRole": "core",
+        "pid": "64063"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:40:00.642Z",
+      "event": "mimo_core_command_finished",
+      "level": "info",
+      "fields": {
+        "revision": "1663",
+        "pid": "64063",
+        "attempt": "6BD69920-5744-4ACF-AB02-E676FB623C84",
+        "sequence": "24",
+        "command": "prepare",
+        "lookup": "679D6CE7-1D26-4A1B-8FE5-57A63D3B276B",
+        "phase": "checking",
+        "duration_ms": "2448",
+        "processRole": "core"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:40:03.381Z",
+      "event": "mimo_core_command_started",
+      "level": "info",
+      "fields": {
+        "revision": "1663",
+        "attempt": "6BD69920-5744-4ACF-AB02-E676FB623C84",
+        "sequence": "25",
+        "command": "approve",
+        "lookup": "679D6CE7-1D26-4A1B-8FE5-57A63D3B276B",
+        "processRole": "core",
+        "pid": "64063"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:40:04.215Z",
+      "event": "mimo_traffic_opened",
+      "level": "info",
+      "fields": {
+        "processRole": "supervisor",
+        "family": "dual",
+        "mode": "global",
+        "pid": "63878",
+        "attempt": "6BD69920-5744-4ACF-AB02-E676FB623C84"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:40:04.398Z",
+      "event": "mimo_core_command_finished",
+      "level": "info",
+      "fields": {
+        "revision": "1663",
+        "pid": "64063",
+        "attempt": "6BD69920-5744-4ACF-AB02-E676FB623C84",
+        "sequence": "25",
+        "command": "approve",
+        "lookup": "679D6CE7-1D26-4A1B-8FE5-57A63D3B276B",
+        "phase": "active",
+        "duration_ms": "1016",
+        "processRole": "core"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:40:04.539Z",
+      "event": "lookup_finished",
+      "level": "info",
+      "fields": {
+        "processRole": "core",
+        "lookup": "679D6CE7-1D26-4A1B-8FE5-57A63D3B276B",
+        "pid": "64063",
+        "duration_ms": "6371"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:40:17.520Z",
+      "event": "mimo_core_command_started",
+      "level": "info",
+      "fields": {
+        "revision": "1663",
+        "sequence": "26",
+        "command": "close",
+        "processRole": "core",
+        "pid": "64063"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:40:18.254Z",
+      "event": "mimo_core_command_finished",
+      "level": "info",
+      "fields": {
+        "revision": "1663",
+        "pid": "64063",
+        "sequence": "26",
+        "command": "close",
+        "phase": "blocked",
+        "duration_ms": "733",
+        "processRole": "core"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:40:18.255Z",
+      "event": "mimo_configuration_barrier_reused",
+      "level": "info",
+      "fields": {
+        "revision": "1664",
+        "family": "ipv4",
+        "mode": "global",
+        "pid": "64063",
+        "processRole": "core"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:40:18.256Z",
+      "event": "mimo_proxy_catalog_changed",
+      "level": "info",
+      "fields": {
+        "family": "ipv4",
+        "processRole": "core",
+        "operation": "configureRouting",
+        "reload": "true",
+        "mode": "global",
+        "pid": "64063",
+        "revision": "1664"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:40:18.385Z",
+      "event": "lookup_started",
+      "level": "info",
+      "fields": {
+        "provider": "ipWhois",
+        "processRole": "core",
+        "lookup": "397CE11A-D57B-4023-B6BB-DCD8A9AFAA2D",
+        "trigger": "settings_changed",
+        "pid": "64063"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:40:18.387Z",
+      "event": "mimo_core_command_started",
+      "level": "info",
+      "fields": {
+        "revision": "1664",
+        "sequence": "27",
+        "command": "prepare",
+        "lookup": "397CE11A-D57B-4023-B6BB-DCD8A9AFAA2D",
+        "processRole": "core",
+        "pid": "64063"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:40:20.726Z",
+      "event": "mimo_core_command_finished",
+      "level": "info",
+      "fields": {
+        "revision": "1664",
+        "pid": "64063",
+        "attempt": "C8CA0009-D0A7-439C-B01D-B81D8B256F56",
+        "sequence": "27",
+        "command": "prepare",
+        "lookup": "397CE11A-D57B-4023-B6BB-DCD8A9AFAA2D",
+        "phase": "checking",
+        "duration_ms": "2339",
+        "processRole": "core"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:40:23.650Z",
+      "event": "mimo_core_command_started",
+      "level": "info",
+      "fields": {
+        "revision": "1664",
+        "attempt": "C8CA0009-D0A7-439C-B01D-B81D8B256F56",
+        "sequence": "28",
+        "command": "approve",
+        "lookup": "397CE11A-D57B-4023-B6BB-DCD8A9AFAA2D",
+        "processRole": "core",
+        "pid": "64063"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:40:24.243Z",
+      "event": "mimo_traffic_opened",
+      "level": "info",
+      "fields": {
+        "processRole": "supervisor",
+        "family": "ipv4",
+        "mode": "global",
+        "pid": "63878",
+        "attempt": "C8CA0009-D0A7-439C-B01D-B81D8B256F56"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:40:24.246Z",
+      "event": "mimo_core_command_finished",
+      "level": "info",
+      "fields": {
+        "revision": "1664",
+        "pid": "64063",
+        "attempt": "C8CA0009-D0A7-439C-B01D-B81D8B256F56",
+        "sequence": "28",
+        "command": "approve",
+        "lookup": "397CE11A-D57B-4023-B6BB-DCD8A9AFAA2D",
+        "phase": "active",
+        "duration_ms": "595",
+        "processRole": "core"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:40:24.383Z",
+      "event": "lookup_finished",
+      "level": "info",
+      "fields": {
+        "pid": "64063",
+        "processRole": "core",
+        "lookup": "397CE11A-D57B-4023-B6BB-DCD8A9AFAA2D",
+        "duration_ms": "5997"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:40:51.335Z",
+      "event": "mimo_core_command_started",
+      "level": "info",
+      "fields": {
+        "revision": "1664",
+        "sequence": "29",
+        "command": "close",
+        "processRole": "core",
+        "pid": "64063"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:40:52.165Z",
+      "event": "mimo_core_command_finished",
+      "level": "info",
+      "fields": {
+        "revision": "1664",
+        "pid": "64063",
+        "sequence": "29",
+        "command": "close",
+        "phase": "blocked",
+        "duration_ms": "830",
+        "processRole": "core"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:40:52.168Z",
+      "event": "mimo_configuration_barrier_reused",
+      "level": "info",
+      "fields": {
+        "revision": "1665",
+        "family": "dual",
+        "mode": "global",
+        "processRole": "core",
+        "pid": "64063"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:40:52.170Z",
+      "event": "mimo_proxy_catalog_changed",
+      "level": "info",
+      "fields": {
+        "family": "dual",
+        "processRole": "core",
+        "operation": "configureRouting",
+        "reload": "true",
+        "mode": "global",
+        "pid": "64063",
+        "revision": "1665"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:40:52.257Z",
+      "event": "lookup_started",
+      "level": "info",
+      "fields": {
+        "lookup": "C836EB40-8F5C-44F1-B179-ECFAC454AF9F",
+        "trigger": "settings_changed",
+        "pid": "64063",
+        "processRole": "core",
+        "provider": "ipapiCo"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:40:52.274Z",
+      "event": "mimo_core_command_started",
+      "level": "info",
+      "fields": {
+        "revision": "1665",
+        "sequence": "30",
+        "command": "prepare",
+        "lookup": "C836EB40-8F5C-44F1-B179-ECFAC454AF9F",
+        "processRole": "core",
+        "pid": "64063"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:40:55.169Z",
+      "event": "mimo_core_command_finished",
+      "level": "info",
+      "fields": {
+        "revision": "1665",
+        "pid": "64063",
+        "attempt": "72E5FE61-6BEC-4F6B-8AA7-EE717D3CC264",
+        "sequence": "30",
+        "command": "prepare",
+        "lookup": "C836EB40-8F5C-44F1-B179-ECFAC454AF9F",
+        "phase": "checking",
+        "duration_ms": "2895",
+        "processRole": "core"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:40:58.139Z",
+      "event": "mimo_core_command_started",
+      "level": "info",
+      "fields": {
+        "revision": "1665",
+        "attempt": "72E5FE61-6BEC-4F6B-8AA7-EE717D3CC264",
+        "sequence": "31",
+        "command": "approve",
+        "lookup": "C836EB40-8F5C-44F1-B179-ECFAC454AF9F",
+        "processRole": "core",
+        "pid": "64063"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:40:58.900Z",
+      "event": "mimo_traffic_opened",
+      "level": "info",
+      "fields": {
+        "processRole": "supervisor",
+        "family": "dual",
+        "mode": "global",
+        "pid": "63878",
+        "attempt": "72E5FE61-6BEC-4F6B-8AA7-EE717D3CC264"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:40:58.902Z",
+      "event": "mimo_core_command_finished",
+      "level": "info",
+      "fields": {
+        "revision": "1665",
+        "pid": "64063",
+        "attempt": "72E5FE61-6BEC-4F6B-8AA7-EE717D3CC264",
+        "sequence": "31",
+        "command": "approve",
+        "lookup": "C836EB40-8F5C-44F1-B179-ECFAC454AF9F",
+        "phase": "active",
+        "duration_ms": "763",
+        "processRole": "core"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:40:59.082Z",
+      "event": "lookup_finished",
+      "level": "info",
+      "fields": {
+        "lookup": "C836EB40-8F5C-44F1-B179-ECFAC454AF9F",
+        "duration_ms": "6825",
+        "processRole": "core",
+        "pid": "64063"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:42:09.643Z",
+      "event": "mimo_navigation_requested",
+      "level": "info",
+      "fields": {
+        "tab": "Settings",
+        "section": "General",
+        "pid": "65506",
+        "navigation_id": "48D91DEE-1B04-4DF2-9593-96EC4EB2EE44",
+        "processRole": "gui"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:42:09.681Z",
+      "event": "mimo_navigation_window_updated",
+      "level": "info",
+      "fields": {
+        "section": "General",
+        "tab": "Settings",
+        "duration_ms": "39",
+        "pid": "65506",
+        "processRole": "gui",
+        "navigation_id": "48D91DEE-1B04-4DF2-9593-96EC4EB2EE44"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:42:15.251Z",
+      "event": "mimo_navigation_requested",
+      "level": "info",
+      "fields": {
+        "tab": "Settings",
+        "section": "Proxy",
+        "navigation_id": "F90795E3-333F-4394-A820-E935F5E70443",
+        "pid": "65506",
+        "processRole": "gui"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:42:15.319Z",
+      "event": "mimo_navigation_window_updated",
+      "level": "info",
+      "fields": {
+        "tab": "Settings",
+        "section": "Proxy",
+        "navigation_id": "F90795E3-333F-4394-A820-E935F5E70443",
+        "processRole": "gui",
+        "duration_ms": "67",
+        "pid": "65506"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:42:15.807Z",
+      "event": "mimo_navigation_requested",
+      "level": "info",
+      "fields": {
+        "tab": "Settings",
+        "section": "Bypass",
+        "navigation_id": "C5CF8B9E-F708-4017-AF22-01056F715137",
+        "processRole": "gui",
+        "pid": "65506"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:42:15.885Z",
+      "event": "mimo_navigation_window_updated",
+      "level": "info",
+      "fields": {
+        "tab": "Settings",
+        "pid": "65506",
+        "navigation_id": "C5CF8B9E-F708-4017-AF22-01056F715137",
+        "section": "Bypass",
+        "processRole": "gui",
+        "duration_ms": "77"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:42:16.360Z",
+      "event": "mimo_navigation_requested",
+      "level": "info",
+      "fields": {
+        "tab": "Settings",
+        "navigation_id": "D4DE7D6A-F295-4654-BBE7-F5538E91FEEC",
+        "section": "Allowed IPs",
+        "processRole": "gui",
+        "pid": "65506"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:42:16.388Z",
+      "event": "mimo_navigation_window_updated",
+      "level": "info",
+      "fields": {
+        "navigation_id": "D4DE7D6A-F295-4654-BBE7-F5538E91FEEC",
+        "duration_ms": "27",
+        "processRole": "gui",
+        "pid": "65506",
+        "section": "Allowed IPs",
+        "tab": "Settings"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:42:16.902Z",
+      "event": "mimo_navigation_requested",
+      "level": "info",
+      "fields": {
+        "navigation_id": "5E376308-6623-4246-8F9A-F3AD4012CEFB",
+        "processRole": "gui",
+        "pid": "65506",
+        "section": "Monitoring",
+        "tab": "Settings"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:42:16.943Z",
+      "event": "mimo_navigation_window_updated",
+      "level": "info",
+      "fields": {
+        "pid": "65506",
+        "section": "Monitoring",
+        "duration_ms": "42",
+        "processRole": "gui",
+        "navigation_id": "5E376308-6623-4246-8F9A-F3AD4012CEFB",
+        "tab": "Settings"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:42:24.768Z",
+      "event": "mimo_navigation_requested",
+      "level": "info",
+      "fields": {
+        "navigation_id": "8AD8861A-03AF-4EB2-B6AD-DAD342BF64BE",
+        "section": "General",
+        "processRole": "gui",
+        "pid": "65506",
+        "tab": "Settings"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:42:24.806Z",
+      "event": "mimo_navigation_window_updated",
+      "level": "info",
+      "fields": {
+        "tab": "Settings",
+        "section": "General",
+        "navigation_id": "8AD8861A-03AF-4EB2-B6AD-DAD342BF64BE",
+        "duration_ms": "38",
+        "pid": "65506",
+        "processRole": "gui"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:42:25.312Z",
+      "event": "mimo_navigation_requested",
+      "level": "info",
+      "fields": {
+        "processRole": "gui",
+        "navigation_id": "EFF49409-BB4B-40F9-AB47-2975CC0FFAF3",
+        "pid": "65506",
+        "section": "Maintenance",
+        "tab": "Settings"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:42:25.347Z",
+      "event": "mimo_navigation_window_updated",
+      "level": "info",
+      "fields": {
+        "section": "Maintenance",
+        "duration_ms": "34",
+        "tab": "Settings",
+        "navigation_id": "EFF49409-BB4B-40F9-AB47-2975CC0FFAF3",
+        "processRole": "gui",
+        "pid": "65506"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:42:25.876Z",
+      "event": "mimo_navigation_requested",
+      "level": "info",
+      "fields": {
+        "section": "Maintenance",
+        "tab": "Dashboard",
+        "navigation_id": "7DDCE815-DA6D-4B3E-ACAB-07E26DA79890",
+        "processRole": "gui",
+        "pid": "65506"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:42:25.908Z",
+      "event": "mimo_navigation_window_updated",
+      "level": "info",
+      "fields": {
+        "section": "Maintenance",
+        "tab": "Dashboard",
+        "duration_ms": "32",
+        "pid": "65506",
+        "navigation_id": "7DDCE815-DA6D-4B3E-ACAB-07E26DA79890",
+        "processRole": "gui"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:43:53.104Z",
+      "event": "mimo_core_command_started",
+      "level": "info",
+      "fields": {
+        "revision": "1665",
+        "sequence": "32",
+        "command": "close",
+        "processRole": "core",
+        "pid": "64063"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:43:53.897Z",
+      "event": "mimo_core_command_finished",
+      "level": "info",
+      "fields": {
+        "revision": "1665",
+        "pid": "64063",
+        "sequence": "32",
+        "command": "close",
+        "phase": "blocked",
+        "duration_ms": "793",
+        "processRole": "core"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:43:53.915Z",
+      "event": "mimo_configuration_barrier_reused",
+      "level": "info",
+      "fields": {
+        "revision": "1666",
+        "family": "dual",
+        "mode": "rule",
+        "processRole": "core",
+        "pid": "64063"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:43:53.916Z",
+      "event": "mimo_proxy_catalog_changed",
+      "level": "info",
+      "fields": {
+        "family": "dual",
+        "processRole": "core",
+        "operation": "configureRouting",
+        "reload": "true",
+        "mode": "rule",
+        "pid": "64063",
+        "revision": "1666"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:43:53.999Z",
+      "event": "lookup_started",
+      "level": "info",
+      "fields": {
+        "lookup": "6A2EDD96-82D0-45CE-BF36-3AA77334B529",
+        "processRole": "core",
+        "trigger": "settings_changed",
+        "provider": "ipWhois",
+        "pid": "64063"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:43:54.016Z",
+      "event": "mimo_core_command_started",
+      "level": "info",
+      "fields": {
+        "revision": "1666",
+        "sequence": "33",
+        "command": "prepare",
+        "lookup": "6A2EDD96-82D0-45CE-BF36-3AA77334B529",
+        "processRole": "core",
+        "pid": "64063"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:43:56.618Z",
+      "event": "mimo_core_command_finished",
+      "level": "info",
+      "fields": {
+        "revision": "1666",
+        "pid": "64063",
+        "attempt": "822C8B61-FEBF-41A0-A2C6-2C2B2C350AE3",
+        "sequence": "33",
+        "command": "prepare",
+        "lookup": "6A2EDD96-82D0-45CE-BF36-3AA77334B529",
+        "phase": "checking",
+        "duration_ms": "2601",
+        "processRole": "core"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:43:59.155Z",
+      "event": "mimo_core_command_started",
+      "level": "info",
+      "fields": {
+        "revision": "1666",
+        "attempt": "822C8B61-FEBF-41A0-A2C6-2C2B2C350AE3",
+        "sequence": "34",
+        "command": "approve",
+        "lookup": "6A2EDD96-82D0-45CE-BF36-3AA77334B529",
+        "processRole": "core",
+        "pid": "64063"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:43:59.927Z",
+      "event": "mimo_traffic_opened",
+      "level": "info",
+      "fields": {
+        "family": "dual",
+        "processRole": "supervisor",
+        "mode": "rule",
+        "pid": "63878",
+        "attempt": "822C8B61-FEBF-41A0-A2C6-2C2B2C350AE3"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:44:00.156Z",
+      "event": "mimo_core_command_finished",
+      "level": "info",
+      "fields": {
+        "revision": "1666",
+        "pid": "64063",
+        "attempt": "822C8B61-FEBF-41A0-A2C6-2C2B2C350AE3",
+        "sequence": "34",
+        "command": "approve",
+        "lookup": "6A2EDD96-82D0-45CE-BF36-3AA77334B529",
+        "phase": "active",
+        "duration_ms": "1000",
+        "processRole": "core"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:44:00.275Z",
+      "event": "lookup_finished",
+      "level": "info",
+      "fields": {
+        "duration_ms": "6275",
+        "processRole": "core",
+        "pid": "64063",
+        "lookup": "6A2EDD96-82D0-45CE-BF36-3AA77334B529"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:44:27.490Z",
+      "event": "mimo_core_command_started",
+      "level": "info",
+      "fields": {
+        "revision": "1666",
+        "sequence": "35",
+        "command": "close",
+        "processRole": "core",
+        "pid": "64063"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:44:28.333Z",
+      "event": "mimo_core_command_finished",
+      "level": "info",
+      "fields": {
+        "revision": "1666",
+        "pid": "64063",
+        "sequence": "35",
+        "command": "close",
+        "phase": "blocked",
+        "duration_ms": "842",
+        "processRole": "core"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:44:28.336Z",
+      "event": "mimo_configuration_barrier_reused",
+      "level": "info",
+      "fields": {
+        "family": "ipv4",
+        "revision": "1667",
+        "mode": "rule",
+        "processRole": "core",
+        "pid": "64063"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:44:28.337Z",
+      "event": "mimo_proxy_catalog_changed",
+      "level": "info",
+      "fields": {
+        "family": "ipv4",
+        "processRole": "core",
+        "operation": "configureRouting",
+        "reload": "true",
+        "mode": "rule",
+        "pid": "64063",
+        "revision": "1667"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:44:28.423Z",
+      "event": "lookup_started",
+      "level": "info",
+      "fields": {
+        "pid": "64063",
+        "lookup": "22140D62-71F2-4E03-989B-C3024732C42F",
+        "provider": "ipapiCo",
+        "processRole": "core",
+        "trigger": "settings_changed"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:44:28.440Z",
+      "event": "mimo_core_command_started",
+      "level": "info",
+      "fields": {
+        "revision": "1667",
+        "sequence": "36",
+        "command": "prepare",
+        "lookup": "22140D62-71F2-4E03-989B-C3024732C42F",
+        "processRole": "core",
+        "pid": "64063"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:44:31.323Z",
+      "event": "mimo_core_command_finished",
+      "level": "info",
+      "fields": {
+        "revision": "1667",
+        "pid": "64063",
+        "attempt": "E65F9EE9-6B13-4F1B-9DE6-4A75CAA2CB95",
+        "sequence": "36",
+        "command": "prepare",
+        "lookup": "22140D62-71F2-4E03-989B-C3024732C42F",
+        "phase": "checking",
+        "duration_ms": "2882",
+        "processRole": "core"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:44:33.918Z",
+      "event": "mimo_core_command_started",
+      "level": "info",
+      "fields": {
+        "command": "approve",
+        "revision": "1667",
+        "sequence": "37",
+        "attempt": "E65F9EE9-6B13-4F1B-9DE6-4A75CAA2CB95",
+        "pid": "64063",
+        "lookup": "22140D62-71F2-4E03-989B-C3024732C42F",
+        "processRole": "core"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:44:34.509Z",
+      "event": "mimo_traffic_opened",
+      "level": "info",
+      "fields": {
+        "family": "ipv4",
+        "processRole": "supervisor",
+        "mode": "rule",
+        "pid": "63878",
+        "attempt": "E65F9EE9-6B13-4F1B-9DE6-4A75CAA2CB95"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:44:34.511Z",
+      "event": "mimo_core_command_finished",
+      "level": "info",
+      "fields": {
+        "command": "approve",
+        "revision": "1667",
+        "sequence": "37",
+        "attempt": "E65F9EE9-6B13-4F1B-9DE6-4A75CAA2CB95",
+        "pid": "64063",
+        "lookup": "22140D62-71F2-4E03-989B-C3024732C42F",
+        "duration_ms": "593",
+        "phase": "active",
+        "processRole": "core"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:44:34.637Z",
+      "event": "lookup_finished",
+      "level": "info",
+      "fields": {
+        "processRole": "core",
+        "lookup": "22140D62-71F2-4E03-989B-C3024732C42F",
+        "pid": "64063",
+        "duration_ms": "6214"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:45:12.864Z",
+      "event": "mimo_core_command_started",
+      "level": "info",
+      "fields": {
+        "revision": "1667",
+        "sequence": "38",
+        "command": "close",
+        "processRole": "core",
+        "pid": "64063"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:45:13.615Z",
+      "event": "mimo_core_command_finished",
+      "level": "info",
+      "fields": {
+        "revision": "1667",
+        "pid": "64063",
+        "sequence": "38",
+        "command": "close",
+        "phase": "blocked",
+        "duration_ms": "751",
+        "processRole": "core"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:45:13.617Z",
+      "event": "mimo_configuration_barrier_reused",
+      "level": "info",
+      "fields": {
+        "revision": "1668",
+        "family": "dual",
+        "mode": "rule",
+        "processRole": "core",
+        "pid": "64063"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:45:13.618Z",
+      "event": "mimo_proxy_catalog_changed",
+      "level": "info",
+      "fields": {
+        "family": "dual",
+        "processRole": "core",
+        "operation": "configureRouting",
+        "reload": "true",
+        "mode": "rule",
+        "pid": "64063",
+        "revision": "1668"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:45:13.718Z",
+      "event": "lookup_started",
+      "level": "info",
+      "fields": {
+        "provider": "ipWhois",
+        "processRole": "core",
+        "pid": "64063",
+        "trigger": "settings_changed",
+        "lookup": "6438C98D-78DB-40FE-96FB-05FCF9EB8B83"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:45:13.734Z",
+      "event": "mimo_core_command_started",
+      "level": "info",
+      "fields": {
+        "revision": "1668",
+        "sequence": "39",
+        "command": "prepare",
+        "lookup": "6438C98D-78DB-40FE-96FB-05FCF9EB8B83",
+        "processRole": "core",
+        "pid": "64063"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:45:16.361Z",
+      "event": "mimo_core_command_finished",
+      "level": "info",
+      "fields": {
+        "revision": "1668",
+        "pid": "64063",
+        "attempt": "1A198DB9-6E47-4AC3-ABF6-9E4663DC2B28",
+        "sequence": "39",
+        "command": "prepare",
+        "lookup": "6438C98D-78DB-40FE-96FB-05FCF9EB8B83",
+        "phase": "checking",
+        "duration_ms": "2626",
+        "processRole": "core"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:45:19.095Z",
+      "event": "mimo_core_command_started",
+      "level": "info",
+      "fields": {
+        "revision": "1668",
+        "attempt": "1A198DB9-6E47-4AC3-ABF6-9E4663DC2B28",
+        "sequence": "40",
+        "command": "approve",
+        "lookup": "6438C98D-78DB-40FE-96FB-05FCF9EB8B83",
+        "processRole": "core",
+        "pid": "64063"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:45:19.979Z",
+      "event": "mimo_traffic_opened",
+      "level": "info",
+      "fields": {
+        "family": "dual",
+        "processRole": "supervisor",
+        "mode": "rule",
+        "pid": "63878",
+        "attempt": "1A198DB9-6E47-4AC3-ABF6-9E4663DC2B28"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:45:20.239Z",
+      "event": "mimo_core_command_finished",
+      "level": "info",
+      "fields": {
+        "revision": "1668",
+        "pid": "64063",
+        "attempt": "1A198DB9-6E47-4AC3-ABF6-9E4663DC2B28",
+        "sequence": "40",
+        "command": "approve",
+        "lookup": "6438C98D-78DB-40FE-96FB-05FCF9EB8B83",
+        "phase": "active",
+        "duration_ms": "1143",
+        "processRole": "core"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:45:20.368Z",
+      "event": "lookup_finished",
+      "level": "info",
+      "fields": {
+        "pid": "64063",
+        "lookup": "6438C98D-78DB-40FE-96FB-05FCF9EB8B83",
+        "processRole": "core",
+        "duration_ms": "6650"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:45:39.076Z",
+      "event": "mimo_navigation_requested",
+      "level": "info",
+      "fields": {
+        "processRole": "gui",
+        "section": "Maintenance",
+        "tab": "Settings",
+        "navigation_id": "079A654C-38CC-4983-9004-D93C44DC9DE0",
+        "pid": "65506"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:45:39.105Z",
+      "event": "mimo_navigation_window_updated",
+      "level": "info",
+      "fields": {
+        "section": "Maintenance",
+        "navigation_id": "079A654C-38CC-4983-9004-D93C44DC9DE0",
+        "processRole": "gui",
+        "duration_ms": "28",
+        "pid": "65506",
+        "tab": "Settings"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:48:01.156Z",
+      "event": "mimo_navigation_requested",
+      "level": "info",
+      "fields": {
+        "tab": "Dashboard",
+        "section": "Maintenance",
+        "pid": "65506",
+        "navigation_id": "2504ABE4-BA89-408E-9B9A-4315B20501CF",
+        "processRole": "gui"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:48:01.188Z",
+      "event": "mimo_navigation_window_updated",
+      "level": "info",
+      "fields": {
+        "tab": "Dashboard",
+        "pid": "65506",
+        "processRole": "gui",
+        "section": "Maintenance",
+        "duration_ms": "32",
+        "navigation_id": "2504ABE4-BA89-408E-9B9A-4315B20501CF"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:48:01.710Z",
+      "event": "mimo_navigation_requested",
+      "level": "info",
+      "fields": {
+        "tab": "Settings",
+        "pid": "65506",
+        "section": "Maintenance",
+        "processRole": "gui",
+        "navigation_id": "EAC6E852-3F2C-49AC-B4D7-7CD8897620CA"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:48:01.742Z",
+      "event": "mimo_navigation_window_updated",
+      "level": "info",
+      "fields": {
+        "processRole": "gui",
+        "duration_ms": "32",
+        "navigation_id": "EAC6E852-3F2C-49AC-B4D7-7CD8897620CA",
+        "section": "Maintenance",
+        "pid": "65506",
+        "tab": "Settings"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:48:02.253Z",
+      "event": "mimo_navigation_requested",
+      "level": "info",
+      "fields": {
+        "processRole": "gui",
+        "navigation_id": "A06EF66E-83F6-4962-A45A-56C2454EC623",
+        "section": "Proxy",
+        "pid": "65506",
+        "tab": "Settings"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:48:02.286Z",
+      "event": "mimo_navigation_window_updated",
+      "level": "info",
+      "fields": {
+        "processRole": "gui",
+        "tab": "Settings",
+        "navigation_id": "A06EF66E-83F6-4962-A45A-56C2454EC623",
+        "pid": "65506",
+        "section": "Proxy",
+        "duration_ms": "33"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:48:10.215Z",
+      "event": "mimo_navigation_requested",
+      "level": "info",
+      "fields": {
+        "section": "Bypass",
+        "navigation_id": "5C499B52-38BF-4CB3-9870-15ACF0EB8129",
+        "tab": "Settings",
+        "processRole": "gui",
+        "pid": "65506"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:48:10.256Z",
+      "event": "mimo_navigation_window_updated",
+      "level": "info",
+      "fields": {
+        "section": "Bypass",
+        "duration_ms": "40",
+        "navigation_id": "5C499B52-38BF-4CB3-9870-15ACF0EB8129",
+        "processRole": "gui",
+        "pid": "65506",
+        "tab": "Settings"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:48:10.784Z",
+      "event": "mimo_navigation_requested",
+      "level": "info",
+      "fields": {
+        "processRole": "gui",
+        "tab": "Settings",
+        "navigation_id": "9E5A93C2-6C1B-439F-B640-FA7A4D72E3EC",
+        "pid": "65506",
+        "section": "Allowed IPs"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:48:10.820Z",
+      "event": "mimo_navigation_window_updated",
+      "level": "info",
+      "fields": {
+        "section": "Allowed IPs",
+        "navigation_id": "9E5A93C2-6C1B-439F-B640-FA7A4D72E3EC",
+        "duration_ms": "36",
+        "processRole": "gui",
+        "pid": "65506",
+        "tab": "Settings"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:48:11.358Z",
+      "event": "mimo_navigation_requested",
+      "level": "info",
+      "fields": {
+        "section": "Monitoring",
+        "navigation_id": "256DCC57-8E47-4EF2-9B8D-DE74A1C1AC41",
+        "processRole": "gui",
+        "pid": "65506",
+        "tab": "Settings"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:48:11.388Z",
+      "event": "mimo_navigation_window_updated",
+      "level": "info",
+      "fields": {
+        "pid": "65506",
+        "processRole": "gui",
+        "duration_ms": "30",
+        "tab": "Settings",
+        "section": "Monitoring",
+        "navigation_id": "256DCC57-8E47-4EF2-9B8D-DE74A1C1AC41"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:48:17.708Z",
+      "event": "mimo_navigation_requested",
+      "level": "info",
+      "fields": {
+        "pid": "65506",
+        "section": "General",
+        "navigation_id": "9B68986C-8C39-420A-8798-B97BFCA45D32",
+        "tab": "Settings",
+        "processRole": "gui"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:48:17.743Z",
+      "event": "mimo_navigation_window_updated",
+      "level": "info",
+      "fields": {
+        "pid": "65506",
+        "section": "General",
+        "duration_ms": "35",
+        "processRole": "gui",
+        "tab": "Settings",
+        "navigation_id": "9B68986C-8C39-420A-8798-B97BFCA45D32"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:48:18.282Z",
+      "event": "mimo_navigation_requested",
+      "level": "info",
+      "fields": {
+        "section": "Maintenance",
+        "tab": "Settings",
+        "pid": "65506",
+        "navigation_id": "98CCDB39-145D-430C-9E12-E956AB618285",
+        "processRole": "gui"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:48:18.310Z",
+      "event": "mimo_navigation_window_updated",
+      "level": "info",
+      "fields": {
+        "section": "Maintenance",
+        "pid": "65506",
+        "duration_ms": "28",
+        "navigation_id": "98CCDB39-145D-430C-9E12-E956AB618285",
+        "tab": "Settings",
+        "processRole": "gui"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:48:18.846Z",
+      "event": "mimo_navigation_requested",
+      "level": "info",
+      "fields": {
+        "section": "Maintenance",
+        "pid": "65506",
+        "navigation_id": "75EAB9C8-57A8-4FC7-89AC-7F490711E142",
+        "tab": "Dashboard",
+        "processRole": "gui"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:48:18.884Z",
+      "event": "mimo_navigation_window_updated",
+      "level": "info",
+      "fields": {
+        "section": "Maintenance",
+        "processRole": "gui",
+        "pid": "65506",
+        "navigation_id": "75EAB9C8-57A8-4FC7-89AC-7F490711E142",
+        "tab": "Dashboard",
+        "duration_ms": "39"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:49:33.274Z",
+      "event": "mimo_core_command_started",
+      "level": "info",
+      "fields": {
+        "revision": "1668",
+        "sequence": "41",
+        "command": "close",
+        "processRole": "core",
+        "pid": "64063"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:49:33.950Z",
+      "event": "mimo_core_command_finished",
+      "level": "info",
+      "fields": {
+        "revision": "1668",
+        "pid": "64063",
+        "sequence": "41",
+        "command": "close",
+        "phase": "blocked",
+        "duration_ms": "676",
+        "processRole": "core"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:49:33.952Z",
+      "event": "mimo_configuration_barrier_reused",
+      "level": "info",
+      "fields": {
+        "revision": "1669",
+        "family": "dual",
+        "mode": "global",
+        "processRole": "core",
+        "pid": "64063"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:49:33.953Z",
+      "event": "mimo_proxy_catalog_changed",
+      "level": "info",
+      "fields": {
+        "family": "dual",
+        "processRole": "core",
+        "operation": "configureRouting",
+        "reload": "true",
+        "mode": "global",
+        "pid": "64063",
+        "revision": "1669"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:49:34.039Z",
+      "event": "lookup_started",
+      "level": "info",
+      "fields": {
+        "provider": "ipapiCo",
+        "processRole": "core",
+        "pid": "64063",
+        "trigger": "settings_changed",
+        "lookup": "56D4F7C4-4F54-4F1D-894A-EF6B2EB30D8C"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:49:34.057Z",
+      "event": "mimo_core_command_started",
+      "level": "info",
+      "fields": {
+        "revision": "1669",
+        "sequence": "42",
+        "command": "prepare",
+        "lookup": "56D4F7C4-4F54-4F1D-894A-EF6B2EB30D8C",
+        "processRole": "core",
+        "pid": "64063"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:49:36.595Z",
+      "event": "mimo_core_command_finished",
+      "level": "info",
+      "fields": {
+        "revision": "1669",
+        "pid": "64063",
+        "attempt": "8C139591-513E-4EF6-BDFD-473CDFDA4087",
+        "sequence": "42",
+        "command": "prepare",
+        "lookup": "56D4F7C4-4F54-4F1D-894A-EF6B2EB30D8C",
+        "phase": "checking",
+        "duration_ms": "2538",
+        "processRole": "core"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:49:39.787Z",
+      "event": "mimo_core_command_started",
+      "level": "info",
+      "fields": {
+        "revision": "1669",
+        "attempt": "8C139591-513E-4EF6-BDFD-473CDFDA4087",
+        "sequence": "43",
+        "command": "approve",
+        "lookup": "56D4F7C4-4F54-4F1D-894A-EF6B2EB30D8C",
+        "processRole": "core",
+        "pid": "64063"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:49:40.462Z",
+      "event": "mimo_traffic_opened",
+      "level": "info",
+      "fields": {
+        "processRole": "supervisor",
+        "family": "dual",
+        "mode": "global",
+        "pid": "63878",
+        "attempt": "8C139591-513E-4EF6-BDFD-473CDFDA4087"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:49:40.700Z",
+      "event": "mimo_core_command_finished",
+      "level": "info",
+      "fields": {
+        "revision": "1669",
+        "pid": "64063",
+        "attempt": "8C139591-513E-4EF6-BDFD-473CDFDA4087",
+        "sequence": "43",
+        "command": "approve",
+        "lookup": "56D4F7C4-4F54-4F1D-894A-EF6B2EB30D8C",
+        "phase": "active",
+        "duration_ms": "912",
+        "processRole": "core"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T05:49:40.836Z",
+      "event": "lookup_finished",
+      "level": "info",
+      "fields": {
+        "lookup": "56D4F7C4-4F54-4F1D-894A-EF6B2EB30D8C",
+        "duration_ms": "6797",
+        "processRole": "core",
+        "pid": "64063"
+      }
+    }
+  ]
+}

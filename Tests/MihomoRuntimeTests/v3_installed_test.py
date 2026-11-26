@@ -91,7 +91,7 @@ def main():
         (ROOT / 'before.json').write_text(json.dumps(original))
     settings = original['settings']
     settings.update(provider='ipWhois', providerPool=['ipWhois'], refreshInterval=-1,
-                    allowlist={'addresses': ['203.0.113.10', '2001:db8::10']}, bypassBlocks=[])
+                    allowlist={'addresses': ['203.0.113.10']}, bypassBlocks=[])
     request('configure' if original['initialized'] else 'initialize', settings=settings)
     name = 'V3 local qualification'
     existing = next((p for p in state()['routing']['configuration'].get('proxies', []) if p['proxy']['name'] == name), None)
@@ -110,10 +110,8 @@ def main():
                 observations = active['routing'].get('exitObservations') or {}
                 verification = observations.get('verification') or {}
                 v4, v6 = observations.get('ipv4') or {}, observations.get('ipv6')
-                paired = v4.get('ipAddress') == '203.0.113.10' and v4.get('checkedAt', 0) >= verification.get('startedAt', float('inf'))
-                paired &= (v6 is None if family == 'ipv4' else
-                           v6 is not None and v6.get('ipAddress') == '2001:db8::10' and v6.get('checkedAt', 0) >= verification.get('startedAt', float('inf')))
-                check(label + '-fresh-family-observations', paired)
+                fresh = v4.get('ipAddress') == '203.0.113.10' and v4.get('checkedAt', 0) >= verification.get('startedAt', float('inf'))
+                check(label + '-fresh-ipv4-approval', fresh and v6 is None)
                 live = api('/configs')
                 check(label + '-actual-engine-mode', live['mode'] == mode and live['mimo-destination-family'] == family)
                 rules = run(['/sbin/pfctl', '-a', ANCHOR, '-sr'])

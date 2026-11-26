@@ -38,15 +38,23 @@ enum MonitoringV21Tests {
                 "an attempted failed lookup must not be called a skipped lookup")
         require(monitor.snapshot!.checkedAt == lastSuccess, "failure must not advance checked time")
         let calls = await client.count
+        await monitor.refresh(force: true, bypassMinimumInterval: true, trigger: .retry)
+        require(await client.count == calls && monitor.isCoolingDown,
+                "automatic retries must keep the ten-minute local backoff")
         await monitor.refresh(force: true, bypassMinimumInterval: true)
-        require(await client.count == calls && monitor.manualRefresh?.phase == .deferred,
-                "manual refresh respects cooldown and reports that it did not run")
+        require(await client.count == calls + 1 && monitor.manualRefresh?.phase == .succeeded && monitor.snapshot!.checkedAt > lastSuccess,
+                "explicit Retry must check a repaired local connection without a clock/token/reset workaround")
+        await client.failNext(.rateLimited(retryAfter: clock.now.addingTimeInterval(900)))
+        await monitor.refresh(force: true, bypassMinimumInterval: true)
+        let limitedCalls = await client.count
+        await monitor.refresh(force: true, bypassMinimumInterval: true)
+        require(await client.count == limitedCalls && monitor.manualRefresh?.phase == .deferred,
+                "explicit Retry must preserve real provider Retry-After")
         require(monitor.manualRefresh?.startedAt == nil && monitor.manualRefresh?.message.contains("No lookup ran") == true,
-                "cooldown feedback must distinguish a request from an actual lookup")
-        clock.advance(601)
+                "provider restriction feedback must distinguish refusal from an actual lookup")
+        clock.advance(901)
         await monitor.refresh(force: true, bypassMinimumInterval: true)
-        require(monitor.manualRefresh?.phase == .succeeded && monitor.snapshot!.checkedAt > lastSuccess,
-                "fresh lookup is available when the ten-minute local cooldown expires")
+        require(monitor.manualRefresh?.phase == .succeeded, "provider restriction expires normally")
         monitor.holdForControl()
         await monitor.refresh(force: true, bypassMinimumInterval: true)
         require(monitor.manualRefresh?.phase == .queued, "manual request waits visibly behind shared controls")
@@ -81,12 +89,12 @@ private final class MonitorTestClock: @unchecked Sendable {
 private actor MonitorV21Client: PublicIPLookupClientProtocol {
     let clock: MonitorTestClock
     var count = 0
-    private var shouldFail = false
+    private var nextFailure: LookupError?
     init(clock: MonitorTestClock) { self.clock = clock }
-    func failNext() { shouldFail = true }
+    func failNext(_ error: LookupError = .transport("fixture unavailable")) { nextFailure = error }
     func lookup(configuration: LookupConfiguration) async throws -> MimoSnapshot {
         count += 1
-        if shouldFail { shouldFail = false; throw LookupError.transport("fixture unavailable") }
+        if let error = nextFailure { nextFailure = nil; throw error }
         return MimoSnapshot(ipAddress: "192.0.2.10", countryCode: "SG", countryName: "Singapore", provider: configuration.provider, checkedAt: clock.now)
     }
     func confirmCountryChange(primaryProvider: ProviderID, ipinfoToken: String?) async throws -> MimoSnapshot {

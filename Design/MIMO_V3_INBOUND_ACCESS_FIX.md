@@ -97,7 +97,9 @@ transport updates/failures. Settings → Maintenance explains the new state rule
   and verified again. The 564 state queries, including Tart overhead, took at
   most 1.597 seconds. Direct restored PF/DNS and access in 9.903–12.492 seconds.
   Fixture credential replacement resets provider cooldown for the repair step;
-  ordinary Retry retains provider budgets/cooldowns. The disposable token is
+  ordinary Retry in build 10 retains provider budgets/cooldowns. This did not
+  qualify repair within the same blocked session; see the subsequently reproduced
+  [cooldown recovery regression](MIMO_BLOCKED_VERIFICATION_RECOVERY.md). The disposable token is
   removed before Direct, so pending-HTTP cancellation is qualified separately
   by the four coordinator cases above.
 

@@ -1,0 +1,1 @@
+main/credential_test.swift:246: Fatal error: A burst of completed states must not queue duplicate native menu layouts ahead of user input (got 130)

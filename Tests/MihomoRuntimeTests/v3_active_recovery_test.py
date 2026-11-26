@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Installed paired-approval recovery in the isolated, explicitly trusted VM lab.
+"""Installed IPv4-approval recovery in the isolated, explicitly trusted VM lab.
 
 Requires the previously selected closed fixture. No credentials/raw state are
 exported. Recovery timing is not a bound on packet leakage before detection.
@@ -30,7 +30,8 @@ def proof(mode, family):
     obs = value.get('exitObservations') or {}
     v4, v6 = obs.get('ipv4') or {}, obs.get('ipv6')
     valid = value['configuration']['networkFamily'] == family and v4.get('ipAddress') == '203.0.113.10'
-    valid &= (v6 is None if family == 'ipv4' else v6 is not None and v6.get('ipAddress') == '2001:db8::10')
+    valid &= v6 is None
+    valid &= v4.get('checkedAt', 0) >= obs.get('verification', {}).get('startedAt', float('inf'))
     valid &= all(s['health'] == 'running' for s in value['services'])
     valid &= t.active_guard(t.run(['/sbin/pfctl', '-a', t.ANCHOR, '-sr']).stdout)
     live = t.api('/configs')

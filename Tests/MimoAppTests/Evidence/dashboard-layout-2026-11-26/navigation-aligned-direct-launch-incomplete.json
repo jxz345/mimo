@@ -1,0 +1,45 @@
+{
+  "mode": "direct",
+  "family": "ipv4",
+  "verdict": "direct",
+  "started": "2026-11-26T06:21:55.013Z",
+  "finished": "2026-11-26T06:22:55.266Z",
+  "seconds": 60.0,
+  "passed": false,
+  "checks": {
+    "no_new_lookup": true,
+    "no_recovery_loop": true,
+    "no_warning_or_error": true,
+    "no_unexpected_control_or_failure_event": true,
+    "expected_verdict_and_monitor_ready": true,
+    "same_core": true,
+    "settings_unchanged": true,
+    "routing_unchanged": true,
+    "health_checks_continue": true,
+    "rejected_observation_retained": true,
+    "observed_ip_unchanged": true,
+    "both_tabs_observed": false,
+    "all_settings_sections_observed": false,
+    "every_navigation_completed": false
+  },
+  "events": [
+    {
+      "timestamp": "2026-11-26T06:22:40.876Z",
+      "event": "mimo_access_presentation_changed",
+      "level": "info",
+      "fields": {
+        "phase": "unavailable",
+        "kind": "unavailable"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T06:22:40.934Z",
+      "event": "mimo_access_presentation_changed",
+      "level": "info",
+      "fields": {
+        "phase": "active",
+        "kind": "direct"
+      }
+    }
+  ]
+}

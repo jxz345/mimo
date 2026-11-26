@@ -1,0 +1,21 @@
+{
+  "mode": "global",
+  "family": "ipv4",
+  "started": "2026-11-26T04:40:58.013Z",
+  "finished": "2026-11-26T04:41:33.175Z",
+  "seconds": 35.0,
+  "passed": true,
+  "checks": {
+    "no_new_lookup": true,
+    "no_recovery_loop": true,
+    "no_warning_or_error": true,
+    "no_unexpected_control_or_failure_event": true,
+    "still_rejected_and_monitor_ready": true,
+    "same_core": true,
+    "settings_unchanged": true,
+    "routing_unchanged": true,
+    "health_checks_continue": true,
+    "rejected_observation_retained": true
+  },
+  "events": []
+}

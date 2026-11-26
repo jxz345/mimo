@@ -61,7 +61,7 @@ final class MimoStatusPresentationTests: XCTestCase {
         XCTAssertTrue(value.isCheckingReadiness)
         XCTAssertEqual(value.kind, .checking)
         XCTAssertTrue(value.title.contains("Checking readiness"))
-        XCTAssertTrue(value.verificationProgress?.contains("Exit IP approved") == true)
+        XCTAssertTrue(value.verificationProgress?.contains("Exit IP received") == true)
         XCTAssertFalse(routing.allowsTraffic)
     }
 
@@ -131,7 +131,7 @@ final class MimoStatusPresentationTests: XCTestCase {
         XCTAssertTrue(blocked.detail.contains("198.51.100.77 is not on the allowed list"))
         _ = policy.begin(configuration: configuration, revision: 1, networkGeneration: 2)
         let retrying = MimoStatusPresentation(routing: policy.state, snapshot: older, preferences: MonitoringPreferences(), date: .now)
-        XCTAssertEqual(retrying.address, blocked.address)
+        XCTAssertNil(retrying.address, "A pending retry has no fresh result; failed retries use separately labelled history")
     }
 
     func testDirectLookupChangesIconWithoutClaimingTrafficIsBlocked() {

@@ -73,6 +73,7 @@ def main():
             label = family + '-' + mode
             value = guest('approve', mode, family)
             assert value['phase'] == 'active' and 'allowed' in value['authorization']
+            assert value['observed4']['address'] == '203.0.113.10' and value['observed6'] is None
             streams = [open_stream(address, port) for address, port in zip(ADDRESSES, (18793, 18794))]
             try:
                 incoming(label + '-active', streams)
@@ -88,12 +89,6 @@ def main():
                 value = guest('reject4')
                 assert 'IPv4 exit IP is not approved' in value['reason']
                 incoming(label + '-rejected-ipv4', streams)
-                if family == 'dual':
-                    value = guest('reject6')
-                    assert 'IPv6 exit IP is not approved' in value['reason']
-                    assert value['observed4']['address'] == '203.0.113.10'
-                    assert value['observed6']['address'] == '2001:db8::10'
-                    incoming(label + '-rejected-ipv6', streams)
                 if family == 'dual' and mode == 'global':
                     guest('outbound-state')
                     incoming(label + '-outbound-states-revoked', streams)

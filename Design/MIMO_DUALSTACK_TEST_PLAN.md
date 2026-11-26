@@ -2,20 +2,137 @@
 
 ## Current failure/recovery acceptance contract (26 November)
 
+Every UI and failure/recovery run must correlate GUI, core and supervisor events
+with the actual actions. Declare expected verification triggers and terminal
+states, record command/attempt/navigation IDs, and fail on unexplained repeated
+checks, stale commands, gate changes, lost communication or recovery that never
+settles. Visible status alone is insufficient. Do not defer anomaly detection to
+the user. Read-only Dashboard/Settings navigation must produce no settings write,
+network-change dispatch or new exit lookup.
+
+Add a **35-second minimum** settled-denial window, spanning multiple ten-second
+infrastructure scans. Exercise supervisor restart while already rejected, explicit
+retry, and return to Direct in Rule/Global × IPv4/Dual-stack. The previous
+three-second window missed a startup recovery flag that stayed armed until traffic
+was approved. `v3_rejected_exit_stability_test.py` reproduced the loop before the
+fix; `v3_recovery_startup_test.py` supplies the four-cell installed regression.
+Use `--require-navigation` for the actual native Dashboard/all-six-Settings audit;
+model assignments or RPC calls are not substitutes for that UI evidence.
+
+**Executed on the recovery-loop correction:** four restart/rejection/retry/Direct
+cells passed on unpublished build 11, core
+`0b6c8025b4a849df288673049b63015df1d4b5abb3a6990265ab9a483aa58181`.
+Every 35-second settled window had no new lookup or recovery event. A separate
+90-second native navigation window covered all six Settings pages and Dashboard
+without network/control work. Full-campaign reconciliation accounted for four
+recovery requests, 16 completed lookups and 32 completed commands; restart-only
+heartbeat failures are reported rather than hidden. See
+[results and remaining UI limits](MIMO_NAVIGATION_RESPONSIVENESS.md#installed-correction-and-event-audit--26-november).
+
+**Build-10 recovery qualification reopened:** the previous 60 coordinator
+simulations bypassed `MonitoringEngine` admission/cooldowns. The 22 installed
+exception cases repaired through Direct and replaced the fixture token, clearing
+its cooldown. They do not establish recovery within the same blocked session.
+The new `v3_blocked_retry_test.py` keeps the mode, core process and credential
+unchanged from fault through repair, confirms fixture recovery independently,
+and requires a fresh provider request before the local ten-minute pause expires.
+No store edits, cooldown clearing, clock changes or service restart are allowed
+in that sequence. A credential used by the local fixture may be set once before
+the baseline and removed only during final cleanup.
+
+**Earlier candidate result (paired approval, superseded):** unpublished build 11 passes this same-session campaign in
+Rule/Global × strict IPv4/dual-stack. Every case preserves a real HTTP 429 with
+`Retry-After: 900`, and each injected transport failure has one correlated close
+in the actual core/supervisor logs. See
+[the red/green evidence and limits](MIMO_BLOCKED_VERIFICATION_RECOVERY.md).
+The user's original first private HTTP failure trigger remains unproven.
+
+### Current IPv4 approval campaign
+
+The subsequent [event-trigger audit](MIMO_EVENT_TRIGGER_AUDIT.md) adds a focused
+native family-switch regression: start settled with an empty allowlist, click
+Dual → IPv4 → Dual in each protected mode, retain the original settings and
+observe at least 35 seconds after completion. `v3_family_switch_event_test.py`
+observes real clicks without synthesizing them. Require one settings-triggered
+lookup and one standalone pre-commit close per effective edit; additional
+provider attempts must correlate with real failure/rotation. Preparation still
+confirms protection. Assert no unexpected external event, stale command, warning,
+recovery loop or health stall. The captured user trace fails the close-count
+assertion before the correction; result files and exact candidate identity are
+linked from the audit. Startup failures remain separately reported.
+
+For the user-requested approved-state repeat, add the freshly observed proxy exit
+IPv4 through core's normal revision-checked allowlist command, await a new approval,
+and run the same observer with `--verdict approved`. Require a traffic-open event
+for each successful verification and zero exit rejections. Then run
+`v3_rejected_exit_stability_test.py --verdict approved --require-navigation` in
+each mode: exercise all six Settings pages and Dashboard without changing inputs,
+and assert zero lookup, gate command, configuration write, recovery event or
+warning while health timestamps advance. The historical script name retains its
+default rejected-state regression. The explicitly added allowed address remains
+installed; restore the original Global/Dual selection, not the old empty list.
+
+**Approved repeat executed:** native family switching passed in both Rule and
+Global (four effective edits, four fresh lookups and four traffic openings).
+Both 90-second navigation windows passed all six sections plus Dashboard with
+no network/control work and continuing health updates. The incomplete first Rule
+navigation run is retained separately, not counted as a pass. See the
+[approved-state results and evidence](MIMO_EVENT_TRIGGER_AUDIT.md#approved-state-follow-up-requested-by-the-user).
+
+The 26 November policy revision removes the IPv6 approval request entirely.
+`v3_ipv4_approval_campaign.py` runs the installed candidate through four cells:
+Rule/IPv4, Global/IPv4, Rule/Dual and Global/Dual. Its closed Delta fixture refuses
+IPv6 TCP, drops IPv6 UDP and returns no AAAA answers (`S04`, `nodata6`), while the
+IPv4 provider endpoint remains healthy. Each explicit successful refresh must
+make exactly one required HTTP request; all recorded provider requests must be IPv4.
+
+Each cell verifies empty/wrong lists, visible rejection and healthy provider,
+three explicit rejected-state refreshes, allowlist-only repair, IPv4 application
+traffic, no native IPv6 TCP/UDP packet escape, and four active fault/recovery
+paths (proxy down/authentication/timeout and HTTP 503). Repairs keep credentials,
+core identity and protected mode unchanged. HTTP 429/Retry-After remains a hard
+restriction. Incoming SSH and Screen Sharing are checked during failures. Raw
+state stays owner-only; only synthetic-address summaries are committed.
+
+Captures must use `tcpdump -p`: promiscuous mode changes interface flags and
+causes a real network-change closure, invalidating the traffic baseline. The
+initial run exposed that harness error and was retained as an invalid traffic
+qualification; application code was not changed for it. The final Global/Dual
+cell pauses for native last-known/error/Monitoring inspection before recovery.
+`v3_ipv4_lifecycle_test.py` separately verifies managed Direct, full Stop/released
+Direct, Activate, native-release checks and retained settings/credentials.
+
+**Executed: PASS for all four cells**, on unpublished 3.0 build 11 core
+`fff99947b06a44095736bc1f212aef37e81860db7568a90e6bcb0f671fc1bb30`.
+The campaign passed 12 explicit rejected-state refreshes, four allowlist-only
+repairs, 16 active fault/recovery cases and four 429/Retry-After checks. Every
+cell recorded 14 IPv4 provider requests and no IPv6 provider request. Strict
+IPv4 rejected IPv6 before proxy dispatch; Dual-stack attempted TCP/UDP IPv6 at
+the rejecting/dropping proxy. Native IPv6 packet captures stayed empty. All
+22 Direct/Stop/Start assertions and installed migration checks passed.
+See [results, sanitized evidence and UI limitations](MIMO_IPV4_APPROVAL_RESULTS.md).
+
+The earlier installed/fault/inbound/lifecycle harnesses now use IPv4-only
+approval assertions; their old result files are preserved as historical evidence,
+not silently requalified. The obsolete paired-failure script exits with a pointer
+to the current campaign before any mutation. Removing IPv6 rejection from the
+old exception matrix leaves 20 current rows; its historical 22-row results below
+include two removed IPv6-list scenarios and were not rerun in this revision.
+
 These are required outcomes, not merely successful packet-denial checks:
 
 | Requirement | Pass condition | Evidence |
 | --- | --- | --- |
-| Clear feedback | Distinguish an unapproved exit (including empty list and IPv6-only rejection) from proxy/provider failure. Show a pause deadline when applicable, retain the selected mode, and offer a relevant settings action plus Direct. Never describe blocked traffic as connected/approved. | Shared presentation tests, native failure renders, installed state and Event Log |
-| No event loop | One verification attempt has one terminal outcome. Polling does not start another lookup, restart healthy services or reopen the gate. Legitimate explicit repair/network events remain possible; provider cooldowns and budgets still apply. | Coordinator simulations, monitoring scheduler tests, 12-second installed settled-failure observation spanning an independent service audit |
+| Clear feedback | Distinguish an unapproved exit (including empty list and an old IPv6-only list migrated to empty) from proxy/provider failure. Show a pause deadline when applicable, retain the selected mode, and offer a relevant settings action plus Direct. Never describe blocked traffic as connected/approved. | Shared presentation tests, native failure renders, installed state and Event Log |
+| No event loop | One verification attempt has one terminal outcome. Polling does not start another lookup, restart healthy services or reopen the gate. Legitimate explicit repair/network events remain possible; provider cooldowns and budgets still apply. | Coordinator simulations, monitoring scheduler tests, at least 35 seconds of installed settled-failure observation spanning multiple service audits, and the supervisor-restart matrix above |
 | Responsive system | Core state/control requests remain bounded during failure. Incoming tracked TCP service replies remain available. GUI work stays off the main thread; warnings do not activate or seize focus. | XPC/GUI lifecycle tests, measured installed response times, fresh SSH/RFB/HTTP and existing-stream probes |
-| Repair works | Editing the proxy/provider/allowlist leads to a fresh check. Successful IPv4 alone cannot approve a failed required IPv6 observation. No auto-approval and no silent fallback to Direct. | Direct→Rule/Global and already-active Rule/Global failure/recovery simulations; installed repair checks |
+| Repair works | Editing the proxy/provider/allowlist leads to a fresh check in the same blocked session. A repaired transient connection failure must not require waiting out the local failure pause; real provider Retry-After and quotas remain enforced. Keep credentials, process and clock unchanged during repair. One fresh allowlisted IPv4 approves either traffic setting after readiness passes; IPv6 transport refusal must not pause a healthy IPv4 checker. No auto-approval and no silent fallback to Direct. | Combined scheduler/coordinator tests plus installed fault→repair→Refresh checks; old token-reset repair rows do not satisfy this requirement |
 | Direct is an escape | Explicit Direct cancels/supersedes verification and late results cannot reopen protected mode. It does not require a successful lookup. Confirm owned PF/TUN/DNS release before reporting normal networking. A failed release must show an actionable error, not false success. | Coordinator cancellation/failure tests, installed Direct PF/DNS readback and native IPv4/IPv6 HTTP |
 
 Exercise Rule and Global separately, each with strict IPv4 and dual-stack. The
 60 coordinator rows cover proxy refusal, timeout, authentication failure,
-provider outage, malformed responses, empty/wrong allowlists and IPv6-only
-rejection from both starting states. Four additional cancellation cases hold the
+provider outage, malformed responses, empty/wrong allowlists and migrated IPv6-only
+lists from both starting states. Four additional cancellation cases hold the
 HTTP lookup pending across Direct in Rule/Global × IPv4/dual-stack; Direct returns
 before the held response and the late result cannot reopen. Existing
 preparation/readiness tests cover the other activation stages. The 22 installed
@@ -722,7 +839,7 @@ The same 3,120 matrix + 500 focused assertions apply, with these material change
   reruns remain recorded separately. See the new results section and sanitized
   `Evidence/v3` manifest. Installed app qualification remains a separate campaign.
 
-Installed work must cover fresh paired observations, private probe ACL in Global,
+Current installed work must cover fresh IPv4 approval in both traffic settings, private probe ACL in Global,
 flat PF state, exact family/profile readback, DNS ownership, cleanup order, stale
 revision/close fencing, app/service loss, multi-client control and reinstall after
 full release. Source/model tests do not qualify physical login or forced sleep.
@@ -755,7 +872,7 @@ private state in the disposable VM and export only sanitized verdicts.
   baseline, all eight daemon-presence combinations with fresh paired approval,
   live family/mode changes and final Direct restoration. These observations do
   not establish a fault-to-packet-denial bound.
-- `v3_paired_failure_test.py`: **9 assertions** using the trusted closed fixture:
+- Historical `v3_paired_failure_test.py`: **9 assertions** (paired-approval expectations superseded on 26 November) using the trusted closed fixture:
   paired baseline, IPv6 proxy refusal, IPv6 absent from the allowlist, closed
   public listeners for each failure, recovery after each correction, and Direct
   cleanup. Also assert that Refresh respects provider cooldown; recovery from
@@ -888,3 +1005,16 @@ passed on mimo-vm. Native button inspection is partial because desktop automatio
 lost access to all host windows. These lifecycle checks do not replace the traffic
 matrix or qualify the remaining buttons. See [the release check inventory and
 evidence](MIMO_V3_BUILD9_RELEASE_CHECKS.md).
+
+### Dashboard layout follow-up — 26 November
+
+The unpublished build 11 layout update passed 59 native dashboard/Settings
+renders, including five narrow normal/checking/failure states, and a 90-second
+installed Direct navigation audit. Dashboard and all six Settings sections
+generated no new lookup, gate command, settings change, warning or recovery
+event; core health checks continued. The observer now accepts `--verdict direct`
+without changing its approved/rejected assertions. The first incomplete run
+overlapped a periodic refresh and is retained separately, not counted as a pass.
+See [the layout record and evidence](MIMO_3_0_IMPLEMENTATION.md#compact-stable-dashboard--26-november).
+This is presentation/navigation coverage, not a new traffic or fault campaign;
+the existing running core and the user's Direct/IPv4 settings were preserved.

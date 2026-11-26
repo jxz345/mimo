@@ -20,6 +20,14 @@ final class MimoReleasedMonitor {
     private let store: Store
     private let client: any PublicIPLookupClientProtocol
     private let observeSystem: Bool
+    private struct Remembered: Equatable {
+        var preferences: MonitoringPreferences
+        var diagnostics: DiagnosticPreferences
+        var budget: LookupBudget
+        var cooldowns: [ProviderID: Date]
+        var health: [ProviderID: ProviderHealthRecord]
+    }
+    private var remembered: Remembered?
     private var observation: AnyCancellable?
     private(set) var engine: MonitoringEngine?
     var changed: (() -> Void)?
@@ -39,10 +47,17 @@ final class MimoReleasedMonitor {
 
     func remember(_ state: DaemonState) {
         guard engine == nil else { return }
+        let next = Remembered(preferences: Self.anonymousPreferences(state.preferences),
+            diagnostics: state.settings.diagnostics, budget: state.budget,
+            cooldowns: state.cooldowns, health: state.providerHealth)
+        // Service-health publications are frequent and do not change this
+        // fallback. Avoid serializing and writing defaults on the UI thread
+        // for each health timestamp or routing progress update.
+        guard next != remembered else { return }
         // Upgrade old released preferences before copying the already-migrated
         // machine settings, so an explicit new 15-minute choice stays intact.
         try? MimoLocalSettings.migrateMonitoring(store)
-        Self.anonymousPreferences(state.preferences).save(to: store)
+        next.preferences.save(to: store)
         DiagnosticPreferencesStore(defaults: store).save(state.settings.diagnostics)
         LookupBudgetStore(defaults: store).save(state.budget)
         let cooldowns = ProviderCooldownStore(defaults: store)
@@ -52,10 +67,14 @@ final class MimoReleasedMonitor {
             else { cooldowns.clear(for: provider) }
             if let record = state.providerHealth[provider] { health.save(record, for: provider) }
         }
+        remembered = next
     }
 
     func start() {
         guard engine == nil else { return }
+        // The local engine may change these defaults while services are
+        // released. The first shared reply after activation must replace them.
+        remembered = nil
         try? MimoLocalSettings.migrateMonitoring(store)
         Self.anonymousPreferences(MonitoringPreferences.load(from: store)).save(to: store)
         let monitor = MonitoringEngine(preferencesStore: store, observeSystem: observeSystem,
@@ -65,6 +84,7 @@ final class MimoReleasedMonitor {
             providerHealthStore: ProviderHealthStore(defaults: store), diagnosticPreferencesStore: DiagnosticPreferencesStore(defaults: store),
             client: client, ipinfoCredentials: CredentialSession(service: CredentialService(backend: NoCredentials()), account: "released"))
         monitor.allowlistChecksEnabled = false
+        RuntimeLog.shared.configure(monitor.diagnosticPreferences)
         engine = monitor
         observation = monitor.objectWillChange.sink { [weak self, weak monitor] in
             Task { @MainActor in

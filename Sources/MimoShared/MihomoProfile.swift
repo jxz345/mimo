@@ -139,7 +139,8 @@ public enum MihomoProfile {
         profile += """
 
         listeners:
-          # Authenticated core-only exit checks; ordinary applications use mixed-port.
+          # Core checks the IPv4 exit in both traffic settings; no IPv6 allowlist.
+          # Ordinary applications use mixed-port; this listener cannot open the gate.
           - name: mimo-private-probe
             type: mixed
             listen: 127.0.0.1
@@ -149,8 +150,6 @@ public enum MihomoProfile {
               - username: \(MimoRuntime.probeUser)
                 password: \(q(probePassword))
               - username: mimo-core-ipv4
-                password: \(q(probePassword))
-              - username: mimo-core-ipv6
                 password: \(q(probePassword))
             rule: mimo-verification
         sub-rules:

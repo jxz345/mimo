@@ -8,6 +8,15 @@ public enum ProviderFailurePolicy {
         max(now.addingTimeInterval(pauseInterval), error.retryAfter ?? now)
     }
 
+    /// The ten-minute automatic backoff is not a provider restriction when no
+    /// Retry-After/refusal was received. An explicit repair/Retry can try once;
+    /// daily budgets and any subsequent provider restriction still apply.
+    public static func allowsExplicitRetry(after error: LookupError) -> Bool {
+        guard error.retryAfter == nil, !error.pausesProvider else { return false }
+        if case .httpStatus(407, _) = error { return true } // Proxy authentication.
+        return error.supportsResilienceRetry
+    }
+
     public static func reason(_ category: String?) -> String {
         switch category {
         case "transport": "Connection failed"

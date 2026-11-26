@@ -1,0 +1,98 @@
+[
+  {
+    "mode": "rule",
+    "family": "ipv4",
+    "started": "2026-11-26T04:30:41.371Z",
+    "finished": "2026-11-26T04:31:16.521Z",
+    "seconds": 35.0,
+    "passed": true,
+    "checks": {
+      "no_new_lookup": true,
+      "no_recovery_loop": true,
+      "no_unexpected_control_or_failure_event": true,
+      "still_rejected_and_monitor_ready": true,
+      "same_core": true,
+      "settings_unchanged": true,
+      "routing_unchanged": true,
+      "health_checks_continue": true,
+      "rejected_observation_retained": true
+    },
+    "events": [],
+    "manual_retry_completed": true,
+    "same_core_across_supervisor_restart": true,
+    "direct_recovery_completed": true,
+    "settings_unchanged": true
+  },
+  {
+    "mode": "rule",
+    "family": "dual",
+    "started": "2026-11-26T04:31:58.804Z",
+    "finished": "2026-11-26T04:32:33.959Z",
+    "seconds": 35.0,
+    "passed": true,
+    "checks": {
+      "no_new_lookup": true,
+      "no_recovery_loop": true,
+      "no_unexpected_control_or_failure_event": true,
+      "still_rejected_and_monitor_ready": true,
+      "same_core": true,
+      "settings_unchanged": true,
+      "routing_unchanged": true,
+      "health_checks_continue": true,
+      "rejected_observation_retained": true
+    },
+    "events": [],
+    "manual_retry_completed": true,
+    "same_core_across_supervisor_restart": true,
+    "direct_recovery_completed": true,
+    "settings_unchanged": true
+  },
+  {
+    "mode": "global",
+    "family": "ipv4",
+    "started": "2026-11-26T04:33:12.258Z",
+    "finished": "2026-11-26T04:33:47.432Z",
+    "seconds": 35.0,
+    "passed": true,
+    "checks": {
+      "no_new_lookup": true,
+      "no_recovery_loop": true,
+      "no_unexpected_control_or_failure_event": true,
+      "still_rejected_and_monitor_ready": true,
+      "same_core": true,
+      "settings_unchanged": true,
+      "routing_unchanged": true,
+      "health_checks_continue": true,
+      "rejected_observation_retained": true
+    },
+    "events": [],
+    "manual_retry_completed": true,
+    "same_core_across_supervisor_restart": true,
+    "direct_recovery_completed": true,
+    "settings_unchanged": true
+  },
+  {
+    "mode": "global",
+    "family": "dual",
+    "started": "2026-11-26T04:34:26.009Z",
+    "finished": "2026-11-26T04:35:01.158Z",
+    "seconds": 35.0,
+    "passed": true,
+    "checks": {
+      "no_new_lookup": true,
+      "no_recovery_loop": true,
+      "no_unexpected_control_or_failure_event": true,
+      "still_rejected_and_monitor_ready": true,
+      "same_core": true,
+      "settings_unchanged": true,
+      "routing_unchanged": true,
+      "health_checks_continue": true,
+      "rejected_observation_retained": true
+    },
+    "events": [],
+    "manual_retry_completed": true,
+    "same_core_across_supervisor_restart": true,
+    "direct_recovery_completed": true,
+    "settings_unchanged": true
+  }
+]

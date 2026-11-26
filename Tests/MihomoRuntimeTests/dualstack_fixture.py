@@ -139,6 +139,7 @@ class Fixture:
         self.done = threading.Event()
         self.proxy_off = False
         self.provider_status = 200
+        self.provider_retry_after = None
         self.start_http(False)
         self.start_http(True)
         self.start_udp()
@@ -233,6 +234,8 @@ class Fixture:
                     if value is not None:
                         data = json.dumps(value).encode()
                         self.send_response(fixture.provider_status); self.send_header('Content-Type', 'application/json')
+                        if fixture.provider_retry_after is not None:
+                            self.send_header('Retry-After', str(fixture.provider_retry_after))
                         self.send_header('Content-Length', str(len(data))); self.end_headers(); self.wfile.write(data)
                         return
                 parts = parsed.path.strip('/').split('/')
@@ -520,8 +523,11 @@ class Fixture:
                     if 'proxy_off' in value:
                         fixture.proxy_off = bool(value['proxy_off'])
                     if 'provider_status' in value:
-                        assert value['provider_status'] in (200, 503)
+                        assert value['provider_status'] in (200, 429, 503)
                         fixture.provider_status = value['provider_status']
+                    if 'provider_retry_after' in value:
+                        assert value['provider_retry_after'] is None or 0 <= value['provider_retry_after'] <= 86400
+                        fixture.provider_retry_after = value['provider_retry_after']
                     if value.get('stop'):
                         fixture.done.set()
                 self.send_response(204)

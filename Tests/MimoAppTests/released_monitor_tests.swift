@@ -3,6 +3,13 @@ import SwiftUI
 
 @MainActor
 enum ReleasedMonitorTests {
+    private final class CountingStore: PreferenceStorage {
+        var values: [String: Any] = [:]
+        var writes = 0
+        func object(forKey key: String) -> Any? { values[key] }
+        func set(_ value: Any?, forKey key: String) { writes += 1; values[key] = value }
+        func removeObject(forKey key: String) { writes += 1; values.removeValue(forKey: key) }
+    }
     private actor Client: PublicIPLookupClientProtocol {
         var count = 0
         func lookup(configuration: LookupConfiguration) async throws -> MimoSnapshot {
@@ -18,6 +25,20 @@ enum ReleasedMonitorTests {
 
     static func run(output: URL) async throws {
         let require = CredentialAppTests.require
+        let counting = CountingStore()
+        let rememberedStatus = MimoReleasedMonitor(defaults: counting, client: Client(), observeSystem: false)
+        var poll = ClientConnectionTests.state()
+        rememberedStatus.remember(poll)
+        let initialWrites = counting.writes
+        for _ in 0..<10 {
+            poll.routing?.supervisorCheckedAt = .now
+            rememberedStatus.remember(poll)
+        }
+        require(counting.writes == initialWrites,
+            "Health-only status updates must not rewrite local monitoring preferences (extra writes: \(counting.writes - initialWrites))")
+        poll.settings.refreshInterval = .never
+        rememberedStatus.remember(poll)
+        require(counting.writes > initialWrites, "A changed monitoring preference must still be saved")
         let suite = "group.com.mimo.tests.released.\(UUID())"
         let defaults = UserDefaults(suiteName: suite)!
         defer { defaults.removePersistentDomain(forName: suite) }

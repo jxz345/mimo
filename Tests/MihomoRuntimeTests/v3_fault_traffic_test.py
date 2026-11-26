@@ -77,8 +77,7 @@ def approved(mode, family):
             assert c['mode'] == mode and c['mimo-destination-family'] == family, 'Engine mode/family differs'
             assert pf_kind() == 'active', 'PF active guard has not been installed'
             assert r['exitObservations']['ipv4']['ipAddress'] == '203.0.113.10', 'Missing fixture IPv4 observation'
-            if family == 'dual':
-                assert r['exitObservations']['ipv6']['ipAddress'] == '2001:db8::10', 'Missing fixture IPv6 observation'
+            assert r['exitObservations'].get('ipv6') is None, 'Obsolete IPv6 approval observation'
             return r['exitObservations']['verification']['id']
         except (AssertionError, KeyError, OSError, subprocess.TimeoutExpired) as error:
             last = str(error)
@@ -272,7 +271,7 @@ def setup():
     assert (ROOT/'before.json').exists()
     settings=original['settings']
     settings.update(provider='ipWhois',providerPool=['ipWhois','ipapiCo','ipapiIs'],refreshInterval=-1,
-                    allowlist={'addresses':['203.0.113.10','2001:db8::10']},bypassBlocks=[])
+                    allowlist={'addresses':['203.0.113.10']},bypassBlocks=[])
     t.request('configure',settings=settings)
     name='V3 closure qualification'
     existing=next((p for p in original['routing']['configuration']['proxies'] if p['proxy']['name']==name),None)

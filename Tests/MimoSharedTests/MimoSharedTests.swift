@@ -758,9 +758,9 @@ final class MimoSharedTests: XCTestCase {
     func testAllowedIPListValidatesAndDeduplicatesExactAddresses() {
         let list = AllowedIPList(addresses: ["203.0.113.8", "203.0.113.8", "not-an-ip", "2001:db8::1"])
 
-        XCTAssertEqual(list.addresses, ["203.0.113.8", "2001:db8::1"])
+        XCTAssertEqual(list.addresses, ["203.0.113.8"])
         XCTAssertTrue(list.contains("203.0.113.8"))
-        XCTAssertTrue(list.contains("2001:0DB8:0:0:0:0:0:1"))
+        XCTAssertFalse(list.contains("2001:0DB8:0:0:0:0:0:1"))
         XCTAssertFalse(list.contains("203.0.113.9"))
     }
 

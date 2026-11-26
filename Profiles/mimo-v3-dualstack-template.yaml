@@ -89,7 +89,8 @@ rules:
   - MATCH,Proxy
   - MATCH,REJECT
 listeners:
-  # Authenticated core-only exit checks; ordinary applications use mixed-port.
+  # Core checks the IPv4 exit in both traffic settings; no IPv6 allowlist.
+  # Ordinary applications use mixed-port; this listener cannot open the gate.
   - name: mimo-private-probe
     type: mixed
     listen: 127.0.0.1
@@ -99,8 +100,6 @@ listeners:
       - username: mimo-core
         password: "REPLACE_WITH_RANDOM_LOCAL_PROBE_PASSWORD"
       - username: mimo-core-ipv4
-        password: "REPLACE_WITH_RANDOM_LOCAL_PROBE_PASSWORD"
-      - username: mimo-core-ipv6
         password: "REPLACE_WITH_RANDOM_LOCAL_PROBE_PASSWORD"
     rule: mimo-verification
 sub-rules:

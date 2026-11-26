@@ -15,11 +15,80 @@ enum MimoSettingsSection: String, CaseIterable, Identifiable {
     }
 }
 
+/// Limit click-through to navigation, rather than enabling background-window
+/// actions that change the machine's routing or service state.
+private struct MimoNavigationActivation: ViewModifier {
+    @ViewBuilder func body(content: Content) -> some View {
+        if #available(macOS 15.0, *) {
+            content.allowsWindowActivationEvents()
+        } else {
+            content
+        }
+    }
+}
+
 @MainActor
 final class MimoSettingsNavigation: ObservableObject {
     static let shared = MimoSettingsNavigation()
-    @Published var tab: MimoMainTab = .dashboard
-    @Published var section: MimoSettingsSection = .general
+    @Published var tab: MimoMainTab = .dashboard {
+        didSet { if tab != oldValue { changed() } }
+    }
+    @Published var section: MimoSettingsSection = .general {
+        didSet { if section != oldValue { changed() } }
+    }
+    private var pendingChange: (id: UUID, started: TimeInterval)?
+    private var observedTransaction: UUID?
+    private var appliedChange: (id: UUID, started: TimeInterval, applied: TimeInterval, tab: String, section: String)?
+
+    private func changed() {
+        let change = (id: UUID(), started: ProcessInfo.processInfo.systemUptime)
+        pendingChange = change
+        var fields = [
+            "navigation_id": change.id.uuidString, "tab": tab.rawValue, "section": section.rawValue
+        ]
+        if let event = NSApp.currentEvent,
+           [.leftMouseDown, .leftMouseUp, .keyDown].contains(event.type) {
+            fields["current_event_age_ms"] = String(Int(max(0, change.started - event.timestamp) * 1_000))
+            fields["current_event_type"] = String(describing: event.type)
+        }
+        RuntimeLog.shared.info("mimo_navigation_requested", fields: fields)
+    }
+
+    func observeTransaction(_ transaction: Transaction) {
+        guard let change = pendingChange, observedTransaction != change.id else { return }
+        observedTransaction = change.id
+        RuntimeLog.shared.info("mimo_navigation_transaction", fields: [
+            "navigation_id": change.id.uuidString,
+            "animated": String(transaction.animation != nil),
+            "animation": transaction.animation.map { String(describing: $0) } ?? "none",
+            "disables_animations": String(transaction.disablesAnimations)
+        ])
+    }
+
+    /// SwiftUI has applied the selection to its view tree. This is not a claim
+    /// about compositor presentation or remote Screen Sharing delivery time.
+    func didApplySelection() {
+        guard let change = pendingChange else { return }
+        pendingChange = nil
+        appliedChange = (change.id, change.started, ProcessInfo.processInfo.systemUptime, tab.rawValue, section.rawValue)
+        RuntimeLog.shared.info("mimo_navigation_applied", fields: [
+            "navigation_id": change.id.uuidString, "tab": tab.rawValue, "section": section.rawValue,
+            "duration_ms": String(Int((ProcessInfo.processInfo.systemUptime - change.started) * 1_000))
+        ])
+    }
+
+    /// AppKit's subsequent window-update callback, not a measurement of when
+    /// the compositor (or Screen Sharing) presents the frame to the user.
+    func didUpdateWindow() {
+        guard let change = appliedChange else { return }
+        appliedChange = nil
+        let now = ProcessInfo.processInfo.systemUptime
+        RuntimeLog.shared.info("mimo_navigation_window_updated", fields: [
+            "navigation_id": change.id.uuidString, "tab": change.tab, "section": change.section,
+            "duration_ms": String(Int((now - change.started) * 1_000)),
+            "after_apply_ms": String(Int((now - change.applied) * 1_000))
+        ])
+    }
     static func open(_ section: MimoSettingsSection) { shared.section = section; MimoAppDelegate.showSettings() }
 }
 
@@ -41,10 +110,14 @@ struct DashboardView: View {
     private let serviceControlFont = Font.system(size: 13)
     private let serviceStatusWidth: CGFloat = 134
     private let serviceAccessoryWidth: CGFloat = 190
-    private let serviceRowHeight: CGFloat = 48
+    private let serviceRowHeight: CGFloat = 40
     private var routing: MimoRoutingState { monitor.routingState }
     private var presentation: MimoStatusPresentation { monitor.statusPresentation }
-    private var location: MimoSnapshot? { monitor.snapshot.flatMap { $0.ipAddress == routing.observedIP?.address ? $0 : nil } }
+    private var location: MimoSnapshot? {
+        let address = routing.displayedIP?.address
+        return routing.lastExitObservation.flatMap { $0.ipAddress == address ? $0 : nil }
+            ?? monitor.snapshot.flatMap { $0.ipAddress == address ? $0 : nil }
+    }
     private var savedSettingsKnown: Bool { monitor.daemonState != nil }
     private var proxyTitle: String {
         routing.configuration.proxy.map { "\($0.name) · \($0.type.displayName)" } ?? (savedSettingsKnown ? "None · Direct only" : "Configuration unavailable")
@@ -56,6 +129,7 @@ struct DashboardView: View {
                 Picker("Main tab", selection: $navigation.tab) {
                     ForEach(MimoMainTab.allCases) { Text($0.rawValue).tag($0) }
                 }.pickerStyle(.segmented).labelsHidden().frame(width: 240)
+                    .modifier(MimoNavigationActivation())
                 Button { Task { await monitor.refresh() } } label: { Label("Refresh now", systemImage: "arrow.clockwise") }
                     .keyboardShortcut("r", modifiers: .command).disabled(!monitor.canRefresh).mimoGlassButton()
                 Spacer()
@@ -78,10 +152,13 @@ struct DashboardView: View {
                     .accessibilityHidden(navigation.tab != .settings)
                     .disabled(navigation.tab != .settings)
             }
+            .transaction { transaction in navigation.observeTransaction(transaction) }
             .onChange(of: navigation.tab) { _, _ in
                 // A hidden text field must not retain keyboard focus in the other tab.
                 NSApp.keyWindow?.makeFirstResponder(nil)
+                navigation.didApplySelection()
             }
+            .onChange(of: navigation.section) { _, _ in navigation.didApplySelection() }
             Divider()
             HStack {
                 Button { MimoAppDelegate.showEventLog() } label: { Label("Event Log", systemImage: "list.bullet") }
@@ -109,11 +186,15 @@ struct DashboardView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
                     let wide = geometry.size.width >= 840
+                    let connectionWidth = max(320, (geometry.size.width - 48) * 0.36)
                     let layout = wide ? AnyLayout(HStackLayout(alignment: .top, spacing: 16)) : AnyLayout(VStackLayout(spacing: 16))
                     layout {
-                        connection.frame(width: wide ? max(320, (geometry.size.width - 48) * 0.36) : nil)
+                        connection.frame(width: wide ? connectionWidth : nil)
                         services.frame(maxWidth: .infinity)
-                    }.frame(minHeight: wide ? max(510, geometry.size.height - 32) : nil)
+                    }
+                    // Match the two cards to the taller card's content, not the
+                    // scroll viewport. The reserved status area sets a stable height.
+                    .fixedSize(horizontal: false, vertical: wide)
                 }.padding(16)
             }
         }
@@ -121,7 +202,7 @@ struct DashboardView: View {
 
     private var connection: some View {
         dashboardCard("Current connection", detail: "") {
-            VStack(alignment: .leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: 16) {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Text("Protected traffic").font(.system(size: 14))
@@ -132,12 +213,12 @@ struct DashboardView: View {
                             .disabled(!monitor.canChangeSharedSettings || installer.isInstalling)
                             .help("Applies to Rule and Global. Changing family requires fresh exit-IP verification.")
                     }
-                    Text(routing.configuration.mode == .direct ? "Saved for Rule and Global" : routing.configuration.networkFamily == .dual ? "Both exit addresses require approval" : "IPv4 only · Native private networks excepted")
+                    Text(routing.configuration.mode == .direct ? "Saved for Rule and Global" : "Approval uses the IPv4 exit address")
                         .font(.system(size: 12)).foregroundStyle(.secondary).lineLimit(1)
                     VStack(spacing: 0) {
                         addressSlot(.ipv4)
                         Divider()
-                        addressSlot(.ipv6)
+                        ipv6TrafficSlot
                     }.padding(.vertical, 4)
                     HStack {
                         Text("Allowed IPs").foregroundStyle(.secondary); Spacer()
@@ -180,13 +261,14 @@ struct DashboardView: View {
 
     private func addressSlot(_ family: MimoAddressFamily) -> some View {
         let ipv6 = family == .ipv6
-        let observation = routing.observation(for: family)
-        let snapshot = ipv6 ? routing.exitObservations?.ipv6 : location
+        let previous = ipv6 ? nil : routing.lastKnownExit
+        let observation = routing.observation(for: family) ?? previous.map { MimoIPObservation(address: $0.ipAddress, checkedAt: $0.checkedAt) }
+        let snapshot = previous ?? location
         let selected = !ipv6 || routing.configuration.networkFamily == .dual || routing.configuration.mode == .direct
         let address = observation.flatMap { family.accepts($0.address) ? $0.address : nil }
         let verdict = !selected ? "Not selected" : !monitor.connected && !monitor.installationInactive ? "Unconfirmed" :
-            address == nil ? "Unavailable" : routing.configuration.mode == .direct ? "Native" :
-            monitor.allowedIPList.contains(address!) ? "Approved" : "Needs approval"
+            previous != nil ? "Last known · check failed" : address == nil ? "No address received" : routing.configuration.mode == .direct ? "Native" :
+            monitor.allowedIPList.contains(address!) ? "Approved" : "Not allowed"
         return VStack(alignment: .leading, spacing: 3) {
             HStack {
                 Text(ipv6 ? "IPv6" : "IPv4").font(.system(size: 14, weight: .medium))
@@ -203,9 +285,28 @@ struct DashboardView: View {
             }.frame(height: 24)
             Group {
                 if !selected { Text("IPv4 policy selected") }
-                else if let date = observation?.checkedAt { Text(date, style: .relative) }
+                else if let date = observation?.checkedAt {
+                    if previous != nil { Text(date.formatted(date: .abbreviated, time: .shortened)) }
+                    else { Text(date, style: .relative) }
+                }
                 else { Text("No fresh result") }
             }.font(.system(size: 12)).foregroundStyle(.secondary).frame(height: 16)
+        }.frame(height: 72)
+    }
+
+    private var ipv6TrafficSlot: some View {
+        let direct = routing.configuration.mode == .direct
+        let dual = routing.configuration.networkFamily == .dual
+        return VStack(alignment: .leading, spacing: 3) {
+            HStack {
+                Text("IPv6 traffic").font(.system(size: 14, weight: .medium))
+                Spacer()
+                Text(direct ? "System managed" : dual ? "Through proxy" : "Blocked")
+                    .font(.system(size: 12)).foregroundStyle(.secondary)
+            }.frame(height: 20)
+            Text(direct ? "Uses system networking" : dual ? "Requires proxy IPv6 support" : "Strict IPv4 policy")
+                .font(.system(size: 14)).frame(height: 24)
+            Text("No IPv6 exit-IP check or allowlist").font(.system(size: 12)).foregroundStyle(.secondary).frame(height: 16)
         }.frame(height: 72)
     }
 
@@ -232,7 +333,7 @@ struct DashboardView: View {
     }
 
     private var uninstallControls: some View {
-        VStack(alignment: .leading, spacing: 7) {
+        VStack(alignment: .leading, spacing: 5) {
             Text("Uninstall Mimo").font(.system(size: 14, weight: .medium))
             HStack(spacing: 6) {
                 Text("brew uninstall --cask jxz345/tap/mimo").font(.system(size: 12, design: .monospaced)).textSelection(.enabled)
@@ -241,7 +342,7 @@ struct DashboardView: View {
             }
             Text("Or stop the engine above, wait for cleanup, quit Mimo, then delete Mimo.app.")
                 .font(.system(size: 12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-        }.padding(.horizontal, 16).padding(.vertical, 12)
+        }.padding(.horizontal, 16).padding(.vertical, 10)
     }
 
     private var services: some View {
@@ -260,6 +361,9 @@ struct DashboardView: View {
                         accessActions.frame(maxWidth: .infinity, alignment: .leading)
                     }.frame(maxWidth: .infinity, alignment: .leading)
                 }.padding(.horizontal, 16).padding(.vertical, 12)
+                    // Four detail lines plus recovery controls fit at the
+                    // minimum window width. Live status never moves the rows.
+                    .frame(height: 160, alignment: .topLeading)
                 Divider()
                 TimelineView(.periodic(from: .now, by: 1)) { context in
                     VStack(spacing: 0) {
@@ -432,7 +536,7 @@ struct DashboardView: View {
         if monitor.installationInactive { return "Monitoring only · network controls released." }
         return switch presentation.kind {
         case .direct: routing.networkReleased == true ? "Direct · Engine stopped" : "You’re connected directly."
-        case .verified: routing.configuration.networkFamily == .dual ? "Both exit addresses approved." : "Exit IP approved."
+        case .verified: "IPv4 exit address approved."
         case .blocked: "Outbound access is blocked."
         case .checking:
             presentation.isRestoringDirect ? (routing.networkReleaseRequested == true ? "Restoring system networking…" : "Switching to direct connection…") : presentation.isClosing ? "Closing internet access…" : presentation.trafficIsBlocked
@@ -470,7 +574,17 @@ struct SettingsView: View {
     var body: some View {
         HStack(spacing: 0) {
             List(MimoSettingsSection.allCases, selection: $navigation.section) { section in
-                Label(section.rawValue, systemImage: section.symbol).tag(section)
+                // An implicit List row consumes the activating click even when
+                // the List opts in. Put the activation policy on a real button;
+                // keep List selection for its native highlight and arrow keys.
+                Button { navigation.section = section } label: {
+                    Label(section.rawValue, systemImage: section.symbol)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.borderless)
+                .modifier(MimoNavigationActivation())
+                .tag(section)
             }.listStyle(.sidebar).frame(width: 190)
             Divider()
             ScrollViewReader { scrollProxy in
@@ -573,22 +687,22 @@ struct SettingsView: View {
     }
 
     private var allowlist: some View {
-        MimoCard("Allowed exit IPs") {
+        MimoCard("Allowed IPv4 exit addresses") {
             VStack(alignment: .leading, spacing: 12) {
                 if monitor.allowedIPList.isEmpty { Text("No addresses yet. Rule and Global remain blocked.").foregroundStyle(.secondary) }
                 ForEach(monitor.allowedIPList.addresses, id: \.self) { ip in
                     HStack { Text(ip).monospaced().textSelection(.enabled); Spacer(); Button { monitor.removeAllowedIP(ip) } label: { Image(systemName: "minus.circle") }.accessibilityLabel("Remove \(ip)") }
                 }
                 HStack {
-                    TextField("IPv4 or IPv6 address", text: $address)
+                    TextField("IPv4 address", text: $address)
                     Button("Add") {
-                        guard let normalized = IPAddressValidator.normalize(address) else { validationError = "Enter a valid IPv4 or IPv6 address."; return }
+                        guard let normalized = IPAddressValidator.normalize(address), MimoAddressFamily.ipv4.accepts(normalized) else { validationError = "Enter a valid IPv4 address."; return }
                         guard !monitor.allowedIPList.contains(normalized) else { validationError = "That address is already allowed."; return }
                         if monitor.addAllowedIP(normalized) { address = ""; validationError = nil }
                     }
                 }
                 if let validationError { Text(validationError).font(.caption).foregroundStyle(.primary) }
-                Text("Approval is explicit. Retries never add an IP automatically. Direct bypasses this check.").font(.caption).foregroundStyle(.secondary)
+                Text("One IPv4 allowlist for IPv4 and Dual-stack. Retries never add an IP automatically. Direct bypasses this check.").font(.caption).foregroundStyle(.secondary)
             }.disabled(!monitor.canChangeSharedSettings)
         }
     }
@@ -612,6 +726,7 @@ struct SettingsView: View {
                         }.labelsHidden().fixedSize().disabled(!monitor.canChangeSharedSettings)
                     }
                     systemEvent("Network changes", action: "Rule / Global only")
+                    systemEvent("Exit-IP approval", action: "IPv4 only · both traffic settings")
                     systemEvent("Traffic", action: monitor.routingState.configuration.mode.requiresVerification ? (monitor.routingState.configuration.networkFamily == .ipv4 ? "IPv4; captured IPv6 blocked" : "IPv4 and IPv6 through proxy") : "System / other VPN")
                         .help("Rule and Global enforce the selected family policy. Direct uses system networking.")
                     HStack(alignment: .firstTextBaseline, spacing: 24) {

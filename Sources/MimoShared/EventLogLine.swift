@@ -9,12 +9,18 @@ public enum EventLogLine {
 
     public static func format(timestamp: String, event: String, fields: [String: String]) -> String? {
         guard let message = message(event: event, fields: fields) else { return nil }
-        if event == "mimo_installation", timestamp.count == 24, timestamp.hasSuffix("Z") {
-            // Several installer stages can complete in one second. Preserve the
-            // journal's milliseconds so merging GUI/core replies keeps their order.
-            return "\(timestamp.replacingOccurrences(of: "T", with: " "))  \(truncated(message))"
+        let time = timestamp.count == 24 && timestamp.hasSuffix("Z")
+            ? timestamp.replacingOccurrences(of: "T", with: " ") : stamp(timestamp)
+        var context: [String] = []
+        if let role = fields["processRole"] {
+            let sequence = fields["recordSequence"].flatMap(UInt64.init).map { String(format: "%08llu", $0) } ?? "?"
+            context.append("\(role)#\(sequence)")
         }
-        return "\(stamp(timestamp))  \(truncated(message))"
+        if let lookup = fields["lookup"] { context.append("check \(lookup.prefix(8))") }
+        if let attempt = fields["attempt"] { context.append("attempt \(attempt.prefix(8))") }
+        if let sequence = fields["sequence"] { context.append("cmd \(sequence)") }
+        let prefix = context.isEmpty ? "" : "[\(context.joined(separator: " · "))] "
+        return "\(time)  \(truncated(prefix + message))"
     }
 
     /// The text after the time stamp, or nil for routine records.
@@ -99,7 +105,7 @@ public enum EventLogLine {
             }
         case "mimo_network_changed": return "Check trigger · \(trigger(fields["source"]))" + detail(fields["detail"]) + " · generation \(fields["generation"] ?? "?")"
         case "mimo_cycle_owned_event_ignored": return "Own tunnel update ignored · \(trigger(fields["source"]))"
-        case "network_airport_telemetry_ignored": return "Wi-Fi status update ignored" + detail(fields["key"]) + detail(fields["fields"])
+        case "network_airport_telemetry_ignored": return nil // Retained in full diagnostics, not the failure timeline.
         case "network_airport_connection_changed": return "Wi-Fi connection changed" + detail(fields["key"]) + detail(fields["fields"])
         case "network_location_metadata_ignored": return "Network preference timestamp ignored" + detail(fields["fields"])
         case "network_location_changed": return "Network location changed" + detail(fields["fields"])
@@ -121,12 +127,30 @@ public enum EventLogLine {
         case "mimo_traffic_opened": return "Exit approved · \(fields["mode"] ?? "protected")"
         case "mimo_exit_rejected": return "Exit IP rejected · traffic remains blocked"
         case "mimo_exit_ip_rejected": return "Exit IP rejected · outbound access remains blocked" + detail(fields["reason"])
+        case "mimo_recovery_verification_consumed":
+            return fields["outcome"] == "direct"
+                ? "Recovery cleared · returning to Direct"
+                : "Recovery check started · a rejected exit will remain blocked without repeated recovery checks"
         case "mimo_private_probe_ready": return "Checking exit IP · application traffic blocked"
         case "mimo_service_changed": return "\(fields["service"] ?? "Service") · \(fields["operation"] ?? "changed")"
         case "mimo_routing_changed": return "Routing changed · \(fields["mode"] ?? "unknown")"
         case "mimo_supervisor_ready": return "Traffic supervisor ready"
-        case "mimo_command_rejected": return "Stale routing command rejected"
+        case "mimo_command_rejected":
+            return "Routing command rejected · \(fields["command"] ?? "unknown")" + detail(fields["reason"]) +
+                " · revision \(fields["revision"] ?? "?") · generation \(fields["generation"] ?? "?")"
+        case "mimo_core_command_started": return "Core → supervisor · \(fields["command"] ?? "unknown") · revision \(fields["revision"] ?? "?") · generation \(fields["generation"] ?? "?")"
+        case "mimo_supervisor_command_received": return "Supervisor received · \(fields["command"] ?? "unknown")"
+        case "mimo_core_command_finished": return "Supervisor replied · \(fields["command"] ?? "unknown") · \(fields["phase"] ?? "unknown") · \(fields["duration_ms"] ?? "?") ms"
+        case "mimo_core_command_failed": return "Supervisor command \(fields["outcome"] ?? "failed") · \(fields["command"] ?? "unknown") · \(fields["errorType"] ?? "unknown") · \(fields["duration_ms"] ?? "?") ms"
+        case "mimo_required_check_close_skipped": return "No additional close · \(fields["reason"] ?? "unknown")"
+        case "mimo_configuration_barrier_reused": return "Configuration saved · existing traffic block retained · \(fields["family"] ?? "unknown")"
+        case "mimo_probe_http_started": return "IP request started · \(provider) · \(fields["family"] ?? "?") · \(fields["path"] ?? "unknown path") · gate \(fields["phase"] ?? "unknown")"
+        case "mimo_probe_http_finished": return "IP request \(fields["outcome"] ?? "finished") · \(provider) · \(fields["family"] ?? "?") · \(fields["duration_ms"] ?? "?") ms"
+        case "mimo_ipv4_allowlist_migrated": return "IPv4-only approval · removed \(fields["removedIPv6Entries"] ?? "0") legacy IPv6 allowlist entries"
         case "daemon_storage_failed": return "Service could not save state"
+        case "mimo_log_maintenance":
+            return "Log cleanup · \(fields["rotated"] ?? "0") rotated · \(fields["deleted"] ?? "0") deleted · \(fields["truncated"] ?? "0") trimmed · \(fields["droppedRecords"] ?? "0") queued records dropped · \(fields["writeFailures"] ?? "0") writes failed"
+        case "mimo_log_maintenance_failed": return "Log cleanup unavailable · check log directory permissions and free disk space"
         case "provider_listener_failed": return "Tailscale provider listener unavailable"
         case "mimo_dns_configuration_lost": return "Protected DNS resolver missing or changed · traffic blocked for recovery"
         case "tailscale_provider_port_conflict": return "Tailscale provider port \(fields["port"] ?? "18766") occupied · selecting a free port"
@@ -141,6 +165,11 @@ public enum EventLogLine {
         case "single_instance_lock_failed": return "App startup blocked · couldn't acquire the instance lock"
         case "refresh_requested":
             return "Check · \(trigger(fields["trigger"])) · \(provider)"
+        case "refresh_coalesced_in_flight": return "Check joined/coalesced · \(trigger(fields["trigger"])) · active check \(fields["activeLookup"].map { String($0.prefix(8)) } ?? "?")"
+        case "lookup_started": return "Lookup admitted · \(provider) · \(trigger(fields["trigger"]))"
+        case "lookup_finished": return "Lookup finished · \(fields["duration_ms"] ?? "?") ms"
+        case "lookup_http_request": return "Provider request budget charged · \(provider)"
+        case "lookup_http_refused": return "No HTTP request · \(provider) · \(fields["reason"] ?? "restriction")"
         case "refresh_skipped":
             return "Skipped · \(trigger(fields["trigger"])) · \(skipReason(fields["reason"]))"
         case "refresh_event_merged":
@@ -163,14 +192,18 @@ public enum EventLogLine {
         case "lookup_rate_limited":
             return "Provider paused · \(provider) until \(time(fields["retryNotBefore"]))"
         case "lookup_all_providers_paused":
-            return "All providers paused until \(time(fields["resumeAt"]))"
+            return "All providers paused until \(time(fields["resumeAt"]))" + detail(fields["restrictions"])
         case "lookup_daily_budget_exhausted":
             return "Daily budget used · \(provider) · resets \(time(fields["resetAt"]))"
         case "provider_rotated_after_failure":
             return "Next provider after failure · \(providerName(fields["from"])) → \(providerName(fields["to"]))"
         case "provider_failure_paused":
             let duration = fields["seconds"].flatMap(Int.init).map { "\($0 / 60) minutes" } ?? "\(fields["hours"] ?? "8") hours"
+            if fields["explicitRetry"] == "true" {
+                return "\(provider) automatic checks paused for \(duration) · \(ProviderFailurePolicy.reason(fields["reason"])) · repair the connection, then Retry"
+            }
             return "\(provider) paused for \(duration) · \(ProviderFailurePolicy.reason(fields["reason"])) · retry after \(time(fields["resumeAt"]))"
+        case "provider_local_retry_requested": return "Explicit retry of local failure · \(provider) · provider limits remain enforced"
         case "confirmation_deferred":
             return "Country change to confirm · \(fields["from"] ?? "?") → \(fields["to"] ?? "?") · asking \(provider)"
         case "confirmation_result":

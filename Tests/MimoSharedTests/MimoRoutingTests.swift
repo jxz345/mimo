@@ -263,13 +263,13 @@ final class MimoRoutingTests: XCTestCase {
         XCTAssertEqual(try MimoFirewallPolicy.render(group: 10000, mode: .rule), try MimoFirewallPolicy.activePolicy(group: 10000))
     }
 
-    func testBlockingAddressSurvivesRetryAndClearsOnlyAfterApprovalOrDirect() {
+    func testRetryClearsCurrentRejectionBeforeReceivingNewObservation() {
         var policy = MimoAccessPolicy()
         let check = policy.begin(configuration: configuration, revision: 1, networkGeneration: 1)
         policy.checking(check)
         XCTAssertFalse(policy.approve(address: "198.51.100.77", at: .now, allowlist: allowed, verification: check, runtimeMatches: true))
         let retry = policy.begin(configuration: configuration, revision: 1, networkGeneration: 1)
-        XCTAssertEqual(policy.state.displayedIP?.address, "198.51.100.77")
+        XCTAssertNil(policy.state.displayedIP, "Previous failures belong to display-only history, not this attempt")
         policy.checking(retry)
         XCTAssertTrue(policy.approve(address: "203.0.113.42", at: .now, allowlist: allowed, verification: retry, runtimeMatches: true))
         XCTAssertNil(policy.state.blockingIP)

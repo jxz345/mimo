@@ -2,22 +2,25 @@ import XCTest
 @testable import MimoShared
 
 final class MimoV3Tests: XCTestCase {
-    func testRejectedIPv6RetainsBothObservationsAndEmptyListHasRecoveryMessage() throws {
-        for allowed in [AllowedIPList(), AllowedIPList(addresses: ["203.0.113.10"]) ] {
-            var configuration = MimoConfiguration(); configuration.mode = .rule; configuration.networkFamily = .dual
-            configuration.proxy = MimoProxy(proxy)
-            var policy = MimoAccessPolicy()
-            let check = policy.begin(configuration: configuration, revision: 1, networkGeneration: 1)
-            policy.checking(check)
-            let v4 = MimoSnapshot(ipAddress: "203.0.113.10", countryCode: "SG", countryName: "Singapore", provider: .ipWhois, checkedAt: .now)
-            let v6 = MimoSnapshot(ipAddress: "2001:db8::10", countryCode: "US", countryName: "United States", provider: .ipWhois, checkedAt: .now)
-            XCTAssertFalse(policy.approve(observations: .init(verification: check, ipv4: v4, ipv6: v6), allowlist: allowed, verification: check, runtimeMatches: true))
-            XCTAssertEqual(policy.state.observation(for: .ipv4)?.address, v4.ipAddress)
-            XCTAssertEqual(policy.state.observation(for: .ipv6)?.address, v6.ipAddress)
-            XCTAssertEqual(policy.state.rejectedExit?.address, allowed.isEmpty ? v4.ipAddress : v6.ipAddress)
-            XCTAssertTrue(policy.state.reason.contains("Review Allowed IPs"))
-            policy.directRestored(configuration: .init())
-            XCTAssertNil(policy.state.rejectedExit)
+    func testRejectedIPv4IsVisibleInBothTrafficSettings() throws {
+        for family in MimoNetworkFamily.allCases {
+            for allowed in [AllowedIPList(), AllowedIPList(addresses: ["203.0.113.99"])] {
+                var configuration = MimoConfiguration(); configuration.mode = .rule; configuration.networkFamily = family
+                configuration.proxy = MimoProxy(proxy)
+                var policy = MimoAccessPolicy()
+                let check = policy.begin(configuration: configuration, revision: 1, networkGeneration: 1)
+                policy.checking(check)
+                let v4 = MimoSnapshot(ipAddress: "203.0.113.10", countryCode: "SG", countryName: "Singapore", provider: .ipWhois)
+                XCTAssertFalse(policy.approve(observations: .init(verification: check, ipv4: v4), allowlist: allowed, verification: check, runtimeMatches: true))
+                XCTAssertEqual(policy.state.displayedIP?.address, v4.ipAddress)
+                XCTAssertEqual(policy.state.rejectedExit?.address, v4.ipAddress)
+                XCTAssertNil(policy.state.observation(for: .ipv6))
+                XCTAssertTrue(policy.state.reason.contains("Review Allowed IPs"))
+                _ = policy.begin(configuration: configuration, revision: 2, networkGeneration: 2)
+                XCTAssertNil(policy.state.rejectedExit, "New attempt cannot reuse the old rejection as a fresh result")
+                policy.directRestored(configuration: .init())
+                XCTAssertNil(policy.state.displayedIP)
+            }
         }
     }
 
@@ -85,27 +88,24 @@ final class MimoV3Tests: XCTestCase {
         XCTAssertThrowsError(try MimoPrivateDNSRule(suffix: "corp.example", servers: ["127.0.0.1"]))
     }
 
-    func testPairedApprovalCannotMixFamiliesAttemptsOrCachedResults() throws {
-        var configuration = MimoConfiguration(); configuration.mode = .global; configuration.networkFamily = .dual; configuration.proxy = MimoProxy(proxy)
-        var policy = MimoAccessPolicy()
-        let check = policy.begin(configuration: configuration, revision: 2, networkGeneration: 3)
-        policy.checking(check)
-        let now = Date()
-        let v4 = MimoSnapshot(ipAddress: "203.0.113.10", countryCode: "SG", countryName: "Singapore", provider: .ipWhois, checkedAt: now)
-        let v6 = MimoSnapshot(ipAddress: "2001:db8::10", countryCode: "SG", countryName: "Singapore", provider: .ipWhois, checkedAt: now)
-        let both = MimoExitObservations(verification: check, ipv4: v4, ipv6: v6)
-        XCTAssertFalse(MimoExitObservations(verification: check, ipv4: v4).isValid(for: check, family: .dual, since: check.startedAt!))
-        XCTAssertFalse(both.isValid(for: MimoVerification(revision: 2, networkGeneration: 3), family: .dual, since: check.startedAt!))
-        XCTAssertFalse(both.isValid(for: check, family: .dual, since: now.addingTimeInterval(1)))
-        XCTAssertFalse(both.isValid(for: check, family: .ipv4, since: check.startedAt!))
-        XCTAssertFalse(policy.approve(observations: both, allowlist: AllowedIPList(addresses: [v4.ipAddress]), verification: check, runtimeMatches: true))
-        XCTAssertFalse(policy.state.allowsTraffic)
-        let retry = policy.begin(configuration: configuration, revision: 2, networkGeneration: 3)
-        policy.checking(retry)
-        let fresh4 = MimoSnapshot(ipAddress: v4.ipAddress, countryCode: "SG", countryName: "Singapore", provider: .ipWhois, checkedAt: .now)
-        let fresh6 = MimoSnapshot(ipAddress: v6.ipAddress, countryCode: "SG", countryName: "Singapore", provider: .ipWhois, checkedAt: .now)
-        XCTAssertTrue(policy.approve(observations: .init(verification: retry, ipv4: fresh4, ipv6: fresh6),
-            allowlist: AllowedIPList(addresses: [v4.ipAddress, v6.ipAddress]), verification: retry, runtimeMatches: true))
-        XCTAssertTrue(policy.state.allowsTraffic)
+    func testIPv4ApprovalRequiresCurrentFreshReceiptInBothTrafficSettings() throws {
+        for family in MimoNetworkFamily.allCases {
+            var configuration = MimoConfiguration(); configuration.mode = .global; configuration.networkFamily = family; configuration.proxy = MimoProxy(proxy)
+            var policy = MimoAccessPolicy()
+            let check = policy.begin(configuration: configuration, revision: 2, networkGeneration: 3)
+            policy.checking(check)
+            let now = Date()
+            let v4 = MimoSnapshot(ipAddress: "203.0.113.10", countryCode: "SG", countryName: "Singapore", provider: .ipWhois, checkedAt: now)
+            let v6 = MimoSnapshot(ipAddress: "2001:db8::10", countryCode: "SG", countryName: "Singapore", provider: .ipWhois, checkedAt: now)
+            let receipt = MimoExitObservations(verification: check, ipv4: v4)
+            XCTAssertTrue(receipt.isValid(for: check, family: family, since: check.startedAt!))
+            XCTAssertFalse(receipt.isValid(for: MimoVerification(revision: 2, networkGeneration: 3), family: family, since: check.startedAt!))
+            XCTAssertFalse(receipt.isValid(for: check, family: family, since: now.addingTimeInterval(1)))
+            XCTAssertFalse(MimoExitObservations(verification: check, ipv4: v6).isValid(for: check, family: family, since: check.startedAt!))
+            XCTAssertFalse(MimoExitObservations(verification: check, ipv4: v4, ipv6: v6).isValid(for: check, family: family, since: check.startedAt!), "Old paired receipts are not accepted")
+            XCTAssertTrue(policy.approve(observations: receipt, allowlist: AllowedIPList(addresses: [v4.ipAddress]), verification: check, runtimeMatches: true))
+            XCTAssertTrue(policy.state.allowsTraffic)
+            XCTAssertFalse(policy.approve(observations: receipt, allowlist: AllowedIPList(addresses: [v4.ipAddress]), verification: check, runtimeMatches: true), "Cannot replay a completed receipt")
+        }
     }
 }

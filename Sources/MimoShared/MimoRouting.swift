@@ -195,6 +195,8 @@ public struct MimoRoutingState: Codable, Equatable, Sendable {
     public var observedIP: MimoIPObservation?
     public var ipv6Observation: MimoIPObservation?
     public var exitObservations: MimoExitObservations?
+    /// Display-only history; no gate/receipt validation consumes this value.
+    public var lastExitObservation: MimoSnapshot?
     public var blockingIP: MimoIPObservation?
     public var verification: MimoVerification?
     /// Traffic is allowed after optimistic checks while the full audit runs.
@@ -219,6 +221,11 @@ public struct MimoRoutingState: Codable, Equatable, Sendable {
     public var displayedIP: MimoIPObservation? {
         guard ![.unavailable, .closing, .restoringDirect].contains(phase) else { return nil }
         return blockingIP ?? observedIP
+    }
+    public var lastKnownExit: MimoSnapshot? {
+        guard configuration.mode.requiresVerification, observedIP == nil,
+              [.blocked, .unavailable].contains(phase) else { return nil }
+        return lastExitObservation
     }
 }
 
@@ -263,6 +270,7 @@ public struct MimoAccessPolicy: Sendable {
         state.effectiveMode = nil
         state.reason = "Validating the profile. Internet remains blocked."
         state.observedIP = nil
+        state.blockingIP = nil
         state.ipv6Observation = nil; state.exitObservations = nil
         state.verification = verification
         return verification
@@ -290,19 +298,19 @@ public struct MimoAccessPolicy: Sendable {
               let since = verification.startedAt,
               observations.isValid(for: verification, family: state.configuration.networkFamily, since: since) else { return false }
         state.observedIP = .init(address: observations.ipv4.ipAddress, checkedAt: observations.ipv4.checkedAt)
-        state.ipv6Observation = observations.ipv6.map { .init(address: $0.ipAddress, checkedAt: $0.checkedAt) }
+        state.ipv6Observation = nil
         state.exitObservations = observations
-        for observation in [state.observedIP, state.ipv6Observation].compactMap({ $0 }) {
+        for observation in [state.observedIP].compactMap({ $0 }) {
             guard allowlist.contains(observation.address) else {
                 state.blockingIP = observation
                 block(allowlist.isEmpty ? "No exit IPs are approved. Review Allowed IPs in Settings."
-                    : "The observed \(observation.address.contains(":") ? "IPv6" : "IPv4") exit IP is not approved. Review Allowed IPs or select another proxy.")
+                    : "The observed IPv4 exit IP is not approved. Review Allowed IPs or select another proxy.")
                 return false
             }
         }
         guard runtimeMatches else { block("The effective profile does not match the verified candidate."); return false }
         state.phase = .active; state.effectiveMode = state.configuration.mode
-        state.reason = state.configuration.networkFamily == .dual ? "IPv4 and IPv6 exit IPs approved." : "IPv4 exit IP approved."
+        state.reason = "IPv4 exit IP approved."
         state.blockingIP = nil; state.verification = nil
         return true
     }
@@ -310,7 +318,7 @@ public struct MimoAccessPolicy: Sendable {
     @discardableResult
     public mutating func approve(address: String, at date: Date, allowlist: AllowedIPList,
                                  verification: MimoVerification, runtimeMatches: Bool) -> Bool {
-        guard state.configuration.networkFamily == .ipv4, state.configuration.mode.requiresVerification,
+        guard state.configuration.mode.requiresVerification,
               state.configuration.proxy != nil, state.configuration.profileHostingEnabled, state.configuration.mihomoEnabled,
               state.verification == verification,
               state.phase == .checking,
@@ -319,7 +327,7 @@ public struct MimoAccessPolicy: Sendable {
         state.observedIP = observation
         guard !address.contains(":") else {
             state.blockingIP = observation
-            block("The profile rejects IPv6. An IPv4 exit address is required for verification.")
+            block("An IPv4 exit address is required for verification in both traffic settings.")
             return false
         }
         guard !allowlist.isEmpty, allowlist.contains(address) else {
@@ -408,7 +416,22 @@ public struct MimoSupervisorRequest: Codable, Sendable {
     public var service: MimoServiceID?
     public var operation: MimoServiceOperation?
     public var stamp: MimoCommandStamp?
+    /// Diagnostic context only; neither field grants authority or changes ordering.
+    public var lookupID: UUID?
+    public var reason: String?
     public init(_ command: Command) { self.command = command }
+
+    /// Deliberately excludes proxy configuration, addresses and credentials.
+    public var diagnosticFields: [String: String] {
+        var fields = ["command": command.rawValue]
+        fields["sequence"] = stamp.map { String($0.sequence) }
+        fields["controller"] = stamp?.controller.uuidString
+        fields["revision"] = revision.map(String.init)
+        fields["generation"] = networkGeneration.map(String.init)
+        fields["lookup"] = lookupID?.uuidString
+        fields["attempt"] = verification?.id.uuidString
+        return fields
+    }
 }
 
 public enum MimoRuntime {

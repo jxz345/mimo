@@ -1,0 +1,343 @@
+{
+  "installed": {
+    "version": "3.0",
+    "build": "11",
+    "core_sha256": "699bf227ccc32986dc6093414b93115d2e679a4d4569d97342a3007de6bd7db6"
+  },
+  "publication": "unpublished VM candidate",
+  "artifacts": {
+    "version": "3.0",
+    "build": "11",
+    "sha256": {
+      "Mimo-3.0.pkg": "7c0dc765bd94bfb34b5b3eddb2651743dd84b778fe273f7860ab647ef035c41d",
+      "Mimo-3.0.zip": "0c2d5e14949b2f917d0221eed8d159e2b3bef3b694fade322c995bf3123585f1"
+    }
+  },
+  "scope": "Same-session repair after local proxy outage; real HTTP 429 / Retry-After preserved",
+  "cases": [
+    {
+      "mode": "global",
+      "family": "dual",
+      "result": "PASS",
+      "baseline_rejected": true,
+      "allowlist_only_repair": "PASS",
+      "fixture_repaired": true,
+      "recovery_seconds": 10.807,
+      "fresh_provider_requests_after_repair": 2,
+      "same_core_instance": true,
+      "mode_unchanged": true,
+      "incoming_services_reachable": true,
+      "provider_retry_after_preserved": true,
+      "cleanup": {
+        "settings_restored": true,
+        "routing_restored": true,
+        "credentials_unchanged": true
+      }
+    },
+    {
+      "mode": "global",
+      "family": "ipv4",
+      "result": "PASS",
+      "baseline_rejected": true,
+      "allowlist_only_repair": "PASS",
+      "fixture_repaired": true,
+      "recovery_seconds": 10.868,
+      "fresh_provider_requests_after_repair": 1,
+      "same_core_instance": true,
+      "mode_unchanged": true,
+      "incoming_services_reachable": true,
+      "provider_retry_after_preserved": true,
+      "cleanup": {
+        "settings_restored": true,
+        "routing_restored": true,
+        "credentials_unchanged": true
+      }
+    },
+    {
+      "mode": "rule",
+      "family": "dual",
+      "result": "PASS",
+      "baseline_rejected": true,
+      "allowlist_only_repair": "PASS",
+      "fixture_repaired": true,
+      "recovery_seconds": 10.854,
+      "fresh_provider_requests_after_repair": 2,
+      "same_core_instance": true,
+      "mode_unchanged": true,
+      "incoming_services_reachable": true,
+      "provider_retry_after_preserved": true,
+      "cleanup": {
+        "settings_restored": true,
+        "routing_restored": true,
+        "credentials_unchanged": true
+      }
+    },
+    {
+      "mode": "rule",
+      "family": "ipv4",
+      "result": "PASS",
+      "baseline_rejected": true,
+      "allowlist_only_repair": "PASS",
+      "fixture_repaired": true,
+      "recovery_seconds": 10.829,
+      "fresh_provider_requests_after_repair": 1,
+      "same_core_instance": true,
+      "mode_unchanged": true,
+      "incoming_services_reachable": true,
+      "provider_retry_after_preserved": true,
+      "cleanup": {
+        "settings_restored": true,
+        "routing_restored": true,
+        "credentials_unchanged": true
+      }
+    }
+  ],
+  "three_fresh_rejected_lookups_per_case": true,
+  "credential_or_clock_reset_during_recovery": false,
+  "service_restart_or_direct_escape_during_recovery": false,
+  "diagnostic_validation": {
+    "millisecond_timestamps": true,
+    "process_identity_and_order": true,
+    "correlated_transport_failures": 4,
+    "one_close_per_failed_lookup": true,
+    "core_and_supervisor_present": true,
+    "fixture_credential_absent": true,
+    "diagnostic_event_counts": {
+      "lookup_started": 53,
+      "mimo_core_command_started": 176,
+      "mimo_supervisor_command_received": 176,
+      "mimo_core_command_finished": 177,
+      "mimo_probe_http_started": 68,
+      "mimo_probe_http_finished": 68,
+      "lookup_failed": 11,
+      "provider_failure_paused": 11,
+      "provider_local_retry_requested": 5,
+      "mimo_required_check_close_skipped": 42,
+      "lookup_all_providers_paused": 5,
+      "mimo_exit_ip_rejected": 29
+    },
+    "sample_failed_lookup": [
+      {
+        "timestamp": "2026-11-25T18:34:58.319Z",
+        "event": "refresh_requested",
+        "fields": {
+          "pid": "57709",
+          "lookup": "7947B4C5-747A-4144-BC6A-F6B791705073",
+          "recordSequence": "455",
+          "provider": "ipinfoLite",
+          "processRole": "core"
+        }
+      },
+      {
+        "timestamp": "2026-11-25T18:34:58.376Z",
+        "event": "lookup_started",
+        "fields": {
+          "recordSequence": "457",
+          "provider": "ipinfoLite",
+          "lookup": "7947B4C5-747A-4144-BC6A-F6B791705073",
+          "processRole": "core",
+          "pid": "57709"
+        }
+      },
+      {
+        "timestamp": "2026-11-25T18:34:58.378Z",
+        "event": "mimo_core_command_started",
+        "fields": {
+          "lookup": "7947B4C5-747A-4144-BC6A-F6B791705073",
+          "command": "prepare",
+          "pid": "57709",
+          "sequence": "66",
+          "recordSequence": "458",
+          "processRole": "core"
+        }
+      },
+      {
+        "timestamp": "2026-11-25T18:34:58.380Z",
+        "event": "mimo_supervisor_command_received",
+        "fields": {
+          "sequence": "66",
+          "command": "prepare",
+          "processRole": "supervisor",
+          "recordSequence": "827",
+          "lookup": "7947B4C5-747A-4144-BC6A-F6B791705073",
+          "pid": "57596"
+        }
+      },
+      {
+        "timestamp": "2026-11-25T18:35:02.504Z",
+        "event": "mimo_private_probe_ready",
+        "fields": {
+          "pid": "57596",
+          "sequence": "66",
+          "command": "prepare",
+          "lookup": "7947B4C5-747A-4144-BC6A-F6B791705073",
+          "attempt": "5331482F-4690-4491-9F35-5F1E894C99F7",
+          "recordSequence": "849",
+          "processRole": "supervisor"
+        }
+      },
+      {
+        "timestamp": "2026-11-25T18:35:02.508Z",
+        "event": "mimo_core_command_finished",
+        "fields": {
+          "duration_ms": "4129",
+          "lookup": "7947B4C5-747A-4144-BC6A-F6B791705073",
+          "command": "prepare",
+          "pid": "57709",
+          "sequence": "66",
+          "recordSequence": "459",
+          "processRole": "core",
+          "attempt": "5331482F-4690-4491-9F35-5F1E894C99F7",
+          "phase": "checking"
+        }
+      },
+      {
+        "timestamp": "2026-11-25T18:35:02.513Z",
+        "event": "lookup_http_request",
+        "fields": {
+          "lookup": "7947B4C5-747A-4144-BC6A-F6B791705073",
+          "recordSequence": "460",
+          "processRole": "core",
+          "pid": "57709",
+          "provider": "ipinfoLite"
+        }
+      },
+      {
+        "timestamp": "2026-11-25T18:35:02.516Z",
+        "event": "mimo_probe_http_started",
+        "fields": {
+          "processRole": "core",
+          "pid": "57709",
+          "lookup": "7947B4C5-747A-4144-BC6A-F6B791705073",
+          "recordSequence": "461",
+          "provider": "ipinfoLite",
+          "family": "ipv4",
+          "path": "private_proxy_probe",
+          "attempt": "5331482F-4690-4491-9F35-5F1E894C99F7",
+          "phase": "checking"
+        }
+      },
+      {
+        "timestamp": "2026-11-25T18:35:08.409Z",
+        "event": "mimo_probe_http_finished",
+        "fields": {
+          "outcome": "failed",
+          "duration_ms": "5893",
+          "processRole": "core",
+          "lookup": "7947B4C5-747A-4144-BC6A-F6B791705073",
+          "pid": "57709",
+          "recordSequence": "462",
+          "provider": "ipinfoLite",
+          "family": "ipv4",
+          "path": "private_proxy_probe",
+          "attempt": "5331482F-4690-4491-9F35-5F1E894C99F7",
+          "phase": "checking"
+        }
+      },
+      {
+        "timestamp": "2026-11-25T18:35:08.409Z",
+        "event": "mimo_core_command_started",
+        "fields": {
+          "lookup": "7947B4C5-747A-4144-BC6A-F6B791705073",
+          "command": "close",
+          "pid": "57709",
+          "sequence": "67",
+          "recordSequence": "463",
+          "processRole": "core"
+        }
+      },
+      {
+        "timestamp": "2026-11-25T18:35:08.410Z",
+        "event": "mimo_supervisor_command_received",
+        "fields": {
+          "processRole": "supervisor",
+          "lookup": "7947B4C5-747A-4144-BC6A-F6B791705073",
+          "recordSequence": "853",
+          "sequence": "67",
+          "command": "close",
+          "pid": "57596"
+        }
+      },
+      {
+        "timestamp": "2026-11-25T18:35:09.838Z",
+        "event": "mimo_core_command_finished",
+        "fields": {
+          "duration_ms": "1428",
+          "lookup": "7947B4C5-747A-4144-BC6A-F6B791705073",
+          "command": "close",
+          "pid": "57709",
+          "sequence": "67",
+          "recordSequence": "465",
+          "processRole": "core",
+          "phase": "blocked"
+        }
+      },
+      {
+        "timestamp": "2026-11-25T18:35:09.874Z",
+        "event": "lookup_failed",
+        "fields": {
+          "pid": "57709",
+          "lookup": "7947B4C5-747A-4144-BC6A-F6B791705073",
+          "category": "transport",
+          "recordSequence": "469",
+          "provider": "ipinfoLite",
+          "processRole": "core"
+        }
+      },
+      {
+        "timestamp": "2026-11-25T18:35:09.875Z",
+        "event": "provider_failure_paused",
+        "fields": {
+          "explicitRetry": "true",
+          "provider": "ipinfoLite",
+          "pid": "57709",
+          "reason": "transport",
+          "lookup": "7947B4C5-747A-4144-BC6A-F6B791705073",
+          "recordSequence": "470",
+          "resumeAt": "2026-11-25T18:45:09Z",
+          "processRole": "core"
+        }
+      },
+      {
+        "timestamp": "2026-11-25T18:35:09.876Z",
+        "event": "lookup_finished",
+        "fields": {
+          "processRole": "core",
+          "recordSequence": "472",
+          "pid": "57709",
+          "duration_ms": "11499",
+          "lookup": "7947B4C5-747A-4144-BC6A-F6B791705073"
+        }
+      }
+    ]
+  },
+  "final_restoration": {
+    "settings_restored": true,
+    "routing_restored": true,
+    "credentials_unchanged": true,
+    "fixture_proxy_absent": true,
+    "mode": "rule",
+    "phase": "blocked",
+    "reason": "No exit IPs are approved. Review Allowed IPs in Settings."
+  },
+  "final_blocked_incoming_ssh_rfb": true,
+  "fixture_processes_stopped": true,
+  "initial_user_failure_trigger_reproduced": false,
+  "harness_sha256": "d7490a4a0f97418869814030c96678e3110fe2fc6967bff20fc868208264f86a",
+  "local_validation": {
+    "shared_tests": 222,
+    "service_suite": "PASS",
+    "app_suite": "PASS",
+    "log_parser_legacy_milliseconds_and_late_detection": "PASS"
+  },
+  "harness_correction": "First candidate run compared ordered enum-keyed dictionary arrays; values were equal in a different order. Corrected comparison and repeated all four cases.",
+  "source_sha256": {
+    "Sources/MimoCore/MonitoringEngine.swift": "d1828ff18fd20450cc3baaaae734f8cbfbb18c2af1f5c467352f6f7253bd0e6c",
+    "Sources/MimoCore/RuntimeLog.swift": "b6fcac93adb5ff7ee1b56e689b1ebf4b80ff53267aaead41f183531c7809d9ff",
+    "Sources/MimoService/MimoCoordinator.swift": "ddc0e807fa5d85d1f74598c62b775431f0aadae0e047cb30639a8d0533c672a5",
+    "Sources/MimoService/MimoSupervisor.swift": "dfc4ff0c96bf003ab76ad688be8bae7545296e1ad9d682f2af8919438faec3e3",
+    "Sources/MimoShared/ProviderFailurePolicy.swift": "f5b9d701f70e8afcf8f23cc743460d0eedefa97bd7cae87dfd8c17be5b530d39",
+    "Sources/MimoShared/AppGroupStorage.swift": "043b034c6c7e3feea19812fa7664ba3efe77e5db1235977b2b1be683abd4b0dd",
+    "Sources/MimoShared/EventLogLine.swift": "25277d30f11d410f6f9c5f02ac5132e219d97a76ca18455d9a53e1491558f696"
+  }
+}

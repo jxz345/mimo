@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Delta orchestrator: installed dual-stack approval must fail as a whole.
+"""Historical paired-approval test, retired by the IPv4 approval revision.
 
 Requires the closed, explicitly trusted fixture and VM console helper. No real
 proxy credentials are read/exported. The fixture cannot forward to the Internet.
@@ -9,6 +9,8 @@ from pathlib import Path
 import subprocess
 import sys
 import urllib.request
+
+raise SystemExit('Retired paired-approval scenario. Use v3_ipv4_approval_campaign.py for the current contract.')
 
 FIXTURE_ROOT = Path(sys.argv[1])
 GUEST_ROOT = sys.argv[2]

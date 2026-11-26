@@ -15,8 +15,8 @@ public enum MimoAddressFamily: String, Codable, Sendable {
     }
 }
 
-/// Both samples originate inside one admitted verification operation. A caller
-/// cannot combine cached observations from different attempts.
+/// Fresh IPv4 approval is independent of the traffic-family setting. The legacy
+/// IPv6 member is decoded only to reject obsolete paired receipts, never required.
 public struct MimoExitObservations: Codable, Equatable, Sendable {
     public let verification: MimoVerification
     public let ipv4: MimoSnapshot
@@ -24,13 +24,10 @@ public struct MimoExitObservations: Codable, Equatable, Sendable {
     public init(verification: MimoVerification, ipv4: MimoSnapshot, ipv6: MimoSnapshot? = nil) {
         self.verification = verification; self.ipv4 = ipv4; self.ipv6 = ipv6
     }
-    public func isValid(for check: MimoVerification, family: MimoNetworkFamily,
+    public func isValid(for check: MimoVerification, family _: MimoNetworkFamily,
                         since: Date, now: Date = .now) -> Bool {
         guard verification == check, MimoAddressFamily.ipv4.accepts(ipv4.ipAddress),
               ipv4.checkedAt >= since, ipv4.checkedAt <= now.addingTimeInterval(5) else { return false }
-        if family == .ipv4 { return ipv6 == nil }
-        guard let ipv6, MimoAddressFamily.ipv6.accepts(ipv6.ipAddress),
-              ipv6.checkedAt >= since, ipv6.checkedAt <= now.addingTimeInterval(5) else { return false }
-        return true
+        return ipv6 == nil
     }
 }

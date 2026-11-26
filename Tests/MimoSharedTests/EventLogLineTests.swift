@@ -6,6 +6,13 @@ import AppKit
 
 /// The Event Log window's lines: one concise UTC line per important event, nothing for routine records.
 final class EventLogLineTests: XCTestCase {
+    func testLogMaintenanceReportsDiscardedRecordsAndAnActionableStorageFailure() {
+        let message = EventLogLine.message(event: "mimo_log_maintenance", fields: ["rotated": "2", "deleted": "3", "droppedRecords": "4", "writeFailures": "1"])
+        XCTAssertTrue(message?.contains("2 rotated") == true)
+        XCTAssertTrue(message?.contains("4 queued records dropped") == true)
+        XCTAssertTrue(message?.contains("1 writes failed") == true)
+        XCTAssertTrue(EventLogLine.message(event: "mimo_log_maintenance_failed", fields: [:])?.contains("permissions and free disk space") == true)
+    }
     func testInstallerEventsDistinguishConsentVerificationAndRollback() {
         for stage in ["started", "reactivating", "conflict_detected", "conflict_cancelled", "conflict_approved",
                       "conflict_disabled", "conflict_stop_requested", "conflicts_cleared", "replacing_services",
@@ -37,7 +44,7 @@ final class EventLogLineTests: XCTestCase {
     func testLinesStartWithAUTCStamp() {
         XCTAssertEqual(line("monitor_started"), "2026-10-18 13:28:56Z  Monitoring started")
         XCTAssertEqual(EventLogLine.format(timestamp: "2026-10-18T13:28:56.123Z", event: "monitor_stopped", fields: [:]),
-                       "2026-10-18 13:28:56Z  Monitoring stopped")
+                       "2026-10-18 13:28:56.123Z  Monitoring stopped")
     }
 
     func testChecksNameTheirTriggerAndProvider() {
@@ -92,11 +99,34 @@ final class EventLogLineTests: XCTestCase {
     }
 
     func testRoutineRecordsAreNotShown() {
-        for event in ["provider_health_changed", "network_path_unchanged", "lookup_started", "widget_reload_requested",
-                      "refresh_coalesced_in_flight", "network_configuration_changed", "diagnostic_preferences_changed",
+        for event in ["provider_health_changed", "network_path_unchanged", "network_airport_telemetry_ignored", "widget_reload_requested",
+                      "network_configuration_changed", "diagnostic_preferences_changed",
                       "debug_simulation_started", "something_new"] {
             XCTAssertNil(line(event, ["provider": "ipapiCo"]), event)
         }
+    }
+
+    func testRecoveryTimelineIncludesCorrelationAndRefusalCause() throws {
+        let fields = ["processRole": "core", "recordSequence": "12", "lookup": "12345678-1234-1234-1234-123456789ABC",
+                      "attempt": "87654321-1234-1234-1234-123456789ABC", "sequence": "7", "command": "prepare",
+                      "revision": "8", "generation": "9", "provider": "ipWhois", "reason": "daily_budget"]
+        let line = try XCTUnwrap(EventLogLine.format(timestamp: "2026-11-26T01:02:03.004Z", event: "mimo_core_command_started", fields: fields))
+        XCTAssertTrue(line.contains("01:02:03.004Z"))
+        XCTAssertTrue(line.contains("core#00000012"))
+        XCTAssertTrue(line.contains("check 12345678"))
+        XCTAssertTrue(line.contains("attempt 87654321"))
+        XCTAssertTrue(line.contains("cmd 7"))
+        XCTAssertTrue(line.contains("revision 8 · generation 9"))
+        for event in ["lookup_started", "lookup_finished", "lookup_http_request", "lookup_http_refused",
+                      "mimo_probe_http_started", "mimo_probe_http_finished", "mimo_supervisor_command_received",
+                      "mimo_core_command_finished", "mimo_core_command_failed", "mimo_required_check_close_skipped",
+                      "provider_local_retry_requested", "refresh_coalesced_in_flight"] {
+            XCTAssertNotNil(EventLogLine.message(event: event, fields: fields), event)
+        }
+        XCTAssertTrue(EventLogLine.message(event: "lookup_http_refused", fields: fields)!.contains("daily_budget"))
+        XCTAssertTrue(EventLogLine.message(event: "mimo_command_rejected", fields: fields)!.contains("prepare"))
+        let local = EventLogLine.message(event: "provider_failure_paused", fields: ["explicitRetry": "true", "seconds": "600", "reason": "transport"])!
+        XCTAssertTrue(local.contains("automatic checks")); XCTAssertTrue(local.contains("then Retry"))
     }
 
     func testLongMessagesAreCutToOneLine() throws {

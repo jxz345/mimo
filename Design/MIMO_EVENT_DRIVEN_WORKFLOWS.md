@@ -11,7 +11,7 @@ this file.
 | Owner | Responsibility |
 | --- | --- |
 | `DaemonService` / `MonitoringEngine` | Machine settings/revisions, proxy catalog, local credentials, shared request scheduling/budget, subscriptions and diagnostics. |
-| `MimoCoordinator` | Current verification request, cancellation, family-specific HTTP observations, supervisor communication and client-visible routing state. |
+| `MimoCoordinator` | Current verification request, cancellation, fresh IPv4 approval observations and display-only last-known history, supervisor communication and client-visible routing state. |
 | Supervisor | Profile preparation/delivery, system DNS, PF, readiness, service lifecycle, network/power/session events and recovery. |
 | Independent guard | Boot closure and periodic PF/launchd inspection, even if a main service is absent. |
 | Bundled engine | TUN capture, strict destination-family policy, silent public echo suppression, DNS policy and proxy transport. |
@@ -21,6 +21,70 @@ There is no native utun provider, provider file/port, refresh timer, dynamic
 interface binding. Old provider paths/names remain only in migration and cleanup.
 Native VPN transport is now a bounded signed-process exception in the active PF
 policy, collected by core's existing audit. Multiple GUI sessions do not duplicate supervision.
+
+### Configuration changes and non-triggers
+
+An effective family edit in Rule or Global always requests fresh IPv4 verification.
+Core closes before persistence and can reuse that acknowledged block on commit
+only while the same edit is in flight, the state is still blocked, and network and
+transition generations have not changed. Failure, supersession, an intervening
+event or the end of the edit invalidates reuse. `prepare` still confirms its own
+protection before probing. `mimo_configuration_barrier_reused` explains the
+omitted duplicate standalone close; it never means that verification was skipped.
+Direct family preferences remain save-only, and selecting Direct still restores
+native networking through its separate cancellation/cleanup path.
+
+Read-only navigation, GUI reconnect, widgets, health publication, known telemetry,
+owned mutations and settled allowlist rejection do not independently request a
+lookup. Relevant external changes, active routing edits, explicit retry, genuine
+infrastructure recovery and admitted periodic work remain triggers. The current
+periodic timer is fixed from scheduling; a user check does not restart its interval.
+See the [complete event audit and evidence](MIMO_EVENT_TRIGGER_AUDIT.md),
+`MimoCoordinator.swift`, and `familyChangeClosesOnce` /
+`configurationBarrierCannotOutliveItsEdit` in the service tests.
+The same candidate's approved-state native audit confirms one fresh check and
+opening per family edit in Rule/Global, with no lookup or gate operation from
+Dashboard/all-six-Settings navigation during either 90-second observation.
+
+### GUI status delivery and navigation
+
+The compact dashboard reserves status-message height and changes only layout.
+Its 26 November installed Direct/all-six-Settings navigation audit produced no
+verification/control work while health checks continued. The same core's
+protected-mode audits remain separate; see the
+[layout validation record](MIMO_3_0_IMPLEMENTATION.md#compact-stable-dashboard--26-november).
+
+On macOS 15 and later, Dashboard/Settings and explicit sidebar navigation buttons
+opt into window activation events so an activating click can also select the
+page. The List retains selection for native highlighting and arrow keys; an
+activation modifier on the List alone does not fix consumed clicks. This changes
+GUI navigation only, in Direct and protected modes alike; it does not request
+core operations or change routing/service button activation behavior. The
+[first-click reproduction and qualification](MIMO_NAVIGATION_RESPONSIVENESS.md#first-click-follow-up)
+is separate from selection-to-render timing.
+
+One completed core snapshot assigns several published GUI properties. The native
+status item schedules at most one update per main-queue turn and reads the latest
+completed state; it skips replacing/measuring an unchanged label while still
+refreshing menu action availability. In Direct, blocked and active protected modes,
+health-only snapshots do not rewrite unchanged local monitoring preferences.
+The released-monitor fallback persists changed preferences/budget/provider health
+and invalidates its comparison cache when local monitoring starts.
+
+Dashboard/Settings navigation keeps drafts and does not initiate an IP lookup,
+privileged inspection or service restart. The existing login-item controller
+continues to perform service reads off-main. These GUI optimizations do not
+change core events, network protection or failure recovery. See the
+[navigation regression tests and limits](MIMO_NAVIGATION_RESPONSIVENESS.md).
+Full GUI diagnostics correlate `mimo_navigation_requested`,
+`mimo_navigation_transaction`, `mimo_navigation_applied` and
+`mimo_navigation_window_updated` by navigation ID. Requested records include the
+current mouse/key event's age when available (which can be stale for programmatic
+selection); transaction records describe animation, applied records measure
+SwiftUI selection delivery, and window-updated records measure the subsequent
+AppKit callback. None measures compositor/Screen Sharing presentation. No key
+values, coordinates, draft or credential contents are recorded. Diagnostics do
+not force drawing, schedule core work or change the navigation transaction.
 
 Settings → Maintenance is a read-only reference, available even without a core
 connection. Copying its commands only changes the clipboard. Executing a copied
@@ -32,6 +96,35 @@ The canonical profile renderer emits the same explanatory YAML comments for v3
 templates and installed private profiles. Comments describe policy, not runtime
 health or successful qualification. Settings changes still follow the existing
 revision/render/verify path; annotating a profile does not introduce a new event.
+
+## Diagnostic storage lifecycle (Direct and protected modes)
+
+`RuntimeLog` publishes redacted in-memory records and queues disk writes on a
+separate utility queue. `MimoLogStore` rolls 5-MiB/UTC-day segments and enforces a
+64-MiB/128-file directory budget at rotation and maintenance. Startup, a changed
+diagnostics preference and the independent 60-second timer trigger expiry and
+service-output rotation; quiet long-running processes do not require a restart
+to delete expired logs. The core/supervisor roles read the shared retention
+preference without RPC. Multiple roles/accounts serialize only their own shared
+directory's storage work; GUIs never maintain the system directory.
+
+The workflow is identical in Direct, active/blocked Rule/Global and released GUI
+monitoring. It has no network, gate, profile, provider, service-health or retry
+callback. `mimo_log_maintenance` records counters only when work/drops/failures
+occur; failed maintenance publishes at most one failure per attempted sweep and
+does not recurse into synchronous disk writes. In-memory diagnostics remain
+available when persistence fails. Normal GUI/daemon exit and engine exec drain
+queued records; a crash can lose the pending tail.
+
+launchd output uses bounded tail-copy/in-place truncation to preserve open
+descriptors. It can temporarily exceed the budget between sweeps and can lose
+concurrent output during truncation; runtime JSONL writers use the cooperative
+directory lock instead. Live readiness markers are not budget eviction targets.
+Stop/uninstall retains diagnostics and removes the running schedulers together
+with their processes. See [policy and validation](MIMO_LOG_RETENTION.md),
+[logger](../Sources/MimoCore/RuntimeLog.swift),
+[storage](../Sources/MimoShared/MimoLogStore.swift),
+[tests](../Tests/MimoLogTests/run.sh).
 
 ## Flat firewall state
 
@@ -58,8 +151,8 @@ state table and revoking originating sources of outbound (`->`) states; incoming
 output fails the close rather than falling back to a global purge. The core,
 independent Perl guard and standalone teardown follow this contract.
 
-After exit rejection, the supervisor publishes Blocked with both observations
-and the rejected family. Core derives authorization from that routing result,
+After exit rejection, the supervisor publishes Blocked with the actual IPv4
+observation. Core derives authorization from that routing result,
 including an empty allowlist; a successful provider lookup cannot imply allowed
 traffic. Refresh now reports checked-but-blocked, and the GUI offers recovery
 without automatically approving the address. Its warning uses `orderFront`
@@ -73,6 +166,50 @@ error. State subscriptions and health polls do not request another lookup.
 Explicit retry still observes provider restrictions; it does not spin until an
 exit becomes approved. Event Log distinguishes lookup failure, provider pause,
 manual deferral and policy rejection.
+
+Supervisor startup/liveness recovery arms one verification request. An accepted
+protected `prepare` consumes that pending request before asynchronous work;
+approval is not required to consume it. Direct also clears it. A new preparation,
+readiness or liveness failure can arm recovery again. A successful provider
+response rejected by the IPv4 allowlist is a settled policy decision, not a
+continuing infrastructure failure. Routine healthy infrastructure scans must
+not convert it into repeated `network_configuration` lookups.
+`mimo_recovery_verification_consumed` carries the existing command correlation
+fields and the `prepare`/`direct` outcome. PF and IPv4 approval requirements are
+unchanged. See `MimoSupervisor.swift` and the installed
+`v3_rejected_exit_stability_test.py` regression. The four Rule/Global × IPv4/Dual
+restart/rejection/retry/Direct cases and a separate 90-second native navigation
+audit passed; [correlated results and diagnostic limits](MIMO_NAVIGATION_RESPONSIVENESS.md#installed-correction-and-event-audit--26-november)
+distinguish intentional restart transients from settled-state anomalies.
+
+UI and failure/recovery qualification must include event handling, not just
+pixels: capture GUI navigation and core/supervisor records around each action;
+assert the expected trigger and completed outcome; check for duplicate lookups,
+configuration writes, stale commands, unexpected gate transitions and repeated
+recovery. Observe rejected/idle states for at least 35 seconds (multiple 10-second
+infrastructure audits), including supervisor startup while already rejected.
+During ordinary navigation there must be no new verification/control cycle.
+During explicit recovery, account for every retry and final settled result;
+check that health monitoring and Direct recovery remain available. Unexpected
+external events invalidate the quiet-window test and require investigation,
+not automatic exclusion. Raw records remain private; publish sanitized event
+times, correlation IDs, action counts and assertions.
+
+The build-10 same-session lockout is reproduced in
+[`MIMO_BLOCKED_VERIFICATION_RECOVERY.md`](MIMO_BLOCKED_VERIFICATION_RECOVERY.md).
+Current candidate behavior distinguishes local/transient automatic backoff from
+provider restrictions: a manual-urgency repair/Retry may release one local pause,
+but automatic rotation/polling never does. Unknown legacy deadlines remain
+restricted except recorded transport errors. Failed coordinator lookups already
+own closure; scheduler presentation must not send duplicate closes. A necessary
+scheduled close captures its epoch before queuing and cannot revoke a newer
+check, configuration or Direct selection. Direct lookups never close the gate.
+Diagnostic lookup/attempt/command IDs connect admission, private HTTP, provider
+pause and gate outcomes; copied timelines identify missing log sources.
+This path is qualified in the unpublished build 11 VM candidate for Rule/Global
+and IPv4/dual-stack, including preserved HTTP 429/Retry-After restrictions and
+actual core/supervisor log correlation. It does not establish the initial trigger
+of the user's first HTTP failure.
 
 Explicit Direct supersedes preparation, HTTP verification and readiness. Late
 results cannot reopen the old mode. Restoring native networking requires no
@@ -153,14 +290,14 @@ binding is involved.
 5. Confirm process identity, pinned engine capabilities, loaded profile/selection,
    listeners, DNS and capture readiness. Permit authenticated exact-host HTTPS
    verification via the private listener and narrowly scoped proxy endpoint grant.
-6. Obtain fresh IPv4, plus IPv6 in Dual, through family-pinned proxy connections.
-   Each actual provider HTTP request spends the shared budget. Both must belong to
-   this attempt, revision and network generation and pass the allowlist.
+6. Obtain one fresh IPv4 through a family-pinned proxy connection in both traffic settings. Publish it before approval/readiness finishes; failed/no-address requests retain only labelled display history.
+   Each actual provider HTTP request spends the shared budget. The observation must
+   belong to this attempt, revision and network generation and pass the IPv4 allowlist.
 7. Recheck readiness, close epoch, power hold and deferred external events under
    the grant lock. Install/read back the active guard and publish Active only after success. No optimistic open.
 
-A failed required family, DNS/TLS/proxy failure, stale result, changed profile or
-unresolved external event keeps the gate closed. Rejected/unsupported IPv6 never
+A failed IPv4 check, DNS/TLS/proxy failure, stale result, changed profile or
+unresolved external event keeps the gate closed. Unsupported IPv6 traffic never
 falls back to native transport. Full readiness also applies to warm profile reuse.
 The active guard remains installed through process or route failures. Recovery
 is asynchronous, but ordinary native application egress must already be denied.
@@ -213,7 +350,7 @@ release does not create another settings writer in each GUI.
 | Event | Protected behavior | Direct / released behavior |
 | --- | --- | --- |
 | V01 Boot, core/supervisor restart | Inspect durable intent; close before protected setup, honor service Stop/maintenance, restore intended roles and verify a new receipt. Supervisor restart also invalidates approval. | Managed Direct restores without approval. Completed deactivation leaves jobs absent; interrupted release resumes cleanup before activation. |
-| V02 Mode, active proxy or family change | Validate candidate, admit revision, close and run section 7.5. IPv4 requires fresh approved IPv4; Dual-stack requires both fresh approved families from this attempt. | Save proxy/family without activation or an IP check; core-owned family selection survives supervisor status polls. Selecting None/removing the active proxy restores Direct. No selected proxy permits Direct only. |
+| V02 Mode, active proxy or family change | Validate candidate, admit revision, close and run section 7.5. Both traffic settings require fresh approved IPv4 from this attempt. IPv6 destination failures are not IPv4 provider failures. | Save proxy/family without activation or an IP check; core-owned family selection survives supervisor status polls. Selecting None/removing the active proxy restores Direct. No selected proxy permits Direct only. |
 | V03 Bypass Apply | Rule validates and reloads under a fresh cycle; Global saves blocks for later Rule use without reload. Invalid drafts cause no mutation. | Save only while core is active. Full deactivation cannot create a second machine-settings owner. |
 | V04 Inactive proxy CRUD, drafts, display/login preferences, refresh interval | Persist or display only; no unrelated profile reload, lookup or close. Editing the active proxy is V02. | Same admission rules; no protection cycle. Released refresh preferences are isolated to that monitor. |
 | V05 Allowlist, verification-provider selection or active provider credential | Invalidate the affected receipt and verify with the new revision. Removing an approved address cannot leave the old receipt effective. Country metadata never grants approval. | Observe under updated preferences when relevant, with no native-traffic gate. Machine credentials remain unavailable to released monitoring. |
@@ -238,9 +375,15 @@ uses a ten-minute failure cooldown and honors longer Retry-After responses. Neve
 suppresses periodic checks only. Display/login preferences, refresh interval and
 inactive proxy edits do not cause protected reloads. Rule bypass edits affect Rule;
 Global saves them without a cycle. Session/wake/network checks remain owner-driven.
-Manual Refresh bypasses request-gap/burst admission, not a provider cooldown.
-Recovery can select another eligible provider; a successful IPv4 observation does
-not authorize a dual-stack cycle whose IPv6 observation failed or was rejected.
+Manual Refresh bypasses request-gap/burst admission and may retry one local
+failure. It does not bypass a provider-imposed restriction or daily budget.
+Recovery can select another eligible provider. IPv4 success is provider success
+even when the allowlist rejects that address. There is no IPv6 approval request.
+Core atomically removes legacy IPv6 allowlist entries before validating stored
+settings and logs only the removed count (`mimo_ipv4_allowlist_migrated`).
+Fresh rejected results survive polls; a new failed attempt shows timestamped
+last-known history without reusing it for authorization. Direct/proxy changes
+clear protected history. GUI clients only render the shared result.
 
 Owned mutations are ignored only after positive classification. Unknown/external
 changes invalidate approval; deferred events cannot be cleared by a stale completion.
@@ -261,7 +404,7 @@ firewall or recovery behavior has been silently substituted. See
 [closure evidence and remaining work](MIMO_V3_QUALIFICATION_CLOSURE.md).
 
 - [Canonical profile](../Sources/MimoShared/MihomoProfile.swift),
-  [family/paired observations](../Sources/MimoShared/MimoNetworkFamily.swift),
+  [traffic family and IPv4 approval receipt](../Sources/MimoShared/MimoNetworkFamily.swift),
   [engine patch](../Patches/mihomo-1.19.34-v3.patch).
 - [Coordinator](../Sources/MimoService/MimoCoordinator.swift),
   [supervisor](../Sources/MimoService/MimoSupervisor.swift),
@@ -274,9 +417,14 @@ firewall or recovery behavior has been silently substituted. See
   [installer](../Sources/MimoDaemon/daemon.sh).
 - `xcrun swift test`, `bash Tests/MimoServiceTests/run.sh`, engine patch tests,
   and the [dual-stack/installed plan](MIMO_DUALSTACK_TEST_PLAN.md).
+- Current IPv4 approval revision: [four mode/family cells, 16 fault recoveries,
+  migration and 22 Direct/Stop/Start assertions](MIMO_IPV4_APPROVAL_RESULTS.md).
+  [Native blocked-Global navigation](MIMO_NAVIGATION_RESPONSIVENESS.md) completed
+  Dashboard and all six Settings sections. The reported intermittent stall and
+  simultaneous two-account navigation remain unqualified.
 - Installed trusted-fixture validation: [44 HTTPS assertions](../Tests/MihomoRuntimeTests/Evidence/v3/installed-https.json),
   [13 active recovery assertions](../Tests/MihomoRuntimeTests/Evidence/v3/installed-active-recovery.json),
-  and [9 paired-failure assertions](../Tests/MihomoRuntimeTests/Evidence/v3/installed-paired-failure.json).
+  and historical, superseded [9 paired-failure assertions](../Tests/MihomoRuntimeTests/Evidence/v3/installed-paired-failure.json).
 
 New events include `mimo_dns_removed_and_drained`,
 `mimo_active_firewall_installed`, `mimo_direct_network_released`,

@@ -1,0 +1,95 @@
+{
+  "mode": "direct",
+  "family": "ipv4",
+  "verdict": "direct",
+  "started": "2026-11-26T06:08:25.269Z",
+  "finished": "2026-11-26T06:09:55.500Z",
+  "seconds": 90.0,
+  "passed": false,
+  "checks": {
+    "no_new_lookup": false,
+    "no_recovery_loop": true,
+    "no_warning_or_error": true,
+    "no_unexpected_control_or_failure_event": true,
+    "expected_verdict_and_monitor_ready": true,
+    "same_core": true,
+    "settings_unchanged": true,
+    "routing_unchanged": true,
+    "health_checks_continue": true,
+    "rejected_observation_retained": true,
+    "observed_ip_unchanged": false,
+    "both_tabs_observed": false,
+    "all_settings_sections_observed": false,
+    "every_navigation_completed": true
+  },
+  "events": [
+    {
+      "timestamp": "2026-11-26T06:08:39.136Z",
+      "event": "mimo_navigation_requested",
+      "level": "info",
+      "fields": {
+        "navigation_id": "7012F751-E40B-47BC-920D-8D715F6F6AB7",
+        "tab": "Settings",
+        "section": "General"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T06:08:39.159Z",
+      "event": "mimo_navigation_applied",
+      "level": "info",
+      "fields": {
+        "navigation_id": "7012F751-E40B-47BC-920D-8D715F6F6AB7",
+        "tab": "Settings",
+        "section": "General",
+        "duration_ms": "22"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T06:08:39.180Z",
+      "event": "mimo_navigation_window_updated",
+      "level": "info",
+      "fields": {
+        "navigation_id": "7012F751-E40B-47BC-920D-8D715F6F6AB7",
+        "tab": "Settings",
+        "section": "General",
+        "duration_ms": "43"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T06:09:50.913Z",
+      "event": "refresh_requested",
+      "level": "info",
+      "fields": {
+        "trigger": "periodic",
+        "lookup": "5C5FF279-25BD-491F-A31E-8F485F1A97E3"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T06:09:50.919Z",
+      "event": "lookup_started",
+      "level": "info",
+      "fields": {
+        "trigger": "periodic",
+        "lookup": "5C5FF279-25BD-491F-A31E-8F485F1A97E3"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T06:09:50.944Z",
+      "event": "mimo_access_presentation_changed",
+      "level": "info",
+      "fields": {
+        "phase": "active",
+        "kind": "checking"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T06:09:52.172Z",
+      "event": "mimo_access_presentation_changed",
+      "level": "info",
+      "fields": {
+        "phase": "active",
+        "kind": "direct"
+      }
+    }
+  ]
+}

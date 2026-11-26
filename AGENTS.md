@@ -25,6 +25,8 @@ Use four-space indentation, standard Swift formatting, explicit access control f
 
 Add XCTest cases under `Tests/MimoSharedTests/` with names beginning `test` and behavior-focused descriptions. Cover persistence, refresh policy, provider error handling, and snapshot changes when modifying shared logic. There is no recorded coverage threshold; run the portable suite before app builds and report the first actionable compiler error from `swift-test.log`.
 
+During native UI and failure/recovery tests, monitor and correlate GUI, core and supervisor events yourself; do not rely on the user to spot abnormal behavior. Record expected triggers and terminal states, and fail on unexplained checks, event loops, stale commands, gate changes, lost communication or stalled recovery. Observe settled failures for at least 35 seconds so multiple infrastructure scans run. Read-only page navigation must not change network configuration or initiate verification. Reproduce reported failures with a failing test before changing production behavior; preserve sanitized before/after evidence and distinguish UI clicks from RPC simulations.
+
 ## Documentation
 
 Every feature change (added, changed, or removed behavior) must update `README.md` in the same change. The **What is implemented** table must always list the complete set of features. Also update any affected usage steps, manual-check rows, and runtime-log event entries.
