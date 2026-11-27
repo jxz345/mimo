@@ -1,0 +1,138 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-11-27T23:57:07.052490+00:00",
+  "scope": "Independent read-only release artifact inspection; no installer execution or VM/runtime tests. Only this sanitized evidence file was written.",
+  "release": {
+    "version": "3.1",
+    "build": "12",
+    "artifacts": {
+      "Mimo-3.1.pkg": {
+        "sha256": "75bf99adc2a4feebb010faf67c106a07e688bbee06e3949e4689ee71af8d5268",
+        "matches_release_build_manifest": true
+      },
+      "Mimo-3.1.zip": {
+        "sha256": "53af2899718a80a956baff03c97e77f65e8f01d62e1e55a815fee531c5946d57",
+        "matches_release_build_manifest": true
+      }
+    },
+    "release_manifest_sha256": "ee31c43ebd4229e89a8ef6a23a517aab19fb52559613e5b9304db89eff16869c"
+  },
+  "signatures": {
+    "components": {
+      "app": {
+        "verify_exit": 0,
+        "ad_hoc": true,
+        "personal_signing_authority_present": false
+      },
+      "core": {
+        "verify_exit": 0,
+        "ad_hoc": true,
+        "personal_signing_authority_present": false
+      },
+      "resource_core": {
+        "verify_exit": 0,
+        "ad_hoc": true,
+        "personal_signing_authority_present": false
+      },
+      "engine": {
+        "verify_exit": 0,
+        "ad_hoc": true,
+        "personal_signing_authority_present": false
+      },
+      "widget": {
+        "verify_exit": 0,
+        "ad_hoc": true,
+        "personal_signing_authority_present": false
+      },
+      "legacy_helper": {
+        "verify_exit": 0,
+        "ad_hoc": true,
+        "personal_signing_authority_present": false
+      }
+    },
+    "installer_package_unsigned": true,
+    "pkgutil_exit": 1,
+    "interpretation": "Valid ad-hoc application signatures; unsigned installer package. This is not Developer ID signing or notarization."
+  },
+  "core_copies": {
+    "MacOS_sha256": "49e2f183814021f35d7fcbfccc44386bbbdd26cced49fbb86b6fbf231ab6495f",
+    "Resources_sha256": "0ea1e1f020e9064598796617768487c736d7665dc448cb695d2789d86684df2e",
+    "byte_identical": false,
+    "sections_checked": 37,
+    "all_sections_identical": true,
+    "post_load_commands_through_signature_start_identical": true,
+    "pre_signature_differing_bytes": 7,
+    "differences_only_signature_size_metadata": true,
+    "interpretation": "MacOS core is ad-hoc re-signed; Resources core retains its linker ad-hoc signature. Code/data sections match; only signature-related header sizes and signature blobs differ. Installer selects the MacOS core."
+  },
+  "zip": {
+    "members": 47,
+    "regular_files": 29,
+    "appledouble_or_macOSX_entries": [],
+    "unsafe_member_paths": [],
+    "private_state_or_key_filenames": [],
+    "package_payload_file_mismatches": [],
+    "identity": {
+      "CFBundleIdentifier": "com.mimo",
+      "CFBundleShortVersionString": "3.1",
+      "CFBundleVersion": "12"
+    }
+  },
+  "package_archive_metadata": [
+    {
+      "name": "Mimo.pkg/Payload",
+      "members": 95,
+      "trailer_seen": true,
+      "appledouble_records": 47,
+      "attribute_name_counts": {
+        "com.apple.provenance": 47
+      },
+      "only_OS_provenance_with_zero_FinderInfo_and_empty_resource_fork": true,
+      "unsafe_member_paths": []
+    },
+    {
+      "name": "Mimo.pkg/Scripts",
+      "members": 9,
+      "trailer_seen": true,
+      "appledouble_records": 4,
+      "attribute_name_counts": {
+        "com.apple.provenance": 4
+      },
+      "only_OS_provenance_with_zero_FinderInfo_and_empty_resource_fork": true,
+      "unsafe_member_paths": []
+    }
+  ],
+  "expanded_metadata": {
+    "xattr_counts": {
+      "com.apple.provenance": 57,
+      "com.apple.PackageKit.PayloadEncoding": 1
+    },
+    "non_provenance_attributes": [
+      {
+        "path": "Mimo.pkg",
+        "name": "com.apple.PackageKit.PayloadEncoding"
+      }
+    ],
+    "interpretation": "PackageKit.PayloadEncoding is attached to the expanded Mimo.pkg directory by extraction; it is not an AppleDouble attribute in the distributed CPIO archives. Actual AppleDouble entries contain only opaque OS provenance, no credential/path/user-authored metadata."
+  },
+  "source_comparison": {
+    "qualified_candidate": "1942a60a",
+    "manifest_sha256": "dff8c404311da71214952e2c932fa2f9fb57b5bdd55c52cc0bead6e87e3c2200",
+    "inputs": 141,
+    "unchanged_count": 136,
+    "changed_paths": [
+      "Configuration/BuildNumber.txt",
+      "Scripts/generate-xcode-project.sh",
+      "Sources/MimoApp/DaemonInstallationModel.swift",
+      "Sources/MimoService/DaemonMain.swift",
+      "Sources/MimoService/DaemonService.swift"
+    ],
+    "only_five_authorized_version_build_identity_files": true
+  },
+  "privacy_limits": [
+    "This inspects archive member paths, AppleDouble field names/structure, signing authority presence and source identity; it is not a formal proof of absence of every possible secret in compiled machine code.",
+    "Raw provenance bytes and personal/local diagnostic values are not copied into this evidence.",
+    "Historical dist artifacts are outside the v3.1 asset list and are not release candidates."
+  ],
+  "passed": true
+}

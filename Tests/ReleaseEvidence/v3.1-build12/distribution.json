@@ -1,0 +1,85 @@
+{
+  "version": "3.1",
+  "build": "12",
+  "source_commit": "565016a8888a43fa927b18c8c4d6b0de3a8e7a77",
+  "tap_commit": "f6afe69205be4a083b53bab5ae25ca4addcde893",
+  "release": {
+    "assets": [
+      {
+        "apiUrl": "https://api.github.com/repos/jxz345/mimo/releases/assets/802507615",
+        "contentType": "application/x-sh",
+        "createdAt": "2026-11-27T23:56:56Z",
+        "digest": "sha256:354808e3fd9f9c15c303beecb4aa51128fea131e66df5d387b63822a752e4b39",
+        "downloadCount": 0,
+        "id": "RA_kwDOVy5M4c4v1Utf",
+        "label": "",
+        "name": "install.sh",
+        "size": 8445,
+        "state": "uploaded",
+        "updatedAt": "2026-11-27T23:56:57Z",
+        "url": "https://github.com/jxz345/mimo/releases/download/v3.1-build.12/install.sh"
+      },
+      {
+        "apiUrl": "https://api.github.com/repos/jxz345/mimo/releases/assets/802507601",
+        "contentType": "application/octet-stream",
+        "createdAt": "2026-11-27T23:56:56Z",
+        "digest": "sha256:75bf99adc2a4feebb010faf67c106a07e688bbee06e3949e4689ee71af8d5268",
+        "downloadCount": 0,
+        "id": "RA_kwDOVy5M4c4v1UtR",
+        "label": "",
+        "name": "Mimo-3.1.pkg",
+        "size": 45023981,
+        "state": "uploaded",
+        "updatedAt": "2026-11-27T23:57:19Z",
+        "url": "https://github.com/jxz345/mimo/releases/download/v3.1-build.12/Mimo-3.1.pkg"
+      },
+      {
+        "apiUrl": "https://api.github.com/repos/jxz345/mimo/releases/assets/802507616",
+        "contentType": "application/zip",
+        "createdAt": "2026-11-27T23:56:56Z",
+        "digest": "sha256:53af2899718a80a956baff03c97e77f65e8f01d62e1e55a815fee531c5946d57",
+        "downloadCount": 0,
+        "id": "RA_kwDOVy5M4c4v1Utg",
+        "label": "",
+        "name": "Mimo-3.1.zip",
+        "size": 45013879,
+        "state": "uploaded",
+        "updatedAt": "2026-11-27T23:57:19Z",
+        "url": "https://github.com/jxz345/mimo/releases/download/v3.1-build.12/Mimo-3.1.zip"
+      },
+      {
+        "apiUrl": "https://api.github.com/repos/jxz345/mimo/releases/assets/802507600",
+        "contentType": "application/json",
+        "createdAt": "2026-11-27T23:56:56Z",
+        "digest": "sha256:ee31c43ebd4229e89a8ef6a23a517aab19fb52559613e5b9304db89eff16869c",
+        "downloadCount": 0,
+        "id": "RA_kwDOVy5M4c4v1UtQ",
+        "label": "",
+        "name": "release-build.json",
+        "size": 234,
+        "state": "uploaded",
+        "updatedAt": "2026-11-27T23:56:56Z",
+        "url": "https://github.com/jxz345/mimo/releases/download/v3.1-build.12/release-build.json"
+      },
+      {
+        "apiUrl": "https://api.github.com/repos/jxz345/mimo/releases/assets/802507596",
+        "contentType": "application/octet-stream",
+        "createdAt": "2026-11-27T23:56:56Z",
+        "digest": "sha256:22193279e644af6e21a5680294ca0c62c8bad6a6c512767283c570f65d191cf4",
+        "downloadCount": 0,
+        "id": "RA_kwDOVy5M4c4v1UtM",
+        "label": "",
+        "name": "SHA256SUMS",
+        "size": 320,
+        "state": "uploaded",
+        "updatedAt": "2026-11-27T23:56:56Z",
+        "url": "https://github.com/jxz345/mimo/releases/download/v3.1-build.12/SHA256SUMS"
+      }
+    ],
+    "publishedAt": "2026-11-27T23:57:20Z",
+    "tagName": "v3.1-build.12",
+    "targetCommitish": "565016a8888a43fa927b18c8c4d6b0de3a8e7a77",
+    "url": "https://github.com/jxz345/mimo/releases/tag/v3.1-build.12"
+  },
+  "all_five_remote_digests_match_local": true
+}

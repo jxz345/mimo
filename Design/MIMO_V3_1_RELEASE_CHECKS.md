@@ -4,8 +4,15 @@ Release identity: **3.1 / 12**, immutable tag `v3.1-build.12`. Homebrew uses the
 marketing version `3.1`; the download URL and checksum identify build 12.
 Earlier releases and their artifacts remain unchanged.
 
-Status: packaging and publication in progress. Homebrew lifecycle qualification
-is planned on the pinned primary VM (`mimo-vm`); no result is claimed in advance.
+Published **27 November 2026 at 23:57 UTC**:
+[Mimo 3.1 (build 12)](https://github.com/jxz345/mimo/releases/tag/v3.1-build.12).
+Source commit: `565016a8888a43fa927b18c8c4d6b0de3a8e7a77`. Homebrew tap commit:
+`f6afe69205be4a083b53bab5ae25ca4addcde893`.
+
+All five uploaded digests match the built artifacts; see
+[distribution evidence](../Tests/ReleaseEvidence/v3.1-build12/distribution.json).
+Post-publication Homebrew lifecycle qualification is in progress on the pinned
+primary VM (`mimo-vm`); no result is claimed in advance.
 
 ## Included behavior
 
@@ -47,10 +54,20 @@ and packet tests, not a new native button-click audit.
 
 ## Distribution and Homebrew qualification
 
-Planned release checks: sealed arm64 app, 3.1/build-12 app/embedded identities,
-archive hygiene, five matching GitHub asset digests, and generated cask syntax and
-cleanup-source consistency. Publish release metadata with ZIP, package, installer
-and checksums; do not replace any published build's binaries.
+Release checks passed: sealed arm64 app, 3.1/build-12 identities, six nested/core
+signature checks, five matching GitHub asset digests, generated cask Ruby syntax
+and cleanup-source consistency. The ZIP is free of AppleDouble entries. The PKG
+contains 51 AppleDouble records, all inspected as only macOS provenance with
+empty resource forks; no private attributes were found. The installer is unsigned
+and the app is ad-hoc signed, as documented. The two bundled core copies have
+identical code/data; signature blobs and their size fields explain their different
+hashes. See the [artifact audit](../Tests/ReleaseEvidence/v3.1-build12/artifact-audit.json)
+and [source provenance](../Tests/ReleaseEvidence/v3.1-build12/source-provenance.json).
+
+Published ZIP SHA-256:
+`53af2899718a80a956baff03c97e77f65e8f01d62e1e55a815fee531c5946d57`.
+Installed core target SHA-256:
+`49e2f183814021f35d7fcbfccc44386bbbdd26cced49fbb86b6fbf231ab6495f`.
 
 Four actual Homebrew lifecycle steps on `mimo-vm`:
 
