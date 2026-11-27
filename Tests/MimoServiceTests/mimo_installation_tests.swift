@@ -29,6 +29,7 @@ enum MimoInstallationTests {
         var routing = MimoRoutingState()
         routing.phase = .blocked // Health does not approve protected traffic.
         routing.supervisorCheckedAt = now
+        routing.heartbeatHealth = .healthy; routing.heartbeatCheckedAt = now
         routing.services = [.core, .mihomo, .profileHosting].map { MimoServiceStatus(id: $0, health: .running, transport: "test", checkedAt: now) }
         routing.infrastructure = .init(pf: .healthy, launchd: .healthy, checkedAt: now)
         func problems(_ state: MimoRoutingState? = nil, _ flags: MimoServicePreferences = .init()) -> [String] {
@@ -39,6 +40,12 @@ enum MimoInstallationTests {
             var failed = routing; failed.services[index].health = .stopped
             require(!problems(failed).isEmpty, "a stopped service cannot qualify an installation")
         }
+        for health in [MimoInfrastructureHealth.failed, .unknown] {
+            var peer = routing; peer.heartbeatHealth = health
+            require(problems(peer).contains("supervisor_heartbeat"), "unhealthy heartbeat cannot qualify installation")
+        }
+        var expiredPeer = routing; expiredPeer.heartbeatCheckedAt = now.addingTimeInterval(-20)
+        require(problems(expiredPeer).contains("supervisor_heartbeat"), "stale peer check cannot qualify installation")
         var flags = MimoServicePreferences(); flags.engine = false
         require(problems(nil, flags).contains("service_intent"), "old stopped intent cannot pass")
         flags.engine = true; flags.releaseNetwork = true

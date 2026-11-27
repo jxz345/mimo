@@ -1,0 +1,148 @@
+{
+  "schema": 1,
+  "purpose": "Exactly one authorized failed run05 retry with bounded persisted-log collection; no application change or other rerun.",
+  "version": "3.0",
+  "build": "11",
+  "published": false,
+  "vm": "primary mimo-vm (Tart mimo-test-macos)",
+  "core_sha256": "4263cf39e9779b03d00bc73b40fd523e4ba8e42012ec2aa84f824ba5dd48e067",
+  "controls_sha256": "1ed7b5fb01d653f853a87de246c138ab043148e93da605284d5349dd1d68981a",
+  "original_first_attempt_summary": "primary-confirmation-4263cf39.json",
+  "original_first_attempt_summary_sha256": "1aa7815589414715df4219ce10f082741013608e9fbace5f80cb01dbac5f4dd0",
+  "original_run05_remains": "failed/unqualified; skipped finalRefresh and settled phase; retained ledger unchanged",
+  "retry_counts": {
+    "authorized": 1,
+    "completed": 1,
+    "passed": 1,
+    "original_planned_runs_completed": 9,
+    "total_actual_primary_runtime_attempts": 10
+  },
+  "case": "dual/latest-rule-denied",
+  "evidence_id": "8e3badd3d20d469dad3a929b1f06dded",
+  "qualified": true,
+  "ledger": ".build/observation-parallel/primary-validation-4263cf39-20261127T134917Z-cdcb13d8/retry-05-log-visibility/ledger.json",
+  "ledger_sha256": "8e2fc4f3bb2dc967412242aa8a1d9beafe4f81372e1f1e6ccfc3424802f4d3da",
+  "report_sha256": "67ef72b0dba6055ee282ec186243cad09dc9b19fa4c7b994e7d2214cd173149d",
+  "archive": ".build/observation-parallel/primary-validation-4263cf39-20261127T134917Z-cdcb13d8/retry-05-log-visibility/case-private.tar.gz",
+  "archive_sha256": "d5c0a4989aac778686ea15108659112df5b540ab8eb84fcd493193f38f91d4bd",
+  "incoming_sha256": "4b0894897a040a8ba17db5cae4c42b3aa69c770a06e88f4148b9499bff9d7d24",
+  "script_source_sha256": {
+    "v3_rapid_policy_test.py": "e61a8b80de059bb8b51dcb3eb3b2d572e2c33c5ddf513c80b3e4ea41d8abc8f5",
+    "v3_queue_log_visibility.py": "745adf3fd734cc1aed0516e1ed178815cf9484ff0d3fcc1760b116222f09d30b",
+    "v3_rapid_policy_oracle.py": "1554c77965841f3ec2ddfa50928cc0d84a8ea3b3b6fe58822ff4f34035b7d492"
+  },
+  "staged_script_sha256": {
+    "v3_rapid_policy_test.py": "b502bd31dabec96aa51a5f56f696a923cfe6d9bbaa4cbd2492e415ea2e449960",
+    "v3_queue_log_visibility.py": "745adf3fd734cc1aed0516e1ed178815cf9484ff0d3fcc1760b116222f09d30b",
+    "v3_rapid_policy_oracle.py": "1554c77965841f3ec2ddfa50928cc0d84a8ea3b3b6fe58822ff4f34035b7d492"
+  },
+  "target_adaptation": "Only exact primary hostname/root safety assertions; no timing or application assertion changes.",
+  "log_collection": {
+    "polls": 1,
+    "timed_out": false,
+    "missing_terminal_failures": [],
+    "window_start": 1795790371.9759622,
+    "window_end": 1795790380.573537
+  },
+  "queue_proof_passed": true,
+  "settled_queue_proof_passed": true,
+  "retained_queue_inputs": {
+    "-queue-initial-input.json": "8e3badd3d20d469dad3a929b1f06dded-queue-initial-input.json",
+    "-queue-final-input.json": "8e3badd3d20d469dad3a929b1f06dded-queue-final-input.json",
+    "-queue-settled-input.json": "8e3badd3d20d469dad3a929b1f06dded-queue-settled-input.json"
+  },
+  "final_refresh": {
+    "passed": true,
+    "failures": [],
+    "manual_id": "09B9642A-E9F3-4F62-B90D-AD6AF42D8AF4",
+    "requested_epoch": 1795790393.4265442,
+    "manual_requested_at": 817483193.626253,
+    "manual_finished_at": 817483197.829148,
+    "phase": "failed",
+    "expected_outcome": "blocked",
+    "successful_lookup": "F57E34EE-D86E-4A31-8176-57216F99D2AF",
+    "typed_result": "checkedBlocked",
+    "lifecycle_generation": 53,
+    "snapshot_checked_at": 817483196.581063,
+    "blocking_ip_checked_at": 817483196.581063,
+    "date_normalization": "Swift Date seconds + 978307200 = Unix/log seconds"
+  },
+  "prior_manual_terminal": {
+    "id": "4373D24A-55D8-4938-B07D-6FC7E3E72297",
+    "phase": "failed",
+    "result": "superseded"
+  },
+  "http_requests": 2,
+  "max_http_per_lookup": 1,
+  "settled_health_samples": 18,
+  "settled_healthy_samples": 18,
+  "continuous_health": {
+    "passed": true,
+    "interval_seconds": 0.5,
+    "started_epoch": 1795790352.2987578,
+    "finished_epoch": 1795790442.863748,
+    "failures": [],
+    "max_infrastructure_age_seconds": 13.74041485786438,
+    "max_rpc_seconds": 1.1094109169999982,
+    "max_pf_age_seconds": 13.74041485786438,
+    "max_launchd_age_seconds": 12.495702028274536,
+    "health_overdue_sample_count": 0,
+    "method": "bounded read-only core state plus original guard health file; no timestamp synthesis"
+  },
+  "packet_policy": {
+    "passed": true,
+    "protected_native_attempts": 0,
+    "authorized_direct_native_attempts": 33,
+    "boundaries": [
+      [
+        1795790368.844643,
+        "protected",
+        "initial_active"
+      ],
+      [
+        1795790372.158,
+        "direct",
+        "admitted_direct"
+      ],
+      [
+        1795790380.378,
+        "protected",
+        "confirmed_close"
+      ],
+      [
+        1795790380.565,
+        "protected",
+        "confirmed_close"
+      ],
+      [
+        1795790382.597,
+        "protected",
+        "confirmed_close"
+      ],
+      [
+        1795790395.941,
+        "protected",
+        "confirmed_close"
+      ]
+    ],
+    "final_protected_closure_observed": true,
+    "leak_samples": [],
+    "scope": "zero native after confirmed closure; explicitly admitted Direct windows reported separately"
+  },
+  "whole_case_GUI_passed": true,
+  "incoming_SSH_passed": true,
+  "support_transfer_issue": {
+    "recorded": "Ambiguous mDNS SCP alias delivered only harness tar to worker; no execution. Fixed named Tart target rejected missing primary tar before mutation.",
+    "resolution": "SCP pinned192.168.64.2; exact primary core/helper/harness hashes checked before dispatch. Worker owner removed exact-hash straytar.",
+    "watcher_coverage": "Both fresh and persistent SSH watchers used explicit192.168.64.2 and stricthostkey throughout; unaffected.",
+    "hardware_UUID_check": "Named Tart and pinnedSSH UUID matched. Additional UUID comparison happened after retry dispatch because instruction arrived after launch.",
+    "classification": "Support setup; not a runtime attempt or product failure."
+  },
+  "limits": [
+    "Collector returned after one snapshot in this retry; it did not reproduce or measure the original asynchronous visibility race. Portable focused controls exercised delayed visibility.",
+    "Original failed run05 remains preserved; this separate complete retry qualifies its behavior on the same candidate.",
+    "Two established product failures and the separate active-native setup failure remain unresolved.",
+    "No native button-click, Screen Sharing or multi-user qualification.",
+    "No cleanup or publication yet."
+  ]
+}

@@ -5,6 +5,7 @@ import Security
 struct ServiceTests {
     @MainActor
     static func main() async throws {
+        try await MimoInfrastructureTests.run()
         try MimoSessionDisplayTests.run()
         if CommandLine.arguments.contains("--cycle-regression") {
             try await MimoCycleTests.run()
@@ -21,6 +22,7 @@ struct ServiceTests {
         try MimoPowerTests.run()
         try await MimoGateTests.run()
         try await MimoRecoveryTests.run()
+        try await MimoDirectReleaseTests.run()
         try MimoInstallationTests.run()
         let boot = UUID().uuidString
         let reference = MimoPFReference(token: "12345", boot: boot)

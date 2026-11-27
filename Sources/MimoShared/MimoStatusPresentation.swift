@@ -16,9 +16,11 @@ public struct MimoStatusPresentation: Equatable, Sendable {
     public let isCheckingReadiness: Bool
     public let isClosing: Bool
     public let isRestoringDirect: Bool
+    public let isObservationCheck: Bool
     public let isBackgroundVerification: Bool
 
     public init(routing: MimoRoutingState, snapshot: MimoSnapshot?, preferences: MonitoringPreferences, date: Date, monitoringStatus: MonitoringStatus = .ready, lookupError: String? = nil) {
+        isObservationCheck = routing.observationFailed != nil
         isDirect = routing.phase == .active && routing.allowsTraffic && routing.effectiveMode == .direct
         trafficIsBlocked = routing.phase == .blocked || (routing.configuration.mode.requiresVerification
             && [.validating, .checking].contains(routing.phase))
@@ -66,7 +68,17 @@ public struct MimoStatusPresentation: Equatable, Sendable {
         case .unavailable: title = "Mimo · Status unavailable"
         }
         if kind == .verified {
-            detail = "Exit IP approved. Internet is allowed."
+            let failed: Bool
+            switch monitoringStatus {
+            case .failed, .coolingDown, .providerPaused, .waitingForIPinfoToken: failed = true
+            default: failed = routing.observationFailed == true
+            }
+            if routing.observation != nil || monitoringStatus == .refreshing {
+                detail = "Checking exit IP · traffic remains allowed."
+            } else if failed {
+                let age = routing.observedIP.map { max(0, Int(date.timeIntervalSince($0.checkedAt))) } ?? 0
+                detail = "Check failed · using last approved result (\(age) seconds ago). Traffic remains allowed."
+            } else { detail = "Exit IP approved. Internet is allowed." }
         } else if kind == .directWarning {
             let reason: String
             switch monitoringStatus {
@@ -123,7 +135,7 @@ public struct MimoStatusPresentation: Equatable, Sendable {
             return isValidating ? "Traffic blocked → Validate profile → Check IP → Reopen if allowed"
                 : isCheckingReadiness ? "Traffic blocked → Exit IP received → Checking approval and readiness" : "Traffic blocked → Checking exit IP → Reopen if allowed"
         case .verified:
-            return "Traffic blocked → Exit IP approved → Internet reopened"
+            return isObservationCheck ? detail : "Traffic blocked → Exit IP approved → Internet reopened"
         default: return nil
         }
     }

@@ -19,6 +19,7 @@ enum MimoInstallationReadiness {
         let infrastructure = supervisor.infrastructure?.current(at: now)
         if ![MimoInfrastructureHealth.healthy, .released].contains(infrastructure?.pf ?? .unknown) { problems.append("firewall_monitor") }
         if infrastructure?.launchd != .healthy { problems.append("launchd_monitor") }
+        if supervisor.heartbeatHealth != .healthy || !fresh(supervisor.heartbeatCheckedAt) { problems.append("supervisor_heartbeat") }
         return problems
     }
 }

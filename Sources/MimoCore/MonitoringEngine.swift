@@ -47,6 +47,13 @@ final class MonitoringEngine: ObservableObject {
         case providerChanged = "provider_changed"
         case settingsChanged = "settings_changed"
 
+        var checkIntent: MimoCheckIntent {
+            switch self {
+            case .startup, .networkPath, .networkConfiguration, .routeChange, .systemWake, .trailing: .transition
+            default: .observation
+            }
+        }
+
         /// How much API quota the trigger justifies (see `LookupBudget`). `.queued`, `.recheck`, and
         /// `.trailing` normally pass the urgency of the requests they stand in for (`refresh(urgency:)`);
         /// this is only their fallback.
@@ -66,6 +73,14 @@ final class MonitoringEngine: ObservableObject {
 
     typealias Status = MonitoringStatus
 
+    /// Validated local command metadata only; never proxy details or credentials.
+    struct RoutingCancellationContext {
+        let request: UUID
+        let command: DaemonCommand
+        let mode: ProxyMode
+        let revision: Int
+    }
+
     @Published private(set) var snapshot: MimoSnapshot?
     @Published private(set) var status: Status = .idle {
         didSet {
@@ -80,7 +95,10 @@ final class MonitoringEngine: ObservableObject {
     var requiredCheckUnavailable: ((String) -> Void)?
     /// A successful provider response can still be rejected by the supervisor.
     var accessBlockReason: (() -> String?)?
+    var routingRevision: (() -> Int?)?
+    private var activeRefreshGeneration: Int?
     private var activeLookupID: UUID?
+    private var activeLookupProvider: ProviderID?
     private var activeLookupTask: Task<MimoSnapshot, Error>?
     @Published private(set) var preferences: MonitoringPreferences
     @Published private(set) var indicators: MonitorIndicatorState
@@ -151,27 +169,92 @@ final class MonitoringEngine: ObservableObject {
     var networkEventChecksEnabled = true
     private var controlHolds = 0
     var hasQueuedControl: Bool { controlHolds > 0 }
-    private var deferredControlRefresh: (force: Bool, bypass: Bool, trigger: RefreshTrigger, urgency: RefreshUrgency, provider: ProviderID?)?
+    /// All held/recheck/timer paths transfer the same bounded pending demand.
+    private struct LookupDemand {
+        let generation: Int
+        var manualID: UUID?
+        var reasons: Set<RefreshTrigger>
+        var force: Bool
+        var bypass: Bool
+        var trigger: RefreshTrigger
+        var urgency: RefreshUrgency
+        var provider: ProviderID?
+        var intent: MimoCheckIntent
+        var notBefore: Date?
+    }
+    private var pendingDemand: LookupDemand?
+    private var demandDrainTask: Task<Void, Never>?
 
     func holdForControl() { controlHolds += 1 }
 
     func releaseControl() {
         controlHolds -= 1
         guard controlHolds == 0 else { return }
-        Task { [weak self] in
-            // A settings/mode command may already have scheduled its own fresh
-            // check. That check consumes the older pending request as well.
+        reconcileManualOwnership(reason: "control_drain")
+        scheduleDemandDrain()
+    }
+
+    private func demandFields(_ demand: LookupDemand, reason: String) -> [String: String] {
+        var fields = ["generation": String(demand.generation), "reason": reason,
+                      "reasons": demand.reasons.map(\.rawValue).sorted().joined(separator: ",")]
+        if let id = demand.manualID { fields["request"] = id.uuidString }
+        if let revision = routingRevision?() { fields["revision"] = String(revision) }
+        return fields
+    }
+
+    private func enqueueDemand(_ demand: LookupDemand, reason: String) {
+        guard demand.generation == lifecycleGeneration else { return }
+        var next = demand
+        if let old = pendingDemand, old.generation == demand.generation {
+            next.reasons.formUnion(old.reasons)
+            next.manualID = currentManualID ?? demand.manualID ?? old.manualID
+            next.force = next.force || old.force
+            next.bypass = next.bypass || old.bypass
+            next.urgency = max(next.urgency, old.urgency)
+            next.intent = next.intent == .transition || old.intent == .transition ? .transition : .observation
+            // An immediate admitted demand must stay immediate when a later
+            // retry is merged into it. Provider admission still applies below.
+            if let oldDate = old.notBefore, let nextDate = next.notBefore {
+                next.notBefore = min(nextDate, oldDate)
+            } else {
+                next.notBefore = nil
+            }
+        }
+        pendingDemand = next
+        RuntimeLog.shared.info("refresh_demand_queued", fields: demandFields(next, reason: reason))
+    }
+
+    private func scheduleDemandDrain() {
+        guard demandDrainTask == nil, controlHolds == 0, !isRefreshing,
+              isStarted, pendingDemand != nil else { return }
+        let generation = lifecycleGeneration
+        demandDrainTask = Task { [weak self] in
             await Task.yield()
-            guard let self, self.controlHolds == 0, self.isStarted,
-                  let pending = self.deferredControlRefresh else { return }
-            self.deferredControlRefresh = nil
-            await self.refresh(force: pending.force, bypassMinimumInterval: pending.bypass,
-                               trigger: pending.trigger, urgency: pending.urgency, preferredProvider: pending.provider)
+            guard !Task.isCancelled, let self, generation == self.lifecycleGeneration else { return }
+            self.demandDrainTask = nil
+            guard self.controlHolds == 0, !self.isRefreshing, self.isStarted,
+                  var demand = self.pendingDemand, demand.generation == generation else { return }
+            if let date = demand.notBefore, date > self.currentDate { return }
+            self.pendingDemand = nil
+            if let manual = demand.manualID, manual != self.currentManualID {
+                demand.manualID = nil
+                demand.reasons.remove(.manual)
+            }
+            guard !demand.reasons.isEmpty else {
+                RuntimeLog.shared.info("refresh_demand_discarded", fields: self.demandFields(demand, reason: "manual_finished"))
+                self.reconcileManualOwnership(reason: "discarded_replay")
+                return
+            }
+            RuntimeLog.shared.info("refresh_demand_consumed", fields: self.demandFields(demand, reason: "admitted"))
+            await self.execute(demand)
         }
     }
-    /// Highest urgency among requests folded into the post-lookup `.recheck`; `nil` when none is owed.
-    private var recheckUrgency: RefreshUrgency?
-    private var recheckBypassesMinimumInterval = false
+
+    private var currentManualID: UUID? {
+        guard manualRefresh?.pending == true, manualRefreshGeneration == lifecycleGeneration else { return nil }
+        return manualRefresh?.id
+    }
+    private var pendingIntent: MimoCheckIntent = .observation
     /// The single pending `.queued` refresh (boundary + highest urgency).
     private var pendingRefresh = PendingRefresh()
     private var hasVerifiedAddressThisSession = false
@@ -181,6 +264,7 @@ final class MonitoringEngine: ObservableObject {
     let ipinfoCredentials: CredentialSession
     private var isStarted = false
     private var lifecycleGeneration = 0
+    private var manualRefreshGeneration: Int?
 
     init(
         preferencesStore: any PreferenceStorage = MimoAppGroup.defaults,
@@ -246,7 +330,7 @@ final class MonitoringEngine: ObservableObject {
     }
 
     func start() {
-        guard refreshTimer == nil else { return }
+        guard !isStarted else { return }
         isStarted = true
         lifecycleGeneration &+= 1
         RuntimeLog.shared.info("monitor_started")
@@ -278,14 +362,14 @@ final class MonitoringEngine: ObservableObject {
     func stop() {
         RuntimeLog.shared.info("monitor_stopped")
         cancelManualRefresh()
-        deferredControlRefresh = nil
+        pendingDemand = nil
+        demandDrainTask?.cancel(); demandDrainTask = nil
         isStarted = false
         lifecycleGeneration &+= 1
         activeLookupTask?.cancel()
-        recheckUrgency = nil
-        recheckBypassesMinimumInterval = false
         refreshTimer?.invalidate()
         refreshTimer = nil
+        nextPeriodicCheck = nil
         displayTimer?.invalidate()
         displayTimer = nil
         retryTask?.cancel()
@@ -332,57 +416,121 @@ final class MonitoringEngine: ObservableObject {
         return true
     }
 
-    func beginManualRefresh() {
-        guard manualRefresh?.pending != true else { return }
+    @discardableResult
+    func beginManualRefresh() -> UUID? {
+        guard !Task.isCancelled else { return nil }
+        if let current = currentManualID { return current }
+        if manualRefresh?.pending == true { terminateManual(.superseded, reason: "lifecycle_changed") }
         manualRefresh = MimoManualRefresh(at: currentDate)
-        if isRefreshing {
-            manualRefresh?.startedAt = currentDate
-            manualRefresh?.phase = .checking
-            manualRefresh?.message = "Checking the exit IP…"
+        manualRefreshGeneration = lifecycleGeneration
+        manualRefresh?.lifecycleGeneration = lifecycleGeneration
+        let id = manualRefresh!.id
+        RuntimeLog.shared.info("manual_refresh_queued", fields: manualFields(reason: "manual"))
+        if isRefreshing, activeRefreshGeneration == lifecycleGeneration, let lookup = activeLookupID {
+            bindManual(id: id, generation: lifecycleGeneration, lookup: lookup, joined: true)
+        } else {
+            enqueueDemand(.init(generation: lifecycleGeneration, manualID: id, reasons: [.manual],
+                force: true, bypass: true, trigger: .manual, urgency: .manual, provider: nil,
+                intent: .observation, notBefore: nil), reason: "manual_admitted")
         }
-        RuntimeLog.shared.info("manual_refresh_queued")
+        return id
     }
 
-    private func cancelManualRefresh() {
-        guard manualRefresh?.pending == true else { return }
-        manualRefresh?.phase = .failed
-        manualRefresh?.finishedAt = currentDate
-        manualRefresh?.message = "Refresh cancelled because networking or services changed. Try again."
-        RuntimeLog.shared.info("manual_refresh_finished", fields: ["outcome": "cancelled"])
+    private func manualFields(reason: String) -> [String: String] {
+        var fields = ["reason": reason]
+        if let operation = manualRefresh {
+            fields["request"] = operation.id.uuidString
+            if let generation = operation.lifecycleGeneration { fields["generation"] = String(generation) }
+            if let lookup = operation.lookupID { fields["lookup"] = lookup.uuidString }
+        }
+        if let revision = routingRevision?() { fields["revision"] = String(revision) }
+        return fields
     }
 
-    private func finishManualRefresh() {
+    private func bindManual(id: UUID?, generation: Int, lookup: UUID, joined: Bool = false) {
+        guard let id, id == currentManualID, generation == lifecycleGeneration else { return }
+        manualRefresh?.lookupID = lookup
+        if manualRefresh?.startedAt == nil { manualRefresh?.startedAt = currentDate }
+        manualRefresh?.phase = .checking
+        manualRefresh?.message = "Checking the exit IP…"
+        RuntimeLog.shared.info(joined ? "manual_refresh_joined" : "manual_refresh_started",
+                               fields: manualFields(reason: joined ? "current_lookup" : "lookup_admitted"))
+    }
+
+    private func terminateManual(_ result: MimoManualRefresh.Result, reason: String, message: String? = nil) {
         guard var operation = manualRefresh, operation.pending else { return }
+        operation.result = result
+        operation.finishedAt = currentDate
+        let outcome: String
+        switch result {
+        case .checkedAllowed:
+            operation.phase = .succeeded; operation.message = "Exit IP refreshed."; outcome = "succeeded"
+        case .checkedBlocked:
+            operation.phase = .failed
+            operation.message = "Exit IP checked. Outbound access remains blocked. \(message ?? "Review Allowed IPs or select another proxy.")"
+            outcome = "blocked"
+        case .superseded:
+            operation.phase = .failed
+            operation.message = "Refresh superseded by a newer network or settings change."
+            outcome = "superseded"
+        case .cancelled:
+            operation.phase = .failed; operation.message = "Refresh cancelled because monitoring or services stopped."; outcome = "cancelled"
+        case .providerFailed:
+            operation.phase = .failed; operation.message = message ?? "The exit-IP provider request failed."; outcome = "provider_failed"
+        case .deferred:
+            operation.phase = .deferred; operation.message = message ?? "Refresh deferred until a provider is available."; outcome = "deferred"
+        case .internalFailure:
+            operation.phase = .failed; operation.message = "Refresh could not finish. Try Refresh now again."; outcome = "internal_failure"
+        }
+        manualRefresh = operation
+        if pendingDemand?.manualID == operation.id {
+            pendingDemand?.manualID = nil
+            pendingDemand?.reasons.remove(.manual)
+            if pendingDemand?.reasons.isEmpty == true { pendingDemand = nil }
+        }
+        var fields = manualFields(reason: reason)
+        fields["result"] = result.rawValue; fields["outcome"] = outcome
+        RuntimeLog.shared.info("manual_refresh_finished", fields: fields)
+    }
+
+    private func cancelManualRefresh(generation: Int? = nil) {
+        if let generation, manualRefreshGeneration != generation { return }
+        terminateManual(.cancelled, reason: "monitor_stopped_or_execution_cancelled")
+    }
+
+    private func finishManualRefresh(generation: Int, lookup: UUID?, failure: MimoManualRefresh.Result? = nil) {
+        guard generation == lifecycleGeneration, manualRefreshGeneration == generation,
+              let operation = manualRefresh, operation.pending,
+              operation.lookupID == nil || operation.lookupID == lookup else { return }
+        if let failure {
+            terminateManual(failure, reason: "lookup_failed", message: indicators.errorMessage)
+            return
+        }
         switch status {
         case .ready:
-            if let reason = accessBlockReason?() {
-                operation.phase = .failed
-                operation.message = "Exit IP checked. Outbound access remains blocked. \(reason)"
-            } else {
-                operation.phase = .succeeded
-                operation.message = "Exit IP refreshed."
-            }
+            guard lookup != nil, operation.lookupID == lookup else { return }
+            if let reason = accessBlockReason?() { terminateManual(.checkedBlocked, reason: "exit_rejected", message: reason) }
+            else { terminateManual(.checkedAllowed, reason: "lookup_succeeded") }
         case .coolingDown(let date), .waitingForMinimumInterval(let date), .providerPaused(_, let date):
-            operation.phase = operation.startedAt == nil ? .deferred : .failed
-            let prefix = operation.startedAt == nil ? "No lookup ran." : "Refresh failed."
-            operation.message = "\(prefix) Providers are paused or out of budget until \(date.formatted(date: .omitted, time: .shortened))."
-            if preferences.providerPool.contains(where: {
-                cooldownStore.allowsExplicitRetry(for: $0, health: providerHealth[$0], now: currentDate)
-            }) {
-                operation.message = "\(prefix) Automatic checks pause until \(date.formatted(date: .omitted, time: .shortened)). Fix the connection, then Retry verification."
-            }
+            terminateManual(.deferred, reason: "provider_admission_deferred", message:
+                "No lookup ran. Providers are paused or out of budget until \(date.formatted(date: .omitted, time: .shortened)).")
         case .waitingForIPinfoToken:
-            operation.phase = .deferred
-            operation.message = "Not refreshed. Save an IPinfo token or enable another provider."
-        case .failed(let message), .awaitingConfirmation(let message):
-            if recheckUrgency != nil { return } // Pool rotation is still answering this request.
-            operation.phase = .failed
-            operation.message = "Refresh failed. \(message)"
-        default: return
+            terminateManual(.deferred, reason: "missing_token", message: "Not refreshed. Save an IPinfo token or enable another provider.")
+        case .failed, .awaitingConfirmation:
+            terminateManual(.internalFailure, reason: "local_check_failed")
+        default: break
         }
-        operation.finishedAt = currentDate
-        manualRefresh = operation
-        RuntimeLog.shared.info("manual_refresh_finished", fields: ["outcome": accessBlockReason?() != nil && status == .ready ? "blocked" : operation.phase.rawValue])
+    }
+
+    private func reconcileManualOwnership(reason: String) {
+        guard manualRefresh?.pending == true else { return }
+        guard manualRefreshGeneration == lifecycleGeneration else {
+            terminateManual(.superseded, reason: "lifecycle_changed"); return
+        }
+        if activeRefreshGeneration == lifecycleGeneration, activeLookupID != nil,
+           manualRefresh?.lookupID == activeLookupID { return }
+        if pendingDemand?.generation == lifecycleGeneration, pendingDemand?.manualID == manualRefresh?.id { return }
+        terminateManual(.internalFailure, reason: "orphan_" + reason)
     }
 
     func loadIPinfoToken() async -> Bool {
@@ -424,11 +572,35 @@ final class MonitoringEngine: ObservableObject {
 
     /// Cancel obsolete work, but keep its slot until it has actually unwound.
     /// Later requests share one follow-up instead of starting overlapping probes.
-    func invalidatePendingLookup() {
+    func invalidatePendingLookup(routing context: RoutingCancellationContext? = nil) {
+        let previousGeneration = lifecycleGeneration
+        terminateManual(.superseded, reason: "lifecycle_changed")
+        pendingDemand = nil
+        demandDrainTask?.cancel(); demandDrainTask = nil
+        minimumIntervalTask?.cancel(); minimumIntervalTask = nil
+        pendingRefresh = PendingRefresh(); pendingIntent = .observation
+        eventWindowTask?.cancel(); eventWindowTask = nil; eventWindow.reset()
         lifecycleGeneration &+= 1
+        if let task = activeLookupTask, let lookup = activeLookupID,
+           let provider = activeLookupProvider, let lookupGeneration = activeRefreshGeneration {
+            var fields = [
+                "lookup": lookup.uuidString, "provider": provider.rawValue,
+                "lookup_generation": String(lookupGeneration),
+                "lifecycle_before": String(previousGeneration), "lifecycle_after": String(lifecycleGeneration),
+                "already_cancelled": String(task.isCancelled), "cause": "invalidated"
+            ]
+            if let context {
+                fields["cause"] = "routing_configuration"
+                fields["request"] = context.request.uuidString
+                fields["command"] = context.command.rawValue
+                fields["intended_mode"] = context.mode.rawValue
+                fields["intended_revision"] = String(context.revision)
+            }
+            // cancel() can synchronously abort a transport before the later
+            // routing command is sent. Record its exact owner before signalling.
+            RuntimeLog.shared.info("lookup_cancellation_requested", fields: fields)
+        }
         activeLookupTask?.cancel()
-        recheckUrgency = nil
-        recheckBypassesMinimumInterval = false
         retryTask?.cancel()
         retryTask = nil
     }
@@ -559,43 +731,63 @@ final class MonitoringEngine: ObservableObject {
         bypassMinimumInterval: Bool = false,
         trigger: RefreshTrigger = .manual,
         urgency urgencyOverride: RefreshUrgency? = nil,
-        preferredProvider: ProviderID? = nil
+        preferredProvider: ProviderID? = nil,
+        intent intentOverride: MimoCheckIntent? = nil,
+        manualRequestID: UUID? = nil
     ) async {
+        guard !Task.isCancelled else { return }
+        if trigger == .manual {
+            if let manualRequestID { guard currentManualID == manualRequestID else { return } }
+            else { guard beginManualRefresh() != nil else { return } }
+        }
+        let demand = LookupDemand(generation: lifecycleGeneration, manualID: currentManualID, reasons: [trigger],
+            force: force, bypass: bypassMinimumInterval, trigger: trigger, urgency: urgencyOverride ?? trigger.urgency,
+            provider: preferredProvider, intent: intentOverride ?? trigger.checkIntent, notBefore: nil)
+        await execute(demand)
+    }
+
+    private func execute(_ incoming: LookupDemand) async {
+        guard !Task.isCancelled, incoming.generation == lifecycleGeneration else { return }
+        var demand = incoming
+        demand.manualID = currentManualID
+        if let pending = pendingDemand, pending.generation == lifecycleGeneration {
+            demand.reasons.formUnion(pending.reasons)
+            demand.force = demand.force || pending.force
+            demand.bypass = demand.bypass || pending.bypass
+            demand.urgency = max(demand.urgency, pending.urgency)
+            if pending.intent == .transition { demand.intent = .transition }
+        }
+        let force = demand.force, bypassMinimumInterval = demand.bypass
+        let trigger = demand.trigger, urgency = demand.urgency, intent = demand.intent
+        let preferredProvider = demand.provider
         let refreshID = UUID()
-        if trigger == .manual { beginManualRefresh() }
-        let urgency = urgencyOverride ?? trigger.urgency
-        if controlHolds > 0 {
-            let old = deferredControlRefresh
-            deferredControlRefresh = (force || old?.force == true, bypassMinimumInterval || old?.bypass == true,
-                                      trigger, max(urgency, old?.urgency ?? urgency), preferredProvider)
+        if isRefreshing, activeRefreshGeneration == lifecycleGeneration, intent != .transition {
+            bindManual(id: currentManualID, generation: lifecycleGeneration, lookup: activeLookupID!, joined: true)
+            if pendingDemand?.generation == lifecycleGeneration { pendingDemand = nil }
+            RuntimeLog.shared.info("refresh_coalesced_in_flight", fields: ["trigger": trigger.rawValue,
+                "lookup": refreshID.uuidString, "activeLookup": activeLookupID?.uuidString ?? "none"])
             return
         }
-        deferredControlRefresh = nil
-        RuntimeLog.shared.info("refresh_requested", fields: [
-            "trigger": trigger.rawValue,
-            "urgency": urgency.logName,
-            "force": String(force),
-            "lookup": refreshID.uuidString,
-            "startupBypass": String(bypassMinimumInterval),
-            "provider": (preferredProvider ?? preferences.provider).rawValue
-        ])
-        guard !isRefreshing else {
-            // A proxy or tunnel can finish changing while an earlier lookup is in
-            // flight. Re-evaluate once that lookup completes, keeping the highest urgency;
-            // the per-provider gap sends the recheck to the next pool provider.
-            // Routine triggers don't need a recheck: the in-flight lookup already answers them.
-            if force, urgency >= .followUp, trigger != .manual {
-                recheckUrgency = max(recheckUrgency ?? urgency, urgency)
-                recheckBypassesMinimumInterval = recheckBypassesMinimumInterval || bypassMinimumInterval
-            }
-            RuntimeLog.shared.info("refresh_coalesced_in_flight", fields: ["trigger": trigger.rawValue, "lookup": refreshID.uuidString,
-                                                                       "activeLookup": activeLookupID?.uuidString ?? "none"])
+        if controlHolds > 0 || isRefreshing {
+            enqueueDemand(demand, reason: controlHolds > 0 ? "control_hold" : "execution_join")
             return
         }
+        pendingDemand = nil
+        retryTask?.cancel(); retryTask = nil
+        minimumIntervalTask?.cancel(); minimumIntervalTask = nil
+        RuntimeLog.shared.info("refresh_requested", fields: ["trigger": trigger.rawValue,
+            "urgency": urgency.logName, "intent": intent.rawValue, "force": String(force),
+            "lookup": refreshID.uuidString, "startupBypass": String(bypassMinimumInterval),
+            "provider": (preferredProvider ?? preferences.provider).rawValue])
         var providerFollowUp = false
-        defer { if !providerFollowUp { finishManualRefresh() } }
+        let refreshGeneration = demand.generation
+        var executionLookup: UUID?
+        var manualFailure: MimoManualRefresh.Result?
+        defer {
+            if !providerFollowUp { finishManualRefresh(generation: refreshGeneration, lookup: executionLookup, failure: manualFailure) }
+            reconcileManualOwnership(reason: "lookup_completion")
+        }
         var activeProvider = preferredProvider ?? preferences.provider
-        let refreshGeneration = lifecycleGeneration
         // No credential read, network request, quota charge, or missing-token error is needed.
         // Keep the last verified snapshot visible until the user explicitly loads/saves a token.
         if isIPinfoTokenUnavailable,
@@ -656,7 +848,7 @@ final class MonitoringEngine: ObservableObject {
                 activeProvider = provider
             }
         case .queue(let date, let reason):
-            queueRefresh(at: date, urgency: urgency, trigger: trigger, reason: reason)
+            queueRefresh(at: date, urgency: urgency, trigger: trigger, reason: reason, intent: intent)
             return
         case .skip(let reason):
             RuntimeLog.shared.info("refresh_skipped", fields: ["trigger": trigger.rawValue, "reason": reason])
@@ -667,7 +859,7 @@ final class MonitoringEngine: ObservableObject {
                 "provider": activeProvider.rawValue,
                 "resetAt": resetAt.formatted(.iso8601)
             ])
-            scheduleRetry(after: secondsUntil(resetAt))
+            scheduleRetry(after: secondsUntil(resetAt), intent: intent)
             return
         case .allProvidersPaused(let resumeAt):
             // A pause is not an exit-IP error: the last verified result stays visible.
@@ -682,12 +874,13 @@ final class MonitoringEngine: ObservableObject {
                     return "\(provider.rawValue):\(kind)"
                 }.joined(separator: ", ")
             ])
-            scheduleRetry(after: secondsUntil(resumeAt))
+            scheduleRetry(after: secondsUntil(resumeAt), intent: intent)
             return
         }
 
         // This lookup answers every earlier request, so a pending queued lookup is no longer needed.
         if let superseded = pendingRefresh.supersede() {
+            pendingIntent = .observation
             minimumIntervalTask?.cancel()
             minimumIntervalTask = nil
             RuntimeLog.shared.info("refresh_queue_superseded", fields: [
@@ -702,41 +895,34 @@ final class MonitoringEngine: ObservableObject {
         let lookupID = refreshID
         let lookupStarted = ProcessInfo.processInfo.systemUptime
         activeLookupID = lookupID
+        executionLookup = lookupID
+        activeLookupProvider = activeProvider
+        activeRefreshGeneration = refreshGeneration
         isRefreshing = true
         status = .refreshing
-        if manualRefresh?.pending == true {
-            if manualRefresh?.startedAt == nil { manualRefresh?.startedAt = currentDate }
-            manualRefresh?.phase = .checking
-            manualRefresh?.message = "Checking the exit IP…"
-        }
-        RuntimeLog.shared.info("lookup_started", fields: ["provider": activeProvider.rawValue, "lookup": lookupID.uuidString, "trigger": trigger.rawValue])
+        bindManual(id: currentManualID, generation: refreshGeneration, lookup: lookupID)
+        RuntimeLog.shared.info("lookup_started", fields: ["provider": activeProvider.rawValue, "lookup": lookupID.uuidString,
+            "trigger": trigger.rawValue, "lifecycle_generation": String(refreshGeneration)])
         defer {
             RuntimeLog.shared.info("lookup_finished", fields: ["lookup": lookupID.uuidString,
                 "duration_ms": String(Int((ProcessInfo.processInfo.systemUptime - lookupStarted) * 1000))])
             if activeLookupID == lookupID {
                 activeLookupID = nil
+                activeLookupProvider = nil
                 activeLookupTask = nil
                 isRefreshing = false
-                if isStarted, let urgency = recheckUrgency {
-                    let bypass = recheckBypassesMinimumInterval
-                    recheckUrgency = nil
-                    recheckBypassesMinimumInterval = false
-                    Task {
-                        guard self.isStarted else { return }
-                        await self.refresh(force: true, bypassMinimumInterval: bypass, trigger: .recheck, urgency: urgency)
-                    }
-                }
+                if isStarted { scheduleDemandDrain() }
             }
         }
 
         do {
             let token = activeProvider == .ipinfoLite ? ipinfoToken : nil
-            let configuration = LookupConfiguration(provider: activeProvider, ipinfoToken: token, lookupID: lookupID)
+            let configuration = LookupConfiguration(provider: activeProvider, ipinfoToken: token, lookupID: lookupID, intent: intent)
             let request = Task { try await self.lookup(configuration: configuration) }
             activeLookupTask = request
             var fetched = try await request.value
             guard isStarted, refreshGeneration == lifecycleGeneration else {
-                cancelManualRefresh()
+                cancelManualRefresh(generation: refreshGeneration)
                 RuntimeLog.shared.info("lookup_discarded_after_stop", fields: ["provider": activeProvider.rawValue])
                 return
             }
@@ -771,12 +957,13 @@ final class MonitoringEngine: ObservableObject {
                 "country": fetched.countryCode
             ])
         } catch {
-            guard isStarted, refreshGeneration == lifecycleGeneration else { cancelManualRefresh(); return }
+            guard isStarted, refreshGeneration == lifecycleGeneration else { cancelManualRefresh(generation: refreshGeneration); return }
             if error is CancellationError {
-                cancelManualRefresh()
+                cancelManualRefresh(generation: refreshGeneration)
                 RuntimeLog.shared.info("lookup_cancelled", fields: ["provider": activeProvider.rawValue, "lookup": lookupID.uuidString])
                 return
             }
+            manualFailure = error is LookupError ? .providerFailed : .internalFailure
             consecutiveFailures += 1
             updateProviderHealth(activeProvider) { record in
                 record.lastFailure = currentDate
@@ -806,12 +993,13 @@ final class MonitoringEngine: ObservableObject {
                 ])
                 // The current task unwinds before the next provider starts.
                 // A different provider has its own quota and cooldown.
-                recheckUrgency = .networkChange
-                recheckBypassesMinimumInterval = true
+                enqueueDemand(.init(generation: refreshGeneration, manualID: currentManualID, reasons: [.recheck],
+                    force: true, bypass: true, trigger: .recheck, urgency: urgency, provider: next,
+                    intent: intent, notBefore: nil), reason: "provider_rotation")
                 providerFollowUp = true
             } else {
                 status = .coolingDown(providerCooldowns().values.min() ?? resumeAt)
-                scheduleRetry(after: secondsUntil(providerCooldowns().values.min() ?? resumeAt))
+                scheduleRetry(after: secondsUntil(providerCooldowns().values.min() ?? resumeAt), intent: intent)
             }
         }
     }
@@ -850,6 +1038,7 @@ final class MonitoringEngine: ObservableObject {
         let shouldReloadWidget = updated.hasWidgetContentChange(comparedTo: snapshot)
         snapshot = updated
         snapshotStore.save(updated)
+        if isStarted { schedulePeriodicRefresh() }
         indicators = MonitorIndicatorState()
         indicatorStore.save(indicators)
         _ = advanceProvider(after: fetched.provider)
@@ -1004,17 +1193,33 @@ final class MonitoringEngine: ObservableObject {
         (error as? LookupError)?.category ?? "unknown"
     }
 
+    private(set) var nextPeriodicCheck: Date?
+
     private func schedulePeriodicRefresh() {
         refreshTimer?.invalidate()
         refreshTimer = nil
-        guard let interval = preferences.refreshInterval.periodicSeconds else { return }
-        let timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                await self?.refresh(force: true, trigger: .periodic)
-            }
+        guard isStarted, let interval = preferences.refreshInterval.periodicSeconds else {
+            nextPeriodicCheck = nil; return
+        }
+        // Successful observations, including policy denials, start a new period.
+        // A past deadline waits at least one minute; provider retry/backoff owns
+        // earlier recovery and cannot cause a tight periodic loop.
+        let due = (snapshot?.checkedAt ?? currentDate).addingTimeInterval(interval)
+        nextPeriodicCheck = max(due, currentDate.addingTimeInterval(60))
+        RuntimeLog.shared.info("periodic_check_scheduled", fields: ["next": nextPeriodicCheck!.formatted(.iso8601)])
+        let timer = Timer(timeInterval: secondsUntil(nextPeriodicCheck!), repeats: false) { [weak self] _ in
+            Task { @MainActor in await self?.runPeriodicCheckIfDue() }
         }
         RunLoop.main.add(timer, forMode: .common)
         refreshTimer = timer
+    }
+
+    func runPeriodicCheckIfDue() async {
+        guard isStarted, let nextPeriodicCheck, currentDate >= nextPeriodicCheck else { return }
+        // Keep a bounded future timer even if admission or a local runtime error
+        // prevents this attempt. Success below replaces it from the new snapshot.
+        schedulePeriodicRefresh()
+        await refresh(force: true, trigger: .periodic)
     }
 
     private func startNetworkPathMonitoring() {
@@ -1091,11 +1296,15 @@ final class MonitoringEngine: ObservableObject {
         }
     }
 
-    private func queueRefresh(at date: Date, urgency: RefreshUrgency, trigger: RefreshTrigger, reason: String) {
+    private func queueRefresh(at date: Date, urgency: RefreshUrgency, trigger: RefreshTrigger, reason: String, intent: MimoCheckIntent) {
+        pendingIntent = pendingIntent == .transition || intent == .transition ? .transition : .observation
         // Keep the earliest pending boundary; a later request must not postpone an earlier one.
         if pendingRefresh.enqueue(at: date, urgency: urgency) || minimumIntervalTask == nil {
             scheduleRefreshAfterMinimumInterval(pendingRefresh.notBefore ?? date)
         }
+        enqueueDemand(.init(generation: lifecycleGeneration, manualID: nil, reasons: [.queued],
+            force: true, bypass: false, trigger: .queued, urgency: urgency, provider: nil,
+            intent: pendingIntent, notBefore: pendingRefresh.notBefore ?? date), reason: "minimum_interval")
         status = .waitingForMinimumInterval(pendingRefresh.notBefore ?? date)
         RuntimeLog.shared.info("refresh_queued", fields: [
             "trigger": trigger.rawValue,
@@ -1107,17 +1316,17 @@ final class MonitoringEngine: ObservableObject {
 
     private func scheduleRefreshAfterMinimumInterval(_ date: Date) {
         minimumIntervalTask?.cancel()
+        let generation = lifecycleGeneration
         minimumIntervalTask = Task { [weak self] in
             do {
                 try await Task.sleep(for: .seconds(self?.secondsUntil(date) ?? 0))
             } catch {
                 return
             }
-            guard !Task.isCancelled else { return }
-            guard let self else { return }
+            guard !Task.isCancelled, let self, generation == self.lifecycleGeneration else { return }
             self.minimumIntervalTask = nil
-            let urgency = self.pendingRefresh.take() ?? .networkChange
-            await self.refresh(force: true, trigger: .queued, urgency: urgency)
+            _ = self.pendingRefresh.take(); self.pendingIntent = .observation
+            self.scheduleDemandDrain()
         }
     }
 
@@ -1135,18 +1344,21 @@ final class MonitoringEngine: ObservableObject {
         scheduleRetry(after: delay)
     }
 
-    private func scheduleRetry(after delay: TimeInterval) {
+    private func scheduleRetry(after delay: TimeInterval, intent: MimoCheckIntent = .observation) {
         retryTask?.cancel()
+        let generation = lifecycleGeneration
+        enqueueDemand(.init(generation: generation, manualID: nil, reasons: [.retry],
+            force: true, bypass: false, trigger: .retry, urgency: .followUp, provider: nil,
+            intent: intent, notBefore: currentDate.addingTimeInterval(max(0, delay))), reason: "provider_retry")
         retryTask = Task { [weak self] in
             do {
                 try await Task.sleep(for: .seconds(max(0, delay)))
             } catch {
                 return
             }
-            guard !Task.isCancelled else { return }
-            guard let self else { return }
+            guard !Task.isCancelled, let self, generation == self.lifecycleGeneration else { return }
             self.retryTask = nil
-            await self.refresh(force: true, trigger: .retry)
+            self.scheduleDemandDrain()
         }
     }
 

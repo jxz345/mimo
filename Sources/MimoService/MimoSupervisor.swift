@@ -1,7 +1,7 @@
 import Foundation
 import Security
 
-/// Independent launchd process: the GUI/core may exit without removing the firewall gate.
+/// Supervisor process owns networking, settings, monitoring and the GUI API.
 @MainActor
 final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
     private let runtime = MimoSystemRuntime()
@@ -24,10 +24,14 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
     private var completedReadiness: MimoReadinessReceipt?
     private var cachedServices: (at: Date, values: [MimoServiceStatus])?
     private var readinessCheck: Task<MimoReadinessReceipt, Error>?
-    nonisolated let heartbeatLease = MimoHeartbeatLease()
     private var watchdog: Task<Void, Never>?
     private var infrastructureMonitor: Task<Void, Never>?
+    private let infrastructureScheduler = MimoInfrastructureScheduler()
+    var monitoringOperation: ((MimoServiceOperation) -> Void)?
+    var coreNetworkChanged: (() async throws -> Void)?
+    var peerWatchdog: MimoPeerWatchdog?
     private var infrastructureRecoveryPending = false
+    private var infrastructureFailureGeneration: UInt64?
     private var verificationRecoveryPending = false
     private var profileEnabled = true
     private var engineEnabled = true
@@ -38,6 +42,13 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
     private var configurationKnown = false
     private var deferredNetworkReasons = Set<String>()
     private var stopping = false
+    private var protectedClosureID = UUID()
+    private var protectedClosureTask: Task<Void, Never>?
+    private var activeProtectedLease: MimoProtectedLease?
+    private var directRestorationTask: Task<DaemonResponse, Never>?
+    private let directFenceQueue = MimoBlockingWorkQueue("com.mimo.direct-fence", qos: .userInitiated)
+    private var directTrackingTask: Task<Void, Never>?
+    private var directTrackingPending = false
     private var directRestorationAllowed = false
     private var commandFence = MimoCommandFence()
     private lazy var networkObserver = MimoNetworkObserver(earlyBlock: { [runtime, fence = powerGuard.fence] in
@@ -53,11 +64,13 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
 #if MIMO_VM_ACCEPTANCE
         networkObserver.diagnostic = { RuntimeLog.shared.info("mimo_vm_network_diagnostic", fields: ["detail": $0]) }
 #endif
+        runtime.nativePolicyDidCommit = { [weak self] in self?.requestInfrastructureReconciliation("native_policy_committed") }
         runtime.profileWillChange = { [weak self] in
             guard let self else { return }
-            self.networkObserver.willChangeProfile(engineProcess: self.runtime.runningProcessID(MimoRuntime.engineLabel))
+            self.networkObserver.willChangeProfile(engineProcess: self.runtime.notificationEngineProcess)
         }
         runtime.profileDidChange = { [weak self] in self?.networkObserver.didChangeProfile() }
+        runtime.profileDidChangeOnline = { [weak self] in await self?.networkObserver.didChangeProfileOnline() }
         do {
             try runtime.closeStartupGate()
             try runtime.checkInstallation()
@@ -70,9 +83,9 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
             configurationKnown = true
             directRestorationAllowed = policy.state.configuration.mode == .direct
             policy.block("Startup protection is active. Waiting for mimo-core.")
-            // Core may already be running after a supervisor-only restart.
-            // A healthy infrastructure scan must request fresh verification;
-            // heartbeats alone do not restart the core's completed lookup.
+            // Startup must obtain fresh approval. Infrastructure recovery can
+            // request verification until the cohosted monitor's preparation
+            // consumes this flag; healthy scans must not repeat that request.
             verificationRecoveryPending = policy.state.configuration.mode.requiresVerification &&
                 coreEnabled && engineEnabled && profileEnabled
             guard !runtime.maintenanceActive else {
@@ -95,7 +108,6 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                     policy.directRestored(configuration: policy.state.configuration, nativeIssue: runtime.nativeReleaseIssue)
                 }
             }
-            try runtime.service(.core, operation: coreEnabled ? .start : .stop)
             RuntimeLog.shared.info("mimo_supervisor_ready", fields: ["mode": policy.state.configuration.mode.rawValue])
         } catch { policy.block(error.localizedDescription, confirmed: runtime.closed) }
         networkObserver.tailnetChanged = { [weak self] in
@@ -109,14 +121,22 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
         // Infrastructure commands can wait for launchd or the firewall lock.
         // Keep them off the main actor and separate from the liveness watchdog.
         infrastructureMonitor = Task { [weak self] in
+            RuntimeLog.shared.info("mimo_infrastructure_started", fields: ["owner": "supervisor", "intervalSeconds": "10"])
+            defer { RuntimeLog.shared.info("mimo_infrastructure_stopped", fields: ["owner": "supervisor"]) }
             while !Task.isCancelled {
                 guard let self else { return }
-                if !self.runtime.maintenanceActive {
+                var outcome = MimoInfrastructureCheckOutcome.superseded
+                if !self.runtime.maintenanceActive, self.directRestorationTask == nil {
+                    let inspectionGeneration = self.generation
                     do {
-                        let checked = try await self.runtime.repairInfrastructure()
-                        if checked {
+                        outcome = try await self.runtime.repairInfrastructure(generation: inspectionGeneration)
+                        if self.directRestorationTask != nil || inspectionGeneration != self.generation {
+                            outcome = .superseded
+                        }
+                        if outcome == .completed {
                             let recovered = self.infrastructureRecoveryPending || self.verificationRecoveryPending
                             self.infrastructureRecoveryPending = false
+                            self.infrastructureFailureGeneration = nil
                             if recovered, self.policy.state.phase == .blocked {
                                 self.networkChanged("infrastructure_recovered")
                             }
@@ -124,52 +144,45 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                     }
                     catch {
                         guard !Task.isCancelled else { return }
-                        self.infrastructureRecoveryPending = true
-                        self.close(error.localizedDescription)
+                        outcome = .failed
+                        self.infrastructureInspectionFailed(error, generation: inspectionGeneration)
                     }
                 }
-                try? await Task.sleep(for: .seconds(10))
+                self.peerWatchdog?.workProgressed()
+                await self.infrastructureScheduler.wait(after: outcome)
             }
         }
         watchdog = Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(1))
                 guard let self, !Task.isCancelled else { return }
-                if self.runtime.networkReleaseRequested { continue }
+                if self.runtime.networkReleaseRequested || self.directRestorationTask != nil || self.runtime.protectedIOBusy { continue }
                 if self.runtime.maintenanceActive {
                     if self.policy.state.phase != .blocked { self.close("Service installation is in progress.") }
                     continue
                 }
                 if self.configurationKnown, self.directRestorationAllowed,
                    self.policy.state.configuration.mode == .direct, self.runtime.gateState != "direct" {
-                    do {
-                        if self.engineEnabled, self.runtime.isRunning(MimoRuntime.engineLabel) {
-                            try self.runtime.waitForBlockingEngine()
-                        }
-                        try self.runtime.restoreDirect()
-                        self.policy.directRestored(configuration: self.policy.state.configuration, nativeIssue: self.runtime.nativeReleaseIssue)
-                    } catch { self.policy.block(error.localizedDescription, confirmed: self.runtime.closed) }
+                    _ = await self.restoreDirect(configuration: self.policy.state.configuration)
+                }
+                if self.policy.state.configuration.mode == .direct, self.policy.state.phase == .active {
+                    self.requestDirectTrackingRefresh()
                 }
                 if self.policy.state.configuration.mode.requiresVerification,
                    self.policy.state.phase == .active || self.policy.state.verification != nil {
-                    let heartbeatExpired = self.heartbeatLease.expired()
-                    let engineRunning = self.runtime.isRunning(MimoRuntime.engineLabel)
+                    let engineRunning = self.runtime.engineIsAlive()
                     let gate = self.runtime.gateState ?? "unknown"
                     let gateChanged = self.policy.state.phase == .active && gate != "active"
-                    if heartbeatExpired || !engineRunning || gateChanged {
+                    if !engineRunning || gateChanged {
                         self.verificationRecoveryPending = true
-                        RuntimeLog.shared.error("mimo_liveness_lost", fields: self.heartbeatLease.diagnostics().merging([
-                            "heartbeatExpired": String(heartbeatExpired),
-                            "heartbeatAgeSeconds": self.heartbeatLease.ageSeconds().map { String($0) } ?? "unregistered",
-                            "engineRunning": String(engineRunning), "gate": gate
-                        ], uniquingKeysWith: { _, new in new }))
-                        self.close(heartbeatExpired ? "The core heartbeat expired. Verification is required." :
-                            !engineRunning ? "The proxy engine stopped. Verification is required." :
+                        RuntimeLog.shared.error("mimo_liveness_lost", fields: ["engineRunning": String(engineRunning), "gate": gate])
+                        self.close(!engineRunning ? "The proxy engine stopped. Verification is required." :
                             "The firewall gate changed. Verification is required.")
                     }
                 }
                 if self.policy.state.phase == .blocked, self.policy.state.configuration.mode.requiresVerification {
                     do { try await self.runtime.refreshBlockedNativeTransport() }
+                    catch is CancellationError { }
                     catch { RuntimeLog.shared.error("mimo_blocked_native_transport_failed", fields: ["reason": error.localizedDescription]) }
                 }
                 if self.policy.state.phase == .active, self.policy.state.configuration.mode.requiresVerification {
@@ -183,6 +196,9 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                         // cannot queue every controller call ahead of a new event.
                         _ = try await self.runtime.inspectReadiness(profile: profile, proxy: proxy, installation: Task {}, recordTiming: false)
                         try await self.runtime.auditPolicies()
+                    } catch is CancellationError {
+                        // New ownership/closure is ordinary supersession, not a
+                        // provider failure or another network verification.
                     } catch {
                         if inspectedGeneration == self.generation, self.policy.state.phase == .active {
                             self.failAudit(error.localizedDescription)
@@ -196,12 +212,51 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
     func stop() {
         stopping = true
         sessionObserver.stop(); networkObserver.stop(); powerGuard.stop()
-        watchdog?.cancel(); infrastructureMonitor?.cancel()
+        watchdog?.cancel(); infrastructureMonitor?.cancel(); directTrackingTask?.cancel()
+        infrastructureScheduler.stop()
+        cancelReadiness()
         if policy.state.configuration.mode.requiresVerification { close("The supervisor is restarting.") }
     }
 
+    func drainInfrastructure() async {
+        _ = await directRestorationTask?.value
+        await protectedClosureTask?.value
+        await runtime.drainProtectedIO()
+        await directTrackingTask?.value
+        await infrastructureMonitor?.value
+    }
+
+    private func requestDirectTrackingRefresh(invalidate: Bool = false) {
+        guard !stopping, policy.state.configuration.mode == .direct,
+              policy.state.phase == .active, directRestorationTask == nil,
+              !runtime.networkReleaseRequested else { return }
+        directTrackingPending = true
+        if invalidate { runtime.cancelNativePolicyUpdates() }
+        guard directTrackingTask == nil else { return }
+        let ownerGeneration = generation
+        directTrackingTask = Task { [weak self] in
+            guard let self else { return }
+            defer { self.directTrackingTask = nil; self.directTrackingPending = false }
+            repeat {
+                self.directTrackingPending = false
+                guard !Task.isCancelled, !self.stopping, ownerGeneration == self.generation,
+                      self.policy.state.configuration.mode == .direct, self.policy.state.phase == .active,
+                      self.directRestorationTask == nil, !self.runtime.networkReleaseRequested else { return }
+                do { try await self.runtime.refreshDirectTracking() }
+                catch is CancellationError { }
+                catch {
+                    RuntimeLog.shared.error("mimo_direct_tracking_refresh_failed", fields: ["errorType": String(describing: type(of: error))])
+                }
+            } while self.directTrackingPending
+        }
+    }
+
     private func networkChanged(_ reason: String, detail: String = "") {
-        guard !runtime.networkReleaseRequested else { return }
+        guard !stopping, !runtime.networkReleaseRequested else { return }
+        if directRestorationTask != nil {
+            RuntimeLog.shared.info("mimo_direct_event_ignored", fields: ["source": reason])
+            return
+        }
         // Prepare arms the protected cycle before its first suspension, while
         // policy.configuration can still describe the previous Direct mode.
         // Honor that cycle first so an early callback and its recorded cause
@@ -214,10 +269,10 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
             return
         }
         if configurationKnown, !policy.state.configuration.mode.requiresVerification {
-            // Direct keeps routine system/network notifications out of IP
-            // verification. Tailnet lifecycle and infrastructure health have
-            // independent observers and remain active.
-            RuntimeLog.shared.info("mimo_direct_event_ignored", fields: ["source": reason])
+            // Update incoming tracking for a changed local inventory without
+            // profile/DNS work, closure or an exit-IP request.
+            requestDirectTrackingRefresh(invalidate: true)
+            RuntimeLog.shared.info("mimo_direct_tracking_reconcile_requested", fields: ["source": reason])
             return
         }
         powerGuard.fence.beginCycle()
@@ -244,7 +299,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
             }
         }
         RuntimeLog.shared.info("mimo_network_changed", fields: ["source": reason, "detail": detail, "generation": String(generation)])
-        Task { _ = try? await DaemonRPC.call(DaemonRequest(.networkChanged), timeout: 2) }
+        if coreEnabled { Task { try? await coreNetworkChanged?() } }
     }
 
     nonisolated func listener(_ listener: NSXPCListener, shouldAcceptNewConnection connection: NSXPCConnection) -> Bool {
@@ -261,24 +316,32 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
 
     func handle(_ request: DaemonRequest, uid: uid_t, pid: pid_t,
                 receivedAt: ContinuousClock.Instant = .now, installedApp: Bool = false,
-                progress: (@Sendable (DaemonResponse) -> Void)? = nil) async -> DaemonResponse {
+                progress: (@MainActor @Sendable (DaemonResponse) -> Void)? = nil) async -> DaemonResponse {
         guard request.protocolVersion == MimoService.protocolVersion else { return DaemonResponse(failure: .incompatible) }
         guard request.command == .supervisor, let message = request.supervisor else { return DaemonResponse(failure: .invalidRequest) }
         if ![.heartbeat, .state].contains(message.command) {
             RuntimeLog.shared.info("mimo_supervisor_command_received", fields: message.diagnosticFields)
         }
         do {
+            guard !stopping || [.state, .heartbeat].contains(message.command) else { return DaemonResponse(failure: .unavailable) }
             if message.command == .service || message.command == .profile {
                 guard installedApp || uid == 0 || ServiceAuthorization.validate(request.authorization) else { throw DaemonFailure.unauthorized }
             } else if message.command != .state {
                 guard uid == 0 else { throw DaemonFailure.unauthorized }
             }
+            // A caller may disappear, but an accepted physical release must be
+            // joined before any newer mutation can arm/open protected routing.
+            // Reads never wait for PF, DNS, controller or lifecycle locks.
+            if ![.state, .heartbeat].contains(message.command), let release = directRestorationTask {
+                _ = await release.value
+            }
+            if ![.state, .heartbeat].contains(message.command), let closure = protectedClosureTask { await closure.value }
             if message.command == .service {
                 // Invalid read-only access probes cannot perform an operation and
                 // must not wait behind an unrelated verification cycle.
                 guard message.service != nil, message.operation != nil else { throw DaemonFailure.conflict }
                 try await controls.wait(command: "\(message.service?.rawValue ?? "service") \(message.operation?.rawValue ?? "change")") {
-                    self.powerGuard.fence.isCycleActive || self.operationPending
+                    self.powerGuard.fence.isCycleActiveOrBusy || self.operationPending
                 }
             }
             guard !runtime.maintenanceActive || [.state, .heartbeat, .close].contains(message.command) else {
@@ -286,26 +349,25 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
             }
             if let stamp = message.stamp, message.command != .state {
                 let previousProcess = commandFence.processID
-                guard commandFence.accept(stamp, peer: pid, currentCore: runtime.runningProcessID(MimoService.label),
-                                          enabled: coreEnabled, heartbeat: message.command == .heartbeat) else {
+                guard commandFence.accept(stamp, peer: pid, currentCore: getpid(),
+                                          enabled: true, heartbeat: message.command == .heartbeat) else {
                     var fields = message.diagnosticFields
                     fields["reason"] = "ordering_or_core_identity"
                     fields["peerPID"] = String(pid)
-                    fields["currentCorePID"] = runtime.runningProcessID(MimoService.label).map(String.init)
+                    fields["currentCorePID"] = String(getpid())
                     RuntimeLog.shared.info("mimo_command_rejected", fields: fields)
                     throw DaemonFailure.conflict
                 }
                 // Every ordered request from the live core proves liveness. Profile
                 // preparation can occupy this actor while a heartbeat waits in XPC;
                 // do not measure its deadline from an older idle-state poll.
-                heartbeatLease.authorize(stamp, process: pid, at: receivedAt)
                 if let previousProcess, previousProcess != pid {
                     generation &+= 1
                     if policy.state.configuration.mode.requiresVerification { close("Core restarted. Verification is required.") }
                 }
                 // After a supervisor restart there is no in-memory ordering history.
                 // Persisted revision/mode still forbid an old Direct or approval.
-                if [.direct, .prepare, .approve].contains(message.command) {
+                if [.direct, .prepare, .approve, .observe, .completeObservation, .updatePolicy].contains(message.command) {
                     let saved = try runtime.savedRouting()
                     guard MimoCommandFence.matchesSavedRouting(message, configuration: saved.configuration,
                                                                revision: saved.revision) else {
@@ -315,7 +377,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                         throw DaemonFailure.conflict
                     }
                 }
-            } else if message.command != .state, pid == runtime.runningProcessID(MimoService.label) {
+            } else if message.command != .state, pid == getpid() {
                 // Root administrator recovery is independent of core. Core itself
                 // must use ordered requests; never silently downgrade its protocol.
                 throw DaemonFailure.invalidRequest
@@ -335,11 +397,17 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
             case .heartbeat:
                 checkActiveDNSConfiguration()
             case .close:
+                if let expected = message.verification,
+                   policy.state.phase != .checking || policy.state.verification != expected {
+                    RuntimeLog.shared.info("mimo_verification_failure_ignored", fields: message.diagnosticFields)
+                    throw DaemonFailure.conflict
+                }
                 directRestorationAllowed = false
                 // A lookup/provider failure revokes traffic approval, not a
                 // previously qualified unchanged profile. The next prepare
                 // still clears connections and requires a fresh allowed IP.
                 close(message.reason ?? "Network or configuration changed. Verification is required.", strictOnly: true)
+                if let closure = protectedClosureTask { await closure.value }
             case .direct:
                 if runtime.networkReleaseRequested {
                     // Heartbeats and saved Direct cannot reacquire networking.
@@ -353,26 +421,74 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                     policy.directRestored(configuration: message.configuration ?? policy.state.configuration, nativeIssue: runtime.nativeReleaseIssue)
                     return response()
                 }
-                deferredNetworkReasons.removeAll()
-                cancelReadiness()
-                generation &+= 1
-                try powerGuard.fence.direct {
-                    try runtime.restoreDirect()
+                return await restoreDirect(configuration: message.configuration ?? policy.state.configuration, progress: progress)
+            case .updatePolicy:
+                guard let allowed = message.allowlist else { throw DaemonFailure.invalidRequest }
+                allowlist = allowed
+                // Revoke a known disallowed address before acknowledging the edit.
+                // A relaxed policy never opens a blocked path on cached evidence.
+                if policy.state.configuration.mode.requiresVerification,
+                   let observed = policy.state.observedIP, !allowed.contains(observed.address),
+                   policy.state.allowsTraffic || policy.state.phase == .checking {
+                    let ownerGeneration = generation
+                    let verification = policy.state.verification
+                    activeProtectedLease?.cancel(); runtime.cancelProtectedIO()
+                    // A grant may have completed physically while its actor
+                    // continuation still waits. Revoke that known address before
+                    // acknowledging the edit, retaining its displayed observation.
+                    try await runtime.holdApplicationGateOnline()
+                    await runtime.drainProtectedIO()
+                    guard ownerGeneration == generation else { throw CancellationError() }
+                    if let verification, policy.state.phase == .checking {
+                        _ = policy.approve(address: observed.address, at: observed.checkedAt, allowlist: allowed,
+                            verification: verification, runtimeMatches: false)
+                        finishEventCycle()
+                    } else { _ = policy.revokeDisallowed(allowed) }
+                    RuntimeLog.shared.info("mimo_policy_revoked", fields: message.diagnosticFields)
                 }
-                policy.directRestored(configuration: message.configuration ?? policy.state.configuration, nativeIssue: runtime.nativeReleaseIssue)
-                configurationKnown = true
-                directRestorationAllowed = true
-                proxy = nil; endpoint = nil; activeProfile = nil
-                networkObserver.setProxyEndpoint(nil)
-                RuntimeLog.shared.info("mimo_direct_restored")
+            case .observe:
+                guard policy.state.allowsTraffic, policy.state.configuration.mode.requiresVerification,
+                      !infrastructureRecoveryPending, !operationPending,
+                      let epoch = verificationPowerEpoch, let revision = message.revision,
+                      let network = message.networkGeneration else { throw DaemonFailure.conflict }
+                try runtime.validateObservation()
+                try powerGuard.fence.activate(epoch: epoch) {
+                    guard policy.beginObservation(revision: revision, networkGeneration: network) != nil else { throw DaemonFailure.conflict }
+                }
+                var fields = message.diagnosticFields
+                fields["attempt"] = policy.state.observation?.id.uuidString; fields["gate"] = "allowed"
+                RuntimeLog.shared.info("mimo_observation_started", fields: fields)
+            case .completeObservation:
+                guard let check = message.verification, check == policy.state.observation,
+                      let observations = message.exitObservations, let since = check.startedAt,
+                      observations.isValid(for: check, family: policy.state.configuration.networkFamily, since: since),
+                      policy.state.allowsTraffic, let epoch = verificationPowerEpoch else { throw DaemonFailure.conflict }
+                try runtime.validateObservation()
+                allowlist = try runtime.savedAllowlist()
+                // No beginCycle: route/power events revoke immediately while HTTP
+                // is outstanding. The epoch also fences events before actor delivery.
+                try powerGuard.fence.activate(epoch: epoch) {
+                    if !allowlist.contains(observations.ipv4.ipAddress) { try runtime.holdApplicationGate() }
+                    _ = policy.finishObservation(observations, allowlist: allowlist)
+                }
+                var fields = message.diagnosticFields
+                fields["gate"] = policy.state.allowsTraffic ? "allowed" : "blocked"
+                RuntimeLog.shared.info(policy.state.allowsTraffic ? "mimo_observation_approved" : "mimo_exit_ip_rejected", fields: fields)
+            case .observationFailed:
+                if let check = message.verification, check == policy.state.observation, policy.state.allowsTraffic {
+                    try runtime.validateObservation()
+                    guard let epoch = verificationPowerEpoch else { throw DaemonFailure.conflict }
+                    try powerGuard.fence.activate(epoch: epoch) { policy.failObservation(check) }
+                    var fields = message.diagnosticFields; fields["gate"] = "allowed"
+                    RuntimeLog.shared.info("mimo_observation_failed", fields: fields)
+                }
             case .prepare:
                 guard !runtime.networkReleaseRequested else { throw DaemonFailure.conflict }
                 var timing = MimoTransitionTiming("prepare")
                 directRestorationAllowed = false
-                verificationPowerEpoch = try powerGuard.fence.arm()
-                powerGuard.fence.beginCycle()
                 guard let configuration = message.configuration, configuration.mode.requiresVerification,
                       let revision = message.revision, let network = message.networkGeneration, let allowed = message.allowlist else { throw DaemonFailure.invalidRequest }
+                allowlist = allowed
                 generation &+= 1
                 let epoch = generation
                 cancelReadiness()
@@ -383,7 +499,15 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                     policy.requestingBlock("Blocking traffic and preparing verification.")
                 }
                 let gate = runtime.requestApplicationGate()
-                guard let powerEpoch = verificationPowerEpoch else { throw CancellationError() }
+                await runtime.drainProtectedIO()
+                guard epoch == generation else { throw CancellationError() }
+                let fence = powerGuard.fence
+                guard let armed = await directFenceQueue.run({ Result { let value = try fence.arm(); fence.beginCycle(); return value } }) else { throw CancellationError() }
+                guard epoch == generation else { throw CancellationError() }
+                let powerEpoch = try armed.get()
+                verificationPowerEpoch = powerEpoch
+                let lease = runtime.beginProtectedIO(configuration: configuration, revision: revision)
+                activeProtectedLease = lease
                 var validated = try configuration.validated()
                 validated.profileHostingEnabled = profileEnabled; validated.mihomoEnabled = engineEnabled
                 guard coreEnabled, engineEnabled, profileEnabled else { throw MimoRuntimeError.unavailable("A required background service is stopped.") }
@@ -396,7 +520,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 let runtime = self.runtime
                 let policyMode = validated.mode
                 let literalAddress = IPAddressValidator.normalize(metadata.server)
-                let cachedPolicy = try runtime.cachedProbePolicy(endpoints: literalAddress.map { [$0] } ?? [],
+                let cachedPolicy = try await runtime.cachedProbePolicy(endpoints: literalAddress.map { [$0] } ?? [],
                     proxyPort: literalAddress == nil ? nil : metadata.port, mode: policyMode)
                 let initialPolicy = Task.detached {
                     if let cachedPolicy {
@@ -457,13 +581,13 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 timing.record("rule_validation_join")
                 // No profile wait or service-status work between confirmed
                 // blocking and installation of the already-validated rules.
-                try runtime.installProbePolicy(preparedPolicy)
+                try await runtime.installProbePolicyOnline(preparedPolicy, lease: lease)
+                guard epoch == generation else { throw CancellationError() }
                 timing.record("probe_policy")
                 policy.block("Validating the protected profile.")
                 RuntimeLog.shared.info("mimo_gate_closed", fields: ["confirmed": "true", "reason": "prepare"])
                 progress?(response())
                 let check = policy.begin(configuration: validated, revision: revision, networkGeneration: network)
-                allowlist = allowed
                 guard networkObserver.isRunning, powerGuard.isRunning, sessionObserver.isRunning else { throw MimoRuntimeError.unavailable("Network, session or power change observation is unavailable. Repair installation.") }
                 let candidate: PreparedCandidate
                 do { candidate = try await preparation.value }
@@ -495,10 +619,10 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                     // Retire it while PF is closed, before permitting DNS.
                     // Literal IPv4 endpoints skip this dependency entirely.
                     try await joinCleanup()
-                    try runtime.prepareHostnameBootstrap()
+                    try await runtime.prepareHostnameBootstrapOnline(lease: lease)
                     timing.record("hostname_bootstrap_profile")
                     // The preinstalled policy permits only bootstrap DNS.
-                    try powerGuard.fence.activate(epoch: powerEpoch) { try runtime.permitPrivateProbe() }
+                    try await runtime.permitPrivateProbeOnline(lease: lease, fence: powerGuard.fence, powerEpoch: powerEpoch)
                     RuntimeLog.shared.info("mimo_bootstrap_permitted")
                 }
                 let address: String
@@ -525,7 +649,8 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                         try await runtime.prepareProbePolicy(endpoints: [address], proxyPort: proxyPort, mode: mode)
                     }
                     firewallPreparation = endpointPolicy
-                    try runtime.holdApplicationGate()
+                    try await runtime.holdApplicationGateOnline()
+                    guard epoch == generation else { throw CancellationError() }
                     let preparedEndpoint: MimoPreparedProbePolicy
                     do { preparedEndpoint = try await endpointPolicy.value }
                     catch {
@@ -533,13 +658,14 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                         throw error
                     }
                     guard epoch == generation, check == policy.state.verification else { throw CancellationError() }
-                    try runtime.installProbePolicy(preparedEndpoint)
+                    try await runtime.installProbePolicyOnline(preparedEndpoint, lease: lease)
                     timing.record("endpoint_probe_policy")
                 }
                 if !hostname { try await joinCleanup() }
-                if !reused { try runtime.loadProfile(finalProfile) }
+                if !reused { try await runtime.loadProtectedProfile(finalProfile, lease: lease) }
+                guard epoch == generation, check == policy.state.verification else { throw CancellationError() }
                 forceProfileReload = false
-                try runtime.configureProtectedDNS()
+                try await runtime.configureProtectedDNSOnline(lease: lease)
                 if profileInspection == nil {
                     profileInspection = try runtime.startReadiness(profile: finalProfile, proxy: proxy, installation: installation)
                 }
@@ -556,7 +682,8 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                             let receipt = try await inspection.value
                             try Task.checkCancellation()
                             guard readinessGeneration == self.generation, check == self.policy.state.verification else { throw CancellationError() }
-                            try runtime.confirmReadiness(receipt)
+                            try await runtime.confirmReadinessOnline(receipt, lease: lease)
+                            guard readinessGeneration == self.generation, check == self.policy.state.verification else { throw CancellationError() }
                             self.completedReadiness = receipt
                             RuntimeLog.shared.info("mimo_readiness_passed", fields: ["attempt": check.id.uuidString])
                             return receipt
@@ -575,7 +702,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 // ready reply and starts the IP request.
                 var ready = response()
                 var permissionTiming = MimoTransitionTiming("permission")
-                try powerGuard.fence.activate(epoch: powerEpoch) { try runtime.permitPrivateProbe() }
+                try await runtime.permitPrivateProbeOnline(lease: lease, fence: powerGuard.fence, powerEpoch: powerEpoch)
                 permissionTiming.record("permit_private_probe")
                 timing.record("private_probe_join")
                 RuntimeLog.shared.info("mimo_private_probe_barrier_ready", fields: ["attempt": check.id.uuidString])
@@ -583,17 +710,19 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 probeFields["revision"] = String(revision); probeFields["generation"] = String(network)
                 probeFields["attempt"] = check.id.uuidString
                 RuntimeLog.shared.info("mimo_private_probe_ready", fields: probeFields)
+                requestInfrastructureReconciliation("private_probe_ready")
                 ready.routing?.supervisorCheckedAt = .now
                 return ready
             case .approve:
                 var timing = MimoTransitionTiming("approve")
-                guard let check = message.verification, check == policy.state.verification,
+                guard let lease = activeProtectedLease, let check = message.verification, check == policy.state.verification,
                       policy.state.phase == .checking, let address = message.address,
                       let activeProfile, let proxy, endpoint != nil else { throw DaemonFailure.conflict }
                 guard let observations = message.exitObservations, let since = check.startedAt,
                       observations.isValid(for: check, family: policy.state.configuration.networkFamily, since: since) else {
                     throw MimoRuntimeError.unavailable("A fresh IPv4 exit observation is required.")
                 }
+                allowlist = try runtime.savedAllowlist()
                 if !allowlist.contains(observations.ipv4.ipAddress) {
                     _ = policy.approve(observations: observations, allowlist: allowlist, verification: check, runtimeMatches: false)
                     try runtime.holdApplicationGate()
@@ -607,8 +736,31 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 guard let readinessCheck else { throw DaemonFailure.conflict }
                 policy.waitingForReadiness(address: address, verification: check)
                 if completedReadiness == nil { progress?(response()) }
-                let receipt = try await readinessCheck.value
-                try runtime.acceptBaseline(receipt)
+                let receipt: MimoReadinessReceipt
+                do { receipt = try await readinessCheck.value }
+                catch {
+                    // A completed readiness task can deliver its error after
+                    // Direct or a replacement preparation has already won.
+                    // That obsolete error must not reach the failure closer.
+                    guard !Task.isCancelled, activationGeneration == generation,
+                          check == policy.state.verification else {
+                        var fields = message.diagnosticFields
+                        fields["reason"] = "readiness_error_superseded"
+                        RuntimeLog.shared.info("mimo_approval_result_cancelled", fields: fields)
+                        throw CancellationError()
+                    }
+                    throw error
+                }
+                // Task cancellation cannot revoke an already completed result.
+                // Check ownership before validating or accepting its baseline.
+                guard !Task.isCancelled, activationGeneration == generation,
+                      check == policy.state.verification else {
+                    var fields = message.diagnosticFields
+                    fields["reason"] = "readiness_result_superseded"
+                    RuntimeLog.shared.info("mimo_approval_result_cancelled", fields: fields)
+                    throw CancellationError()
+                }
+                try await runtime.acceptBaselineOnline(receipt, lease: lease)
                 guard activationGeneration == generation, check == policy.state.verification,
                       self.activeProfile == activeProfile, runtime.receiptMatchesLoadedProfile(receipt),
                       networkObserver.isRunning, powerGuard.isRunning, sessionObserver.isRunning,
@@ -617,17 +769,29 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 }
                 timing.record("opening_join")
                 RuntimeLog.shared.info("mimo_opening_barrier_ready", fields: ["attempt": check.id.uuidString])
+                // Readiness awaited independent work. A policy-only edit may
+                // have committed meanwhile without invalidating the path.
+                allowlist = try runtime.savedAllowlist()
+                if !allowlist.contains(observations.ipv4.ipAddress) {
+                    try runtime.holdApplicationGate()
+                    _ = policy.approve(observations: observations, allowlist: allowlist, verification: check, runtimeMatches: false)
+                    RuntimeLog.shared.info("mimo_exit_ip_rejected", fields: message.diagnosticFields)
+                    finishEventCycle(); return response()
+                }
+                guard let powerEpoch = verificationPowerEpoch else { throw CancellationError() }
+                try await runtime.openGateOnline(receipt: receipt, address: observations.ipv4.ipAddress, lease: lease, fence: powerGuard.fence, powerEpoch: powerEpoch)
+                guard activationGeneration == generation, check == policy.state.verification else { throw CancellationError() }
+                allowlist = try runtime.savedAllowlist()
                 guard policy.approve(observations: observations, allowlist: allowlist, verification: check, runtimeMatches: true) else {
                     close("The active profile did not match the verified candidate."); return response()
                 }
-                guard let powerEpoch = verificationPowerEpoch else { throw CancellationError() }
-                try powerGuard.fence.completeCycle(epoch: powerEpoch) { try runtime.openGate(receipt: receipt) }
                 verifiedRecovery()
                 self.readinessCheck = nil; installationCheck = nil
                 firewallPreparation = nil; profilePreparation = nil; profileInspection = nil; completedReadiness = nil
                 timing.record("open_gate")
                 RuntimeLog.shared.info("mimo_traffic_opened", fields: ["mode": policy.state.configuration.mode.rawValue,
                     "ip": address, "family": policy.state.configuration.networkFamily.rawValue, "attempt": check.id.uuidString])
+                requestInfrastructureReconciliation("protected_active")
                 deferredNetworkReasons.removeAll()
             case .service:
                 guard !operationPending, let service = message.service, let operation = message.operation else { throw DaemonFailure.conflict }
@@ -642,18 +806,19 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                     flags.releaseNetwork = false; flags.engine = true
                     try runtime.saveServicePreferences(flags)
                     engineEnabled = true; cachedServices = nil
-                    try runtime.ensureIndependentBootGuard()
+                    try runtime.ensureBootGuard()
                     try runtime.service(.mihomo, operation: .start)
-                    try runtime.restoreDirect()
-                    policy.directRestored(configuration: policy.state.configuration, nativeIssue: runtime.nativeReleaseIssue)
-                    directRestorationAllowed = true
-                    _ = try? await DaemonRPC.call(DaemonRequest(.networkChanged), timeout: 5)
+                    let restored = await restoreDirect(configuration: policy.state.configuration, progress: progress)
+                    guard restored.routing?.effectiveMode == .direct else { return restored }
+                    try await coreNetworkChanged?()
                     return response()
                 }
                 let savedMode = try runtime.savedConfiguration().mode
                 if savedMode.requiresVerification || policy.state.configuration.mode.requiresVerification {
                     directRestorationAllowed = false
-                    guard close("A required service is changing state. Internet remains blocked.", strictOnly: true) else {
+                    let closedImmediately = close("A required service is changing state. Internet remains blocked.", strictOnly: true)
+                    if let closure = protectedClosureTask { await closure.value }
+                    guard closedImmediately || runtime.closed else {
                         RuntimeLog.shared.error("mimo_service_change_aborted", fields: ["service": service.rawValue, "operation": operation.rawValue, "reason": "gate_not_confirmed"])
                         var failure = response(); failure.failure = .unavailable
                         progress?(failure)
@@ -675,12 +840,8 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 switch service {
                 case .core:
                     generation &+= 1
-                    if operation != .start || runtime.runningProcessID(MimoService.label) == nil {
-                        commandFence = MimoCommandFence()
-                        heartbeatLease.reset()
-                    }
                     try updateFlag(.core, enabled: operation != .stop)
-                    try runtime.service(service, operation: operation)
+                    monitoringOperation?(operation)
                 case .mihomo:
                     try updateFlag(.mihomo, enabled: operation != .stop)
                     try runtime.service(service, operation: operation)
@@ -692,9 +853,11 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                 }
                 RuntimeLog.shared.info("mimo_service_changed", fields: ["service": service.rawValue, "operation": operation.rawValue])
             }
+            if ![.state, .heartbeat].contains(message.command), let closure = protectedClosureTask { await closure.value }
             return response()
         } catch is MimoDeferredNetworkChange {
             close("Network changed during verification. Keeping traffic blocked for one follow-up check.", strictOnly: true)
+            if let closure = protectedClosureTask { await closure.value }
             return response()
         } catch let failure as DaemonFailure {
             if message.command == .prepare { finishEventCycle() }
@@ -703,7 +866,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
             if message.command == .profile { return DaemonResponse(failure: .unavailable) }
             if !(error is CancellationError) {
                 runtime.revokeBaseline()
-                if [.prepare, .approve].contains(message.command), policy.state.configuration.mode.requiresVerification {
+                if [.prepare, .approve, .observe, .completeObservation, .observationFailed].contains(message.command), policy.state.configuration.mode.requiresVerification {
                     verificationRecoveryPending = true
                 }
                 if message.command == .service, message.service == .mihomo, message.operation != .stop,
@@ -711,6 +874,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
                     policy.networkReleased(configuration: policy.state.configuration, reason: error.localizedDescription)
                 } else { close(error.localizedDescription) }
             }
+            if let closure = protectedClosureTask { await closure.value }
             if message.command == .service {
                 RuntimeLog.shared.error("mimo_service_change_failed", fields: ["service": message.service?.rawValue ?? "unknown",
                     "operation": message.operation?.rawValue ?? "unknown"])
@@ -722,7 +886,62 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
         }
     }
 
-    private func releaseEngine(progress: ((DaemonResponse) -> Void)? = nil) async throws {
+    private func restoreDirect(configuration: MimoConfiguration,
+                               progress: (@MainActor @Sendable (DaemonResponse) -> Void)? = nil) async -> DaemonResponse {
+        if let existing = directRestorationTask { return await existing.value }
+        deferredNetworkReasons.removeAll()
+        cancelReadiness()
+        generation &+= 1
+        let ownerGeneration = generation
+        directRestorationAllowed = false
+        configurationKnown = true
+        proxy = nil; endpoint = nil; activeProfile = nil
+        networkObserver.setProxyEndpoint(nil)
+        policy.restoringDirect(configuration: configuration)
+        progress?(response())
+        let task = Task { [self] in
+            defer {
+                directRestorationTask = nil
+                requestInfrastructureReconciliation("direct_finished")
+            }
+            do {
+                await runtime.drainProtectedIO()
+                // Even acquiring this lock can wait for an independent power
+                // callback's PF work. Join that wait off the control actor too.
+                try await disarmDirectFence()
+                try await runtime.restoreDirectOnline()
+                guard ownerGeneration == generation else { return response() }
+                policy.directRestored(configuration: configuration, nativeIssue: runtime.nativeReleaseIssue)
+                directRestorationAllowed = true
+                RuntimeLog.shared.info("mimo_direct_restored")
+            } catch {
+                guard ownerGeneration == generation else { return response() }
+                RuntimeLog.shared.error("mimo_direct_worker_failed")
+                // The release and conditional failure-close children have both
+                // exited. Never synchronously retry a PF operation on this actor.
+                policy.block(runtime.closed
+                    ? "Direct cleanup did not complete. Retry Direct or Stop engine."
+                    : "Direct cleanup did not complete and firewall status is unavailable. Retry Direct or Stop engine.",
+                    confirmed: runtime.closed)
+            }
+            let result = response()
+            progress?(result)
+            return result
+        }
+        directRestorationTask = task
+        // Unstructured ownership deliberately survives caller cancellation.
+        return await task.value
+    }
+
+    private func disarmDirectFence() async throws {
+        let fence = powerGuard.fence
+        guard let disarmed = await directFenceQueue.run({ Result { try fence.direct {} } }) else {
+            throw CancellationError()
+        }
+        try disarmed.get()
+    }
+
+    private func releaseEngine(progress: (@MainActor @Sendable (DaemonResponse) -> Void)? = nil) async throws {
         // Save intent before cancelling writers or stopping launchd. Repair and
         // a restarted supervisor must complete this cleanup, never undo it.
         var flags = try runtime.servicePreferences()
@@ -730,28 +949,44 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
         try runtime.saveServicePreferences(flags)
         engineEnabled = false; cachedServices = nil
         generation &+= 1; cancelReadiness()
-        try powerGuard.fence.direct {}
         deferredNetworkReasons.removeAll()
         activeProfile = nil; proxy = nil; endpoint = nil
         networkObserver.setProxyEndpoint(nil)
         directRestorationAllowed = false
         policy.releasing(configuration: policy.state.configuration)
         progress?(response())
+        await runtime.drainProtectedIO()
+        try await disarmDirectFence()
         var coreError: Error?
         do {
-            if runtime.runningProcessID(MimoService.label) != nil {
-                let reply = try await DaemonRPC.call(DaemonRequest(.networkChanged), timeout: 5)
-                if let failure = reply.failure { throw failure }
-            } else {
-                _ = try runtime.persistDirectRecovery()
-            }
+            if let coreNetworkChanged { try await coreNetworkChanged() }
+            else { _ = try runtime.persistDirectRecovery() }
         } catch { coreError = error }
         // Still restore networking if the control channel has failed.
         try await runtime.releaseNetworking()
         if let coreError { throw coreError }
         policy.networkReleased(configuration: policy.state.configuration)
+        requestInfrastructureReconciliation("network_released")
         cachedServices = nil
         progress?(response())
+    }
+
+    private func requestInfrastructureReconciliation(_ reason: String) {
+        guard !stopping else { return }
+        infrastructureScheduler.request(reason: reason)
+    }
+
+    private func infrastructureInspectionFailed(_ error: Error, generation inspectedGeneration: UInt64) {
+        guard directRestorationTask == nil, inspectedGeneration == generation else {
+            RuntimeLog.shared.info("mimo_infrastructure_result_ignored", fields: ["reason": "operation_superseded"])
+            return
+        }
+        // A persistent fault is one recovery episode. Re-closing on every
+        // failed scan would wake reconciliation again and form a fast loop.
+        guard !infrastructureRecoveryPending || infrastructureFailureGeneration != generation else { return }
+        infrastructureRecoveryPending = true
+        close(error.localizedDescription)
+        infrastructureFailureGeneration = generation
     }
 
     private func failAudit(_ reason: String) {
@@ -784,6 +1019,8 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
     }
 
     private func cancelReadiness() {
+        activeProtectedLease?.cancel(); activeProtectedLease = nil
+        runtime.cancelProtectedIO()
         runtime.cancelConnectionCleanup()
         firewallPreparation?.cancel(); firewallPreparation = nil
         profilePreparation?.cancel(); profilePreparation = nil
@@ -799,9 +1036,39 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
             policy.releasing(configuration: policy.state.configuration, error: reason)
             return false
         }
+        let usesWorker = runtime.hasProtectedOwnership
         generation &+= 1
+        let ownerGeneration = generation
         cancelReadiness()
         activeProfile = nil
+        if usesWorker {
+            policy.requestingBlock(reason)
+            let gate = runtime.requestApplicationGate()
+            let previous = protectedClosureTask
+            let closureID = UUID(); protectedClosureID = closureID
+            protectedClosureTask = Task { [self] in
+                defer {
+                    if protectedClosureID == closureID {
+                        protectedClosureTask = nil
+                        requestInfrastructureReconciliation("protected_close_finished")
+                    }
+                }
+                await previous?.value
+                do {
+                    // Early denial runs independently of slow profile work.
+                    try await runtime.confirmApplicationGate(gate)
+                    await runtime.drainProtectedIO()
+                    guard ownerGeneration == generation else { return }
+                    policy.block(reason, confirmed: runtime.closed)
+                    RuntimeLog.shared.info("mimo_gate_closed", fields: ["confirmed": String(runtime.closed), "reason": reason])
+                } catch {
+                    guard ownerGeneration == generation else { return }
+                    policy.block("\(reason) Firewall status is unavailable.", confirmed: false)
+                }
+                finishEventCycle()
+            }
+            return false
+        }
         var succeeded = false
         do {
             // Revoke public engine egress as well as application access before asking
@@ -817,6 +1084,7 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
         }
         catch { policy.block("\(reason) Firewall status is unavailable: \(error.localizedDescription)", confirmed: false) }
         RuntimeLog.shared.info("mimo_gate_closed", fields: ["confirmed": String(succeeded), "reason": reason])
+        requestInfrastructureReconciliation("close_finished")
         finishEventCycle()
         return succeeded
     }
@@ -837,15 +1105,19 @@ final class MimoSupervisor: NSObject, NSXPCListenerDelegate {
         state.supervisorCheckedAt = .now
         state.networkReleaseRequested = runtime.networkReleaseRequested
         state.networkReleased = runtime.networkReleaseRequested && runtime.gateState == "released" && state.phase == .active
-        state.infrastructure = runtime.infrastructureStatus()
+        state.infrastructure = runtime.infrastructureStatus(generation: generation)
+        state.heartbeatHealth = peerWatchdog?.health
+        state.heartbeatCheckedAt = peerWatchdog?.checkedAt
         state.configuration.profileHostingEnabled = profileEnabled
         state.configuration.mihomoEnabled = engineEnabled
         if cachedServices == nil || Date.now.timeIntervalSince(cachedServices!.at) > 2 {
             let checkedAt = Date.now
+            var engine = runtime.engineInspection
+            engine.bindingConfirmed = engine.health == .running && state.allowsTraffic && state.configuration.mode.requiresVerification
             cachedServices = (checkedAt, [
-                .init(id: .core, health: runtime.isRunning(MimoService.label) ? .running : .stopped, transport: "XPC / Mach", checkedAt: checkedAt),
-                .init(id: .mihomo, health: runtime.isRunning(MimoRuntime.engineLabel) ? .running : .stopped, transport: "HTTP / SOCKS · Unix controller", address: "127.0.0.1", port: MimoRuntime.mixedPort, bindingConfirmed: state.allowsTraffic && state.configuration.mode.requiresVerification, checkedAt: checkedAt),
-                .init(id: .profileHosting, health: runtime.networkReleaseRequested ? .suspended : !engineEnabled ? .unavailable : profileEnabled ? .running : .stopped, transport: "In-memory · Unix socket", address: MimoRuntime.controller.path, checkedAt: checkedAt)
+                .init(id: .core, health: coreEnabled ? .running : .stopped, transport: "XPC / Mach", checkedAt: checkedAt),
+                engine,
+                .init(id: .profileHosting, health: runtime.networkReleaseRequested ? .suspended : !engineEnabled ? .suspended : !profileEnabled ? .stopped : engine.health == .running ? .running : .unavailable, transport: "In-memory · Unix socket", address: MimoRuntime.controller.path, checkedAt: engineEnabled && profileEnabled ? engine.checkedAt : checkedAt)
             ])
         }
         state.services = cachedServices?.values ?? []
@@ -915,15 +1187,6 @@ private final class MimoSupervisorSession: NSObject, MimoDaemonProtocol, @unchec
         let uid = connection.effectiveUserIdentifier
         let pid = connection.processIdentifier
         let receivedAt = ContinuousClock.now
-        if uid == 0, request.protocolVersion == MimoService.protocolVersion,
-           request.command == .supervisor, let message = request.supervisor,
-           message.command == .heartbeat, let stamp = message.stamp {
-            let accepted = supervisor.heartbeatLease.receive(stamp, process: pid, at: receivedAt)
-            if message.livenessOnly == true {
-                reply((try? JSONEncoder().encode(DaemonResponse(failure: accepted ? nil : .conflict))) ?? Data())
-                return
-            }
-        }
         Task { @MainActor in
             let response = await supervisor.handle(request, uid: uid, pid: pid, receivedAt: receivedAt, installedApp: installedApp) { [self] response in
                 guard request.reportsProgress == true, let data = try? JSONEncoder().encode(response) else { return }

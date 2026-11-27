@@ -1,0 +1,218 @@
+{
+  "core_sha256": "acca5829e2ef571d16e543b5c125bc7accfaa12ab881ca10e2823b684808f6cb",
+  "status": "stopped on provider-change audit failure; diagnostic candidate pending",
+  "planned_vm_cases": 109,
+  "executed_distinct_vm_cases": 44,
+  "latest_passes": 43,
+  "unresolved_failures": [
+    "intermittent Global/IPv4 unavailable-proxy settled-health failure, rerun passed",
+    "Global/IPv4 provider change caused verification audit failure and stream interruption"
+  ],
+  "stages": [
+    {
+      "stage": "v3_observation_test-setup-rule-ipv4",
+      "exit_code": 0,
+      "at": 1795749672.768167
+    },
+    {
+      "stage": "v3_observation_test-case-refresh",
+      "exit_code": 0,
+      "at": 1795749716.3427892
+    },
+    {
+      "stage": "v3_observation_test-case-concurrent",
+      "exit_code": 0,
+      "at": 1795749759.826102
+    },
+    {
+      "stage": "v3_observation_test-case-policy-retain",
+      "exit_code": 0,
+      "at": 1795749804.226608
+    },
+    {
+      "stage": "v3_observation_test-case-503",
+      "exit_code": 0,
+      "at": 1795749847.360868
+    },
+    {
+      "stage": "v3_observation_test-case-recover",
+      "exit_code": 0,
+      "at": 1795749891.488019
+    },
+    {
+      "stage": "v3_observation_test-case-denied",
+      "exit_code": 0,
+      "at": 1795749945.744021
+    },
+    {
+      "stage": "v3_observation_test-case-approve-rejected",
+      "exit_code": 0,
+      "at": 1795749993.9994502
+    },
+    {
+      "stage": "v3_observation_test-case-policy-revoke",
+      "exit_code": 0,
+      "at": 1795750042.845696
+    },
+    {
+      "stage": "v3_observation_test-case-policy-repair",
+      "exit_code": 0,
+      "at": 1795750088.7907908
+    },
+    {
+      "stage": "v3_observation_test-case-direct",
+      "exit_code": 0,
+      "at": 1795750143.056854
+    },
+    {
+      "stage": "v3_observation_test-transition-rule-ipv4-refused",
+      "exit_code": 0,
+      "at": 1795750201.850197
+    },
+    {
+      "stage": "v3_observation_test-transition-rule-ipv4-repair",
+      "exit_code": 0,
+      "at": 1795750249.5558422
+    },
+    {
+      "stage": "v3_observation_test-case-rapid-refresh",
+      "exit_code": 0,
+      "at": 1795750296.73035
+    },
+    {
+      "stage": "v3_observation_test-case-invalid",
+      "exit_code": 0,
+      "at": 1795750340.856298
+    },
+    {
+      "stage": "v3_observation_test-case-recover",
+      "exit_code": 0,
+      "at": 1795750389.732227
+    },
+    {
+      "stage": "v3_observation_test-case-inflight-retain",
+      "exit_code": 0,
+      "at": 1795750438.635256
+    },
+    {
+      "stage": "v3_observation_test-setup-global-ipv4",
+      "exit_code": 0,
+      "at": 1795750483.41794
+    },
+    {
+      "stage": "v3_observation_test-case-refresh",
+      "exit_code": 0,
+      "at": 1795750529.128499
+    },
+    {
+      "stage": "v3_observation_test-case-concurrent",
+      "exit_code": 0,
+      "at": 1795750574.7110999
+    },
+    {
+      "stage": "v3_observation_test-case-policy-retain",
+      "exit_code": 0,
+      "at": 1795750619.668902
+    },
+    {
+      "stage": "v3_observation_test-case-503",
+      "exit_code": 0,
+      "at": 1795750664.362814
+    },
+    {
+      "stage": "v3_observation_test-case-recover",
+      "exit_code": 0,
+      "at": 1795750709.0954728
+    },
+    {
+      "stage": "v3_observation_test-case-denied",
+      "exit_code": 0,
+      "at": 1795750761.8157609
+    },
+    {
+      "stage": "v3_observation_test-case-approve-rejected",
+      "exit_code": 0,
+      "at": 1795750813.670308
+    },
+    {
+      "stage": "v3_observation_test-case-policy-revoke",
+      "exit_code": 0,
+      "at": 1795750863.3588018
+    },
+    {
+      "stage": "v3_observation_test-case-policy-repair",
+      "exit_code": 0,
+      "at": 1795750909.301992
+    },
+    {
+      "stage": "v3_observation_test-case-direct",
+      "exit_code": 0,
+      "at": 1795750958.622463
+    },
+    {
+      "stage": "v3_observation_test-transition-global-ipv4-refused",
+      "exit_code": 1,
+      "at": 1795751014.327979
+    },
+    {
+      "stage": "v3_observation_test-restore",
+      "exit_code": 0,
+      "at": 1795751023.350143
+    },
+    {
+      "stage": "v3_observation_test-select-fixture",
+      "exit_code": 0,
+      "at": 1795751295.7135491
+    },
+    {
+      "stage": "v3_observation_test-setup-direct-ipv4",
+      "exit_code": 0,
+      "at": 1795751332.765085
+    },
+    {
+      "stage": "v3_observation_test-transition-global-ipv4-refused",
+      "exit_code": 0,
+      "at": 1795751390.086625
+    },
+    {
+      "stage": "v3_observation_test-transition-global-ipv4-repair",
+      "exit_code": 0,
+      "at": 1795751461.7610922
+    },
+    {
+      "stage": "v3_observation_test-case-rapid-refresh",
+      "exit_code": 0,
+      "at": 1795751511.205667
+    },
+    {
+      "stage": "v3_observation_test-case-invalid",
+      "exit_code": 0,
+      "at": 1795751556.020864
+    },
+    {
+      "stage": "v3_observation_test-case-recover",
+      "exit_code": 0,
+      "at": 1795751598.201988
+    },
+    {
+      "stage": "v3_observation_test-case-429",
+      "exit_code": 0,
+      "at": 1795751642.090963
+    },
+    {
+      "stage": "v3_observation_test-case-paused-refresh",
+      "exit_code": 0,
+      "at": 1795751682.900873
+    },
+    {
+      "stage": "v3_observation_test-provider-ipapiCo",
+      "exit_code": 1,
+      "at": 1795751729.49724
+    },
+    {
+      "stage": "v3_observation_test-restore",
+      "exit_code": 0,
+      "at": 1795751737.711804
+    }
+  ]
+}

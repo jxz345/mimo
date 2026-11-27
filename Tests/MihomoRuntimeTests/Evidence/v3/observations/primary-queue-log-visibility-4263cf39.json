@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "candidate_core_sha256": "4263cf39e9779b03d00bc73b40fd523e4ba8e42012ec2aa84f824ba5dd48e067",
+  "vm_scope": "primary",
+  "runtime_run": 5,
+  "case": "dual/latest-mode-rule-denied",
+  "qualification": "failed_unqualified_event_snapshot",
+  "original_failure_retained": true,
+  "host_attempt_id": "62b2e2658dcc476aa4d5e73ee1eb5642",
+  "evidence_id": "8fcbdf6e2f384ad9952cbd7d224ebc7e",
+  "archive_sha256": "d5cd1cdd9e53ebd8e716cedd8b87711855a01f26d279aeb59e7edefff5db4b3d",
+  "archive_path": ".build/observation-parallel/primary-validation-4263cf39-20261127T134917Z-cdcb13d8/run-05-dual-rule-denied-62b2e265/case-private.tar.gz",
+  "failed_assertion": "wrong_committed_intent_last_kept",
+  "expected": {
+    "mode": "rule",
+    "revision": 2339,
+    "request": "A012B927-24B6-4C82-B5CE-FE50BFF31875"
+  },
+  "retained_evidence": {
+    "reply": "applied Rule revision2339",
+    "exact_commit_count_in_each_raw_export": 1,
+    "commit_timestamp": "2026-11-27T14:23:38.107Z",
+    "queue_count": 5,
+    "superseded_pending_count": 2,
+    "delayed_older_intent": "superseded without queue or commit",
+    "allowlist_barrier_revision": 2338,
+    "post_run_mode": "rule",
+    "post_run_phase": "blocked",
+    "post_run_provider": "ready",
+    "post_run_pf": "healthy",
+    "post_run_pf_evidence_current": true
+  },
+  "independent_proofs": {
+    "whole_case_gui_passed": true,
+    "incoming_ssh_passed": true,
+    "continuous_health_passed": true,
+    "protected_native_attempts": 0,
+    "authorized_direct_native_attempts": 34,
+    "lab_cleanup_empty": true
+  },
+  "inference": "The immediate disk log read may have preceded asynchronous commit persistence or observed a partial JSON line. Later retained evidence and RPC reply show the correct intent. Exact failed-oracle input rows were not saved, so latency/partial-read mechanism is inferred, not measured.",
+  "limits": [
+    "No final explicit Refresh or 36-second settled observation executed.",
+    "Later correct evidence does not convert original failed case into PASS.",
+    "No further state polling, retry, deadline relaxation, or production change."
+  ],
+  "future_harness_proposal_not_implemented": "Retain exact first/final oracle inputs and boundedly wait for missing required commit visibility; wrong/duplicate commits remain immediate failures. Alternatively consume authenticated in-memory diagnostic events with exact ownership."
+}

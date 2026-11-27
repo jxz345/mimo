@@ -1,0 +1,172 @@
+{
+  "schema": 1,
+  "created_at": "2026-11-27T14:01:16.765480+00:00",
+  "candidate_core_sha256": "4263cf39e9779b03d00bc73b40fd523e4ba8e42012ec2aa84f824ba5dd48e067",
+  "candidate_source_manifest_sha256": "7c2e79e37d3dc23ab989ebfbff24014d3efe6cded12852ed4c0e5c3f270a3023",
+  "source_archive_sha256": "8093cf1d8e46fa0ed36d3b5e701017b26bd635704de60f4eaa276cdafd161733",
+  "production_source_count": 83,
+  "test_file_count": 2,
+  "planned_executions": 22,
+  "completed_executions": 22,
+  "passed": 22,
+  "failed": 0,
+  "distinct_controls": 11,
+  "method": "The exact current ManualDemand runner compiled the 83 candidate Shared/Core/Service sources in each macOS VM and executed all11 controls using isolated local preferences, mocked credentials and a deterministic held lookup client. No --only selection, source edits, service installation, firewall or network setting changes.",
+  "runtime_campaign_cases": 0,
+  "vm_results": {
+    "primary": {
+      "vm": "mimo-test-macos",
+      "planned_controls": 11,
+      "completed_controls": 11,
+      "passed": 11,
+      "failed": 0,
+      "source_hashes_match_candidate": true,
+      "started_at": "2026-11-27T13:51:05.694953+00:00",
+      "duration_seconds": 22.440932458000002,
+      "archive_sha256": "cbc78a9eff7cd92582c37a0156a5be79768a279fe23d5bad161216f9c678a24f",
+      "evidence_hashes": {
+        "compile.log": "03c4b0230b4f9cf9201e3442f20e6a39b39cf4306778ea7d6692f76ecd44726f",
+        "test.log": "643c6890443abb166652fe52d3ddec441da0fe4a44609a389f0727840549638d",
+        "results.json": "f73e8a57ecdff97a97b9d0a451484ead98adef345fadaa24ffa63c39922351cc",
+        "source-identity.json": "e0841ddff6fccd59cd30f2946a22cc410f03a8f376b737039f5794207262bd7b"
+      },
+      "controls": [
+        {
+          "passed": true,
+          "failures": [],
+          "name": "held-no-http-mode-invalidation"
+        },
+        {
+          "passed": true,
+          "failures": [],
+          "name": "invalidation-without-successor-terminates"
+        },
+        {
+          "passed": true,
+          "failures": [],
+          "name": "stale-deferred-replay-cannot-replace-new-ticket"
+        },
+        {
+          "passed": true,
+          "failures": [],
+          "name": "current-ticket-joins-denied-final-lookup"
+        },
+        {
+          "passed": true,
+          "failures": [],
+          "name": "completion-before-deferred-replay-does-not-repeat"
+        },
+        {
+          "passed": true,
+          "failures": [],
+          "name": "current-provider-failure-keeps-provider-policy"
+        },
+        {
+          "passed": true,
+          "failures": [],
+          "name": "sustained-demand-one-active-one-pending"
+        },
+        {
+          "passed": true,
+          "failures": [],
+          "name": "daemon-cancelled-refresh-does-not-admit-or-throttle"
+        },
+        {
+          "passed": true,
+          "failures": [],
+          "name": "immediate-transition-demand-survives-later-retry-deadline"
+        },
+        {
+          "passed": true,
+          "failures": [],
+          "name": "automatic-provider-fallback-retains-failed-provider-backoff"
+        },
+        {
+          "passed": true,
+          "failures": [],
+          "name": "cancelled-caller-before-held-admission-is-noop"
+        }
+      ]
+    },
+    "worker": {
+      "vm": "mimo-observation-worker",
+      "planned_controls": 11,
+      "completed_controls": 11,
+      "passed": 11,
+      "failed": 0,
+      "source_hashes_match_candidate": true,
+      "started_at": "2026-11-27T14:00:19.004587+00:00",
+      "duration_seconds": 22.380202042,
+      "archive_sha256": "3281be7fa9233ab10e7ce30528e9481190d21aff2d7aff6a1b4ae277d3755b77",
+      "evidence_hashes": {
+        "compile.log": "e1166e354f432b48f21884cab6838b370485de42a49330a15505612dbe74b5d7",
+        "test.log": "643c6890443abb166652fe52d3ddec441da0fe4a44609a389f0727840549638d",
+        "results.json": "da69640796fc3ca468e98402b6bf725b3d442b19b3111cedb0fd2580d5ac0eb4",
+        "source-identity.json": "e0841ddff6fccd59cd30f2946a22cc410f03a8f376b737039f5794207262bd7b"
+      },
+      "controls": [
+        {
+          "name": "held-no-http-mode-invalidation",
+          "passed": true,
+          "failures": []
+        },
+        {
+          "name": "invalidation-without-successor-terminates",
+          "passed": true,
+          "failures": []
+        },
+        {
+          "name": "stale-deferred-replay-cannot-replace-new-ticket",
+          "passed": true,
+          "failures": []
+        },
+        {
+          "name": "current-ticket-joins-denied-final-lookup",
+          "passed": true,
+          "failures": []
+        },
+        {
+          "name": "completion-before-deferred-replay-does-not-repeat",
+          "passed": true,
+          "failures": []
+        },
+        {
+          "name": "current-provider-failure-keeps-provider-policy",
+          "passed": true,
+          "failures": []
+        },
+        {
+          "name": "sustained-demand-one-active-one-pending",
+          "passed": true,
+          "failures": []
+        },
+        {
+          "name": "daemon-cancelled-refresh-does-not-admit-or-throttle",
+          "passed": true,
+          "failures": []
+        },
+        {
+          "name": "immediate-transition-demand-survives-later-retry-deadline",
+          "passed": true,
+          "failures": []
+        },
+        {
+          "name": "automatic-provider-fallback-retains-failed-provider-backoff",
+          "passed": true,
+          "failures": []
+        },
+        {
+          "name": "cancelled-caller-before-held-admission-is-noop",
+          "passed": true,
+          "failures": []
+        }
+      ]
+    }
+  },
+  "scope_limits": [
+    "These are real Swift processes running isolated control tests inside each VM; they do not exercise the installed Mimo daemon, physical firewall, live provider or GUI.",
+    "The separate live runtime campaign remains independently qualified.",
+    "Worker ran with a drop-only network after its clock was synchronized; primary networking was not changed by these controls."
+  ],
+  "previous_evidence": "manual-demand-regression.json preserves fail-first history and the final typecheck-only review refinement; this new artifact adds all11-on-final-source execution in each VM."
+}

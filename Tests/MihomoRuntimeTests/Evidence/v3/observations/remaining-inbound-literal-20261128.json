@@ -1,0 +1,283 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-11-27T18:38:39.325657+00:00",
+  "status": "Six mechanism IDs revalidated against actual production literal-destination renderer, executed inside primary; all passed.",
+  "counts": {
+    "planned_existing_cases": 6,
+    "completed": 6,
+    "passed": 6,
+    "new_case_ids": 0,
+    "attempts_this_round": 1
+  },
+  "scope": {
+    "vm": "mimo-test-macos",
+    "installed_core_sha256": "7601ffe31089ef0eaadb4d452c5f607209eb44bbae21213a4d7a079fd374f13d",
+    "installed_production_changed": false,
+    "production_policy_source_sha256": "125c3f88ae6a538da4bde3486cd0cd84881175b6895c52922d6f816da6e1d36a",
+    "policy_exporter_sha256": "0a0e3ad34c5809327934b12ee7081e0e998fbea137301f5c2faf7c2e4c88ddfa",
+    "export_ran_inside_vm": true,
+    "local_destination_count": 13,
+    "local_destination_inventory_sha256": "66ac6df6abaf38e2f9e5c3c51e2521a301b6c7daeaf02bba8f7c0b57e1a44ac8",
+    "projection": "Exact exported production destination preserved with SYN/if-bound/action/order; source, interface, ports and labels narrowed; closing timeouts1second only for owned test states. No production lifecycle change.",
+    "installed_lifecycle_qualified": false
+  },
+  "harness_sha256": "f2b83e98779136732b80fe74af0b2685bc951ee780e46c6528bd3d948f407071",
+  "summary": {
+    "path": ".build/observation-parallel/remaining-issues-20261128/inbound-literal-01/summary.json",
+    "sha256": "c3328f54f45f49131a45dfa5cf0a21188f12961f44d3580af521aead2161f457"
+  },
+  "raw_archive": {
+    "path": ".build/observation-parallel/remaining-issues-20261128/inbound-literal-01/guest-private.tar.gz",
+    "sha256": "0e1724f31a6ff006b3f29c06da88d5fce85ef9e7fb5d519c38860c53d7c744d8"
+  },
+  "independent_audit": {
+    "path": ".build/observation-parallel/remaining-issues-20261128/inbound-literal-01/independent-audit.json",
+    "sha256": "906f3fdfee9914b780e009a92136c072a8effcc1926249ae0547a565d4f785bf"
+  },
+  "cases": [
+    {
+      "number": 1,
+      "name": "normal-direct-tracked-continuity",
+      "passed": true,
+      "path": ".build/observation-parallel/remaining-issues-20261128/inbound-literal-01/case-1.json",
+      "sha256": "4885155b23e5612fef3a462e9b93441905b5b529d78326a033fda826de290bf5",
+      "tuple": {
+        "source": [
+          "192.168.64.1",
+          51470
+        ],
+        "destination": [
+          "192.168.64.2",
+          58235
+        ],
+        "interface": "en0",
+        "protocol": "tcp"
+      },
+      "captured_packets": 14,
+      "initial_syn_captured": true,
+      "PF_state_lines": {
+        "birth": [
+          "en0 tcp 192.168.64.2:58235 <- 192.168.64.1:51470       ESTABLISHED:ESTABLISHED"
+        ],
+        "closed_snapshot": [
+          "en0 tcp 192.168.64.2:58235 <- 192.168.64.1:51470       ESTABLISHED:ESTABLISHED"
+        ],
+        "after_send": [
+          "en0 tcp 192.168.64.2:58235 <- 192.168.64.1:51470       ESTABLISHED:ESTABLISHED"
+        ]
+      },
+      "nonce_packet_occurrences": 2,
+      "nonce_sha256": "671af5f9c37315b5a38f59a5a7803424709205997f95bbc814f51926d965bceb",
+      "expected_continuity": true,
+      "observed_continuity": true,
+      "server_generated_echoes": 1,
+      "captured_echo_packets_during_confirmed_scope": 1
+    },
+    {
+      "number": 2,
+      "name": "protected-born-through-direct",
+      "passed": true,
+      "path": ".build/observation-parallel/remaining-issues-20261128/inbound-literal-01/case-2.json",
+      "sha256": "a56a704a5ec569939b9e7a9aeada34b9927895e24d23f000cce0704c1cc0eb26",
+      "tuple": {
+        "source": [
+          "192.168.64.1",
+          51471
+        ],
+        "destination": [
+          "192.168.64.2",
+          58235
+        ],
+        "interface": "en0",
+        "protocol": "tcp"
+      },
+      "captured_packets": 14,
+      "initial_syn_captured": true,
+      "PF_state_lines": {
+        "birth": [
+          "en0 tcp 192.168.64.2:58235 <- 192.168.64.1:51471       ESTABLISHED:ESTABLISHED"
+        ],
+        "closed_snapshot": [
+          "en0 tcp 192.168.64.2:58235 <- 192.168.64.1:51471       ESTABLISHED:ESTABLISHED"
+        ],
+        "after_send": [
+          "en0 tcp 192.168.64.2:58235 <- 192.168.64.1:51471       ESTABLISHED:ESTABLISHED"
+        ]
+      },
+      "nonce_packet_occurrences": 2,
+      "nonce_sha256": "ae18cd7fe1539c4452b5bf5967c638bb3106a601becf6a1c89febc3a96e46df1",
+      "expected_continuity": true,
+      "observed_continuity": true,
+      "server_generated_echoes": 1,
+      "captured_echo_packets_during_confirmed_scope": 1
+    },
+    {
+      "number": 3,
+      "name": "pretracking-limit-and-fresh-reconnect",
+      "passed": true,
+      "path": ".build/observation-parallel/remaining-issues-20261128/inbound-literal-01/case-3.json",
+      "sha256": "9c52ca1276800c095f28ac40f9c7c31bf0a8aaefefa950cc8ac4ecb372cb62d6",
+      "tuple": {
+        "source": [
+          "192.168.64.1",
+          51486
+        ],
+        "destination": [
+          "192.168.64.2",
+          58235
+        ],
+        "interface": "en0",
+        "protocol": "tcp"
+      },
+      "captured_packets": 22,
+      "initial_syn_captured": true,
+      "PF_state_lines": {
+        "birth": [],
+        "closed_snapshot": [],
+        "after_send": []
+      },
+      "nonce_packet_occurrences": 10,
+      "nonce_sha256": "eb64a71fdf801f04e68e06a076e1868b8d5c7029f77f9c7b44077039295e31f8",
+      "expected_continuity": false,
+      "observed_continuity": false,
+      "server_generated_echoes": 1,
+      "captured_echo_packets_during_confirmed_scope": 0,
+      "fresh_reconnect": {
+        "received": true,
+        "tuple": {
+          "source": [
+            "192.168.64.1",
+            51489
+          ],
+          "destination": [
+            "192.168.64.2",
+            58235
+          ]
+        },
+        "state_lines": [
+          "en0 tcp 192.168.64.2:58235 <- 192.168.64.1:51489       ESTABLISHED:ESTABLISHED"
+        ],
+        "captured_packets": 14,
+        "nonce_packets": 2,
+        "echo_packets_during_closed_scope": 1
+      }
+    },
+    {
+      "number": 4,
+      "name": "old-outbound-reply-negative",
+      "passed": true,
+      "path": ".build/observation-parallel/remaining-issues-20261128/inbound-literal-01/case-4.json",
+      "sha256": "532178f487c4f7bfa5b2eb05cb0b3e1a6ef8adbc8c82cea32dfa8b79af4d7007",
+      "tuple": {
+        "source": [
+          "192.168.64.2",
+          58270
+        ],
+        "destination": [
+          "192.168.64.1",
+          51462
+        ],
+        "interface": "en0",
+        "protocol": "tcp"
+      },
+      "captured_packets": 20,
+      "initial_syn_captured": true,
+      "PF_state_lines": {
+        "birth": [],
+        "after_send": []
+      },
+      "incoming_return_delivered": true,
+      "remote_received_while_blocked": false,
+      "packet_nonce_occurrences": 2,
+      "nonce_sha256": "46f2b3ab22a27da6f7e1a60bd96cd47ab58c3ceeb56a4cbda7766bdf68b9b4df",
+      "exact_nonce_packet_occurrences": 2
+    },
+    {
+      "number": 5,
+      "name": "loopback-state-exclusion",
+      "passed": true,
+      "path": ".build/observation-parallel/remaining-issues-20261128/inbound-literal-01/case-5.json",
+      "sha256": "4b0997939f894be6f5e81850ee9c9e91c5da7ea231e348dadb0cfcbfc1269d50",
+      "tuple": {
+        "source": [
+          "127.0.0.1",
+          58278
+        ],
+        "destination": [
+          "127.0.0.1",
+          58236
+        ],
+        "interface": "lo0",
+        "protocol": "tcp"
+      },
+      "captured_packets": 10,
+      "initial_syn_captured": true,
+      "PF_state_lines": {
+        "birth": [],
+        "after_send": []
+      },
+      "nonce_packet_occurrences": 2,
+      "blocked_receive": false,
+      "release_receive": true
+    },
+    {
+      "number": 6,
+      "name": "cleanup-and-native-release",
+      "passed": true,
+      "path": ".build/observation-parallel/remaining-issues-20261128/inbound-literal-01/case-6.json",
+      "sha256": "b09be2dde8a1d73838b4153aebe96e0eddd802ac15ebb2a791115605d4f9f46b",
+      "native_echo_after_release": true
+    }
+  ],
+  "captures": {
+    "en0": {
+      "snaplen": 524288,
+      "linktype": 1,
+      "packets": 94,
+      "truncated_records": 0,
+      "unsupported_records": 0,
+      "sha256": "57f73fd177e7183ca28336e988a65381268e02d044bd83e9720cedb12ccef4bd",
+      "log": "tcpdump: listening on en0, link-type EN10MB (Ethernet), snapshot length 524288 bytes\n94 packets captured\n225 packets received by filter\n0 packets dropped by kernel\n"
+    },
+    "lo0": {
+      "snaplen": 524288,
+      "linktype": 0,
+      "packets": 10,
+      "truncated_records": 0,
+      "unsupported_records": 0,
+      "sha256": "9b47e11dc782aeb6d952c3a57ddc5b64ffb58be7ffbae149b2db8d79d8ce9fba",
+      "log": "tcpdump: listening on lo0, link-type NULL (BSD loopback), snapshot length 524288 bytes\n10 packets captured\n786 packets received by filter\n0 packets dropped by kernel\n"
+    }
+  },
+  "cleanup": {
+    "removed": [
+      {
+        "root": "/var/tmp/mimo-inbound-mechanism-59416fa7a0b2437da873d42be8fdb6bf",
+        "files": 14
+      }
+    ],
+    "exact_archive_hashes_verified": true,
+    "owned_helpers_absent": true,
+    "test_anchor_empty": true,
+    "production_tracking_unchanged": true,
+    "core_sha256": "7601ffe31089ef0eaadb4d452c5f607209eb44bbae21213a4d7a079fd374f13d"
+  },
+  "cleanup_evidence": {
+    "path": ".build/observation-parallel/remaining-issues-20261128/inbound-literal-01/file-cleanup.json",
+    "sha256": "e10aa2ea360372365d48f7b866114042075cf56dc6cac687eb6f0b0ce51b3963"
+  },
+  "historical_records_preserved": [
+    "remaining-inbound-mechanism-20261128.json",
+    "remaining-inbound-postfix-20261128.json",
+    "remaining-inbound-installed-before-20261128.json",
+    "remaining-inbound-dynamic-destination-20261128.json"
+  ],
+  "limits": [
+    "The old installed7601 dynamic-self production policy remained unchanged; these six use an isolated owned anchor.",
+    "The actual production literal destination is retained; source/interface/port and state-closing timeout narrow only the test fixture.",
+    "Pretracking-born connection still fails as expected; a fresh tracked reconnect succeeds. This limitation is not fixed by these passes.",
+    "No native UI, SSH, Screen Sharing, IPv6, UDP or route-migration qualification from these six cases.",
+    "Guest captures are complete for selected TCP tuples, but are not a whole-machine leakage or host on-wire proof."
+  ],
+  "published": false
+}

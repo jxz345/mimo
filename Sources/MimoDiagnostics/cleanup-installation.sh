@@ -260,7 +260,7 @@ cleanup_main() (
                 return 1
             fi
         done
-        if [ -e /Library/PrivilegedHelperTools/mimo-core ] || [ -e /Library/PrivilegedHelperTools/MimoUninstaller.app ] || [ -e /Library/PrivilegedHelperTools/com.example.exitipmonitor.daemon ]; then
+        if [ -e /Library/PrivilegedHelperTools/mimo-core ] || [ -e "/Library/Application Support/Mimo/LaunchHelpers" ] || [ -e /Library/PrivilegedHelperTools/MimoUninstaller.app ] || [ -e /Library/PrivilegedHelperTools/com.example.exitipmonitor.daemon ]; then
             step_log ERROR 'Service manager is missing but installed helpers remain. Repair Mimo before uninstalling.'
             return 1
         fi

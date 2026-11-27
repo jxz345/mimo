@@ -31,6 +31,7 @@ public enum MonitoringStatus: Codable, Equatable, Sendable {
 
 public enum MimoService {
     public static let label = "com.mimo.core"
+    public static let heartbeatLogLabel = "com.mimo.core.heartbeat"
     public static let controlLabel = "com.mimo.core.control"
     public static let supervisorControlLabel = "com.mimo.supervisor.control"
     public static let installedAppIdentity = URL(fileURLWithPath: "/Library/Application Support/Mimo/app.cdhash")
@@ -65,6 +66,14 @@ public struct MachineSettings: Codable, Equatable, Sendable {
 
     public var monitoring: MonitoringPreferences {
         MonitoringPreferences(provider: provider, providerPool: providerPool, refreshInterval: refreshInterval)
+    }
+
+    public func changesNetworkPath(comparedTo previous: MachineSettings, mode: ProxyMode) -> Bool {
+        mode == .rule && effectiveBypassBlocks != previous.effectiveBypassBlocks
+    }
+
+    public func requestsObservation(comparedTo previous: MachineSettings) -> Bool {
+        provider != previous.provider || providerPool != previous.providerPool || allowlist != previous.allowlist
     }
 
     public func affectsVerification(comparedTo previous: MachineSettings, mode: ProxyMode = .rule) -> Bool {
@@ -113,6 +122,8 @@ public struct MigrationState: Codable, Sendable {
 public struct DaemonState: Codable, Sendable {
     public var protocolVersion = MimoService.protocolVersion
     public var instanceID: UUID
+    /// Monotonic publication order within this core instance; absent on older peers.
+    public var stateSequence: UInt64? = nil
     public var build: String
     public var initialized: Bool
     public var revision: Int
@@ -161,6 +172,13 @@ public enum DaemonCommand: String, Codable, Sendable {
     case configureRouting, saveProxy, removeProxy, selectProxy, supervisor, networkChanged
 }
 
+/// Issued order within one GUI process. Different GUI streams retain core arrival order.
+public struct MimoModeIntent: Codable, Sendable {
+    public var stream: UUID
+    public var sequence: UInt64
+    public init(stream: UUID, sequence: UInt64) { self.stream = stream; self.sequence = sequence }
+}
+
 public struct DaemonRequest: Codable, Sendable {
     public var reportsProgress: Bool?
     public var protocolVersion = MimoService.protocolVersion
@@ -173,6 +191,9 @@ public struct DaemonRequest: Codable, Sendable {
     public var token: String?
     public var authorization: Data?
     public var routing: MimoConfiguration?
+    /// A mode button changes only mode; core rebases it onto the latest configuration.
+    public var requestedMode: ProxyMode?
+    public var modeIntent: MimoModeIntent?
     public var proxy: MimoProxy?
     /// nil creates a proxy for saveProxy, or selects None for selectProxy.
     public var proxyID: UUID?
@@ -183,13 +204,14 @@ public struct DaemonRequest: Codable, Sendable {
 }
 
 public enum DaemonFailure: String, Error, Codable, LocalizedError, Sendable {
-    case unavailable, incompatible, unauthorized, conflict, invalidRequest, storage, credential, alreadyInitialized
+    case unavailable, incompatible, unauthorized, conflict, invalidRequest, storage, credential, alreadyInitialized, modeIntentCapacity
     public var errorDescription: String? {
         switch self {
         case .unavailable: "The background service is unavailable. Install or repair it in the dashboard."
         case .incompatible: "The app and background service need matching versions. Update or repair the installation."
         case .unauthorized: "Administrator authentication is required to change shared settings."
         case .conflict: "Another user changed the shared settings. Review the latest values and try again."
+        case .modeIntentCapacity: "Too many app mode-request sessions. Restart Mimo’s background services from the dashboard, then try again."
         case .invalidRequest: "The requested settings are invalid."
         case .storage: "The background service could not save its state. Check the service log."
         case .credential: "The saved credential could not be loaded or updated. Check the credential status and try again."
@@ -198,10 +220,17 @@ public enum DaemonFailure: String, Error, Codable, LocalizedError, Sendable {
     }
 }
 
+/// A superseded or cancelled pending request did not change shared settings.
+/// These outcomes are not daemon or provider failures.
+public enum MimoControlOutcome: String, Codable, Sendable {
+    case applied, superseded, cancelled
+}
+
 public struct DaemonResponse: Codable, Sendable {
     public var state: DaemonState?
     public var failure: DaemonFailure?
     public var events: [String]?
+    public var controlOutcome: MimoControlOutcome? = nil
     /// Recent already-redacted JSON records; present only in explicit log requests.
     public var diagnosticEvents: [String]? = nil
     public var routing: MimoRoutingState? = nil

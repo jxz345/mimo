@@ -1,0 +1,325 @@
+{
+  "schema": 1,
+  "purpose": "After-fix worker qualification of native-policy receipts, stale-work ownership, and lock contention.",
+  "counts": {
+    "setup_completed": 1,
+    "setup_planned": 1,
+    "worker_controls_completed": 14,
+    "worker_controls_planned": 14,
+    "passed": 14,
+    "failed": 0,
+    "original_controls": 10,
+    "additional_race_controls": 4,
+    "unique_cases": 14,
+    "executions_per_case_in_worker": 1
+  },
+  "source": {
+    "payload_sha256": "18a406e40495804c29a2411667a362e64779f0c79a69ccdb8f4ea2e0562a4e52",
+    "executed_source_and_harness_hashes": {
+      "Sources/MimoService/MimoSystemRuntime.swift": "5fbd6bbeea39193e7bd0b8d4c77f043d24c796541d56abae4fb8ebcfc94c1b31",
+      "Sources/MimoService/MimoFirewallLock.swift": "9ea560933a42b8135b999148ec0555792b49d26dfe733ca2610ab4ecd80392fa",
+      "Sources/MimoService/MimoBlockingWorkQueue.swift": "5b19f14e991dbdbee446bddbdec8d808ff511907763776be99321671c0c3891e",
+      "Sources/MimoService/MimoPFHealthReceipt.swift": "78e92ee101738b6441ed362120a0f64ad3f6227d089fc31bc6c0d9c7dcb173be",
+      "Sources/MimoShared/SingleInstanceLock.swift": "0d5db865d919c56d37a4e3680aad39d806197e610be2cd211b1bcf3c47368d70",
+      "Sources/MimoShared/MimoFirewallPolicy.swift": "7864e5900cfc1a3e1f51abefaeca1395fccdfb712e8bf9aed57aa03cc924cf29",
+      "Sources/MimoShared/MimoNativeEgress.swift": "c268cacab93c66367692d2bfd48f3f4a29f9d2a045b5ff0c14bf92feb17113a7",
+      "Sources/MimoShared/MimoRouting.swift": "2b3e620d3ca36d0f67bf2854a4420bc907742ce1721133768071e4f74335a353",
+      "Sources/MimoShared/MimoAllowlist.swift": "3f3d60e5837faba51e464df09b989ad09d61fa62e5190fc4d405c5a7d005e41e",
+      "Sources/MimoService/MimoNativePolicyUpdate.swift": "fa783bf1e168ebc48bb78c430137614c2aa17a6b7a0ff3eae91a619544b39600",
+      "Tests/MimoServiceTests/NativePolicyReceipts/run.py": "998c3a7bcc72148a0d246457df46da744ebbe53f1c0ed8c2288fd85161621245",
+      "Tests/MimoServiceTests/NativePolicyReceipts/cases.swift": "5a4865c8906bbc06ab19d899ad7b93b05dc4ba45206ffedfda185615dbf2cd17",
+      "Tests/MimoServiceTests/NativePolicyReceipts/runtime-stubs.swift": "336c24a62ea0cf44eee377543ceb0c3fb6b42c8d4dbdbcc59d4f8d28e13c4c90",
+      "Tests/MimoServiceTests/NativePolicyReceipts/support.swift": "7874a9639d18fac5b70884a6cb5a530ae2e1ea9bd960eb694eea15ba547e367a"
+    },
+    "same_payload_for_both_groups": true,
+    "production_edits_by_worker_operator": false,
+    "installed_binary_qualification": false
+  },
+  "groups": [
+    {
+      "directory": ".build/observation-parallel/worker-native-policy-fix-20261127T175711Z-49c3772f/attempt-01",
+      "planned": 10,
+      "completed": 10,
+      "passed": 10,
+      "archive_sha256": "ce3a379837f4adacfe11ab704d254c317c59dedab1cc6bc908fdecb7108a220c",
+      "source_manifest_sha256": "5c0eddc235b3d656f02d36c845da181cb2ba793bc99c4d6f9798ccfb7b350855"
+    },
+    {
+      "directory": ".build/observation-parallel/worker-native-policy-fix-20261127T175711Z-49c3772f/attempt-02",
+      "planned": 4,
+      "completed": 4,
+      "passed": 4,
+      "archive_sha256": "ab5083bcf676d7ad73f67f08fab0cc0e769f5e15acbf98ae84dd004821cc9fda",
+      "source_manifest_sha256": "5c0eddc235b3d656f02d36c845da181cb2ba793bc99c4d6f9798ccfb7b350855"
+    }
+  ],
+  "results": [
+    {
+      "failures": [],
+      "name": "active-native-update-current-receipt",
+      "observations": {
+        "error_class": "none",
+        "evidence_current": "true",
+        "gate_state": "active",
+        "mutation_epoch": "B2569065-3CCD-4D6B-93F2-FDA96F2B7F82",
+        "pf": "healthy",
+        "pf_writes": "1",
+        "receipt_matches": "true"
+      },
+      "passed": true
+    },
+    {
+      "failures": [],
+      "name": "blocked-native-update-current-receipt",
+      "observations": {
+        "error_class": "none",
+        "evidence_current": "true",
+        "gate_state": "blocked",
+        "mutation_epoch": "42BF7C0E-DDA6-4194-A483-C7DAC6384177",
+        "pf": "healthy",
+        "pf_writes": "1",
+        "receipt_matches": "true"
+      },
+      "passed": true
+    },
+    {
+      "failures": [],
+      "name": "superseded-epoch-has-no-policy-or-epoch-side-effect",
+      "observations": {
+        "error_class": "CancellationError",
+        "evidence_current": "true",
+        "gate_state": "active",
+        "mutation_epoch": "new-owner-mutation",
+        "pf": "healthy",
+        "pf_writes": "0",
+        "receipt_matches": "true"
+      },
+      "passed": true
+    },
+    {
+      "failures": [],
+      "name": "superseded-close-has-no-policy-or-epoch-side-effect",
+      "observations": {
+        "error_class": "CancellationError",
+        "evidence_current": "true",
+        "gate_state": "blocked",
+        "mutation_epoch": "new-owner-mutation",
+        "pf": "healthy",
+        "pf_writes": "0",
+        "receipt_matches": "true"
+      },
+      "passed": true
+    },
+    {
+      "failures": [],
+      "name": "superseded-direct-has-no-policy-or-epoch-side-effect",
+      "observations": {
+        "error_class": "CancellationError",
+        "evidence_current": "true",
+        "gate_state": "direct",
+        "mutation_epoch": "new-owner-mutation",
+        "pf": "healthy",
+        "pf_writes": "0",
+        "receipt_matches": "true"
+      },
+      "passed": true
+    },
+    {
+      "failures": [],
+      "name": "superseded-intent-has-no-policy-or-epoch-side-effect",
+      "observations": {
+        "error_class": "CancellationError",
+        "evidence_current": "true",
+        "gate_state": "active",
+        "mutation_epoch": "new-owner-mutation",
+        "pf": "healthy",
+        "pf_writes": "0",
+        "receipt_matches": "true"
+      },
+      "passed": true
+    },
+    {
+      "failures": [],
+      "name": "narrow-readback-does-not-renew-expired-full-guard",
+      "observations": {
+        "error_class": "none",
+        "evidence_current": "true",
+        "gate_state": "active",
+        "mutation_epoch": "EB84E101-AA96-4C3C-AFC8-6EA402F421A7",
+        "pf": "stale",
+        "pf_writes": "1",
+        "receipt_matches": "true"
+      },
+      "passed": true
+    },
+    {
+      "failures": [],
+      "name": "failed-readback-cannot-publish-healthy-receipt",
+      "observations": {
+        "error_class": "DaemonFailure",
+        "evidence_current": "false",
+        "gate_state": "active",
+        "mutation_epoch": "9A2A1947-A343-44F5-8D1A-857D916A4237",
+        "pf": "unknown",
+        "pf_writes": "1",
+        "receipt_matches": "false"
+      },
+      "passed": true
+    },
+    {
+      "failures": [],
+      "name": "active-lock-contention-keeps-admission-responsive",
+      "observations": {
+        "admission_count": "1",
+        "admission_delay_seconds": "0.00039554166676225577",
+        "contended_mutation_seconds": "0.8276690000000144",
+        "error_class": "none",
+        "evidence_current": "true",
+        "gate_state": "active",
+        "mutation_epoch": "943544A3-5295-4AE8-986C-71D6D138432E",
+        "pf": "healthy",
+        "pf_writes": "1",
+        "receipt_matches": "true"
+      },
+      "passed": true
+    },
+    {
+      "failures": [],
+      "name": "blocked-lock-contention-keeps-admission-responsive",
+      "observations": {
+        "admission_count": "1",
+        "admission_delay_seconds": "0.0006289166666419987",
+        "contended_mutation_seconds": "0.954546541666673",
+        "error_class": "none",
+        "evidence_current": "true",
+        "gate_state": "blocked",
+        "mutation_epoch": "2B34B837-27C4-40D6-90A3-A65A744D5AE7",
+        "pf": "healthy",
+        "pf_writes": "1",
+        "receipt_matches": "true"
+      },
+      "passed": true
+    },
+    {
+      "failures": [],
+      "name": "stale-scope-read-error-is-superseded",
+      "observations": {
+        "error_class": "CancellationError",
+        "evidence_current": "false",
+        "gate_state": "active",
+        "mutation_epoch": "replacement-mutation",
+        "pf": "unknown",
+        "pf_writes": "0",
+        "receipt_matches": "false"
+      },
+      "passed": true
+    },
+    {
+      "failures": [],
+      "name": "stale-noop-snapshot-is-superseded",
+      "observations": {
+        "error_class": "CancellationError",
+        "evidence_current": "false",
+        "gate_state": "active",
+        "mutation_epoch": "replacement-mutation",
+        "pf": "unknown",
+        "pf_writes": "0",
+        "receipt_matches": "false"
+      },
+      "passed": true
+    },
+    {
+      "failures": [],
+      "name": "cancel-after-admission-skips-pf-command",
+      "observations": {
+        "error_class": "CancellationError",
+        "evidence_current": "false",
+        "gate_state": "active",
+        "mutation_epoch": "6EF90731-2001-46EE-B5C2-85D5642E1BF7",
+        "pf": "unknown",
+        "pf_writes": "0",
+        "receipt_matches": "false"
+      },
+      "passed": true
+    },
+    {
+      "failures": [],
+      "name": "pf-acquisition-timeout-defers-without-recovery",
+      "observations": {
+        "acquisition_wait_seconds": "5.08493062499997",
+        "error_class": "none",
+        "evidence_current": "true",
+        "gate_state": "active",
+        "mutation_epoch": "initial-mutation",
+        "pf": "healthy",
+        "pf_writes": "0",
+        "receipt_matches": "true",
+        "reconciliations": "0"
+      },
+      "passed": true
+    }
+  ],
+  "before_evidence": "Tests/MihomoRuntimeTests/Evidence/v3/observations/remaining-native-policy-20261128.json",
+  "before_after": {
+    "original_worker_before": {
+      "passed": 3,
+      "failed": 7,
+      "total": 10
+    },
+    "original_worker_after": {
+      "passed": 10,
+      "failed": 0,
+      "total": 10
+    },
+    "additional_race_worker_after": {
+      "passed": 4,
+      "failed": 0,
+      "total": 4
+    },
+    "active_admission_delay_seconds": {
+      "before": 0.7608471250000548,
+      "after": 0.00039554166676225577
+    },
+    "blocked_admission_delay_seconds": {
+      "before": 0.7008197916667314,
+      "after": 0.0006289166666419987
+    }
+  },
+  "coverage": [
+    "Active and blocked native policy readbacks publish owner-qualified receipts without refreshing the older full-guard evidence.",
+    "Stale mutation epoch, closure, Direct and replacement intent cannot mutate the newer policy or epoch.",
+    "Failed readback cannot publish healthy evidence.",
+    "A held real file lock does not block MainActor admission callbacks.",
+    "Stale scope-read errors and stale no-op snapshots are superseded.",
+    "Cancellation after admission skips the PF command.",
+    "PF-lock acquisition timeout defers without triggering recovery."
+  ],
+  "limits": [
+    "Actual extracted runtime methods, MainActor scheduling, real temporary file locks/epochs, policy rendering and receipt/status validation execute on macOS in the worker.",
+    "PF subprocess output, native facts, sandbox paths, boot identity and file ownership are substituted. These are not installed GUI clicks, full daemon RPC checks, actual PF mutations or physical Direct switches.",
+    "The four new controls have separate local fail-first evidence maintained by the implementation owner; this worker ran their corrected version once.",
+    "The worker used a drop-only socket NIC throughout; copied Tailnet authentication never reached a network. No login or certificate was needed."
+  ],
+  "cleanup": {
+    "passed": true,
+    "proof_path": ".build/observation-parallel/worker-native-policy-fix-20261127T175711Z-49c3772f/cleanup-proof.json",
+    "proof_sha256": "07976635a640d1a49f06c93d0cd10ad1732c5b40d789b19aa2254c9298ed9e94",
+    "owned_guest_roots_removed": true,
+    "test_processes_remaining": 0,
+    "primary_and_backup_config_unchanged": true,
+    "temporary_worker_deleted": true,
+    "deletion_proof_path": ".build/observation-parallel/worker-native-policy-fix-20261127T175711Z-49c3772f/deletion-proof.json",
+    "deletion_proof_sha256": "a3c17905b5acb603b08bb275fae3137b5a11511cfe50f5fa6f2091ba9dc8bcf2",
+    "isolated_network_controller_finished": true,
+    "remaining_vms": [
+      {
+        "name": "mimo-pre-v3-20261125",
+        "running": false
+      },
+      {
+        "name": "mimo-test-macos",
+        "running": true
+      }
+    ]
+  }
+}

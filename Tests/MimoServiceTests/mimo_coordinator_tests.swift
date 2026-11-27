@@ -3,6 +3,21 @@ import Foundation
 @MainActor
 enum MimoCoordinatorTests {
     static func run() async throws {
+        if CommandLine.arguments.contains("--verification-token-attribution") {
+            try await verificationTokenAttributionGap()
+            return
+        }
+        try await verificationTokenAttributionGap()
+        if CommandLine.arguments.contains("--observation-error-attribution") {
+            try await observationErrorAttribution()
+            return
+        }
+        try await observationErrorAttribution()
+        try await observationPreservesApprovedTraffic()
+        try await observationFailuresAndPolicyRaces()
+        try await observationPreemptionAndDenial()
+        try await observationSchedulerCoalesces()
+        try await policyEditDuringPreparationKeepsCheck()
         try await familyChangeClosesOnce()
         try await configurationBarrierCannotOutliveItsEdit()
         try await ipv4ApprovalKeepsProviderHealthy()
@@ -14,7 +29,6 @@ enum MimoCoordinatorTests {
         try await networkChangeDuringPreparation()
         try await networkChangeDuringLookup()
         try await cancelledLookupCannotApprove()
-        try await heartbeatPulseDoesNotWaitForStatus()
         try await credentialChangeDuringLookup()
         try await directRestoreFailure()
         try await delayedDirectCannotOpenClosedGate()
@@ -28,6 +42,343 @@ enum MimoCoordinatorTests {
         try await exceptionRecoveryMatrix()
         try await directCancelsPendingLookupMatrix()
         print("PASS: stale supervisor replies, interrupted preparation/probes, credential mutation fencing and Direct failure isolation")
+    }
+
+    /// A stopped engine can invalidate an observation before its HTTP timeout,
+    /// without core receiving a network-generation event until infrastructure repair.
+    private static func verificationTokenAttributionGap() async throws {
+        let providerFailure = LookupError.transport("fixture HTTP timeout after verification invalidation")
+        var failures: [String] = []
+        var executed = 0, matched = 0
+        for mode in [ProxyMode.rule, .global] {
+            for family in MimoNetworkFamily.allCases {
+                for scenario in ["polled-blocked", "unpolled-blocked", "polled-replaced", "unpolled-replaced", "blocked-during-close", "replaced-during-close", "current-provider-failure"] {
+                    let fixture = Fixture(mode: mode, family: family)
+                    fixture.holdLookupFailure = true
+                    let coordinator = fixture.coordinator()
+                    let pending = Task { try await coordinator.lookup(Fixture.lookupConfiguration) }
+                    try await wait { fixture.lookupFailureGate.waiting }
+                    let original = fixture.policy.state.verification!
+                    require(coordinator.state.phase == .checking, "fresh request starts with a private verification")
+                    if scenario.contains("blocked") && !scenario.hasSuffix("during-close") { fixture.policy.block("Independent runtime closure before core generation callback") }
+                    if scenario.contains("replaced") && !scenario.hasSuffix("during-close") {
+                        let replacement = fixture.policy.begin(configuration: fixture.configuration, revision: original.revision,
+                                                               networkGeneration: original.networkGeneration)
+                        fixture.policy.checking(replacement)
+                    }
+                    if scenario.hasPrefix("polled-") { await coordinator.refreshSupervisorState() }
+                    let closesBeforeError = fixture.closeRequests
+                    if scenario.hasSuffix("during-close") { fixture.holdCloseDelivery = true }
+                    fixture.lookupFailureGate.resume(providerFailure)
+                    if scenario.hasSuffix("during-close") {
+                        try await wait { fixture.closeDeliveryGate.waiting }
+                        if scenario == "blocked-during-close" { fixture.policy.block("Runtime closed while failure request was in transit") }
+                        else {
+                            let replacement = fixture.policy.begin(configuration: fixture.configuration, revision: original.revision,
+                                                                   networkGeneration: original.networkGeneration)
+                            fixture.policy.checking(replacement)
+                        }
+                        fixture.closeDeliveryGate.resume(true)
+                    }
+                    let replacement = fixture.policy.state.verification
+                    var outcome = "success"
+                    do { _ = try await pending.value }
+                    catch is CancellationError { outcome = "cancelled" }
+                    catch let error as LookupError { outcome = error == providerFailure ? "provider-failure" : "other-provider-error" }
+                    catch { outcome = "other-error" }
+                    let expected = scenario == "current-provider-failure" ? "provider-failure" : "cancelled"
+                    let label = "\(mode.rawValue)/\(family.rawValue)/\(scenario)"
+                    if outcome == expected { matched += 1 }
+                    else { failures.append("\(label): expected \(expected), got \(outcome)") }
+                    if scenario == "current-provider-failure" {
+                        if fixture.closeRequests != closesBeforeError + 1 || coordinator.state.phase != .blocked {
+                            failures.append("\(label): genuine failure must close once and preserve provider classification")
+                        }
+                    } else {
+                        if fixture.closeRequests != closesBeforeError { failures.append("\(label): invalidated error sent another close") }
+                        if scenario.contains("replaced"), fixture.policy.state.verification != replacement {
+                            failures.append("\(label): old error destroyed the replacement verification")
+                        }
+                    }
+                    if !fixture.approvals.isEmpty { failures.append("\(label): error approved an IP") }
+                    executed += 1
+                }
+            }
+        }
+        for failure in failures { print("FAIL: verification token attribution: " + failure) }
+        print("Verification token attribution: \(matched)/\(executed) outcomes matched; \(failures.count) failed assertions")
+        require(failures.isEmpty, "an independently invalidated verification cannot charge its stale error to a provider")
+    }
+
+    private static func observationErrorAttribution() async throws {
+        let scenarios = ["known-blocked", "supervisor-blocked", "blocked-during-ack", "ignored-ack",
+                         "replaced-token", "failed-ack", "generation-during-ack", "network",
+                         "direct", "cancelled-task", "provider-failure"]
+        let providerFailure = LookupError.transport("fixture HTTP timeout")
+        var failures: [String] = []
+        var executed = 0
+        for mode in [ProxyMode.rule, .global] {
+            for family in MimoNetworkFamily.allCases {
+                for scenario in scenarios {
+                    let fixture = Fixture(mode: mode, family: family)
+                    let coordinator = fixture.coordinator()
+                    _ = try await coordinator.lookup(Fixture.lookupConfiguration)
+                    let approved = coordinator.state.exitObservations
+                    let approvalCount = fixture.approvals.count
+                    fixture.holdLookupFailure = true
+                    let pending = Task { try await coordinator.lookup(Fixture.lookupConfiguration) }
+                    try await wait { fixture.lookupFailureGate.waiting }
+                    switch scenario {
+                    case "known-blocked":
+                        fixture.policy.block("Runtime audit closed the gate")
+                        await coordinator.refreshSupervisorState()
+                    case "supervisor-blocked":
+                        fixture.policy.block("Runtime audit closed before core heartbeat")
+                    case "blocked-during-ack", "generation-during-ack":
+                        fixture.holdObservationFailure = true
+                    case "ignored-ack": fixture.ignoreObservationFailure = true
+                    case "replaced-token": fixture.replaceObservationOnFailure = true
+                    case "failed-ack": fixture.failObservationFailure = true
+                    case "network": await coordinator.networkChanged()
+                    case "direct":
+                        var direct = fixture.configuration; direct.mode = .direct
+                        await coordinator.update(configuration: direct, allowlist: fixture.allowed, revision: 2)
+                    case "cancelled-task": pending.cancel()
+                    default: break
+                    }
+                    let closesBeforeFailure = fixture.closeRequests
+                    fixture.lookupFailureGate.resume(providerFailure)
+                    if fixture.holdObservationFailure || fixture.observationFailureGate.waiting {
+                        try await wait { fixture.observationFailureGate.waiting }
+                        fixture.policy.block("Runtime invalidated while failure acknowledgement was pending")
+                        if scenario == "generation-during-ack" { coordinator.supervisorNetworkChanged() }
+                        fixture.observationFailureGate.resume(true)
+                    }
+                    var outcome = "success"
+                    do { _ = try await pending.value }
+                    catch is CancellationError { outcome = "cancelled" }
+                    catch let error as LookupError { outcome = error == providerFailure ? "provider-failure" : "other-provider-error" }
+                    catch { outcome = "other-error" }
+                    let expected = scenario == "provider-failure" ? "provider-failure" : "cancelled"
+                    let label = "\(mode.rawValue)/\(family.rawValue)/\(scenario)"
+                    if outcome != expected { failures.append("\(label): expected \(expected), got \(outcome)") }
+                    if fixture.closeRequests != closesBeforeFailure { failures.append("\(label): error sent a redundant close") }
+                    if fixture.approvals.count != approvalCount { failures.append("\(label): error approved an IP") }
+                    if scenario == "provider-failure", !coordinator.state.allowsTraffic || coordinator.state.observationFailed != true || coordinator.state.exitObservations != approved {
+                        failures.append("\(label): genuine provider failure must retain the same approved path")
+                    }
+                    if scenario == "direct", coordinator.state.effectiveMode != .direct { failures.append("\(label): obsolete failure changed Direct") }
+                    executed += 1
+                }
+                // Fresh protected requests also must not charge an error to a
+                // provider after a newer network generation or Direct selection.
+                for scenario in ["network", "direct"] {
+                    let fixture = Fixture(mode: mode, family: family)
+                    fixture.holdLookupFailure = true
+                    let coordinator = fixture.coordinator()
+                    let pending = Task { try await coordinator.lookup(Fixture.lookupConfiguration) }
+                    try await wait { fixture.lookupFailureGate.waiting }
+                    if scenario == "network" { await coordinator.networkChanged() }
+                    else {
+                        var direct = fixture.configuration; direct.mode = .direct
+                        await coordinator.update(configuration: direct, allowlist: fixture.allowed, revision: 2)
+                    }
+                    fixture.lookupFailureGate.resume(providerFailure)
+                    do {
+                        _ = try await pending.value
+                        failures.append("\(mode.rawValue)/\(family.rawValue)/fresh-\(scenario): obsolete request succeeded")
+                    } catch is CancellationError { }
+                    catch { failures.append("\(mode.rawValue)/\(family.rawValue)/fresh-\(scenario): obsolete error was not cancelled") }
+                    executed += 1
+                }
+                for scenario in ["provider-failure", "network-during-close", "direct-during-close"] {
+                    let fixture = Fixture(mode: mode, family: family)
+                    fixture.holdLookupFailure = true
+                    let coordinator = fixture.coordinator()
+                    let pending = Task { try await coordinator.lookup(Fixture.lookupConfiguration) }
+                    try await wait { fixture.lookupFailureGate.waiting }
+                    if scenario != "provider-failure" { fixture.holdCloseDelivery = true }
+                    fixture.lookupFailureGate.resume(providerFailure)
+                    if scenario != "provider-failure" {
+                        try await wait { fixture.closeDeliveryGate.waiting }
+                        if scenario == "network-during-close" { await coordinator.networkChanged() }
+                        else {
+                            var direct = fixture.configuration; direct.mode = .direct
+                            await coordinator.update(configuration: direct, allowlist: fixture.allowed, revision: 2)
+                        }
+                        fixture.closeDeliveryGate.resume(true)
+                    }
+                    var outcome = "success"
+                    do { _ = try await pending.value }
+                    catch is CancellationError { outcome = "cancelled" }
+                    catch let error as LookupError { outcome = error == providerFailure ? "provider-failure" : "other-provider-error" }
+                    catch { outcome = "other-error" }
+                    let expected = scenario == "provider-failure" ? "provider-failure" : "cancelled"
+                    let label = "\(mode.rawValue)/\(family.rawValue)/fresh-\(scenario)"
+                    if outcome != expected { failures.append("\(label): expected \(expected), got \(outcome)") }
+                    if scenario == "provider-failure", coordinator.state.phase != .blocked || fixture.closeRequests != 1 {
+                        failures.append("\(label): genuine transition failure must close exactly once")
+                    }
+                    if scenario == "direct-during-close", coordinator.state.effectiveMode != .direct {
+                        failures.append("\(label): obsolete close changed Direct")
+                    }
+                    executed += 1
+                }
+            }
+        }
+        for family in MimoNetworkFamily.allCases {
+            let fixture = Fixture(mode: .direct, family: family)
+            fixture.expectDirectLookup = true
+            fixture.lookupFailure = providerFailure
+            let coordinator = fixture.coordinator()
+            var outcome = "success"
+            do { _ = try await coordinator.lookup(Fixture.lookupConfiguration) }
+            catch let error as LookupError { outcome = error == providerFailure ? "provider-failure" : "other-provider-error" }
+            catch { outcome = "other-error" }
+            if outcome != "provider-failure" { failures.append("direct/\(family.rawValue): expected provider-failure, got \(outcome)") }
+            if coordinator.state.effectiveMode != .direct || !coordinator.state.allowsTraffic || fixture.closeRequests != 0 {
+                failures.append("direct/\(family.rawValue): provider failure must not close Direct")
+            }
+            executed += 1
+        }
+        for failure in failures { print("FAIL: observation error attribution: " + failure) }
+        print("Observation error attribution: \(executed - failures.filter { $0.contains("expected") || $0.contains("obsolete error") || $0.contains("obsolete request") }.count)/\(executed) outcomes matched; \(failures.count) failed assertions")
+        require(failures.isEmpty, "invalidated HTTP errors must cancel without provider blame; intact errors retain provider handling")
+        print("PASS: 66 observation/fresh-probe/Direct error attribution scenarios across both modes/families")
+    }
+
+    private static func observationPreservesApprovedTraffic() async throws {
+        for mode in [ProxyMode.rule, .global] {
+            for family in MimoNetworkFamily.allCases {
+                let fixture = Fixture(mode: mode, family: family)
+                let coordinator = fixture.coordinator()
+                _ = try await coordinator.lookup(Fixture.lookupConfiguration)
+                fixture.holdLookup = true
+                let check = Task { try await coordinator.lookup(Fixture.lookupConfiguration) }
+                try await wait { fixture.lookupCount == 2 }
+                require(coordinator.state.allowsTraffic,
+                        "\(mode)/\(family): observing an unchanged approved path must not block before the IP response")
+                fixture.lookupGate.resume(Fixture.snapshot)
+                _ = try await check.value
+                require(coordinator.state.allowsTraffic, "allowed observation retains access")
+            }
+        }
+    }
+
+    private static func observationFailuresAndPolicyRaces() async throws {
+        let failures: [LookupError] = [.transport("timeout"), .httpStatus(503, retryAfter: nil),
+            .rateLimited(retryAfter: .now.addingTimeInterval(60)), .invalidResponse]
+        for mode in [ProxyMode.rule, .global] {
+            for family in MimoNetworkFamily.allCases {
+                let fixture = Fixture(mode: mode, family: family)
+                let coordinator = fixture.coordinator()
+                _ = try await coordinator.lookup(Fixture.lookupConfiguration)
+                for failure in failures {
+                    fixture.lookupFailure = failure
+                    do { _ = try await coordinator.lookup(Fixture.lookupConfiguration); fatalError("expected provider failure") }
+                    catch let error as LookupError { require(error == failure, "preserve provider error") }
+                    require(coordinator.state.allowsTraffic && coordinator.state.observationFailed == true && fixture.closeRequests == 0,
+                            "observation errors preserve an approved unchanged path in both modes/families")
+                }
+                fixture.lookupFailure = nil
+                fixture.holdLookup = true
+                let pending = Task { try await coordinator.lookup(Fixture.lookupConfiguration) }
+                try await wait { fixture.lookupGate.waiting }
+                let allowed = AllowedIPList(addresses: fixture.allowed.addresses + ["192.0.2.99"])
+                await coordinator.update(configuration: fixture.configuration, allowlist: allowed, revision: 2, preservingAccess: true)
+                fixture.lookupGate.resume(Fixture.snapshot)
+                _ = try await pending.value
+                require(coordinator.state.allowsTraffic, "latest non-revoking policy may accept an in-flight observation")
+                fixture.holdLookup = true
+                let obsolete = Task { try await coordinator.lookup(Fixture.lookupConfiguration) }
+                try await wait { fixture.lookupGate.waiting }
+                await coordinator.update(configuration: fixture.configuration, allowlist: .init(), revision: 3, preservingAccess: true)
+                require(!coordinator.state.allowsTraffic && coordinator.state.rejectedExit != nil,
+                        "removing the current IP must revoke immediately and preserve its address")
+                fixture.lookupGate.resume(Fixture.snapshot)
+                _ = try? await obsolete.value
+                require(!coordinator.state.allowsTraffic, "late observation cannot reopen after policy revocation")
+            }
+        }
+        print("PASS: 16 observation failures and 8 in-flight policy changes across both modes/families")
+    }
+
+    private static func observationPreemptionAndDenial() async throws {
+        for mode in [ProxyMode.rule, .global] {
+            for family in MimoNetworkFamily.allCases {
+                for event in ["network", "direct", "denied"] {
+                    let fixture = Fixture(mode: mode, family: family)
+                    let coordinator = fixture.coordinator()
+                    _ = try await coordinator.lookup(Fixture.lookupConfiguration)
+                    fixture.holdLookup = true
+                    let pending = Task { try await coordinator.lookup(Fixture.lookupConfiguration) }
+                    try await wait { fixture.lookupGate.waiting }
+                    require(coordinator.state.allowsTraffic, "observation starts open")
+                    if event == "network" {
+                        await coordinator.networkChanged()
+                        require(!coordinator.state.allowsTraffic, "network preempts without waiting for provider")
+                    } else if event == "direct" {
+                        var direct = fixture.configuration; direct.mode = .direct
+                        await coordinator.update(configuration: direct, allowlist: fixture.allowed, revision: 2)
+                        require(coordinator.state.effectiveMode == .direct, "Direct never waits for provider")
+                    }
+                    var result = Fixture.snapshot
+                    if event == "denied" { result.ipAddress = "192.0.2.99" }
+                    fixture.lookupGate.resume(result)
+                    if event == "denied" {
+                        _ = try await pending.value
+                        require(coordinator.state.rejectedExit?.address == result.ipAddress && !coordinator.state.allowsTraffic,
+                                "newly disallowed observation closes and displays the actual rejected IP")
+                    } else { try await cancelled(pending) }
+                    require(coordinator.state.effectiveMode != mode, "late result cannot retain/reopen obsolete approval")
+                }
+            }
+        }
+        print("PASS: 12 observation denial/network/Direct preemption cases")
+    }
+
+    private static func observationSchedulerCoalesces() async throws {
+        let suite = "com.mimo.tests.observation-join." + UUID().uuidString
+        let storage = UserDefaults(suiteName: suite)!
+        defer { storage.removePersistentDomain(forName: suite) }
+        MonitoringPreferences(provider: .ipWhois, providerPool: [.ipWhois], refreshInterval: .never).save(to: storage)
+        let fixture = Fixture(mode: .global, family: .dual)
+        let coordinator = fixture.coordinator()
+        let engine = MonitoringEngine(preferencesStore: storage, observeSystem: false,
+            snapshotStore: SnapshotStore(defaults: storage), cooldownStore: ProviderCooldownStore(defaults: storage),
+            refreshAttemptStore: RefreshAttemptStore(defaults: storage), lookupBudgetStore: LookupBudgetStore(defaults: storage),
+            indicatorStore: IndicatorStore(defaults: storage), allowedIPStore: AllowedIPStore(defaults: storage),
+            providerHealthStore: ProviderHealthStore(defaults: storage), diagnosticPreferencesStore: DiagnosticPreferencesStore(defaults: storage),
+            client: MimoLookupClient(coordinator))
+        coordinator.willRequest = { try engine.accountActualRequest($0) }
+        engine.requiredCheckUnavailable = { coordinator.requiredCheckUnavailable(reason: $0) }
+        engine.start(); defer { engine.stop() }
+        try await wait { engine.status == .ready && !engine.lookupInFlight }
+        fixture.holdLookup = true
+        let pending = Task { await engine.refresh(force: true, bypassMinimumInterval: true) }
+        try await wait { fixture.lookupGate.waiting }
+        await engine.refresh(force: true, bypassMinimumInterval: true)
+        await engine.refresh(force: true, trigger: .periodic)
+        await engine.refresh(force: true, trigger: .settingsChanged)
+        require(coordinator.state.allowsTraffic, "all same-path observations join without closure")
+        fixture.lookupGate.resume(Fixture.snapshot)
+        await pending.value
+        try await Task.sleep(for: .milliseconds(100))
+        require(fixture.lookupCount == 2 && !engine.lookupInFlight && engine.manualRefresh?.phase == .succeeded,
+                "manual/timer/policy requests join one observation with no trailing lookup")
+    }
+
+    private static func policyEditDuringPreparationKeepsCheck() async throws {
+        let fixture = Fixture()
+        let coordinator = fixture.coordinator()
+        fixture.holdPrepare = true
+        let preparing = Task { try await coordinator.lookup(Fixture.lookupConfiguration) }
+        try await wait { fixture.prepareGate.waiting }
+        await coordinator.update(configuration: fixture.configuration, allowlist: .init(), revision: 2, preservingAccess: true)
+        fixture.prepareGate.resume(fixture.policy.state)
+        _ = try await preparing.value
+        require(fixture.lookupCount == 1 && coordinator.state.rejectedExit != nil,
+                "policy edit during preparation must finish once using the newest list, without cancelling into a stuck check")
     }
 
     private static func familyChangeClosesOnce() async throws {
@@ -162,19 +513,16 @@ enum MimoCoordinatorTests {
         let fixture = Fixture()
         let coordinator = fixture.coordinator()
         _ = try await coordinator.lookup(Fixture.lookupConfiguration)
-        coordinator.requiredCheckUnavailable(reason: "Old scheduler failure")
-        fixture.holdPrepare = true
-        let release = Task {
-            try await wait { fixture.prepareGate.waiting }
-            fixture.prepareGate.resume(fixture.policy.state)
-        }
-        _ = try await coordinator.lookup(Fixture.lookupConfiguration)
-        try await release.value
+        coordinator.requiredCheckUnavailable(reason: "Provider unavailable")
+        await Task.yield()
         require(fixture.closeRequests == 0 && coordinator.state.allowsTraffic,
-                "a queued old status notification must not revoke a newer probe")
-        coordinator.requiredCheckUnavailable(reason: "Real fresh-check refusal")
-        try await wait { fixture.closeRequests == 1 }
-        require(!coordinator.state.allowsTraffic, "an unfulfilled required check must still revoke active approval")
+                "scheduler/provider availability alone cannot revoke an approved unchanged path")
+        await coordinator.networkChanged()
+        require(!coordinator.state.allowsTraffic && fixture.closeRequests == 1,
+                "a real network event still revokes immediately")
+        coordinator.requiredCheckUnavailable(reason: "Provider unavailable while blocked")
+        await Task.yield()
+        require(fixture.closeRequests == 1, "an already blocked failure does not add a second closure")
     }
 
     private static func directCancelsPendingLookupMatrix() async throws {
@@ -232,7 +580,7 @@ enum MimoCoordinatorTests {
                                     "Direct→\(mode): close before attempting a potentially failing lookup")
                         }
                         do {
-                            _ = try await coordinator.lookup(Fixture.lookupConfiguration)
+                            _ = try await coordinator.lookup(LookupConfiguration(provider: .ipWhois, ipinfoToken: nil, intent: .transition))
                             fatalError("\(name): failure was swallowed")
                         } catch let error as LookupError {
                             require(error == failure, "\(name): preserve the lookup error for monitoring feedback")
@@ -512,26 +860,6 @@ enum MimoCoordinatorTests {
                 "managed routing must budget preparation and activation separately from the HTTP deadline")
     }
 
-    private static func heartbeatPulseDoesNotWaitForStatus() async throws {
-        var configuration = MimoConfiguration()
-        configuration.mode = .rule
-        let statusGate = Gate<Bool>()
-        var pulses = 0
-        let coordinator = MimoCoordinator(configuration: configuration, allowlist: Fixture.allowed, revision: 1,
-            transport: { message, _ in
-                if message.livenessOnly == true { pulses += 1 }
-                else if message.command == .heartbeat { _ = await statusGate.wait() }
-                return MimoRoutingState(configuration: configuration)
-            })
-        await coordinator.start()
-        try await wait { statusGate.waiting }
-        let before = pulses
-        try await Task.sleep(for: .milliseconds(1200))
-        require(pulses > before, "liveness must continue while a status reply waits behind profile work")
-        coordinator.stop()
-        statusGate.resume(true)
-    }
-
     private static func credentialChangeDuringLookup() async throws {
         let fixture = Fixture()
         fixture.holdLookup = true
@@ -613,6 +941,12 @@ enum MimoCoordinatorTests {
         var holdPrepare = false
         var holdApproval = false
         var holdLookup = false
+        var holdLookupFailure = false
+        var expectDirectLookup = false
+        var holdObservationFailure = false
+        var ignoreObservationFailure = false
+        var replaceObservationOnFailure = false
+        var failObservationFailure = false
         var lookupCount = 0
         var holdDirectDelivery = false
         var holdCloseDelivery = false
@@ -628,6 +962,8 @@ enum MimoCoordinatorTests {
         let prepareGate = Gate<MimoRoutingState>()
         let approvalGate = Gate<MimoRoutingState>()
         let lookupGate = Gate<MimoSnapshot>()
+        let lookupFailureGate = Gate<LookupError>()
+        let observationFailureGate = Gate<Bool>()
 
         init(mode: ProxyMode = .rule, family: MimoNetworkFamily = .ipv4) {
             var configuration = MimoConfiguration()
@@ -643,8 +979,12 @@ enum MimoCoordinatorTests {
         func coordinator() -> MimoCoordinator {
             MimoCoordinator(configuration: configuration, allowlist: allowed, revision: 1,
                             transport: { try await self.handle($0, progress: $1) }, lookup: { request, protected in
-                require(protected, "fixture probes must use the protected path")
+                require(protected != self.expectDirectLookup, "fixture probes must use the expected network path")
                 self.lookupCount += 1
+                if self.holdLookupFailure {
+                    self.holdLookupFailure = false
+                    throw await self.lookupFailureGate.wait()
+                }
                 if let failure = self.lookupFailure, self.failureFamily == nil || request.family == self.failureFamily { throw failure }
                 if self.holdLookup {
                     self.holdLookup = false
@@ -679,12 +1019,36 @@ enum MimoCoordinatorTests {
                 }
                 if failHeartbeat { throw DaemonFailure.unavailable }
             case .close:
+                if let expected = message.verification,
+                   policy.state.phase != .checking || policy.state.verification != expected {
+                    // The real transport maps rejected token-qualified closes to
+                    // cancellation; a stale failure cannot mutate the current gate.
+                    throw CancellationError()
+                }
                 closeRequests += 1
                 if failClose { throw DaemonFailure.unavailable }
                 policy.block("Verification required")
             case .direct:
                 if failDirect { throw DaemonFailure.unavailable }
                 policy.directRestored(configuration: message.configuration ?? configuration)
+            case .updatePolicy:
+                allowed = message.allowlist!
+                _ = policy.revokeDisallowed(allowed)
+            case .observe:
+                _ = policy.beginObservation(revision: message.revision!, networkGeneration: message.networkGeneration!)
+            case .completeObservation:
+                allowed = message.allowlist ?? allowed
+                approvals.append(message.verification!)
+                _ = policy.finishObservation(message.exitObservations!, allowlist: allowed)
+            case .observationFailed:
+                if holdObservationFailure {
+                    holdObservationFailure = false
+                    _ = await observationFailureGate.wait()
+                }
+                if failObservationFailure { throw DaemonFailure.unavailable }
+                if replaceObservationOnFailure {
+                    _ = policy.beginObservation(revision: message.revision!, networkGeneration: message.networkGeneration!)
+                } else if !ignoreObservationFailure { policy.failObservation(message.verification!) }
             case .prepare:
                 policy.block("Preparing", confirmed: !failPrepareClose)
                 if failPrepareClose { return policy.state }
@@ -698,6 +1062,7 @@ enum MimoCoordinatorTests {
                     return await prepareGate.wait()
                 }
             case .approve:
+                allowed = message.allowlist ?? allowed
                 if holdApproval {
                     holdApproval = false
                     policy.waitingForReadiness(address: message.address!, verification: message.verification!)

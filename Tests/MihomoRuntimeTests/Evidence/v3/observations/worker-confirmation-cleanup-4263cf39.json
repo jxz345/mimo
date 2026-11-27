@@ -1,0 +1,108 @@
+{
+  "schema": 1,
+  "purpose": "Owned cleanup and authorized deletion after the completed temporary worker confirmation.",
+  "scope_counts": {
+    "runtime_completed": 9,
+    "runtime_passed": 7,
+    "runtime_failed": 2,
+    "additional_test_runs_during_cleanup": 0
+  },
+  "passed": true,
+  "original_baseline": {
+    "evidence_id": "6795dde0b68b4b6290221ff0046be2ab",
+    "passed": true,
+    "completed": [
+      "read_original",
+      "request_direct",
+      "wait_direct",
+      "reset_fixture",
+      "restore_settings",
+      "restore_proxy_selection",
+      "read_proxies",
+      "remove_fixture_proxy",
+      "restore_routing",
+      "restore_hosts",
+      "read_restored_state",
+      "native_release_readback"
+    ],
+    "failures": [],
+    "settings_restored": true,
+    "routing_restored": true,
+    "hosts_restored": true,
+    "native_controls_released": true
+  },
+  "guest_fixture_cleanup": {
+    "resolver_cleanup": {
+      "cleaned": true,
+      "owned_files_removed": 6
+    },
+    "helpers": {
+      "native": {
+        "pid": 1150,
+        "joined": true
+      },
+      "dns": {
+        "pid": 1151,
+        "joined": true
+      },
+      "caffeine": {
+        "pid": 1152,
+        "joined": true
+      }
+    },
+    "lab_empty": true,
+    "native_controls_released": true,
+    "hosts_original": true,
+    "settings_restored": true,
+    "routing_restored": true
+  },
+  "tailnet_logout": {
+    "logout_exit": 0,
+    "status_exit": 0,
+    "backend_state": "NeedsLogin",
+    "assigned_ips_absent": true,
+    "current_tailnet_absent": true,
+    "backend_requires_login": true,
+    "vpn_disconnected": true,
+    "passed": true
+  },
+  "owned_host_fixture_and_control_joined": true,
+  "owned_fresh_and_persistent_SSH_observers_joined": true,
+  "observer_history_hashes": {
+    "worker-ssh-watch.json": "348c54271991f65b0ba58504d2815c16059062666ea3ef60dccf71b0e3bd805b",
+    "worker-ssh-continuity.jsonl": "5fc376bcafb8b1599a9fb304aedce1f3e194ee8c57d0819f44c31ed614452dfc"
+  },
+  "whole_guest_scope_archive": {
+    "path": ".build/observation-parallel/worker-validation-4263cf39-20261127T141639Z-23914b98/whole-guest-scope-private.tar.gz",
+    "sha256": "1b5f4e3e2ed3ade52218660ef688665132d2c2c6f2fe01a2846e662a65335bee",
+    "file_count": 314
+  },
+  "private_cleanup_result": {
+    "path": ".build/observation-parallel/worker-validation-4263cf39-20261127T141639Z-23914b98/final-cleanup/result.json",
+    "sha256": "c6075b2432fd1f88c7c34fc84a173fbf446f9b96a4a063ec6578127a86f406d6"
+  },
+  "deletion": {
+    "vm": "mimo-observation-worker",
+    "exact_identity_rechecked": true,
+    "stop_completed": true,
+    "delete_completed": true,
+    "primary_and_existing_backup_preserved": true,
+    "preserved_VM_configs_unchanged": true,
+    "remaining_vms": [
+      {
+        "name": "mimo-pre-v3-20261125",
+        "running": false
+      },
+      {
+        "name": "mimo-test-macos",
+        "running": true
+      }
+    ],
+    "proof_path": ".build/observation-parallel/worker-validation-4263cf39-20261127T141639Z-23914b98/final-cleanup/deletion.json",
+    "proof_sha256": "5cd67cb460c2a78e1760005ed76f3707028034b0cdf5bcc637cdf3531a9bf72e"
+  },
+  "limits": [
+    "Cleanup does not change either retained test failure into a pass.",
+    "The primary VM and pre-existing stopped backup were preserved; no primary tests or configuration mutations were performed during worker cleanup."
+  ]
+}

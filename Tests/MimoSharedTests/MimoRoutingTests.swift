@@ -2,6 +2,57 @@ import XCTest
 @testable import MimoShared
 
 final class MimoRoutingTests: XCTestCase {
+    func testOrdinaryDirectTracksOnlyIncomingLocalTCPAndFullReleaseIsEmpty() throws {
+        let addresses = try MimoFirewallPolicy.localTCPDestinations()
+        let direct = try MimoFirewallPolicy.directTracking(destinations: addresses)
+        XCTAssertTrue(MimoFirewallPolicy.isDirectTrackingReadback(direct))
+        XCTAssertTrue(MimoFirewallPolicy.isDirectTrackingSnapshot(direct))
+        XCTAssertEqual(MimoFirewallPolicy.inboundDestinations(in: direct), addresses)
+        XCTAssertEqual(direct.split(separator: "\n").count, addresses.count + 1)
+        XCTAssertFalse(direct.contains("(self)"))
+        XCTAssertTrue(direct.hasSuffix(MimoFirewallPolicy.inboundLoopback + "\n"))
+        XCTAssertFalse(direct.contains("pass in quick"))
+        XCTAssertFalse(direct.contains("pass out"))
+        XCTAssertFalse(direct.contains("block "))
+        XCTAssertFalse(MimoFirewallPolicy.isDirectTrackingReadback(""))
+        XCTAssertFalse(MimoFirewallPolicy.isDirectTrackingReadback(direct + "pass out quick all\n"))
+        XCTAssertFalse(MimoFirewallPolicy.isDirectTrackingReadback(direct.replacingOccurrences(of: "flags S/SA", with: "flags any")))
+        XCTAssertEqual(MimoFirewallPolicy.direct, "", "Stop/uninstall fully releases tracking")
+    }
+
+    func testTrackingSnapshotRetainsIPv6HostsAndRejectsDestinationWidening() throws {
+        let addresses = ["192.0.2.2", "2001:db8::12", "fe80::1234"]
+        let direct = try MimoFirewallPolicy.directTracking(destinations: addresses)
+        XCTAssertTrue(MimoFirewallPolicy.isDirectTrackingSnapshot(direct))
+        XCTAssertEqual(MimoFirewallPolicy.inboundDestinations(in: direct), addresses)
+        for invalid in ["any", "(self)", "192.0.2.0/24", "::", "0.0.0.0", "ff02::1", "224.0.0.1", "fe80::1234%en0", "2001:0db8::12"] {
+            XCTAssertThrowsError(try MimoFirewallPolicy.directTracking(destinations: [invalid]), invalid)
+            XCTAssertFalse(MimoFirewallPolicy.isDirectTrackingSnapshot(direct.replacingOccurrences(of: "192.0.2.2", with: invalid)), invalid)
+        }
+        XCTAssertThrowsError(try MimoFirewallPolicy.directTracking(destinations: Array(addresses.reversed())))
+        XCTAssertThrowsError(try MimoFirewallPolicy.directTracking(destinations: ["192.0.2.2", "192.0.2.2"]))
+        XCTAssertFalse(MimoFirewallPolicy.isDirectTrackingSnapshot(direct.replacingOccurrences(of: "flags S/SA", with: "flags any")))
+        XCTAssertFalse(MimoFirewallPolicy.isDirectTrackingSnapshot(direct + "pass out quick all\n"))
+    }
+
+    func testDeniedSnapshotCanReconcileAddressDriftWithoutRelaxingOtherRules() throws {
+        let native = MimoNativeEgress()
+        let old = try MimoFirewallPolicy.blockedPolicy(nativeEgress: native, destinations: ["192.0.2.2"])
+        let new = try MimoFirewallPolicy.blockedPolicy(nativeEgress: native, destinations: ["192.0.2.3"])
+        XCTAssertTrue(MimoFirewallPolicy.isBlockedSnapshot(old, nativeEgress: native))
+        XCTAssertTrue(MimoFirewallPolicy.isBlockedSnapshot(new, nativeEgress: native))
+        XCTAssertNotEqual(old, new)
+        XCTAssertFalse(MimoFirewallPolicy.isBlockedSnapshot(old + "pass out quick all\n", nativeEgress: native))
+        XCTAssertFalse(MimoFirewallPolicy.isBlockedSnapshot(old.replacingOccurrences(of: "192.0.2.2", with: "any"), nativeEgress: native))
+        let current = MimoFirewallPolicy.startupBlocking
+        let prefix = try XCTUnwrap(MimoFirewallPolicy.inboundDestinations(in: current))
+        let different = current.replacingOccurrences(of: try MimoFirewallPolicy.inboundTCP(destinations: prefix),
+            with: try MimoFirewallPolicy.inboundTCP(destinations: ["192.0.2.3"]))
+        XCTAssertTrue(MimoFirewallPolicy.isStartupBlockingSnapshot(different), "Close admission must not depend on a second live inventory")
+        XCTAssertTrue(MimoFirewallPolicy.isClosedSnapshot(old))
+        XCTAssertFalse(MimoFirewallPolicy.isStartupBlockingSnapshot(different + "pass out quick all\n"))
+    }
+
     func testRevocationKeepsInboundStatesAndKillsOnlyOutboundSources() throws {
         let states = """
         en0 tcp 192.0.2.5:22 <- 192.0.2.9:54000 ESTABLISHED:ESTABLISHED

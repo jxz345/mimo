@@ -1,0 +1,394 @@
+{
+  "schema": 1,
+  "purpose": "New targeted reproduction of remaining native-policy health, ownership and contention issues on an isolated temporary macOS worker.",
+  "scope_counts": {
+    "worker_setup_completed": 1,
+    "worker_setup_planned": 1,
+    "new_worker_controls_completed": 10,
+    "new_worker_controls_planned": 10,
+    "passed": 3,
+    "failed": 7,
+    "fixture_errors": 0,
+    "executions_per_control": 1,
+    "prior_test_reruns": 0,
+    "host_test_executions": 0,
+    "separate_primary_real_PF_tests": 6
+  },
+  "candidate_source": {
+    "core_sha256_reference": "4263cf39e9779b03d00bc73b40fd523e4ba8e42012ec2aa84f824ba5dd48e067",
+    "version": "3.0",
+    "build": 11,
+    "published": false,
+    "production_files_match_frozen_candidate": 9,
+    "production_changed": false,
+    "installed_app_qualification": false,
+    "source_manifest": ".build/observation-parallel/worker-failure-investigation-20261127T171430Z-cab0f968/controls-before-02/source-identities.json",
+    "source_manifest_sha256": "d8584cd20b4b09cf835f2f0d55d413c307fbbe47d04a15281204445b3b0fbe1e",
+    "production_source_hashes": {
+      "Sources/MimoService/MimoSystemRuntime.swift": "cae8d47be5da5842b7c4c77a324d864e69cf0f32c7c200035617474cd10a1ffa",
+      "Sources/MimoService/MimoFirewallLock.swift": "0ab994e98bb5d815aa4419e6cdd42b29f3885bcaee758c223fd540d9efb35dd3",
+      "Sources/MimoService/MimoBlockingWorkQueue.swift": "5b19f14e991dbdbee446bddbdec8d808ff511907763776be99321671c0c3891e",
+      "Sources/MimoService/MimoPFHealthReceipt.swift": "78e92ee101738b6441ed362120a0f64ad3f6227d089fc31bc6c0d9c7dcb173be",
+      "Sources/MimoShared/SingleInstanceLock.swift": "0d5db865d919c56d37a4e3680aad39d806197e610be2cd211b1bcf3c47368d70",
+      "Sources/MimoShared/MimoFirewallPolicy.swift": "8dc7f77fe6378d83154df4a28cf11043e9202463f7a3b23c6b7a4dfa5f2aaff2",
+      "Sources/MimoShared/MimoNativeEgress.swift": "c268cacab93c66367692d2bfd48f3f4a29f9d2a045b5ff0c14bf92feb17113a7",
+      "Sources/MimoShared/MimoRouting.swift": "2b3e620d3ca36d0f67bf2854a4420bc907742ce1721133768071e4f74335a353",
+      "Sources/MimoShared/MimoAllowlist.swift": "3f3d60e5837faba51e464df09b989ad09d61fa62e5190fc4d405c5a7d005e41e"
+    }
+  },
+  "payload": {
+    "path": ".build/observation-parallel/worker-failure-investigation-20261127T171430Z-cab0f968/controls-before-02/payload.tar.gz",
+    "sha256": "faf23a6de8fe077a303cad14bd086a075eb461056d1a40d56f569487ed50441e"
+  },
+  "evidence": {
+    "archive_path": ".build/observation-parallel/worker-failure-investigation-20261127T171430Z-cab0f968/controls-before-02/worker-evidence.tar.gz",
+    "archive_sha256": "ccbf35cadf02b735cb00140d0a8eea21b7bdb45f8a55d6c85675e2661dc89c94",
+    "results_path": ".build/observation-parallel/worker-failure-investigation-20261127T171430Z-cab0f968/controls-before-02/results.json",
+    "results_sha256": "12b84f66aa5da9e9755b89ab994414d9aedacbe8b275cd06affdc74ab45c313d",
+    "author_review": "Tests/MimoServiceTests/NativePolicyReceipts/before-evidence.json",
+    "methods": {
+      "production_members": [
+        "    func auditPolicies()",
+        "    func refreshBlockedNativeTransport()",
+        "    func infrastructureStatus(",
+        "    private func pfHealthReceiptIsCurrent(",
+        "    var gateState:"
+      ],
+      "real": "MainActor scheduling, blocking work queue, flock, mutation/close epochs, native rules, health receipt checks and status projection",
+      "mocked": "PF command/readback text, signed-native snapshot, sandbox paths, OS boot identity/file ownership; no actual PF or XPC",
+      "contention_scope": "MainActor state/Direct-intent callback admission availability; not a full daemon RPC or physical Direct switch",
+      "planned": 10
+    },
+    "final_policy_digests": [
+      {
+        "case": "active-lock-contention-keeps-admission-responsive",
+        "final_guard_expected_sha256": "0b45c4a6f81210bba9433296aaed31508e5c807ed9f67ccbd6d8a276dd49357d",
+        "bytes": 2312,
+        "receipt_matches": "false",
+        "pf": "unknown",
+        "mutation_epoch": "CDB09681-A742-45A7-9912-4152976A295C"
+      },
+      {
+        "case": "active-native-update-current-receipt",
+        "final_guard_expected_sha256": "0b45c4a6f81210bba9433296aaed31508e5c807ed9f67ccbd6d8a276dd49357d",
+        "bytes": 2312,
+        "receipt_matches": "false",
+        "pf": "unknown",
+        "mutation_epoch": "2F31065C-5266-4F70-A66A-E2BFB58F538D"
+      },
+      {
+        "case": "blocked-lock-contention-keeps-admission-responsive",
+        "final_guard_expected_sha256": "6f5431405d819df14f8dbd33f2815148e19d050a20bc23a4c51d021e0bf461b3",
+        "bytes": 2505,
+        "receipt_matches": "false",
+        "pf": "unknown",
+        "mutation_epoch": "9E5D4321-5B3E-4644-99F7-4FEA8A729217"
+      },
+      {
+        "case": "blocked-native-update-current-receipt",
+        "final_guard_expected_sha256": "6f5431405d819df14f8dbd33f2815148e19d050a20bc23a4c51d021e0bf461b3",
+        "bytes": 2505,
+        "receipt_matches": "false",
+        "pf": "unknown",
+        "mutation_epoch": "33AD88F1-3E89-48C2-8B15-E1A53D86653C"
+      },
+      {
+        "case": "failed-readback-cannot-publish-healthy-receipt",
+        "final_guard_expected_sha256": "a1f7188656587e911a576d340f31ee7f8a1e7d72c12ef8867a615c3fd0b1a45c",
+        "bytes": 2312,
+        "receipt_matches": "false",
+        "pf": "unknown",
+        "mutation_epoch": "2DF60EF5-E9DC-4E6A-9EBA-E32886E22A17"
+      },
+      {
+        "case": "narrow-readback-does-not-renew-expired-full-guard",
+        "final_guard_expected_sha256": "0b45c4a6f81210bba9433296aaed31508e5c807ed9f67ccbd6d8a276dd49357d",
+        "bytes": 2312,
+        "receipt_matches": "true",
+        "pf": "stale",
+        "mutation_epoch": "88633C8D-174E-4AB7-BFF1-5C9D01E94D6F"
+      },
+      {
+        "case": "superseded-close-has-no-policy-or-epoch-side-effect",
+        "final_guard_expected_sha256": "8f6f2f91c071a6d5a98895baf9dd2ee0146029d7049eee4eb58e0018a7306864",
+        "bytes": 2386,
+        "receipt_matches": "false",
+        "pf": "unknown",
+        "mutation_epoch": "0E59142D-FE93-44AB-8DB5-0BBC7D9A9274"
+      },
+      {
+        "case": "superseded-direct-has-no-policy-or-epoch-side-effect",
+        "final_guard_expected_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0,
+        "receipt_matches": "true",
+        "pf": "healthy",
+        "mutation_epoch": "new-owner-mutation"
+      },
+      {
+        "case": "superseded-epoch-has-no-policy-or-epoch-side-effect",
+        "final_guard_expected_sha256": "0b45c4a6f81210bba9433296aaed31508e5c807ed9f67ccbd6d8a276dd49357d",
+        "bytes": 2312,
+        "receipt_matches": "false",
+        "pf": "unknown",
+        "mutation_epoch": "3866FFE9-E747-4CDF-9E96-59FA3242DD05"
+      },
+      {
+        "case": "superseded-intent-has-no-policy-or-epoch-side-effect",
+        "final_guard_expected_sha256": "80aeef77b693c0d3a4b873bf134fdc9bc7ec846dc7aa5e862a58995928746791",
+        "bytes": 2312,
+        "receipt_matches": "false",
+        "pf": "unknown",
+        "mutation_epoch": "E13D0040-5D8F-406E-8D67-9BA9A0CB26F1"
+      }
+    ]
+  },
+  "results": [
+    {
+      "failures": [
+        "missing_current_receipt",
+        "healthy_policy_projected_unavailable"
+      ],
+      "name": "active-native-update-current-receipt",
+      "observations": {
+        "error_class": "none",
+        "evidence_current": "false",
+        "gate_state": "active",
+        "mutation_epoch": "2F31065C-5266-4F70-A66A-E2BFB58F538D",
+        "pf": "unknown",
+        "pf_writes": "1",
+        "receipt_matches": "false"
+      },
+      "passed": false
+    },
+    {
+      "failures": [
+        "missing_current_receipt",
+        "healthy_policy_projected_unavailable"
+      ],
+      "name": "blocked-native-update-current-receipt",
+      "observations": {
+        "error_class": "none",
+        "evidence_current": "false",
+        "gate_state": "blocked",
+        "mutation_epoch": "33AD88F1-3E89-48C2-8B15-E1A53D86653C",
+        "pf": "unknown",
+        "pf_writes": "1",
+        "receipt_matches": "false"
+      },
+      "passed": false
+    },
+    {
+      "failures": [
+        "stale_worker_wrote_policy",
+        "stale_worker_invalidated_new_epoch",
+        "stale_worker_replaced_expected_policy",
+        "new_owner_receipt_lost"
+      ],
+      "name": "superseded-epoch-has-no-policy-or-epoch-side-effect",
+      "observations": {
+        "error_class": "none",
+        "evidence_current": "false",
+        "gate_state": "active",
+        "mutation_epoch": "3866FFE9-E747-4CDF-9E96-59FA3242DD05",
+        "pf": "unknown",
+        "pf_writes": "1",
+        "receipt_matches": "false"
+      },
+      "passed": false
+    },
+    {
+      "failures": [
+        "stale_worker_invalidated_new_epoch",
+        "new_owner_receipt_lost"
+      ],
+      "name": "superseded-close-has-no-policy-or-epoch-side-effect",
+      "observations": {
+        "error_class": "DaemonFailure",
+        "evidence_current": "false",
+        "gate_state": "blocked",
+        "mutation_epoch": "0E59142D-FE93-44AB-8DB5-0BBC7D9A9274",
+        "pf": "unknown",
+        "pf_writes": "0",
+        "receipt_matches": "false"
+      },
+      "passed": false
+    },
+    {
+      "failures": [],
+      "name": "superseded-direct-has-no-policy-or-epoch-side-effect",
+      "observations": {
+        "error_class": "none",
+        "evidence_current": "true",
+        "gate_state": "direct",
+        "mutation_epoch": "new-owner-mutation",
+        "pf": "healthy",
+        "pf_writes": "0",
+        "receipt_matches": "true"
+      },
+      "passed": true
+    },
+    {
+      "failures": [
+        "stale_worker_invalidated_new_epoch",
+        "new_owner_receipt_lost"
+      ],
+      "name": "superseded-intent-has-no-policy-or-epoch-side-effect",
+      "observations": {
+        "error_class": "DaemonFailure",
+        "evidence_current": "false",
+        "gate_state": "active",
+        "mutation_epoch": "E13D0040-5D8F-406E-8D67-9BA9A0CB26F1",
+        "pf": "unknown",
+        "pf_writes": "0",
+        "receipt_matches": "false"
+      },
+      "passed": false
+    },
+    {
+      "failures": [],
+      "name": "narrow-readback-does-not-renew-expired-full-guard",
+      "observations": {
+        "error_class": "none",
+        "evidence_current": "true",
+        "gate_state": "active",
+        "mutation_epoch": "88633C8D-174E-4AB7-BFF1-5C9D01E94D6F",
+        "pf": "stale",
+        "pf_writes": "1",
+        "receipt_matches": "true"
+      },
+      "passed": true
+    },
+    {
+      "failures": [],
+      "name": "failed-readback-cannot-publish-healthy-receipt",
+      "observations": {
+        "error_class": "DaemonFailure",
+        "evidence_current": "false",
+        "gate_state": "active",
+        "mutation_epoch": "2DF60EF5-E9DC-4E6A-9EBA-E32886E22A17",
+        "pf": "unknown",
+        "pf_writes": "1",
+        "receipt_matches": "false"
+      },
+      "passed": true
+    },
+    {
+      "failures": [
+        "main_actor_starved_by_pf_lock"
+      ],
+      "name": "active-lock-contention-keeps-admission-responsive",
+      "observations": {
+        "admission_count": "1",
+        "admission_delay_seconds": "0.7608471250000548",
+        "contended_mutation_seconds": "0.9897332916666528",
+        "error_class": "none",
+        "evidence_current": "false",
+        "gate_state": "active",
+        "mutation_epoch": "CDB09681-A742-45A7-9912-4152976A295C",
+        "pf": "unknown",
+        "pf_writes": "1",
+        "receipt_matches": "false"
+      },
+      "passed": false
+    },
+    {
+      "failures": [
+        "main_actor_starved_by_pf_lock"
+      ],
+      "name": "blocked-lock-contention-keeps-admission-responsive",
+      "observations": {
+        "admission_count": "1",
+        "admission_delay_seconds": "0.7008197916667314",
+        "contended_mutation_seconds": "0.867554000000041",
+        "error_class": "none",
+        "evidence_current": "false",
+        "gate_state": "blocked",
+        "mutation_epoch": "9E5D4321-5B3E-4644-99F7-4FEA8A729217",
+        "pf": "unknown",
+        "pf_writes": "1",
+        "receipt_matches": "false"
+      },
+      "passed": false
+    }
+  ],
+  "findings": [
+    {
+      "controls": [
+        1,
+        2
+      ],
+      "finding": "Successful active and blocked native policy updates replace the policy/epoch without a matching narrow receipt; current policy projects as PF unknown while the full guard baseline is still fresh."
+    },
+    {
+      "controls": [
+        3
+      ],
+      "finding": "A superseded mutation epoch is not checked before stale work writes policy, replaces guard.expected and advances mutation epoch; replacement receipt no longer matches."
+    },
+    {
+      "controls": [
+        4,
+        6
+      ],
+      "finding": "Stale close or intent validation rejects the PF write, but mutation epoch has already advanced, invalidating the newer receipt despite zero PF writes."
+    },
+    {
+      "controls": [
+        9,
+        10
+      ],
+      "finding": "The actor callback is delayed by actual held file-lock contention.",
+      "active_callback_delay_seconds": 0.7608471250000548,
+      "blocked_callback_delay_seconds": 0.7008197916667314,
+      "active_contended_mutation_seconds": 0.9897332916666528,
+      "blocked_contended_mutation_seconds": 0.867554000000041,
+      "asserted_callback_limit_seconds": 0.2
+    }
+  ],
+  "passing_controls": [
+    "Direct supersession preserved the newer policy and receipt.",
+    "A matching narrow readback did not renew an expired full-guard observation.",
+    "Failed PF readback did not publish a healthy receipt."
+  ],
+  "limits": [
+    "This worker used actual extracted MimoSystemRuntime methods, MainActor scheduling, file locks/epochs, policy rendering and receipt/status validation; PF subprocess output, native facts, sandbox paths, boot identity and file ownership were substituted.",
+    "No actual PF mutation, full daemon RPC, installed GUI click, external proxy, Tailscale authentication or certificate operation was used in these ten controls.",
+    "The contention probes measure actor callback admission, not a full physical Direct switch or the production three-second RPC deadline.",
+    "The policy renderer controlReadback member is made visible to the test canonicalization fake; rule contents are unchanged.",
+    "The isolated clone used a drop-only socket NIC throughout; copied Tailnet authentication could not contact any network."
+  ],
+  "preparation_failures": [
+    {
+      "path": ".build/observation-parallel/worker-failure-investigation-20261127T171430Z-cab0f968/controls-before-01/classification.json",
+      "classification": "staging wrapper syntax error before execution",
+      "test_executions": 0
+    },
+    {
+      "path": ".build/observation-parallel/worker-failure-investigation-20261127T171430Z-cab0f968/cleanup-first-attempt-classification.json",
+      "classification": "cleanup process matcher matched its own wrapper; no mutation before correction",
+      "test_executions": 0
+    }
+  ],
+  "cleanup": {
+    "proof_path": ".build/observation-parallel/worker-failure-investigation-20261127T171430Z-cab0f968/cleanup-proof.json",
+    "proof_sha256": "b795833c75f40fbd52bd619f76b0ccd4445ba0a705a39a2ce76e7deb7ec835a2",
+    "owned_guest_root_removed": true,
+    "test_processes_remaining": 0,
+    "primary_and_backup_config_unchanged": true,
+    "temporary_worker_deleted": true,
+    "deletion_pending_root_authorization": false,
+    "deletion_proof_path": ".build/observation-parallel/worker-failure-investigation-20261127T171430Z-cab0f968/deletion-proof.json",
+    "deletion_proof_sha256": "f1dafeaf2ad65d7d2e306aff5b76ad099361de5f09e76e5980f023850d347f55",
+    "isolated_network_controller_finished": true,
+    "remaining_vms": [
+      {
+        "name": "mimo-pre-v3-20261125",
+        "running": false
+      },
+      {
+        "name": "mimo-test-macos",
+        "running": true
+      }
+    ]
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "expected": [
+    "mihomo",
+    "mimo-core-heartbeat",
+    "mimo-core-supervisor"
+  ],
+  "observed": [
+    {
+      "Name": "mimo-core",
+      "Identifier": "16.com.mimo.supervisor",
+      "URL": "/Library/LaunchDaemons/com.mimo.supervisor.plist",
+      "Executable Path": "/Library/PrivilegedHelperTools/mimo-core"
+    }
+  ],
+  "passed": false,
+  "scope": "mimo-vm, before named role paths and independent system registrations",
+  "expected_failure": true
+}

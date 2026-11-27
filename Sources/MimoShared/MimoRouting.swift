@@ -81,7 +81,7 @@ public enum MimoServiceID: String, CaseIterable, Codable, Sendable, Identifiable
     public var id: String { rawValue }
     public var title: String {
         switch self {
-        case .core: "mimo-core"
+        case .core: "IP monitor"
         case .mihomo: "mihomo"
         case .profileHosting: "Profile hosting"
         }
@@ -121,7 +121,7 @@ public struct MimoServiceStatus: Codable, Equatable, Sendable, Identifiable {
         switch health {
         case .running:
             guard let age = MimoHealthLabel.age(checkedAt: checkedAt, at: date) else { return "Unavailable" }
-            return age <= 35 ? "Healthy" : "Stale"
+            return age <= 35 ? "Healthy" : "Check overdue"
         case .stopped: return "Stopped"
         case .suspended: return "Suspended"
         case .restarting: return "Restarting"
@@ -158,19 +158,68 @@ public enum MimoInfrastructureHealth: String, Codable, Sendable {
     }
 }
 
-/// Last independent inspection, never inferred from the selected routing mode.
+/// Last supervisor inspection, never inferred from the selected routing mode.
+public enum MimoInfrastructureCheckOutcome: String, Codable, Sendable {
+    case completed, deferred, superseded, failed
+}
+
+public struct MimoInfrastructureInspection: Codable, Equatable, Sendable {
+    public var id: String
+    public var generation: UInt64
+    public var startedAt: Date
+    public var completedAt: Date?
+    public var outcome: MimoInfrastructureCheckOutcome?
+    public var reason: String?
+    public var isCurrent: Bool
+    public init(id: String, generation: UInt64, startedAt: Date, completedAt: Date? = nil,
+                outcome: MimoInfrastructureCheckOutcome? = nil, reason: String? = nil, isCurrent: Bool = true) {
+        self.id = id; self.generation = generation; self.startedAt = startedAt
+        self.completedAt = completedAt; self.outcome = outcome; self.reason = reason; self.isCurrent = isCurrent
+    }
+}
+
 public struct MimoInfrastructureStatus: Codable, Equatable, Sendable {
     public var pf: MimoInfrastructureHealth
     public var launchd: MimoInfrastructureHealth
     public var checkedAt: Date?
-    public init(pf: MimoInfrastructureHealth = .unknown, launchd: MimoInfrastructureHealth = .unknown, checkedAt: Date? = nil) {
+    public var pfCheckedAt: Date?
+    public var launchdCheckedAt: Date?
+    public var completedAt: Date?
+    public var inspection: MimoInfrastructureInspection?
+    public var pfEvidenceCurrent: Bool?
+    public init(pf: MimoInfrastructureHealth = .unknown, launchd: MimoInfrastructureHealth = .unknown, checkedAt: Date? = nil,
+                pfCheckedAt: Date? = nil, launchdCheckedAt: Date? = nil, completedAt: Date? = nil,
+                inspection: MimoInfrastructureInspection? = nil, pfEvidenceCurrent: Bool? = nil) {
         self.pf = pf; self.launchd = launchd; self.checkedAt = checkedAt
+        self.pfCheckedAt = pfCheckedAt; self.launchdCheckedAt = launchdCheckedAt
+        self.completedAt = completedAt; self.inspection = inspection
+        self.pfEvidenceCurrent = pfEvidenceCurrent
     }
     public func current(at date: Date) -> Self {
-        guard let checkedAt else { return Self() }
-        let age = date.timeIntervalSince(checkedAt)
-        guard age >= -5, age <= 35 else { return Self(pf: .stale, launchd: .stale, checkedAt: checkedAt) }
-        return self
+        var result = self
+        func current(_ health: MimoInfrastructureHealth, observed: Date?, owned: Bool = true) -> MimoInfrastructureHealth {
+            guard let observed else { return .unknown }
+            let age = date.timeIntervalSince(observed)
+            guard age >= -5, age <= 35 else { return .stale }
+            if !owned { return .unknown }
+            return health
+        }
+        result.pf = current(pf, observed: pfCheckedAt ?? checkedAt, owned: pfEvidenceCurrent != false)
+        result.launchd = current(launchd, observed: launchdCheckedAt ?? checkedAt)
+        return result
+    }
+
+    public func healthLabel(firewall: Bool, at date: Date) -> String {
+        let current = current(at: date)
+        let health = firewall ? current.pf : current.launchd
+        let observed = firewall ? (pfCheckedAt ?? checkedAt) : (launchdCheckedAt ?? checkedAt)
+        var title = health.title
+        if health != .stale && health != .failed, let inspection {
+            if firewall && pfEvidenceCurrent == false { title = "Check pending" }
+            else if inspection.isCurrent && (inspection.outcome == .deferred || inspection.outcome == .superseded) { title = "Check pending" }
+            else if inspection.isCurrent && inspection.outcome == nil { title = "Checking" }
+        }
+        return MimoHealthLabel.text(title, checkedAt: observed, at: date)
     }
 }
 
@@ -199,12 +248,17 @@ public struct MimoRoutingState: Codable, Equatable, Sendable {
     public var lastExitObservation: MimoSnapshot?
     public var blockingIP: MimoIPObservation?
     public var verification: MimoVerification?
+    /// A check of an unchanged approved path; never grants permission by itself.
+    public var observation: MimoVerification?
+    public var observationFailed: Bool?
     /// Traffic is allowed after optimistic checks while the full audit runs.
     /// Optional for compatibility with earlier stored snapshots.
     public var backgroundVerification: Bool?
     public var services: [MimoServiceStatus] = []
     /// Independent PF/launchd health. Nil means no audit has been observed yet.
     public var infrastructure: MimoInfrastructureStatus?
+    public var heartbeatHealth: MimoInfrastructureHealth?
+    public var heartbeatCheckedAt: Date?
     /// Time the supervisor produced this state; retained through core/UI caches.
     public var supervisorCheckedAt: Date?
     public var hasProxyPassword = false
@@ -261,8 +315,45 @@ public struct MimoAccessPolicy: Sendable {
         state = MimoRoutingState(configuration: configuration)
     }
 
+    public mutating func beginObservation(revision: Int, networkGeneration: UInt64) -> MimoVerification? {
+        guard state.allowsTraffic, state.configuration.mode.requiresVerification, state.observedIP != nil else { return nil }
+        let check = MimoVerification(revision: revision, networkGeneration: networkGeneration)
+        state.observation = check; state.observationFailed = false
+        state.reason = "Checking exit IP · traffic remains allowed."
+        return check
+    }
+
+    public mutating func finishObservation(_ observations: MimoExitObservations, allowlist: AllowedIPList) -> Bool {
+        guard let check = state.observation, state.allowsTraffic, let since = check.startedAt,
+              observations.isValid(for: check, family: state.configuration.networkFamily, since: since) else { return false }
+        state.observedIP = .init(address: observations.ipv4.ipAddress, checkedAt: observations.ipv4.checkedAt)
+        state.exitObservations = observations
+        state.observation = nil; state.observationFailed = false
+        if revokeDisallowed(allowlist) { return false }
+        state.reason = "IPv4 exit IP approved."
+        return true
+    }
+
+    public mutating func failObservation(_ check: MimoVerification) {
+        guard state.observation == check, state.allowsTraffic else { return }
+        state.observation = nil; state.observationFailed = true
+        state.reason = "Check failed · using last approved result. Traffic remains allowed."
+    }
+
+    /// Owner must establish the block before publishing a revoked policy.
+    @discardableResult
+    public mutating func revokeDisallowed(_ allowlist: AllowedIPList) -> Bool {
+        guard state.allowsTraffic, state.configuration.mode.requiresVerification,
+              let current = state.observedIP, !allowlist.contains(current.address) else { return false }
+        state.blockingIP = current
+        block(allowlist.isEmpty ? "No exit IPs are approved. Review Allowed IPs in Settings."
+              : "The observed IPv4 exit IP is not approved. Review Allowed IPs or select another proxy.")
+        return true
+    }
+
     @discardableResult
     public mutating func begin(configuration: MimoConfiguration, revision: Int, networkGeneration: UInt64) -> MimoVerification {
+        state.observation = nil; state.observationFailed = nil
         state.backgroundVerification = nil
         let verification = MimoVerification(revision: revision, networkGeneration: networkGeneration)
         state.configuration = configuration
@@ -345,6 +436,7 @@ public struct MimoAccessPolicy: Sendable {
     }
 
     public mutating func directRestored(configuration: MimoConfiguration, nativeIssue: String? = nil) {
+        state.observation = nil; state.observationFailed = nil
         state.backgroundVerification = nil
         state.configuration = configuration
         state.configuration.mode = .direct
@@ -352,6 +444,12 @@ public struct MimoAccessPolicy: Sendable {
         state.reason = nativeIssue ?? "System networking without Mimo proxy routing or firewall restrictions."
         state.verification = nil; state.blockingIP = nil; state.observedIP = nil
         state.ipv6Observation = nil; state.exitObservations = nil
+    }
+
+    public mutating func restoringDirect(configuration: MimoConfiguration) {
+        directRestored(configuration: configuration)
+        state.phase = .restoringDirect; state.effectiveMode = nil
+        state.reason = "Switching to Direct. Removing proxy routing and restoring system DNS."
     }
 
     public mutating func releasing(configuration: MimoConfiguration, error: String? = nil) {
@@ -368,6 +466,7 @@ public struct MimoAccessPolicy: Sendable {
     }
 
     public mutating func block(_ reason: String, confirmed: Bool = true) {
+        state.observation = nil; state.observationFailed = nil
         state.backgroundVerification = nil
         state.phase = confirmed ? .blocked : .unavailable
         state.effectiveMode = nil
@@ -376,6 +475,7 @@ public struct MimoAccessPolicy: Sendable {
     }
 
     public mutating func requestingBlock(_ reason: String) {
+        state.observation = nil; state.observationFailed = nil
         state.backgroundVerification = nil
         state.phase = .closing
         state.effectiveMode = nil
@@ -400,7 +500,10 @@ public struct MimoCommandStamp: Codable, Equatable, Sendable {
 }
 
 public struct MimoSupervisorRequest: Codable, Sendable {
-    public enum Command: String, Codable, Sendable { case state, heartbeat, prepare, approve, close, direct, service, profile }
+    public enum Command: String, Codable, Sendable {
+        case state, heartbeat, prepare, approve, close, direct, service, profile
+        case observe, completeObservation, observationFailed, updatePolicy
+    }
     public var command: Command
     /// A heartbeat receipt only; no state read, policy change, or ordering advance.
     public var livenessOnly: Bool?
@@ -445,9 +548,13 @@ public enum MimoRuntime {
     public static let infrastructureLabel = "com.mimo.infrastructure"
     public static let guardDirectory = URL(fileURLWithPath: "/Library/Application Support/Mimo/Guard", isDirectory: true)
     public static let guardScript = guardDirectory.appendingPathComponent("pf-guard.pl")
-    // The supervisor and independent PF/health jobs start at boot. Core and
-    // engine registration is repaired according to the saved service intent.
-    public static let jobDirectory = MimoService.support.appendingPathComponent("LaunchDaemons", isDirectory: true)
+    // Three existing launchd identities, each with its own background-item name.
+    // The utility mimo-core itself is not a fourth daemon.
+    public static let jobDirectory = URL(fileURLWithPath: "/Library/LaunchDaemons", isDirectory: true)
+    public static let helperDirectory = MimoService.support.appendingPathComponent("LaunchHelpers", isDirectory: true)
+    public static let supervisorExecutable = helperDirectory.appendingPathComponent("mimo-core-supervisor")
+    public static let heartbeatExecutable = helperDirectory.appendingPathComponent("mimo-core-heartbeat")
+    public static let engineLauncher = helperDirectory.appendingPathComponent("mihomo")
     public static let directory = MimoService.support.appendingPathComponent("Runtime", isDirectory: true)
     public static let engine = directory.appendingPathComponent("mihomo")
     // Recovery journals stay in their established location across upgrades. Only

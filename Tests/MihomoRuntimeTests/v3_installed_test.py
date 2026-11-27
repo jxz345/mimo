@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """VM-only production XPC/engine/PF integration; results stay owner-only."""
 import json
+import ipaddress
 import os
 from pathlib import Path
+import re
 import socket
 import subprocess
 import sys
@@ -71,13 +73,41 @@ def check(name, valid, **details):
     assert valid, name
 
 
+def inbound_direct_rules():
+    """Independent native inventory, never infer permitted destinations from PF.
+
+    The installed lifecycle supplement additionally compiles the actual Swift
+    renderer. General runtime suites compare its literal policy with ifconfig's
+    complete address inventory, excluding only Mimo's own tunnel.
+    """
+    result = run(['/sbin/ifconfig', '-a'], 5)
+    assert result.returncode == 0, 'Cannot read local interface addresses'
+    interface = None
+    addresses = set()
+    for line in result.stdout.splitlines():
+        header = re.match(r'^([^\s:]+): flags=', line)
+        if header:
+            interface = header[1]
+        match = re.match(r'^\s+inet6?\s+(\S+)', line)
+        if match and interface and interface != 'utun239':
+            address = ipaddress.ip_address(match[1].split('%', 1)[0])
+            if not address.is_unspecified:
+                addresses.add(str(address))
+    assert addresses and len(addresses) <= 256, 'Local address inventory is empty or oversized'
+    lines = ['pass in on ! utun239 ' + ('inet6' if ':' in address else 'inet') +
+             ' proto tcp from any to ' + address +
+             ' flags S/SA keep state (if-bound) label "mimo:inbound:tcp"'
+             for address in sorted(addresses)]
+    return '\n'.join(lines + ['pass in on lo0 all no state label "mimo:inbound:loopback"']) + '\n'
+
+
 def active_guard(rules):
     lines = rules.splitlines()
+    ingress = inbound_direct_rules().splitlines()
     return (bool(lines) and lines[-1] == 'block drop out quick all label "mimo:active:deny-native-fallback"'
             and 'mimo:active:tunnel' in rules and 'mimo:active:engine' in rules
             and all('no state' in line for line in lines if line.startswith('pass out '))
-            and 'pass in on ! utun239 proto tcp all flags S/SA keep state (if-bound) label "mimo:inbound:tcp"' in lines
-            and 'pass in on lo0 all no state label "mimo:inbound:loopback"' in lines
+            and lines[:len(ingress)] == ingress
             and not any(line.startswith('anchor ') for line in lines))
 
 

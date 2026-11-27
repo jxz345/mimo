@@ -1,0 +1,239 @@
+{
+  "cases": [
+    {
+      "baseline_failures": [
+        "Late older RPC replaced newer GUI mode"
+      ],
+      "baseline_passed": false,
+      "name": "same-gui-reversed-delivery-keeps-newest",
+      "retest_passed": true,
+      "retested": true
+    },
+    {
+      "baseline_failures": [
+        "Stale request entered queue and superseded newer pending ticket"
+      ],
+      "baseline_passed": false,
+      "name": "late-old-rpc-cannot-replace-pending-newest",
+      "retest_passed": true,
+      "retested": true
+    },
+    {
+      "baseline_failures": [],
+      "baseline_passed": true,
+      "name": "different-gui-streams-use-core-arrival-order",
+      "retest_passed": null,
+      "retested": false
+    },
+    {
+      "baseline_failures": [],
+      "baseline_passed": true,
+      "name": "different-authenticated-callers-use-independent-streams",
+      "retest_passed": null,
+      "retested": false
+    },
+    {
+      "baseline_failures": [],
+      "baseline_passed": true,
+      "name": "unauthorized-intent-cannot-poison-sequence",
+      "retest_passed": null,
+      "retested": false
+    },
+    {
+      "baseline_failures": [
+        "Zero sequence was accepted as a valid issued intent"
+      ],
+      "baseline_passed": false,
+      "name": "invalid-intent-cannot-poison-sequence",
+      "retest_passed": true,
+      "retested": true
+    },
+    {
+      "baseline_failures": [
+        "Old packet revived after the 75-second RPC lifetime"
+      ],
+      "baseline_passed": false,
+      "name": "old-intent-retained-beyond-rpc-lifetime",
+      "retest_passed": true,
+      "retested": true
+    },
+    {
+      "baseline_failures": [
+        "Full tracker evicted a live stream or accepted an untracked request"
+      ],
+      "baseline_passed": false,
+      "name": "stream-cap-rejects-new-without-evicting-live",
+      "retest_passed": true,
+      "retested": true
+    },
+    {
+      "baseline_failures": [
+        "GUI mode request lacked issued-order stamp"
+      ],
+      "baseline_passed": false,
+      "name": "mode-intents-stamp-issuance-and-independent-streams",
+      "retest_passed": true,
+      "retested": true
+    }
+  ],
+  "changed_production_sha256": {
+    "Sources/MimoApp/PublicIPMonitor.swift": "df21555494d0d6bcee84e7b10ac1bfb9537c3fb1bedfae26cbadd377ff028633",
+    "Sources/MimoService/DaemonService.swift": "e440a3474b988798fb09b30a124241bdf2a44fbd9079c778459e58d9cdc1ae5c",
+    "Sources/MimoService/MimoModeIntentOrder.swift": "2d5b2fe58b96c8fe15d2861003f02f7dff99f1c68b7eec7de96589b18d5f6c79",
+    "Sources/MimoShared/DaemonProtocol.swift": "b21fb896ccd36511dc20f73c6aa32f608983e5ae814f07d49d388f10f28c125b"
+  },
+  "commands": [
+    "python3 Tests/MimoServiceTests/ModeIntentOrdering/run.py .build/observation-parallel/mode-intent-ordering/before-01",
+    "python3 Tests/MimoAppTests/RapidState/run.py .build/observation-parallel/mode-intent-ordering/gui-before-01 --only mode-intents-stamp-issuance-and-independent-streams",
+    "python3 Tests/MimoServiceTests/ModeIntentOrdering/run.py .build/observation-parallel/mode-intent-ordering/after-01 --only same-gui-reversed-delivery-keeps-newest --only late-old-rpc-cannot-replace-pending-newest --only invalid-intent-cannot-poison-sequence --only old-intent-retained-beyond-rpc-lifetime --only stream-cap-rejects-new-without-evicting-live",
+    "python3 Tests/MimoAppTests/RapidState/run.py .build/observation-parallel/mode-intent-ordering/gui-after-01 --only mode-intents-stamp-issuance-and-independent-streams"
+  ],
+  "compiled_production_manifest_sha256": "aa2a3ed96f5558e0818bd20660668ebac61c4eae2b2aaed05a053440b6295de5",
+  "counts": {
+    "baseline_executed": 9,
+    "baseline_failed": 6,
+    "baseline_passed": 3,
+    "baseline_passes_not_rerun": 3,
+    "distinct_new_controls": 9,
+    "existing_passed_suites_rerun": 0,
+    "failed_controls_retest_passed": 6,
+    "failed_controls_retested": 6,
+    "vm_tests": 0
+  },
+  "current_production_matches_successful_compilations": true,
+  "diagnostics": {
+    "mimo_mode_intent_rejected": {
+      "capacity": "128",
+      "fields": [
+        "request",
+        "reason",
+        "capacity"
+      ],
+      "reason": "stream_capacity"
+    },
+    "mimo_mode_intent_superseded": {
+      "fields": [
+        "request",
+        "reason"
+      ],
+      "reason": "older_or_duplicate_sequence"
+    }
+  },
+  "local_manifest": {
+    "path": ".build/observation-parallel/mode-intent-ordering/final-source-and-validation.json",
+    "sha256": "603d8319e96a0ef208fa37cbf50758a414689cd386d64d0d318c56eb1dc5b867"
+  },
+  "recorded_at_utc": "2026-11-27T11:26:50.647269+00:00",
+  "retained_runs": {
+    "after-01": {
+      "files": {
+        "compile.log": {
+          "path": ".build/observation-parallel/mode-intent-ordering/after-01/compile.log",
+          "sha256": "7cc98753f5357dac8a08e70289daa46e70312b1bacf0959668f9ecf00e19eaf9"
+        },
+        "results.json": {
+          "path": ".build/observation-parallel/mode-intent-ordering/after-01/results.json",
+          "sha256": "a299c21943a3dae1c764a5f6e76c9bec7297da7aabfde12efb586704fe5f1e03"
+        },
+        "source-identity.json": {
+          "path": ".build/observation-parallel/mode-intent-ordering/after-01/source-identity.json",
+          "sha256": "fc23ea46a66cfb43bafa7d519764a0d9ce3b7d1da48f9394f7b26bfba35adf61"
+        },
+        "test.log": {
+          "path": ".build/observation-parallel/mode-intent-ordering/after-01/test.log",
+          "sha256": "68dd58fffe7dc920a6949ba592f1396dbc4b16ce6045e0f4b97a7a524199d84c"
+        }
+      },
+      "passed": 5,
+      "total": 5
+    },
+    "before-01": {
+      "files": {
+        "compile.log": {
+          "path": ".build/observation-parallel/mode-intent-ordering/before-01/compile.log",
+          "sha256": "8243210103206dd081f26088340ad0a5c08fd75115489c2e9a28c72e5b0cc761"
+        },
+        "results.json": {
+          "path": ".build/observation-parallel/mode-intent-ordering/before-01/results.json",
+          "sha256": "68bc08c5555ea414d7409e78077fbf9a2e5cbe885a0d643ab84a2adec004a46d"
+        },
+        "source-identity.json": {
+          "path": ".build/observation-parallel/mode-intent-ordering/before-01/source-identity.json",
+          "sha256": "fc8f18171bd7ed4941762c371f68ce597473b47eb7130743fc1b06041e0c3a19"
+        },
+        "test.log": {
+          "path": ".build/observation-parallel/mode-intent-ordering/before-01/test.log",
+          "sha256": "b9677943865f2491a2775a7453f1fbf66d54a1e645b1e7d61c2df593f156a73c"
+        }
+      },
+      "passed": 3,
+      "total": 8
+    },
+    "gui-after-01": {
+      "files": {
+        "compile.log": {
+          "path": ".build/observation-parallel/mode-intent-ordering/gui-after-01/compile.log",
+          "sha256": "98e3c0b3b534ea7788645423b760565315584abd16900778060997ccd7a87e03"
+        },
+        "results.json": {
+          "path": ".build/observation-parallel/mode-intent-ordering/gui-after-01/results.json",
+          "sha256": "68d50cea688c283a0f9525837649975b74784b3071cb16064a4ad6bc23394fa3"
+        },
+        "source-identity.json": {
+          "path": ".build/observation-parallel/mode-intent-ordering/gui-after-01/source-identity.json",
+          "sha256": "2401dd15b15bc2cafeff5c0dbcb203b8e96973a38404eb8a5b67a2491d5d52df"
+        },
+        "test.log": {
+          "path": ".build/observation-parallel/mode-intent-ordering/gui-after-01/test.log",
+          "sha256": "2b2954d9f466668cfb4f55cc4567a34c4dbe6c9ef615e39e6f9184b23424a656"
+        }
+      },
+      "passed": 1,
+      "total": 1
+    },
+    "gui-before-01": {
+      "files": {
+        "compile.log": {
+          "path": ".build/observation-parallel/mode-intent-ordering/gui-before-01/compile.log",
+          "sha256": "e16d757930e4415243b5759f05fe1211b244b9e25404ef35877744cc01156a02"
+        },
+        "results.json": {
+          "path": ".build/observation-parallel/mode-intent-ordering/gui-before-01/results.json",
+          "sha256": "868430b4e5a8c3e9a88d768801bf491025e640f5dc012a9b9ab51e775cdd41b5"
+        },
+        "source-identity.json": {
+          "path": ".build/observation-parallel/mode-intent-ordering/gui-before-01/source-identity.json",
+          "sha256": "620293edf34143bf441adcf8d2a4e99fb1c2a987e35927b0ad16ab661713d087"
+        },
+        "test.log": {
+          "path": ".build/observation-parallel/mode-intent-ordering/gui-before-01/test.log",
+          "sha256": "db042a62b8cede290aad4fe535cc7b6906228e547bc1bc5aa92629990a54cce1"
+        }
+      },
+      "passed": 0,
+      "total": 1
+    }
+  },
+  "schema": 1,
+  "scope_limits": [
+    "The six formerly failing controls were run against the final source; the three passing baseline controls were not rerun. Nine distinct controls have passing histories, not nine passes on the final binary.",
+    "Core tests invoke the actual DaemonService using controlled request delivery and an isolated authenticated-UID entry. They do not reproduce transport scheduling on an installed VM.",
+    "The GUI test calls the actual setMode method with only its external RPC replaced. It is not a physical native UI click test.",
+    "No app package, installed VM test, or broad passed suite was run by this task.",
+    "The capacity assertion was specialized from generic unavailable in the fail-first harness to the new explicit modeIntentCapacity contract; the preserved baseline failure was absence of capacity rejection, not an error-string mismatch."
+  ],
+  "semantics": {
+    "across_streams": "Independent GUI streams and authenticated callers retain core arrival order; the existing queue coalesces contiguous pending modes and preserves non-mode edit barriers.",
+    "admission": "Core authenticates the caller, requires a configureRouting request with explicit requestedMode and positive sequence, checks initialized state and validates the current configuration/selected proxy before recording the sequence. Admission records the accepted sequence before entering the existing control queue.",
+    "capacity": 128,
+    "capacity_failure": "modeIntentCapacity",
+    "capacity_limitation": "After 128 distinct GUI streams during one core lifetime, new streams cannot change mode until background services restart. Existing streams remain usable.",
+    "capacity_recovery_text": "Too many app mode-request sessions. Restart Mimo\u2019s background services from the dashboard, then try again.",
+    "request": "Optional modeIntent {stream: UUID, sequence: UInt64}, alongside requestedMode; unstamped legacy requests retain their existing arrival-order behavior.",
+    "retention": "Current core process lifetime; no expiry or eviction. This exceeds the 75-second RPC lifetime.",
+    "sender": "Each PublicIPMonitor allocates a random stream UUID and increases UInt64 sequence synchronously in setMode before dispatching its RPC task.",
+    "sequence_exhaustion": "The sender rejects further clicks at UInt64.max with reopening guidance; it does not wrap its sequence.",
+    "within_stream": "For the same kernel-derived authenticated UID and stream, a sequence at or below the highest admitted value returns ordinary controlOutcome=superseded without entering or superseding a pending queue ticket."
+  },
+  "topic": "Independent XPC mode intent ordering"
+}

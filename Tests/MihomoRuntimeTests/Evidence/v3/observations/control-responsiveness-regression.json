@@ -1,0 +1,1071 @@
+{
+  "schema_version": 1,
+  "generated_utc": "2026-11-27T08:14:59.650517+00:00",
+  "method": "isolated_production_control_flow_and_real_anonymous_XPC",
+  "counted_as_VM_case": false,
+  "installed_fix_qualification_claimed": false,
+  "purpose": "Preserve failing control-responsiveness evidence and final local validation without exposing private installed logs or configuration.",
+  "contract": {
+    "rpc_deadline_seconds": 3,
+    "slow_external_teardown_seconds": 4.2,
+    "independent_power_fence_hold_seconds": 4.2,
+    "control_paths": [
+      "core state",
+      "supervisor state",
+      "supervisor event read",
+      "supervisor heartbeat"
+    ],
+    "modes": [
+      "rule",
+      "global"
+    ],
+    "network_families": [
+      "ipv4",
+      "dual"
+    ],
+    "external_effects": "Network commands and readiness facts are isolated. Production actor, real power-fence lock, request handlers, XPC transport, ordering and cancellation boundaries remain intact.",
+    "child_cases": "Separate real temporary Python subprocesses exercise result rejection and physical joining; they do not execute installed networking commands.",
+    "marker_cases": "The exact production release caller and PF commit body are compiled with real lock/epoch code and isolated PF I/O; a newer maintenance closure occurs at the legitimate independent-process boundary after the PF commit returns."
+  },
+  "before": {
+    "slow_direct": {
+      "scope": "Four fast controls pass; four slow Direct operations complete but starve the GUI-equivalent state deadline.",
+      "passed": 4,
+      "total": 8,
+      "tested_supervisor_sha256": "483c94219338ae527bebb5c34c010f91e21d326f09bc305d3c4a556e54741b9e",
+      "results_sha256": "b11e19e329d101a78951264f380a5f223053ac5990f21c505e41a658848a6210",
+      "instrumentation_diff_sha256": "049372aece77b6803c53fa636eb8aa3f474bfe0a7e9c6c16c838fa83e83077a0",
+      "full_source_manifest_sha256": "d343e57643aca4991c158697ef5fcc45d7e1823a43f93eb3f6aaba2a07c3f3ff",
+      "cases": [
+        {
+          "statusReplied": true,
+          "statusSeconds": 0.02921295166015625,
+          "slow": false,
+          "mode": "global",
+          "passed": true,
+          "family": "dual",
+          "directSucceeded": true
+        },
+        {
+          "statusReplied": false,
+          "statusSeconds": 3.164216995239258,
+          "slow": true,
+          "mode": "global",
+          "passed": false,
+          "family": "dual",
+          "directSucceeded": true
+        },
+        {
+          "statusReplied": true,
+          "statusSeconds": 0.022675037384033203,
+          "slow": false,
+          "mode": "global",
+          "passed": true,
+          "family": "ipv4",
+          "directSucceeded": true
+        },
+        {
+          "statusReplied": false,
+          "statusSeconds": 3.175176978111267,
+          "slow": true,
+          "mode": "global",
+          "passed": false,
+          "family": "ipv4",
+          "directSucceeded": true
+        },
+        {
+          "statusReplied": true,
+          "statusSeconds": 0.022547006607055664,
+          "slow": false,
+          "mode": "rule",
+          "passed": true,
+          "family": "dual",
+          "directSucceeded": true
+        },
+        {
+          "statusReplied": false,
+          "statusSeconds": 3.1734100580215454,
+          "slow": true,
+          "mode": "rule",
+          "passed": false,
+          "family": "dual",
+          "directSucceeded": true
+        },
+        {
+          "statusReplied": true,
+          "statusSeconds": 0.029880046844482422,
+          "slow": false,
+          "mode": "rule",
+          "passed": true,
+          "family": "ipv4",
+          "directSucceeded": true
+        },
+        {
+          "statusReplied": false,
+          "statusSeconds": 3.167935013771057,
+          "slow": true,
+          "mode": "rule",
+          "passed": false,
+          "family": "ipv4",
+          "directSucceeded": true
+        }
+      ]
+    },
+    "stop_power": {
+      "scope": "Corrected healthy protected-DNS precondition; all four Stop requests starve state while an independent power callback holds the fence.",
+      "passed": 0,
+      "total": 4,
+      "tested_supervisor_sha256": "2d17f671901b34fc2cfc750a7f35dbe268a15405e6b03673f963a0985c868a0e",
+      "results_sha256": "54ce885af7149606a7d2f9345dc62d81a3e8d56b19a761d6c137cd1c2337c481",
+      "instrumentation_diff_sha256": "f8ef457d98fe866f4bb1f839da6b63c2dcbefbc15fbba9eebd5e738aa2cbb31b",
+      "full_source_manifest_sha256": "7a48880711ea16bf87c1719fbc28574cfdc47712c4c4aa1828bf448dfad8923d",
+      "cases": [
+        {
+          "passed": false,
+          "physicalJoined": true,
+          "family": "dual",
+          "statusSeconds": 3.14682400226593,
+          "events": [
+            "native observer endpoint cleared",
+            "stop"
+          ],
+          "scenario": "stop-held-power",
+          "mode": "global",
+          "ownershipPreserved": true,
+          "statusReplied": false
+        },
+        {
+          "passed": false,
+          "physicalJoined": true,
+          "family": "ipv4",
+          "statusSeconds": 3.146340012550354,
+          "events": [
+            "native observer endpoint cleared",
+            "stop"
+          ],
+          "scenario": "stop-held-power",
+          "mode": "global",
+          "ownershipPreserved": true,
+          "statusReplied": false
+        },
+        {
+          "passed": false,
+          "physicalJoined": true,
+          "family": "dual",
+          "statusSeconds": 3.125941038131714,
+          "events": [
+            "native observer endpoint cleared",
+            "stop"
+          ],
+          "scenario": "stop-held-power",
+          "mode": "rule",
+          "ownershipPreserved": true,
+          "statusReplied": false
+        },
+        {
+          "passed": false,
+          "physicalJoined": true,
+          "family": "ipv4",
+          "statusSeconds": 3.168566942214966,
+          "events": [
+            "native observer endpoint cleared",
+            "stop"
+          ],
+          "scenario": "stop-held-power",
+          "mode": "rule",
+          "ownershipPreserved": true,
+          "statusReplied": false
+        }
+      ]
+    },
+    "publication": {
+      "method": "production_release_and_commit_slices_with_real_firewall_lock_and_isolated_pf_io",
+      "passed": 1,
+      "total": 2,
+      "tested_runtime_sha256": "73c4f60e2e91ab23909cadfba1873a6634d00f0456229358e5cf3e48aa622145",
+      "generated_test_sha256": "a65721175bdbb2839ae80aee4af4c7eaec73709642899262e774c878e81f598f",
+      "test_log_sha256": "d45a991ce0a0a0285620fc50618ec1da9c5db9395fbc52f16f9f44495809630c",
+      "observations": [
+        "current-direct: PASS marker=direct",
+        "newer-maintenance: FAIL marker=direct",
+        "RESULT 1/2 pass"
+      ]
+    }
+  },
+  "final": {
+    "control_rpc": {
+      "scope": "Thirteen control/error/ordering scenarios across both protected modes and address families.",
+      "passed": 52,
+      "total": 52,
+      "tested_supervisor_sha256": "0f97e88452ca294f2af279f02416cda976df56905b09caa518c3687d08a651f2",
+      "results_sha256": "8db5e784b9c097a7de17a00b95ea6694d8e5c631bbbb5aee5398dc3272a60370",
+      "instrumentation_diff_sha256": "ab0c2208778c0e111886019488d4f9b3a32d14268b9d2699342ce1d581e50c84",
+      "full_source_manifest_sha256": "afe16ef37f6c49b299f994bfa49c0e460efa51716b00dbcb8461bb4e0a233c19",
+      "cases": [
+        {
+          "statusReplied": true,
+          "mode": "global",
+          "statusSeconds": 0.0027960538864135742,
+          "physicalJoined": true,
+          "scenario": "caller-cancelled",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "dual",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "global",
+          "statusSeconds": 0.0026149749755859375,
+          "physicalJoined": true,
+          "scenario": "fast",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "dual",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "global",
+          "statusSeconds": 0.003813028335571289,
+          "physicalJoined": true,
+          "scenario": "held-power-fence",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "dual",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "global",
+          "statusSeconds": 0.0020579099655151367,
+          "physicalJoined": true,
+          "scenario": "helper-failure",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "dual",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "global",
+          "statusSeconds": 0.0025359392166137695,
+          "physicalJoined": true,
+          "scenario": "helper-invalid",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "dual",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "global",
+          "statusSeconds": 0.0030820369720458984,
+          "physicalJoined": true,
+          "scenario": "helper-readback",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "dual",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "global",
+          "statusSeconds": 0.0027559995651245117,
+          "physicalJoined": true,
+          "scenario": "helper-timeout",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "dual",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "global",
+          "statusSeconds": 0.002048969268798828,
+          "physicalJoined": true,
+          "scenario": "queued-direct",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "dual",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "global",
+          "statusSeconds": 0.00248110294342041,
+          "physicalJoined": true,
+          "scenario": "queued-protected",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released",
+            "hold"
+          ],
+          "family": "dual",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "global",
+          "statusSeconds": 0.002467036247253418,
+          "physicalJoined": true,
+          "scenario": "queued-stop",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released",
+            "native observer endpoint cleared",
+            "stop"
+          ],
+          "family": "dual",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "global",
+          "statusSeconds": 0.0018409490585327148,
+          "physicalJoined": true,
+          "scenario": "slow",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "dual",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "global",
+          "statusSeconds": 0.002115964889526367,
+          "physicalJoined": true,
+          "scenario": "stale-infrastructure-error",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "dual",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "global",
+          "statusSeconds": 0.002962946891784668,
+          "physicalJoined": true,
+          "scenario": "stop-held-power",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "stop"
+          ],
+          "family": "dual",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "global",
+          "statusSeconds": 0.0025540590286254883,
+          "physicalJoined": true,
+          "scenario": "caller-cancelled",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "ipv4",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "global",
+          "statusSeconds": 0.0014189481735229492,
+          "physicalJoined": true,
+          "scenario": "fast",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "ipv4",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "global",
+          "statusSeconds": 0.001365065574645996,
+          "physicalJoined": true,
+          "scenario": "held-power-fence",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "ipv4",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "global",
+          "statusSeconds": 0.0025870800018310547,
+          "physicalJoined": true,
+          "scenario": "helper-failure",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "ipv4",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "global",
+          "statusSeconds": 0.0023959875106811523,
+          "physicalJoined": true,
+          "scenario": "helper-invalid",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "ipv4",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "global",
+          "statusSeconds": 0.0010219812393188477,
+          "physicalJoined": true,
+          "scenario": "helper-readback",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "ipv4",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "global",
+          "statusSeconds": 0.001271963119506836,
+          "physicalJoined": true,
+          "scenario": "helper-timeout",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "ipv4",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "global",
+          "statusSeconds": 0.0013610124588012695,
+          "physicalJoined": true,
+          "scenario": "queued-direct",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "ipv4",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "global",
+          "statusSeconds": 0.001898050308227539,
+          "physicalJoined": true,
+          "scenario": "queued-protected",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released",
+            "hold"
+          ],
+          "family": "ipv4",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "global",
+          "statusSeconds": 0.0023490190505981445,
+          "physicalJoined": true,
+          "scenario": "queued-stop",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released",
+            "native observer endpoint cleared",
+            "stop"
+          ],
+          "family": "ipv4",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "global",
+          "statusSeconds": 0.0009540319442749023,
+          "physicalJoined": true,
+          "scenario": "slow",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "ipv4",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "global",
+          "statusSeconds": 0.002543926239013672,
+          "physicalJoined": true,
+          "scenario": "stale-infrastructure-error",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "ipv4",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "global",
+          "statusSeconds": 0.0037200450897216797,
+          "physicalJoined": true,
+          "scenario": "stop-held-power",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "stop"
+          ],
+          "family": "ipv4",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "rule",
+          "statusSeconds": 0.0024050474166870117,
+          "physicalJoined": true,
+          "scenario": "caller-cancelled",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "dual",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "rule",
+          "statusSeconds": 0.0021979808807373047,
+          "physicalJoined": true,
+          "scenario": "fast",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "dual",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "rule",
+          "statusSeconds": 0.0024650096893310547,
+          "physicalJoined": true,
+          "scenario": "held-power-fence",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "dual",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "rule",
+          "statusSeconds": 0.0019489526748657227,
+          "physicalJoined": true,
+          "scenario": "helper-failure",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "dual",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "rule",
+          "statusSeconds": 0.0018799304962158203,
+          "physicalJoined": true,
+          "scenario": "helper-invalid",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "dual",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "rule",
+          "statusSeconds": 0.001006007194519043,
+          "physicalJoined": true,
+          "scenario": "helper-readback",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "dual",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "rule",
+          "statusSeconds": 0.002424955368041992,
+          "physicalJoined": true,
+          "scenario": "helper-timeout",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "dual",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "rule",
+          "statusSeconds": 0.0014710426330566406,
+          "physicalJoined": true,
+          "scenario": "queued-direct",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "dual",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "rule",
+          "statusSeconds": 0.00209200382232666,
+          "physicalJoined": true,
+          "scenario": "queued-protected",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released",
+            "hold"
+          ],
+          "family": "dual",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "rule",
+          "statusSeconds": 0.003036022186279297,
+          "physicalJoined": true,
+          "scenario": "queued-stop",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released",
+            "native observer endpoint cleared",
+            "stop"
+          ],
+          "family": "dual",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "rule",
+          "statusSeconds": 0.0010390281677246094,
+          "physicalJoined": true,
+          "scenario": "slow",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "dual",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "rule",
+          "statusSeconds": 0.002260923385620117,
+          "physicalJoined": true,
+          "scenario": "stale-infrastructure-error",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "dual",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "rule",
+          "statusSeconds": 0.0031480789184570312,
+          "physicalJoined": true,
+          "scenario": "stop-held-power",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "stop"
+          ],
+          "family": "dual",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "rule",
+          "statusSeconds": 0.002013087272644043,
+          "physicalJoined": true,
+          "scenario": "caller-cancelled",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "ipv4",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "rule",
+          "statusSeconds": 0.0021730661392211914,
+          "physicalJoined": true,
+          "scenario": "fast",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "ipv4",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "rule",
+          "statusSeconds": 0.0022820234298706055,
+          "physicalJoined": true,
+          "scenario": "held-power-fence",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "ipv4",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "rule",
+          "statusSeconds": 0.0021070241928100586,
+          "physicalJoined": true,
+          "scenario": "helper-failure",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "ipv4",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "rule",
+          "statusSeconds": 0.0015850067138671875,
+          "physicalJoined": true,
+          "scenario": "helper-invalid",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "ipv4",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "rule",
+          "statusSeconds": 0.0023549795150756836,
+          "physicalJoined": true,
+          "scenario": "helper-readback",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "ipv4",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "rule",
+          "statusSeconds": 0.0009099245071411133,
+          "physicalJoined": true,
+          "scenario": "helper-timeout",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "ipv4",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "rule",
+          "statusSeconds": 0.0032629966735839844,
+          "physicalJoined": true,
+          "scenario": "queued-direct",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "ipv4",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "rule",
+          "statusSeconds": 0.0020979642868041992,
+          "physicalJoined": true,
+          "scenario": "queued-protected",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released",
+            "hold"
+          ],
+          "family": "ipv4",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "rule",
+          "statusSeconds": 0.002836942672729492,
+          "physicalJoined": true,
+          "scenario": "queued-stop",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released",
+            "native observer endpoint cleared",
+            "stop"
+          ],
+          "family": "ipv4",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "rule",
+          "statusSeconds": 0.000861048698425293,
+          "physicalJoined": true,
+          "scenario": "slow",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "ipv4",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "rule",
+          "statusSeconds": 0.0019769668579101562,
+          "physicalJoined": true,
+          "scenario": "stale-infrastructure-error",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "released"
+          ],
+          "family": "ipv4",
+          "ownershipPreserved": true
+        },
+        {
+          "statusReplied": true,
+          "mode": "rule",
+          "statusSeconds": 0.003053903579711914,
+          "physicalJoined": true,
+          "scenario": "stop-held-power",
+          "passed": true,
+          "events": [
+            "native observer endpoint cleared",
+            "stop"
+          ],
+          "family": "ipv4",
+          "ownershipPreserved": true
+        }
+      ]
+    },
+    "worker_capability_and_join": {
+      "passed": 18,
+      "total": 18,
+      "groups": {
+        "ownership_and_epoch_admission": 9,
+        "child_results_and_join": 9
+      },
+      "service_log_sha256": "fbb742ed2f2f241545180755c8a5a218975597210e277b3a994524c6c4932c89",
+      "controls": [
+        "current owner",
+        "replaced token",
+        "different parent",
+        "reused PID identity",
+        "changed revision",
+        "protected mode",
+        "maintenance",
+        "released intent",
+        "orphan parent",
+        "valid receipt",
+        "child failure",
+        "timeout exit result124",
+        "malformed output",
+        "mismatched operation",
+        "future completion",
+        "old completion",
+        "oversized output",
+        "requester cancellation"
+      ],
+      "qualification": "The timeout case is a child exit-result control, not an overall parent timeout. Invalid output is rejected only after physical child completion."
+    },
+    "publication": {
+      "method": "production_release_and_commit_slices_with_real_firewall_lock_and_isolated_pf_io",
+      "passed": 4,
+      "total": 4,
+      "tested_runtime_sha256": "25f7434676444f5ebf4e20798b064a2b3634a90cc205db048478e207442ffa28",
+      "generated_test_sha256": "4980c10584e14e5095152898c30d21d4e28c661ff120f27d706e4651de060b3d",
+      "test_log_sha256": "6e21c798cdf1432b95ca525fe042d988e9b5e692caae268166ce91c9b9639858",
+      "observations": [
+        "current-direct: PASS marker=direct receipt=true",
+        "newer-maintenance: PASS marker=blocked receipt=false",
+        "newer-power: PASS marker=blocked receipt=false",
+        "changed-rules: PASS marker=direct receipt=false",
+        "RESULT 4/4 pass"
+      ]
+    },
+    "new_controls": {
+      "passed": 74,
+      "total": 74
+    },
+    "prior_controls": {
+      "passed": 122,
+      "total": 122,
+      "approval_continuation": 28,
+      "verification_attribution": 28,
+      "observation_attribution": 66,
+      "approval_results_sha256": "15f9298131ccfaab35a28d9683c5512a865133a9f6e368dce2b0e0590c823365",
+      "service_log_sha256": "fbb742ed2f2f241545180755c8a5a218975597210e277b3a994524c6c4932c89"
+    },
+    "full_service_suite": {
+      "passed": 1,
+      "total": 1,
+      "exit_status": 0,
+      "compile_log_sha256": "0d7f4955d1663ad8aa27ced2a9407adc30c2d764684df7bca04508f616bc9961",
+      "test_log_sha256": "fbb742ed2f2f241545180755c8a5a218975597210e277b3a994524c6c4932c89"
+    },
+    "max_combined_rpc_seconds": 0.003813028335571289
+  },
+  "intermediate_attempts": [
+    {
+      "passed": 48,
+      "total": 52,
+      "results_sha256": "790830d22a2595bc4da06cec1009d8c5406ded5fcc1f2f93155dfc7b42700c9c",
+      "reason": "Moving Stop disarm off actor alone retained the synchronous service-admission fence read; these four failures were not treated as passing."
+    },
+    {
+      "passed": 48,
+      "total": 52,
+      "results_sha256": "0adb80b7cf5963f0f07da0334ef060208178aeae522a287373ee70d24fb32888",
+      "reason": "The active protected fixture omitted its DNS-ready fact, so state reads entered missing-DNS recovery. This attempt does not qualify ordinary Direct responsiveness; the combined DNS-loss/power-contention path remains unqualified."
+    }
+  ],
+  "source_files_sha256": {
+    "Sources/MimoService/DaemonMain.swift": "4e62a0f9caec8d0bf9234c85f153f4cf1918a50bf9e35a90c8d2efcc6311cdd0",
+    "Sources/MimoService/MimoDirectRelease.swift": "94b9b4f5a1305f62182853c50f8114be7ed375642d2d0c3f7bccecb8c60599e2",
+    "Sources/MimoService/MimoSystemRuntime.swift": "25f7434676444f5ebf4e20798b064a2b3634a90cc205db048478e207442ffa28",
+    "Sources/MimoService/MimoSupervisor.swift": "0f97e88452ca294f2af279f02416cda976df56905b09caa518c3687d08a651f2",
+    "Sources/MimoService/MimoFirewallLock.swift": "0ab994e98bb5d815aa4419e6cdd42b29f3885bcaee758c223fd540d9efb35dd3",
+    "Sources/MimoService/MimoDNSConfiguration.swift": "154a0fc817ff2154bb467df748bbc9d0a28e5a0901e2f16bafc82c374b675f66",
+    "Sources/MimoService/MimoPowerGuard.swift": "d8d2bd0292121ea407aa3fec1809ae9363abfe6374425a3d480a56a8079c31d3",
+    "Sources/MimoShared/MimoRouting.swift": "ee8aec296c60e6dc17651c6b1fe7396120bcf7fb8fdc1aca18de0909417b42eb"
+  },
+  "combined_source_manifest_sha256": "1741528c2dcab84d9dec8bf8f4e99d51382d6aaabb769b7b1d9a1211f000ba9b",
+  "harness_files_sha256": {
+    "Tests/MimoServiceTests/ControlResponsiveness/cases.swift": "db229a349c88cbcda6851f53ffd0e2fd297f068a1b6f6953404bf2e93489458b",
+    "Tests/MimoServiceTests/ControlResponsiveness/run.py": "777d1c8ea33f053739ac42ffd9017831f772b434d91c9e6f2c60701725cdf5b8",
+    "Tests/MimoServiceTests/ControlResponsiveness/supervisor-access.swift": "07d6446a3eb1af70178a8c45de170625744ddbaeddd080c791607bc432718414",
+    "Tests/MimoServiceTests/DirectPublication/run.py": "e77cfeac5bd791c17639bec28710507ac202bc74588fe1bd85ec6c37fd55ffa4",
+    "Tests/MimoServiceTests/mimo_direct_release_tests.swift": "018350ab3ba901788cfe02395fd56c644c1432e8760a448f224973d8e31eca77"
+  },
+  "scope_limits": [
+    "Installed VM requalification pending.",
+    "Protected DNS loss plus held-power-fence recovery remains explicitly unqualified; this change does not make all existing failure paths nonblocking.",
+    "No overall parent helper timeout: underlying existing operations are bounded; parent always joins physical child completion. Timeout control is exit-result124, not parent timeout enforcement.",
+    "New mutations join Direct cleanup including native verification; no newer protected approval can overlap a late helper.",
+    "Startup/offline synchronous cleanup remains unchanged.",
+    "The generated control tests are RPC/control-flow checks, not native UI clicks, real PF teardown or installed race qualification.",
+    "Source review confirms result publication and ownership fences; it does not claim every existing protected-mode failure path is nonblocking."
+  ],
+  "candidate": {
+    "version": "3.0",
+    "build": "11",
+    "published": false,
+    "qualification_status": "Installed follow-up is separate and in progress.",
+    "core_sha256": "9940200f08416e0f8ee3aab9c8cccf22bec020186eb14e4d844518e73010c78d",
+    "pkg_sha256": "57270d663280ea8fb201ed1971e9d3457d1471fbd3d149f5903954ee8ad06f9d",
+    "zip_sha256": "eff4be99a442239fe8203ca628eb13848f612d567a44a53441b6ce0f94d80124"
+  },
+  "privacy": {
+    "raw_installed_events_included": false,
+    "machine_names_included": false,
+    "credentials_or_tokens_included": false,
+    "personal_ip_addresses_included": false,
+    "original_artifacts_modified": false
+  }
+}

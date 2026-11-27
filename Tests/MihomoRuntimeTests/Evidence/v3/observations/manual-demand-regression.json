@@ -1,0 +1,282 @@
+{
+  "status": "source-frozen-focused-validation-complete",
+  "scope": "11 new local congestion/manual-demand controls; no VM, package, prior passing suites or release",
+  "distinct_controls": 11,
+  "reproduced_failures_corrected": 10,
+  "unchanged_baseline_passes": 1,
+  "executions": 21,
+  "all_distinct_controls_have_passing_evidence": true,
+  "all_11_run_on_final_source": false,
+  "final_source_compile": "Swift 6 typecheck of all 83 Shared/Core/Service sources after nil-admission review refinement; zero tests executed",
+  "runs": [
+    {
+      "run": "before-01",
+      "cases": [
+        {
+          "passed": false,
+          "failures": [
+            "Queued ticket was not atomically superseded without HTTP"
+          ],
+          "name": "held-no-http-mode-invalidation"
+        },
+        {
+          "passed": false,
+          "failures": [
+            "Manual ticket needs a successor HTTP task to finish"
+          ],
+          "name": "invalidation-without-successor-terminates"
+        },
+        {
+          "passed": false,
+          "failures": [
+            "Deferred replay replaced or resurrected a manual ticket"
+          ],
+          "name": "stale-deferred-replay-cannot-replace-new-ticket"
+        },
+        {
+          "passed": false,
+          "failures": [
+            "Denied successful result was classified as provider failure"
+          ],
+          "name": "current-ticket-joins-denied-final-lookup"
+        },
+        {
+          "passed": false,
+          "failures": [
+            "Completed manual deferred demand issued a second HTTP or new ticket"
+          ],
+          "name": "completion-before-deferred-replay-does-not-repeat"
+        },
+        {
+          "passed": false,
+          "failures": [
+            "Real provider failure lacks a structured distinct result"
+          ],
+          "name": "current-provider-failure-keeps-provider-policy"
+        },
+        {
+          "passed": false,
+          "failures": [
+            "Burst did not consume exactly one owned follow-up"
+          ],
+          "name": "sustained-demand-one-active-one-pending"
+        },
+        {
+          "passed": false,
+          "failures": [
+            "Cancelled caller created shared feedback before admission"
+          ],
+          "name": "cancelled-caller-before-held-admission-is-noop"
+        }
+      ],
+      "results_sha256": "19973e306ce829f61c6d718e6dae795d7980648b60c02ec632d3ecb3b247d60c",
+      "source_identity_sha256": "657ba16d41b84b0ad8e8e0933408cd5582161d37b3cc2380b9ad06eb28a00da0",
+      "compile_log_sha256": "7f53b65fea209422d5d328814716a641778911002498a8263d25dc133752c91d",
+      "test_log_sha256": "9356d77e19dad66841147828fe53b5cad8ba79d6cf1726410bb4713b6bcc369e"
+    },
+    {
+      "run": "after-01",
+      "cases": [
+        {
+          "failures": [],
+          "passed": true,
+          "name": "held-no-http-mode-invalidation"
+        },
+        {
+          "failures": [],
+          "passed": true,
+          "name": "invalidation-without-successor-terminates"
+        },
+        {
+          "failures": [],
+          "passed": true,
+          "name": "stale-deferred-replay-cannot-replace-new-ticket"
+        },
+        {
+          "failures": [],
+          "passed": true,
+          "name": "current-ticket-joins-denied-final-lookup"
+        },
+        {
+          "failures": [],
+          "passed": true,
+          "name": "completion-before-deferred-replay-does-not-repeat"
+        },
+        {
+          "failures": [],
+          "passed": true,
+          "name": "current-provider-failure-keeps-provider-policy"
+        },
+        {
+          "failures": [],
+          "passed": true,
+          "name": "sustained-demand-one-active-one-pending"
+        },
+        {
+          "failures": [],
+          "passed": true,
+          "name": "cancelled-caller-before-held-admission-is-noop"
+        }
+      ],
+      "results_sha256": "b14f8c5df3cf38477689d1cdac9c8aae3c7a7a3612990a2de0b3791000cb1873",
+      "source_identity_sha256": "83945d1913f5bff79f44efaa863651db7b90e060ab041dbee71593862763253e",
+      "compile_log_sha256": "d58c2959bd3256185350c38a81af2c26c3dd878437b2eafc5b91828cca448794",
+      "test_log_sha256": "e38adfaa81a6e72db2c56b41fcdf7562c2100323953b55dca4717266d25f8cf4"
+    },
+    {
+      "run": "before-daemon-cancel-01",
+      "cases": [
+        {
+          "failures": [
+            "Cancelled daemon caller admitted a new ticket or lacked ordinary cancellation"
+          ],
+          "passed": false,
+          "name": "daemon-cancelled-refresh-does-not-admit-or-throttle"
+        }
+      ],
+      "results_sha256": "5bd0714a0409e237ad63d148c0a142bd712f9bd81807999a7aaefc49b4cbef62",
+      "source_identity_sha256": "bf03d446e764e5c9e85d7e02c9639df54fe375972b36d6bbe05682b8cf925b20",
+      "compile_log_sha256": "25a4980481b9d8ba5b0eaf376612f67015cc9ff21aac48608c4f7002f4d5819d",
+      "test_log_sha256": "2d5427de0d09ba49b69015648d0b690dc5df3402f9e33d5951c31e359eabddc7"
+    },
+    {
+      "run": "after-daemon-cancel-01",
+      "cases": [
+        {
+          "name": "daemon-cancelled-refresh-does-not-admit-or-throttle",
+          "failures": [],
+          "passed": true
+        }
+      ],
+      "results_sha256": "75ed8f2ac19935a87951a1ee228992eebe03e4f989c3ad45282b453372f29c58",
+      "source_identity_sha256": "b3ecd764496479e93e826cb8d8aa2b4d3f5a621203ac32455c457e4a857d0f43",
+      "compile_log_sha256": "b722b091545c3c403d5ea74695c9d092680cb3b6cbd416d4956bf607679f5785",
+      "test_log_sha256": "c42e5ca3100e72fac6a3ed23c8fdff97b9e187132181d36e6fa304bb636c665b"
+    },
+    {
+      "run": "before-transfers-01",
+      "cases": [
+        {
+          "passed": false,
+          "failures": [
+            "Isolated boundary was not reached"
+          ],
+          "name": "immediate-transition-demand-survives-later-retry-deadline"
+        },
+        {
+          "passed": true,
+          "failures": [],
+          "name": "automatic-provider-fallback-retains-failed-provider-backoff"
+        }
+      ],
+      "results_sha256": "3358dcca7138261f88b5f2f56e1f9fd906d5c6d35ebffa5e2fdfc78b29329b92",
+      "source_identity_sha256": "3ceb9930a066ecd6a649c0bce41556684724afb53df4fd284ced522f9692e37b",
+      "compile_log_sha256": "7c655ad43efe82ca7c73539029eadf995cc3955137a56e1f9a831cd645725cae",
+      "test_log_sha256": "b5cde5f5bcc48eef497609bfe467e0f560f233e7b725dc0117b54d0f8d01daab"
+    },
+    {
+      "run": "after-transfers-01",
+      "cases": [
+        {
+          "failures": [],
+          "name": "immediate-transition-demand-survives-later-retry-deadline",
+          "passed": true
+        }
+      ],
+      "results_sha256": "381c439833ec327613e12ff60d5dc70db38ec547c7c516daed88c93d167b185b",
+      "source_identity_sha256": "1d5b0b60d1253d4689268783f7fcbb62750aa191bcd531c4d8a996105eafbc6e",
+      "compile_log_sha256": "b046c94ccbab2be8fa5330b4b1fd6010c5b033308c52009c78a0ff2082cf9224",
+      "test_log_sha256": "3680e5e00b2c286c2926b9811e13bef841d4a009275ca7338170dee09c137a11"
+    }
+  ],
+  "latest": {
+    "held-no-http-mode-invalidation": {
+      "failures": [],
+      "passed": true,
+      "name": "held-no-http-mode-invalidation",
+      "run": "after-01"
+    },
+    "invalidation-without-successor-terminates": {
+      "failures": [],
+      "passed": true,
+      "name": "invalidation-without-successor-terminates",
+      "run": "after-01"
+    },
+    "stale-deferred-replay-cannot-replace-new-ticket": {
+      "failures": [],
+      "passed": true,
+      "name": "stale-deferred-replay-cannot-replace-new-ticket",
+      "run": "after-01"
+    },
+    "current-ticket-joins-denied-final-lookup": {
+      "failures": [],
+      "passed": true,
+      "name": "current-ticket-joins-denied-final-lookup",
+      "run": "after-01"
+    },
+    "completion-before-deferred-replay-does-not-repeat": {
+      "failures": [],
+      "passed": true,
+      "name": "completion-before-deferred-replay-does-not-repeat",
+      "run": "after-01"
+    },
+    "current-provider-failure-keeps-provider-policy": {
+      "failures": [],
+      "passed": true,
+      "name": "current-provider-failure-keeps-provider-policy",
+      "run": "after-01"
+    },
+    "sustained-demand-one-active-one-pending": {
+      "failures": [],
+      "passed": true,
+      "name": "sustained-demand-one-active-one-pending",
+      "run": "after-01"
+    },
+    "cancelled-caller-before-held-admission-is-noop": {
+      "failures": [],
+      "passed": true,
+      "name": "cancelled-caller-before-held-admission-is-noop",
+      "run": "after-01"
+    },
+    "daemon-cancelled-refresh-does-not-admit-or-throttle": {
+      "name": "daemon-cancelled-refresh-does-not-admit-or-throttle",
+      "failures": [],
+      "passed": true,
+      "run": "after-daemon-cancel-01"
+    },
+    "immediate-transition-demand-survives-later-retry-deadline": {
+      "failures": [],
+      "name": "immediate-transition-demand-survives-later-retry-deadline",
+      "passed": true,
+      "run": "after-transfers-01"
+    },
+    "automatic-provider-fallback-retains-failed-provider-backoff": {
+      "passed": true,
+      "failures": [],
+      "name": "automatic-provider-fallback-retains-failed-provider-backoff",
+      "run": "before-transfers-01"
+    }
+  },
+  "limitations": [
+    "No installed application qualification of this patch yet.",
+    "Original VM stuck-manual case must be retried after packaging.",
+    "Fallback-loop concern did not reproduce: existing preferred-provider narrowing retained both local pauses; no fallback behavior was changed.",
+    "The final compilation covers current source, but passing control evidence spans the recorded revisions."
+  ],
+  "source_sha256": {
+    "Sources/MimoCore/MonitoringEngine.swift": "c9332d732696bfd7f3fe8de8f39f02db80dc4f8020e636dbf8afcd51806ea1bd",
+    "Sources/MimoShared/MimoManualRefresh.swift": "6d8555726a15459cb103796cd8582bcef13e6ea22621b40974deedf0a90ea19e",
+    "Sources/MimoService/DaemonService.swift": "45c483fd39c624029db938526826954b64e8fe948ed324f11838726c92d3faf0",
+    "Tests/MimoServiceTests/ManualDemand/cases.swift": "52ab125d11979d9fa1402a663acb9485af6f611000f63f94c9826e2854697bd4",
+    "Tests/MimoServiceTests/ManualDemand/run.py": "301ff13bd44b7dba039a3e86a7242108644f7bebedd4cb06152f62b9da0bdec9"
+  },
+  "method": "Real MonitoringEngine and DaemonService compiled with MIMO_SERVICE_TEST; isolated local preferences/credentials and deterministic physically held lookup client; no network or firewall calls.",
+  "source_review_refinement": {
+    "description": "DaemonService handles a nil beginManualRefresh ticket as ordinary cancelled before consuming admission time or creating unstructured work; closes cancellation between the precheck and ticket admission.",
+    "scope": "Same cancelled-before-admission contract as the ninth control. Final refinement was source-reviewed and typechecked only; no passing controls rerun.",
+    "tests_executed": 0,
+    "source_identity_sha256": "b30bc4b790a9b21c7eaaa56ba7f62a9a9a71234b7add996b16818c9ed7423b18",
+    "compile_log_sha256": "460dd6f40ab266330b42c744ab4353efcbaf34899b17cdaa6b170f6e9957a299",
+    "result_sha256": "c157ed1b8f2a4df1a64db081c64dddd29a7a6b36cadefe157b000f2b936a2311"
+  }
+}

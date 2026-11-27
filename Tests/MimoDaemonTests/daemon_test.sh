@@ -7,24 +7,24 @@ fixture=$(mktemp -d)
 trap '/bin/rm -rf "$fixture"' EXIT
 service_plist > "$fixture/service.plist"
 /usr/bin/plutil -lint "$fixture/service.plist" >/dev/null
-[ "$(/usr/bin/plutil -extract ProgramArguments.0 raw -o - "$fixture/service.plist")" = "$EXECUTABLE" ]
+[ "$(/usr/bin/plutil -extract ProgramArguments.0 raw -o - "$fixture/service.plist")" = "$HEARTBEAT_EXECUTABLE" ]
 [ "$(/usr/bin/plutil -extract RunAtLoad raw -o - "$fixture/service.plist")" = true ]
 [ "$(/usr/bin/plutil -extract KeepAlive raw -o - "$fixture/service.plist")" = true ]
 /usr/bin/python3 - "$fixture/service.plist" <<'PY'
 import plistlib, sys
 p = plistlib.load(open(sys.argv[1], 'rb'))
-assert p['MachServices'] == {'com.mimo.core': True, 'com.mimo.core.control': True}
+assert p['MachServices'] == {'com.mimo.core.heartbeat': True}
 assert 'UserName' not in p and 'LimitLoadToSessionType' not in p
-assert len(p['ProgramArguments']) == 1
+assert p['ProgramArguments'][1:] == ['--heartbeat']
 PY
 for kind in engine supervisor; do
     service_plist "$kind" > "$fixture/$kind.plist"
     /usr/bin/plutil -lint "$fixture/$kind.plist" >/dev/null
 done
-for kind in boot health; do
-    infrastructure_plist "$kind" > "$fixture/$kind.plist"
-    /usr/bin/plutil -lint "$fixture/$kind.plist" >/dev/null
-done
+if declare -F infrastructure_plist >/dev/null; then
+    echo 'FAIL: boot/health work must use the existing supervisor, without another launch job'
+    exit 1
+fi
 /usr/bin/python3 - "$fixture" "$PLIST" "$ENGINE_PLIST" "$SUPERVISOR_PLIST" <<'PY'
 import pathlib, plistlib, sys
 root = pathlib.Path(sys.argv[1])
@@ -34,16 +34,45 @@ for name, argument in [('engine', '--engine'), ('supervisor', '--supervisor')]:
     assert p['GroupName'] == '_mimo'
     assert p['KeepAlive'] is True and p['RunAtLoad'] is True
     assert ('MachServices' in p) == (name == 'supervisor')
-assert all('/Application Support/' in p for p in sys.argv[2:4])
-assert sys.argv[4].startswith('/Library/LaunchDaemons/')
-for kind, argument in [('boot', '--boot'), ('health', '--check')]:
-    p = plistlib.loads((root / (kind + '.plist')).read_bytes())
-    assert p['ProgramArguments'] == ['/usr/bin/perl', '/Library/Application Support/Mimo/Guard/pf-guard.pl', argument]
-    assert p['RunAtLoad'] is True and p['KeepAlive'] == {'SuccessfulExit': False}
-    assert ('StartInterval' in p) == (kind == 'health')
-    if kind == 'health': assert p['StartInterval'] == 10
+assert all(p.startswith('/Library/LaunchDaemons/') for p in sys.argv[2:5])
+for filename, executable in [('service', 'mimo-core-heartbeat'), ('supervisor', 'mimo-core-supervisor'), ('engine', 'mihomo')]:
+    p = plistlib.loads((root / (filename + '.plist')).read_bytes())
+    assert pathlib.Path(p['ProgramArguments'][0]).name == executable
+    assert '/Mimo/LaunchHelpers/' in p['ProgramArguments'][0]
+p = plistlib.loads((root / 'supervisor.plist').read_bytes())
+assert p['MachServices'] == {'com.mimo.supervisor': True, 'com.mimo.supervisor.control': True, 'com.mimo.core': True, 'com.mimo.core.control': True}
+assert p['ExitTimeOut'] >= 30  # drain the bounded guard child on service removal
+assert 'StartInterval' not in p  # existing supervisor owns scheduling
 PY
-echo 'PASS: independent PF and health jobs start at boot without executing Mimo or mihomo; core/engine retain saved service intent'
+echo 'PASS: existing supervisor owns boot and health; no additional launch job'
+(
+    # Execute the installer's real startup phase with launchctl mocked. A
+    # completed Stop receipt remains until verification succeeds, so a peer
+    # watchdog must not be relied on to start the missing heartbeat here.
+    touch "$fixture/deactivated"
+    heartbeat_loaded=0
+    install_stage() { :; }
+    run() {
+        [ -e "$fixture/deactivated" ] || return 1
+        if [ "$2" = bootstrap ] && [ "$4" = "$PLIST" ]; then heartbeat_loaded=1; fi
+        return 0
+    }
+    job_state() { [ "$1" = "$LABEL" ] && [ "$heartbeat_loaded" = 1 ]; }
+    startup=$(/usr/bin/python3 - "$REPO/Sources/MimoDaemon/daemon.sh" <<'PY'
+from pathlib import Path
+import sys
+s = Path(sys.argv[1]).read_text()
+print(s[s.index('    install_stage starting_services'):s.index('    install_stage verifying_services')])
+PY
+)
+    eval "$startup"
+    if [ "$heartbeat_loaded" != 1 ]; then
+        echo 'FAIL: activation must start heartbeat before health verification while retaining its Stop receipt'
+        exit 1
+    fi
+    [ -e "$fixture/deactivated" ]
+)
+echo 'PASS: activation starts heartbeat before verification without weakening the deactivation fence'
 /usr/bin/perl "$REPO/Tests/MimoDaemonTests/network_release_test.pl"
 /usr/bin/perl "$REPO/Tests/MimoDaemonTests/pf_guard_test.pl" "$REPO/Sources/MimoDaemon/pf-guard.pl"
 

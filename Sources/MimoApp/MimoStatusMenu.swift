@@ -42,7 +42,7 @@ final class MimoStatusMenu: NSObject, NSMenuDelegate {
         detailItem.title = presentation.detail.count > 100 ? String(presentation.detail.prefix(97)) + "…" : presentation.detail
         detailItem.toolTip = presentation.detail
         addressItem.title = presentation.address.map { "IP address · \($0)" } ?? "IP unavailable"
-        let ready = monitor.canChangeSharedSettings
+        let ready = monitor.canChangeModes
         for (mode, row) in modeItems {
             row.state = monitor.routingState.configuration.mode == mode ? .on : .off
             row.isEnabled = ready

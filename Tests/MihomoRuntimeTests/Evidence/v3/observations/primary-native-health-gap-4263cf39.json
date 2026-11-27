@@ -1,0 +1,145 @@
+{
+  "schema": 1,
+  "status": "retained_primary_native_transport_health_gap",
+  "core_sha256": "4263cf39e9779b03d00bc73b40fd523e4ba8e42012ec2aa84f824ba5dd48e067",
+  "vm": "mimo-test-macos",
+  "runtime_run": 3,
+  "planned_runtime_runs": 9,
+  "case": "ipv4/latest-rule-denied",
+  "passed": false,
+  "evidence_id": "785e5280f054493daa4ea0c88326a812",
+  "failed_assertion": "Settled PF health must remain qualified and provider ready.",
+  "failed_sample": {
+    "index": 9,
+    "sampled_epoch": 1795788736.969554,
+    "phase": "blocked",
+    "status": [
+      "ready"
+    ],
+    "failed_components": [
+      "pf"
+    ],
+    "infrastructure": {
+      "pf": "unknown",
+      "launchd": "healthy",
+      "checkedAt": 817481524.8180399,
+      "pfCheckedAt": 817481524.8180399,
+      "launchdCheckedAt": 817481525.63673,
+      "completedAt": 817481526.0657599,
+      "inspection": {
+        "completedAt": 817481526.325134,
+        "generation": 37,
+        "id": "20AA2451-FDEC-4DCA-B92C-15C7B3BF3909",
+        "isCurrent": true,
+        "outcome": "completed",
+        "startedAt": 817481524.567052
+      },
+      "pfEvidenceCurrent": false
+    },
+    "infrastructure_age_seconds": 12.151524066925049
+  },
+  "preceding_native_transport_updates": [
+    {
+      "timestamp": "2026-11-27T14:11:43.562Z",
+      "https_scopes": 84,
+      "udp_scopes": 2
+    },
+    {
+      "timestamp": "2026-11-27T14:11:45.477Z",
+      "https_scopes": 57,
+      "udp_scopes": 2
+    },
+    {
+      "timestamp": "2026-11-27T14:11:52.895Z",
+      "https_scopes": 57,
+      "udp_scopes": 2
+    },
+    {
+      "timestamp": "2026-11-27T14:12:15.309Z",
+      "https_scopes": 56,
+      "udp_scopes": 2
+    }
+  ],
+  "independent_passes": {
+    "mode_queue": true,
+    "prior_manual_terminated": true,
+    "exact_final_manual": {
+      "passed": true,
+      "failures": [],
+      "manual_id": "4E87192F-0FA4-4102-9EF2-B2F9A2DF2720",
+      "requested_epoch": 1795788708.199938,
+      "manual_requested_at": 817481508.280606,
+      "manual_finished_at": 817481511.98547,
+      "phase": "failed",
+      "expected_outcome": "blocked",
+      "successful_lookup": "4B592B7F-0E1F-4A77-AFD1-968FFA564CB3",
+      "typed_result": "checkedBlocked",
+      "lifecycle_generation": 23,
+      "snapshot_checked_at": 817481510.775294,
+      "blocking_ip_checked_at": 817481510.775294,
+      "date_normalization": "Swift Date seconds + 978307200 = Unix/log seconds"
+    },
+    "protected_packet_policy": true,
+    "protected_native_attempts": 0,
+    "whole_GUI": true,
+    "incoming_ssh": true
+  },
+  "later_read_only_state": {
+    "observed_epoch": 1795788935.817259,
+    "healthy": true,
+    "phase": "blocked",
+    "status": [
+      "ready"
+    ],
+    "pf": "healthy",
+    "pfEvidenceCurrent": true
+  },
+  "source_analysis": "refreshBlockedNativeTransport changes the mutation epoch and guard.expected after verified policy readback, but does not publish a matching latestPFHealthReceipt. infrastructureStatus rejects the older full-scan/receipt identity until the next completed scan. This produces unknown PF health despite a recent complete infrastructure check.",
+  "source_references": [
+    "Sources/MimoService/MimoSystemRuntime.swift:635",
+    "Sources/MimoService/MimoSystemRuntime.swift:212",
+    "Sources/MimoService/MimoFirewallLock.swift:27"
+  ],
+  "proposal": {
+    "implemented": false,
+    "narrow_option": "Publish an epoch/state/digest-qualified narrow PF health receipt from the successful native-transport transaction, then request coalesced infrastructure reconciliation. Retain the old full-guard age bound; no synthetic full-health timestamp.",
+    "future_negative_controls": [
+      "Failed readback cannot publish a receipt",
+      "Superseded mutation receipt cannot qualify the replacement policy",
+      "An overdue full guard check remains overdue despite a fresh narrow receipt",
+      "No-op native refresh does not mutate epoch or extend freshness",
+      "No IP lookup, provider penalty or repair loop follows a successful native-transport refresh"
+    ]
+  },
+  "raw_archive": {
+    "sha256": "7fba2613bdf7b3710197a6b7bc23117e1d6dd3ce1390ee12c84afd7f4a184020",
+    "files": [
+      "785e5280f054493daa4ea0c88326a812-all-raw-events.json",
+      "785e5280f054493daa4ea0c88326a812-communication.json",
+      "785e5280f054493daa4ea0c88326a812-continuous-health.json",
+      "785e5280f054493daa4ea0c88326a812-final-refresh-response.json",
+      "785e5280f054493daa4ea0c88326a812-final-state.json",
+      "785e5280f054493daa4ea0c88326a812-pf-hold-finished.json",
+      "785e5280f054493daa4ea0c88326a812-pf-hold-ready.json",
+      "785e5280f054493daa4ea0c88326a812-pf-hold-release",
+      "785e5280f054493daa4ea0c88326a812-prior-manual-state.json",
+      "785e5280f054493daa4ea0c88326a812-private-error.txt",
+      "785e5280f054493daa4ea0c88326a812-rapid-policy-en0.capture.log",
+      "785e5280f054493daa4ea0c88326a812-rapid-policy-en0.pcap",
+      "785e5280f054493daa4ea0c88326a812-rapid-policy-observations.json",
+      "785e5280f054493daa4ea0c88326a812-rapid-policy-pflog0.capture.log",
+      "785e5280f054493daa4ea0c88326a812-rapid-policy-pflog0.pcap",
+      "785e5280f054493daa4ea0c88326a812-raw-events.json",
+      "785e5280f054493daa4ea0c88326a812-request-replies.json",
+      "785e5280f054493daa4ea0c88326a812-settled-health.json",
+      "785e5280f054493daa4ea0c88326a812-targeted-result.json"
+    ],
+    "path": ".build/observation-parallel/primary-validation-4263cf39-20261127T134917Z-cdcb13d8/run-03-ipv4-rule-denied-e4fdf09c/case-private.tar.gz"
+  },
+  "post_failure_private_evidence": {
+    "path": ".build/observation-parallel/primary-validation-4263cf39-20261127T134917Z-cdcb13d8/run-03-ipv4-rule-denied-e4fdf09c/pf-gap-readonly-after.json",
+    "sha256": "b9674727f4f7f82afe3e6de687b9ac383ea8205499b98a09f3cf774954779efc"
+  },
+  "no_production_or_harness_oracle_change": true,
+  "matrix_paused_pending_review": true
+}

@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "candidate_core_sha256": "4263cf39e9779b03d00bc73b40fd523e4ba8e42012ec2aa84f824ba5dd48e067",
+  "vm_scope": "primary",
+  "case": "ipv4/latest-mode-direct",
+  "runtime_run": 4,
+  "qualification": "failed_precondition_not_qualified",
+  "original_failure_retained": true,
+  "host_attempt_id": "fe1163a3052348d5bef2788129859f90",
+  "evidence_id": "5809b401cd4b475a9daf80c9c87f03c4",
+  "archive_sha256": "6b029a0652cd32fc7c1b9eb87a29422d0a5ef252052db0f0886811ada3c728ee",
+  "archive_path": ".build/observation-parallel/primary-validation-4263cf39-20261127T134917Z-cdcb13d8/run-04-ipv4-direct-fe1163a3/case-private.tar.gz",
+  "assertion": "Queued-operation precondition not exercised: mimo_direct_worker_started was not observed within unchanged 1.2-second deadline",
+  "timing": {
+    "pf_hold_acquired_epoch": 1795789235.0384052,
+    "pf_hold_released_epoch": 1795789236.383414,
+    "pf_hold_release_reason": "requested",
+    "active_native_update": "2026-11-27T14:20:37.306Z",
+    "direct_commit": "2026-11-27T14:20:37.322Z",
+    "direct_worker_started": "2026-11-27T14:20:37.359Z",
+    "direct_restored": "2026-11-27T14:20:41.898Z"
+  },
+  "independent_proofs": {
+    "whole_case_gui_passed": true,
+    "incoming_ssh_passed": true,
+    "continuous_health_passed": true,
+    "max_state_rpc_seconds": 2.1920177500000015,
+    "protected_native_attempts": 0,
+    "authorized_direct_native_attempts": 26,
+    "lab_cleanup_empty": true
+  },
+  "source_observation": {
+    "path": "Sources/MimoService/MimoSystemRuntime.swift",
+    "function": "auditPolicies",
+    "lines": [
+      681,
+      714
+    ],
+    "detail": "Native snapshot runs off actor, but active policy mutation, pfctl apply/readback, guard.expected write and installedPolicy adoption return to synchronous actor execution."
+  },
+  "inference": "The intentional PF-lock hold overlapped the synchronous active native-policy update; direct intent was not admitted before the short queue precondition deadline. This establishes an unexercised queue case and timing evidence, not a >3-second GUI timeout.",
+  "proposal_not_implemented": "Use an owned, generation-qualified off-actor active-native policy transaction; after exact epoch/state/digest readback adopt a current narrow PF receipt without renewing the full-checker baseline. Add deterministic held-lock responsiveness and stale-owner controls before production changes.",
+  "limits": [
+    "No queued mode operations were submitted because the active-transition precondition failed.",
+    "No deadlines or application assertions were relaxed.",
+    "Frozen candidate unchanged; no retry performed."
+  ]
+}

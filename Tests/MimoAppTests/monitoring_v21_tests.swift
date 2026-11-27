@@ -25,9 +25,19 @@ enum MonitoringV21Tests {
                 monitor.manualRefresh?.message.contains("Exit IP checked. Outbound access remains blocked.") == true,
                 "a successful lookup with a rejected exit must report the access rejection, not a provider failure or access success")
         monitor.accessBlockReason = nil
+        // Exercise the actual one-shot timer callback with an injected clock.
         var preferences = monitor.preferences; preferences.refreshInterval = .sixtyMinutes
         monitor.apply(preferences, requestRefresh: false)
         require(monitor.periodicRefreshScheduled, "selecting an interval enables the timer")
+        let beforePeriodic = await client.count
+        let due = monitor.nextPeriodicCheck!
+        clock.advance(121)
+        await monitor.runPeriodicCheckIfDue()
+        require(await client.count == beforePeriodic, "manual success postpones periodic work for the full configured hour")
+        clock.advance(3479)
+        await monitor.runPeriodicCheckIfDue()
+        require(await client.count == beforePeriodic + 1 && monitor.nextPeriodicCheck! > due,
+                "one periodic lookup at the deadline rebases the next full interval")
         preferences.refreshInterval = .never; monitor.apply(preferences, requestRefresh: false)
         require(!monitor.periodicRefreshScheduled, "selecting Never cancels the existing timer")
         clock.advance(1)
@@ -74,7 +84,7 @@ enum MonitoringV21Tests {
         monitor.stop()
         require(monitor.manualRefresh?.phase == .failed && monitor.manualRefresh?.pending == false,
                 "stopping must cancel a queued manual request instead of leaving it pending")
-        print("PASS: Never timer lifecycle, manual same-IP timestamp, failure, cooldown deferral, retry and queued outcomes")
+        print("PASS: Never timer lifecycle, manual/periodic freshness boundary, manual same-IP timestamp, failure, cooldown deferral, retry and queued outcomes")
     }
     private static func require(_ condition: Bool, _ message: String) { CredentialAppTests.require(condition, message) }
 }

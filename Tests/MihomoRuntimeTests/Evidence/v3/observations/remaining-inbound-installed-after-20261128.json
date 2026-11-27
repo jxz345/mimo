@@ -1,0 +1,318 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-11-27T18:55:32.925279+00:00",
+  "status": "All three installed lifecycle supplements passed and exact-owned cleanup completed.",
+  "counts": {
+    "installed_cases_planned": 3,
+    "installed_cases_passed": 3,
+    "overall_VM_case_ids_passed": 24,
+    "overall_VM_case_ids_planned": 24,
+    "local_harness_controls": {
+      "typed_DTO_before": {
+        "passed": 5,
+        "failed": 2,
+        "total": 7
+      },
+      "typed_DTO_after": {
+        "passed": 7,
+        "total": 7
+      },
+      "strict_PF_health_checks": {
+        "passed": 5,
+        "total": 5
+      }
+    },
+    "local_controls_are_not_VM_cases": true
+  },
+  "candidate": {
+    "version": "3.0",
+    "build": "11",
+    "published": false,
+    "installed_core_sha256": "1942a60ab1b5f635f1eb61b4de25140e1b1d83c15eb7fbf3b732b56e5706395e",
+    "package_sha256": "4703f01d3ecd0d8d4dffb8f9d42f2a2345695f810b0a4a46f3e320578beec40a",
+    "source_manifest_sha256": "dff8c404311da71214952e2c932fa2f9fb57b5bdd55c52cc0bead6e87e3c2200",
+    "installation_proof": {
+      "path": ".build/observation-parallel/remaining-issues-20261128/installation-1942/result.json",
+      "sha256": "ef96d5bad9855cce2cde9b05ef238bbeaa1984ba29f0bef8aeacdac07a7e55f3"
+    }
+  },
+  "scope": {
+    "vm": "mimo-test-macos",
+    "actual_installed_RPC": true,
+    "actual_dashboard_daemon_backend": true,
+    "native_UI_clicks": false,
+    "generated_production_policy_executed_inside_VM": true,
+    "earlier_and_final_renderer_identical_on_VM": true
+  },
+  "harness_sha256": "a51f018abd8cf8c25661b900458a0ac456426169388cd44b9832a410c3670123",
+  "controls_sha256": "1ed7b5fb01d653f853a87de246c138ab043148e93da605284d5349dd1d68981a",
+  "policy_exporter_sha256": "c5030481aae97125aee29878baf5a3e43647c559f4937224d895104c0ab449e0",
+  "summary": {
+    "path": ".build/observation-parallel/remaining-issues-20261128/inbound-lifecycle-04/summary.json",
+    "sha256": "68ce738e89c13bf063da7be23b0a1f982142eeff11e029abcee7caddaff01a96"
+  },
+  "raw_archive": {
+    "path": ".build/observation-parallel/remaining-issues-20261128/inbound-lifecycle-04/guest-private.tar.gz",
+    "sha256": "e1789189ad3a3322ed87484751a9d8669eb0d80cfaa9a1816379f469c84cd301"
+  },
+  "independent_audit": {
+    "path": ".build/observation-parallel/remaining-issues-20261128/inbound-lifecycle-04/independent-audit.json",
+    "sha256": "b20fafc73c19fe7e06aa6d5fbb09bd6385d9104d0bef291e675d8efd5f4a1097"
+  },
+  "cases": [
+    {
+      "id": "L1",
+      "passed": true,
+      "denied": {
+        "blocked_fresh_ip": true,
+        "samples": 27,
+        "seconds": 35
+      },
+      "ssh": {
+        "passed": true,
+        "samples": 109,
+        "joined": true
+      },
+      "events": {
+        "whole_case_events_passed": true
+      }
+    },
+    {
+      "id": "L2",
+      "passed": true,
+      "released": {
+        "released": true,
+        "jobs_absent": true,
+        "dns_released": true,
+        "tun_absent": true
+      },
+      "activated": {
+        "samples": 27,
+        "seconds": 35
+      }
+    },
+    {
+      "id": "L3",
+      "passed": true,
+      "address_change": {
+        "literal_add_remove": true,
+        "settled_seconds_each": 35,
+        "tracking_updates": 2
+      }
+    }
+  ],
+  "settled_windows": {
+    "rule": {
+      "samples": 27,
+      "observed_seconds": 35,
+      "max_component_receipt_age_seconds": 12.436,
+      "state_and_PID_read_max_seconds": 0.271,
+      "unexpected_events": 0
+    },
+    "activated": {
+      "samples": 27,
+      "observed_seconds": 35,
+      "max_component_receipt_age_seconds": 13.19,
+      "state_and_PID_read_max_seconds": 0.277,
+      "unexpected_events": 0
+    },
+    "address-added": {
+      "samples": 27,
+      "observed_seconds": 35,
+      "max_component_receipt_age_seconds": 12.604,
+      "state_and_PID_read_max_seconds": 0.268,
+      "unexpected_events": 0
+    },
+    "address-removed": {
+      "samples": 27,
+      "observed_seconds": 35,
+      "max_component_receipt_age_seconds": 12.385,
+      "state_and_PID_read_max_seconds": 0.273,
+      "unexpected_events": 0
+    }
+  },
+  "SSH": {
+    "passed": true,
+    "samples": 109,
+    "joined": true,
+    "exact_tuple": [
+      "192.168.64.1",
+      52344,
+      "192.168.64.2",
+      22
+    ],
+    "PF_states": {
+      "birth": [
+        "en0 tcp 192.168.64.2:22 <- 192.168.64.1:52344       ESTABLISHED:ESTABLISHED"
+      ],
+      "closed": [
+        "en0 tcp 192.168.64.2:22 <- 192.168.64.1:52344       ESTABLISHED:ESTABLISHED"
+      ]
+    },
+    "exact_tuple_packets": 510,
+    "max_echo_latency_seconds": 0.0015
+  },
+  "capture": {
+    "snaplen": 524288,
+    "linktype": 1,
+    "packets": 518,
+    "truncated_records": 0,
+    "unsupported_records": 0,
+    "sha256": "3bf62348e50ea4f644e23fe209d754389601a80695076983cfd1884195a71745",
+    "log": "tcpdump: listening on en0, link-type EN10MB (Ethernet), snapshot length 524288 bytes\n518 packets captured\n4032 packets received by filter\n0 packets dropped by kernel\n"
+  },
+  "release": {
+    "jobs_absent": true,
+    "Mimo_rule_reference_absent": true,
+    "tun_absent": true,
+    "DNS_override_absent": true
+  },
+  "address_inventory": {
+    "add_remove": true,
+    "tracking_updates": 2,
+    "other_controls_unchanged": true,
+    "aliases_removed": true,
+    "watchdog_joined": true,
+    "new_alias_TCP_connection_tested": false
+  },
+  "events": {
+    "unexpected_settled_events": 0,
+    "whole_archive_error_events": 0,
+    "explicit_Stop_Start_GUI_disconnect_notices": 9,
+    "disconnect_first": "2026-11-27T18:49:48.596Z",
+    "disconnect_last": "2026-11-27T18:50:26.598Z",
+    "reconnected": "2026-11-27T18:50:30.444Z",
+    "interpretation": "The nine disconnect notices fall within deliberate daemon removal/reactivation. L1 and allfour35s settled windows had no unexpected communication loss."
+  },
+  "historical_attempts_preserved": [
+    {
+      "attempt": "inbound-lifecycle-01",
+      "classification": "harness_precondition_failure",
+      "details": "Expected an obsolete Direct phase string; no protected transition qualified.",
+      "summary": {
+        "path": ".build/observation-parallel/remaining-issues-20261128/inbound-lifecycle-01/summary.json",
+        "sha256": "af5bf6a97059de0d6b71747f51f18b04799c5aad1b0acbae82e864eddf13ce2f"
+      },
+      "raw_archive": {
+        "path": ".build/observation-parallel/remaining-issues-20261128/inbound-lifecycle-01/guest-private.tar.gz",
+        "sha256": "c269aadd5e27a5139676e653cb6024ccb4f978ae39a64fe52c72c3b0b4fa5706"
+      },
+      "original_all_passed": false
+    },
+    {
+      "attempt": "inbound-lifecycle-02",
+      "classification": "real_installed_product_failure",
+      "details": "Actual dynamic-self rule created no incoming SSH state. Preserved before evidence; fixed candidate uses canonical literal addresses.",
+      "summary": {
+        "path": ".build/observation-parallel/remaining-issues-20261128/inbound-lifecycle-02/summary.json",
+        "sha256": "da772f48fc03fa150d9d43711a22169d0bf945cf8c1b63c232f15272d7926ee3"
+      },
+      "raw_archive": {
+        "path": ".build/observation-parallel/remaining-issues-20261128/inbound-lifecycle-02/guest-private.tar.gz",
+        "sha256": "0f9b8b3dd5c4b865c701d7727e1b26ffca6cf4c5bdd1dd2e9891efc9245d7b91"
+      },
+      "original_all_passed": false
+    },
+    {
+      "attempt": "inbound-lifecycle-03",
+      "classification": "harness_DTO_failure",
+      "details": "Compared observedIP.address to blockingIP object. Actual Rule rejection and SSH continuity observed, but no35s settle; retained incomplete.",
+      "summary": {
+        "path": ".build/observation-parallel/remaining-issues-20261128/inbound-lifecycle-03/summary.json",
+        "sha256": "9857d34d722e48683f85a1fa834cd8f06f2a319b57bd38cc849875e5beaad214"
+      },
+      "raw_archive": {
+        "path": ".build/observation-parallel/remaining-issues-20261128/inbound-lifecycle-03/guest-private.tar.gz",
+        "sha256": "bfb092226c9aea6d0bfcdb9d7a9bf9f63d0345462fc0c39b3130189cdb49b0ff"
+      },
+      "original_all_passed": false
+    }
+  ],
+  "additional_history_references": [
+    "remaining-inbound-mechanism-20261128.json",
+    "remaining-inbound-postfix-20261128.json",
+    "remaining-inbound-installed-before-20261128.json",
+    "remaining-inbound-dynamic-destination-20261128.json",
+    "remaining-inbound-literal-20261128.json"
+  ],
+  "harness_correction_proofs": [
+    {
+      "path": ".build/observation-parallel/remaining-issues-20261128/denial-oracle/before.json",
+      "sha256": "eaf47e46a358f486735cf4b3047d9c5f4a01fa32bdd5edeafbe20beb5f66df03"
+    },
+    {
+      "path": ".build/observation-parallel/remaining-issues-20261128/denial-oracle/after.json",
+      "sha256": "d55b76380db9793e23da152e0fa19f8abe542fdc1c5f1df63ba1b7c663961ef2"
+    },
+    {
+      "path": ".build/observation-parallel/remaining-issues-20261128/denial-oracle/schema-and-health.json",
+      "sha256": "42976cdb9fd0a05848b4f621b3bb1aa90885a9d90a08a1ad57c4a81f3a27dc43"
+    }
+  ],
+  "cleanup": {
+    "removed_roots": [
+      {
+        "root": "/var/tmp/mimo-native-ingress-7601ffe3",
+        "files": 3
+      },
+      {
+        "root": "/var/tmp/mimo-native-ingress-1942a60a",
+        "files": 7
+      },
+      {
+        "root": "/var/tmp/mimo-inbound-lifecycle-89a87350a4d44f68b5809430fb6c3a37",
+        "files": 34
+      },
+      {
+        "root": "/var/tmp/mimo-inbound-lifecycle-c11755d4cc8b43f587baa63391368b67",
+        "files": 72
+      }
+    ],
+    "removed_transfer_count": 4,
+    "all_files_hash_verified": true,
+    "owned_helpers_absent": true,
+    "test_anchor_empty": true,
+    "aliases_absent": true,
+    "original_settings_restored": true,
+    "original_routing_restored": true,
+    "core_sha256": "1942a60ab1b5f635f1eb61b4de25140e1b1d83c15eb7fbf3b732b56e5706395e",
+    "healthy_Direct": true,
+    "exact_literal_tracking": true,
+    "tun_absent": true,
+    "PF_launchd_max_age": 3.6898601055145264,
+    "approved_CA_untouched": true,
+    "primary_VM_preserved": true
+  },
+  "cleanup_evidence": {
+    "path": ".build/observation-parallel/remaining-issues-20261128/installed-final-cleanup/result.json",
+    "sha256": "da42cd1d9f1e8756a4a342c5d86147fbdcc4b8491498ecf275d2a6d179e7393b"
+  },
+  "cleanup_ownership_archives": {
+    "path": ".build/observation-parallel/remaining-issues-20261128/installed-final-cleanup/archive-ownership.json",
+    "sha256": "76e182f71ad337e40bf8da723107757da25ffd58d8465454fcaa1b489496e6c1"
+  },
+  "VM_inventory_evidence": {
+    "path": ".build/observation-parallel/remaining-issues-20261128/installed-final-cleanup/tart-inventory.json",
+    "sha256": "1bddb32ed90a88cb0af1019ca549cbd1ed694431bdf4ae3b600877a8affb656d"
+  },
+  "remaining_VMs": {
+    "mimo-pre-v3-20261125": "stopped",
+    "mimo-test-macos": "running"
+  },
+  "restoration": {
+    "settings_restored": true,
+    "routing_restored": true,
+    "hosts_unchanged": true,
+    "direct_tracking": true,
+    "healthy": true
+  },
+  "limits": [
+    "Actual RPC/dashboard daemon.sh backend; no native button clicks or Screen Sharing test.",
+    "One authenticated IPv4 TCP SSH stream; no generic UDP, IPv6 ingress or interface-migration qualification.",
+    "Guest BPF full-snap capture only; encrypted SSH nonce continuity proven at application endpoints, not decoded from PCAP.",
+    "Ordinary Direct tracking supports connections born after tracking begins; pretracking connection limitation remains.",
+    "L3 proves exact IPv4/IPv6 local-destination inventory convergence and health without gate/profile/DNS/IP-check side effects; it did not establish TCP connections to those aliases.",
+    "The earlier dynamic-self rule failure and all incomplete harness attempts remain preserved; passing later attempts do not rewrite them.",
+    "Approved testing CA remains trusted; no publication was performed."
+  ]
+}

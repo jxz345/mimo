@@ -40,6 +40,11 @@ ok(main::job_matches($job, $path, $program, '--supervisor', 1), 'matching loaded
 ok(!main::job_matches($job, $path, $program, undef, 1), 'wrong arguments cannot masquerade as core');
 ok(!main::job_matches($job =~ s/keepalive/other/r, $path, $program, '--supervisor', 1), 'missing restart policy rejected');
 ok(!main::job_matches($job =~ s/runatload/other/r, $path, $program, '--supervisor', 1), 'missing boot policy rejected');
+my @jobs = main::intended_jobs({core => JSON::PP::true, engine => JSON::PP::true});
+is_deeply([map { $_->[0] } @jobs], ['com.mimo.mihomo'],
+    'repair only existing supervisor/core/engine; never recreate retired boot or infrastructure jobs');
+my @stopped = main::intended_jobs({core => JSON::PP::false, engine => JSON::PP::false});
+is_deeply([map { $_->[5] ? 1 : 0 } @stopped], [0], 'repair respects saved core and engine Stop intent');
 ok(!main::release_intent({engine => JSON::PP::true}), 'old intent remains managed');
 ok(main::release_intent({engine => JSON::PP::false, releaseNetwork => JSON::PP::true}), 'explicit stop survives independent boot/repair reads');
 ok(!main::release_intent({engine => JSON::PP::true, releaseNetwork => JSON::PP::false}), 'explicit start resumes management');
@@ -76,7 +81,21 @@ for my $intent ({engine => JSON::PP::true, releaseNetwork => JSON::PP::true},
     ok(main::inspect_pf_snapshot($snapshot, 'test')->{needs_block}, 'older active IPv6 filter is not accepted as the new policy');
     $live = '';
     $snapshot->[1] = 'direct'; $snapshot->[2] = '';
-    ok(!main::inspect_pf_snapshot($snapshot, 'test')->{needs_block}, 'empty Direct policy is healthy');
+    ok(main::inspect_pf_snapshot($snapshot, 'test')->{needs_block}, 'ordinary Direct must preserve incoming tracking');
+    $live = "pass in on ! utun239 inet proto tcp from any to 192.0.2.2 flags S/SA keep state (if-bound) label \"mimo:inbound:tcp\"\n"
+        . "pass in on ! utun239 inet6 proto tcp from any to fe80::12 flags S/SA keep state (if-bound) label \"mimo:inbound:tcp\"\n"
+        . "pass in on lo0 all no state label \"mimo:inbound:loopback\"\n";
+    $snapshot->[2] = $live;
+    ok(!main::inspect_pf_snapshot($snapshot, 'test')->{needs_block}, 'exact ordinary Direct tracking is healthy');
+    my $canonical = $live;
+    for my $bad ('any', '(self)', '192.0.2.0/24', '0.0.0.0', '224.0.0.1') {
+        $live = $canonical; $live =~ s/192\.0\.2\.2/$bad/; $snapshot->[2] = $live;
+        ok(main::inspect_pf_snapshot($snapshot, 'test')->{needs_block}, "Direct cannot qualify invalid destination $bad");
+    }
+    $live = $canonical; $snapshot->[2] = $live;
+    $live .= "pass out quick all\n"; $snapshot->[2] = $live;
+    ok(main::inspect_pf_snapshot($snapshot, 'test')->{needs_block}, 'extra rules cannot qualify as Direct tracking');
+    $live = ''; $snapshot->[2] = '';
     $snapshot->[1] = 'blocked';
     ok(main::inspect_pf_snapshot($snapshot, 'test')->{needs_block}, 'an empty policy cannot qualify a closed transition');
     $live = "block drop out quick all label \"mimo:transition:deny\"\n";

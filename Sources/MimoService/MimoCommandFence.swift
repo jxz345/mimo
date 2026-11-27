@@ -27,8 +27,8 @@ struct MimoCommandFence {
         guard message.revision == revision else { return false }
         switch message.command {
         case .direct: return configuration.mode == .direct
-        case .prepare: return message.configuration == configuration
-        case .approve: return configuration.mode.requiresVerification
+        case .prepare, .observe, .updatePolicy: return message.configuration == configuration
+        case .approve, .completeObservation: return configuration.mode.requiresVerification
         default: return true
         }
     }

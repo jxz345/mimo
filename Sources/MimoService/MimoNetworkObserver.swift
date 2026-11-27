@@ -12,6 +12,8 @@ final class MimoNetworkObserver {
     private let routeOwnership = MimoRouteOwnership()
     private let tailnetChanges = MimoTailnetNetworkChanges()
     var tailnetChanged: (() -> Void)?
+    private var profileChangeDepth = 0
+    private var pendingProfileEvents: [() -> Void] = []
     private var engineProcess: Int32?
     private var tunnelSignature: String?
     private var tunnelIndices: Set<UInt16> = []
@@ -85,6 +87,7 @@ final class MimoNetworkObserver {
     }
 
     func willChangeProfile(engineProcess: Int32?) {
+        profileChangeDepth += 1
         self.engineProcess = engineProcess
         tunnelIndices.removeAll()
         rememberTunnelIndex()
@@ -93,14 +96,30 @@ final class MimoNetworkObserver {
     }
 
     func didChangeProfile() {
+        for event in finishProfileChange() { event() }
+    }
+
+    func didChangeProfileOnline() async {
+        // Each retained event keeps its early token unresolved until classified.
+        // Yield between snapshots so a burst cannot occupy the state actor.
+        for event in finishProfileChange() {
+            event()
+            await Task.yield()
+        }
+    }
+
+    private func finishProfileChange() -> [() -> Void] {
         rememberTunnelIndex()
         tunnelSignature = currentTunnelSignature()
         tunnelAddresses.formUnion(addresses(in: tunnelSignature ?? ""))
         profileChangeDeadline = .now.advanced(by: .seconds(2))
         expectedDNS = currentDNS()
         publishRouteOwnership()
-        // Do not refresh the external-interface baseline here: an external change
-        // concurrent with profile loading must still be delivered afterwards.
+        profileChangeDepth = max(0, profileChangeDepth - 1)
+        guard profileChangeDepth == 0 else { return [] }
+        let pending = pendingProfileEvents; pendingProfileEvents.removeAll()
+        // External interface/DNS baselines are deliberately retained until replay.
+        return pending
     }
 
     private func publishRouteOwnership() {
@@ -122,8 +141,21 @@ final class MimoNetworkObserver {
     }
 
     private func currentTunnelSignature() -> String {
-        let result = BoundedProcess.run("/sbin/ifconfig", [MihomoProfile.tunnelDevice], timeout: 1)
-        return result.status == 0 ? result.text : "absent"
+        var first: UnsafeMutablePointer<ifaddrs>?
+        guard getifaddrs(&first) == 0 else { return "unavailable" }
+        defer { freeifaddrs(first) }
+        var result = Set<String>(); var current = first
+        while let item = current {
+            current = item.pointee.ifa_next
+            guard String(cString: item.pointee.ifa_name) == MihomoProfile.tunnelDevice else { continue }
+            result.insert("flags \(item.pointee.ifa_flags)")
+            guard let address = item.pointee.ifa_addr, [AF_INET, AF_INET6].contains(Int32(address.pointee.sa_family)) else { continue }
+            var host = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+            if getnameinfo(address, socklen_t(address.pointee.sa_len), &host, socklen_t(host.count), nil, 0, NI_NUMERICHOST) == 0 {
+                result.insert("\(Int32(address.pointee.sa_family) == AF_INET ? "inet" : "inet6") \(String(cString: host))")
+            }
+        }
+        return result.isEmpty ? "absent" : result.sorted().joined(separator: "\n")
     }
 
     private func interfaces() -> [String]? {
@@ -166,6 +198,10 @@ final class MimoNetworkObserver {
     }
 
     private func configurationChanged(_ keys: [String], privateKeys: Set<String>, early: MimoEarlyNetworkEvent?) {
+        if profileChangeDepth > 0, pendingProfileEvents.count < 256 {
+            pendingProfileEvents.append { [weak self] in self?.configurationChanged(keys, privateKeys: privateKeys, early: early) }
+            return
+        }
         diagnostic?("configuration: " + keys.joined(separator: ","))
         if !privateKeys.isEmpty {
             tailnetChanged?()
@@ -219,6 +255,10 @@ final class MimoNetworkObserver {
     }
 
     private func routesChanged(_ changes: [RouteChangeObserver.Change], receivedAt: ContinuousClock.Instant, early: MimoEarlyNetworkEvent?) {
+        if profileChangeDepth > 0, pendingProfileEvents.count < 256 {
+            pendingProfileEvents.append { [weak self] in self?.routesChanged(changes, receivedAt: receivedAt, early: early) }
+            return
+        }
         diagnostic?("routes: " + changes.map { "type=\($0.type) interface=\($0.interfaceName ?? "unknown") index=\($0.interfaceIndex) pid=\($0.processID.map(String.init) ?? "none") addresses=\($0.addresses.joined(separator: ","))" }.joined(separator: "; "))
         if early?.blocked == true {
             early?.resolve(true)

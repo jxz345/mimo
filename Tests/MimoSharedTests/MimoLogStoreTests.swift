@@ -99,21 +99,40 @@ final class MimoLogStoreTests: XCTestCase {
     }
 
     func testServiceRotationKeepsOpenDescriptorAndContinuesWriting() throws {
-        let file = try put("engine.log", String(repeating: "engine record\n", count: 40))
-        let fd = open(file.path, O_WRONLY | O_APPEND)
-        XCTAssertGreaterThanOrEqual(fd, 0)
-        defer { close(fd) }
-        var before = stat(); XCTAssertEqual(fstat(fd, &before), 0)
+        for name in ["core.log", "supervisor.log", "engine.log", "infrastructure.log"] {
+            let file = try put(name, String(repeating: "service record\n", count: 40))
+            let fd = open(file.path, O_WRONLY | O_APPEND)
+            XCTAssertGreaterThanOrEqual(fd, 0)
+            defer { close(fd) }
+            var before = stat(); XCTAssertEqual(fstat(fd, &before), 0)
+            let store = try MimoLogStore(directory: directory, serviceOutputs: true,
+                                         limits: .init(fileBytes: 100, directoryBytes: 1_000))
+            XCTAssertEqual(try store.maintain().rotated, 1)
+            var after = stat(); XCTAssertEqual(lstat(file.path, &after), 0)
+            XCTAssertEqual(before.st_ino, after.st_ino)
+            try FileHandle(fileDescriptor: fd, closeOnDealloc: false).write(contentsOf: Data("after rotation\n".utf8))
+            XCTAssertEqual(try String(contentsOf: file, encoding: .utf8), "after rotation\n")
+            let archives = try files("archive-\(name)-")
+            XCTAssertEqual(archives.count, 1)
+            XCTAssertLessThanOrEqual(try size(archives[0]), 100)
+        }
+    }
+
+    func testCoreAndSupervisorArchivesShareRuntimeDiskAndFileBudgets() throws {
         let store = try MimoLogStore(directory: directory, serviceOutputs: true,
-                                     limits: .init(fileBytes: 100, directoryBytes: 1_000))
-        XCTAssertEqual(try store.maintain().rotated, 1)
-        var after = stat(); XCTAssertEqual(lstat(file.path, &after), 0)
-        XCTAssertEqual(before.st_ino, after.st_ino)
-        try FileHandle(fileDescriptor: fd, closeOnDealloc: false).write(contentsOf: Data("after rotation\n".utf8))
-        XCTAssertEqual(try String(contentsOf: file, encoding: .utf8), "after rotation\n")
-        let archives = try files("archive-engine.log-")
-        XCTAssertEqual(archives.count, 1)
-        XCTAssertLessThanOrEqual(try size(archives[0]), 100)
+                                    limits: .init(fileBytes: 100, directoryBytes: 300, fileCount: 4))
+        for _ in 0..<6 {
+            for name in ["core.log", "supervisor.log"] {
+                _ = try put(name, String(repeating: "service record\n", count: 40))
+            }
+            try store.append(Data("runtime record\n".utf8))
+            _ = try store.maintain()
+            let managed = try files("").filter { $0.lastPathComponent != ".mimo-log.lock" }
+            XCTAssertLessThanOrEqual(managed.count, 4)
+            XCTAssertLessThanOrEqual(try managed.reduce(0) { try $0 + size($1) }, 300)
+            XCTAssertTrue(FileManager.default.fileExists(atPath: directory.appendingPathComponent("core.log").path))
+            XCTAssertTrue(FileManager.default.fileExists(atPath: directory.appendingPathComponent("supervisor.log").path))
+        }
     }
 
     func testExpiredServiceAndJournalContentsClearWithoutUnlinking() throws {

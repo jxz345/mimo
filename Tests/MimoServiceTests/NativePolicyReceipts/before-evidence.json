@@ -1,0 +1,218 @@
+{
+  "schema": 1,
+  "scope": "new extracted-runtime source controls; not installed app mode transitions or full XPC tests",
+  "executed_on": "isolated macOS worker",
+  "planned": 10,
+  "executed": 10,
+  "passed": 3,
+  "failed": 7,
+  "fixture_errors": 0,
+  "host_test_executions": 0,
+  "production_changed": false,
+  "source_identity_rechecked_after_execution": true,
+  "source_sha256": {
+    "Sources/MimoService/MimoSystemRuntime.swift": "cae8d47be5da5842b7c4c77a324d864e69cf0f32c7c200035617474cd10a1ffa",
+    "Sources/MimoService/MimoFirewallLock.swift": "0ab994e98bb5d815aa4419e6cdd42b29f3885bcaee758c223fd540d9efb35dd3",
+    "Sources/MimoService/MimoBlockingWorkQueue.swift": "5b19f14e991dbdbee446bddbdec8d808ff511907763776be99321671c0c3891e",
+    "Sources/MimoService/MimoPFHealthReceipt.swift": "78e92ee101738b6441ed362120a0f64ad3f6227d089fc31bc6c0d9c7dcb173be",
+    "Sources/MimoShared/SingleInstanceLock.swift": "0d5db865d919c56d37a4e3680aad39d806197e610be2cd211b1bcf3c47368d70",
+    "Sources/MimoShared/MimoFirewallPolicy.swift": "8dc7f77fe6378d83154df4a28cf11043e9202463f7a3b23c6b7a4dfa5f2aaff2",
+    "Sources/MimoShared/MimoNativeEgress.swift": "c268cacab93c66367692d2bfd48f3f4a29f9d2a045b5ff0c14bf92feb17113a7",
+    "Sources/MimoShared/MimoRouting.swift": "2b3e620d3ca36d0f67bf2854a4420bc907742ce1721133768071e4f74335a353",
+    "Sources/MimoShared/MimoAllowlist.swift": "3f3d60e5837faba51e464df09b989ad09d61fa62e5190fc4d405c5a7d005e41e",
+    "Tests/MimoServiceTests/NativePolicyReceipts/run.py": "231c414abd01eb7a155fd254728578d1d9dbd02c716bfc330b9d0cda0a4434ea",
+    "Tests/MimoServiceTests/NativePolicyReceipts/cases.swift": "3c2e782b40b82f57e01a036d58a8ec6f0ca26ee483ed991827e7263bedaef3a8",
+    "Tests/MimoServiceTests/NativePolicyReceipts/runtime-stubs.swift": "c8333ebbccde5c151e66d769bc1d73be1bddaa9515eea29d0d53864128dc39fa",
+    "Tests/MimoServiceTests/NativePolicyReceipts/support.swift": "e9bab7e0586851460735ddb0b676900bb5a3810b0c0a38e2a0a56b694570581a"
+  },
+  "payload_sha256": "faf23a6de8fe077a303cad14bd086a075eb461056d1a40d56f569487ed50441e",
+  "archive_sha256": "ccbf35cadf02b735cb00140d0a8eea21b7bdb45f8a55d6c85675e2661dc89c94",
+  "raw_results_sha256": "12b84f66aa5da9e9755b89ab994414d9aedacbe8b275cd06affdc74ab45c313d",
+  "limitations": [
+    "R3 tests the proposed mutation-epoch ownership contract; it does not demonstrate packet misrouting.",
+    "R5 models a superseding Direct owner to test old blocked-work suppression; its fixture health label does not qualify real Direct cleanup.",
+    "R7 supplies a matching narrow receipt after the actual successful readback to isolate full-guard expiry.",
+    "R9/R10 execute MainActor admission/read-state callbacks under real flock contention, not daemon XPC or physical Direct restoration.",
+    "PF rule readback and signed native process facts are injected; no real PF policy is changed.",
+    "One wrapper staging syntax failure occurred before guest execution; no duplicated control run."
+  ],
+  "cases": [
+    {
+      "id": "R1",
+      "name": "active-native-update-current-receipt",
+      "passed": false,
+      "failures": [
+        "missing_current_receipt",
+        "healthy_policy_projected_unavailable"
+      ],
+      "observations": {
+        "error_class": "none",
+        "evidence_current": "false",
+        "gate_state": "active",
+        "pf": "unknown",
+        "pf_writes": "1",
+        "receipt_matches": "false",
+        "epoch_replaced_by_old_work": false
+      }
+    },
+    {
+      "id": "R2",
+      "name": "blocked-native-update-current-receipt",
+      "passed": false,
+      "failures": [
+        "missing_current_receipt",
+        "healthy_policy_projected_unavailable"
+      ],
+      "observations": {
+        "error_class": "none",
+        "evidence_current": "false",
+        "gate_state": "blocked",
+        "pf": "unknown",
+        "pf_writes": "1",
+        "receipt_matches": "false",
+        "epoch_replaced_by_old_work": false
+      }
+    },
+    {
+      "id": "R3",
+      "name": "superseded-epoch-has-no-policy-or-epoch-side-effect",
+      "passed": false,
+      "failures": [
+        "stale_worker_wrote_policy",
+        "stale_worker_invalidated_new_epoch",
+        "stale_worker_replaced_expected_policy",
+        "new_owner_receipt_lost"
+      ],
+      "observations": {
+        "error_class": "none",
+        "evidence_current": "false",
+        "gate_state": "active",
+        "pf": "unknown",
+        "pf_writes": "1",
+        "receipt_matches": "false",
+        "epoch_replaced_by_old_work": true
+      }
+    },
+    {
+      "id": "R4",
+      "name": "superseded-close-has-no-policy-or-epoch-side-effect",
+      "passed": false,
+      "failures": [
+        "stale_worker_invalidated_new_epoch",
+        "new_owner_receipt_lost"
+      ],
+      "observations": {
+        "error_class": "DaemonFailure",
+        "evidence_current": "false",
+        "gate_state": "blocked",
+        "pf": "unknown",
+        "pf_writes": "0",
+        "receipt_matches": "false",
+        "epoch_replaced_by_old_work": true
+      }
+    },
+    {
+      "id": "R5",
+      "name": "superseded-direct-has-no-policy-or-epoch-side-effect",
+      "passed": true,
+      "failures": [],
+      "observations": {
+        "error_class": "none",
+        "evidence_current": "true",
+        "gate_state": "direct",
+        "pf": "healthy",
+        "pf_writes": "0",
+        "receipt_matches": "true",
+        "epoch_replaced_by_old_work": false
+      }
+    },
+    {
+      "id": "R6",
+      "name": "superseded-intent-has-no-policy-or-epoch-side-effect",
+      "passed": false,
+      "failures": [
+        "stale_worker_invalidated_new_epoch",
+        "new_owner_receipt_lost"
+      ],
+      "observations": {
+        "error_class": "DaemonFailure",
+        "evidence_current": "false",
+        "gate_state": "active",
+        "pf": "unknown",
+        "pf_writes": "0",
+        "receipt_matches": "false",
+        "epoch_replaced_by_old_work": true
+      }
+    },
+    {
+      "id": "R7",
+      "name": "narrow-readback-does-not-renew-expired-full-guard",
+      "passed": true,
+      "failures": [],
+      "observations": {
+        "error_class": "none",
+        "evidence_current": "true",
+        "gate_state": "active",
+        "pf": "stale",
+        "pf_writes": "1",
+        "receipt_matches": "true",
+        "epoch_replaced_by_old_work": false
+      }
+    },
+    {
+      "id": "R8",
+      "name": "failed-readback-cannot-publish-healthy-receipt",
+      "passed": true,
+      "failures": [],
+      "observations": {
+        "error_class": "DaemonFailure",
+        "evidence_current": "false",
+        "gate_state": "active",
+        "pf": "unknown",
+        "pf_writes": "1",
+        "receipt_matches": "false",
+        "epoch_replaced_by_old_work": false
+      }
+    },
+    {
+      "id": "R9",
+      "name": "active-lock-contention-keeps-admission-responsive",
+      "passed": false,
+      "failures": [
+        "main_actor_starved_by_pf_lock"
+      ],
+      "observations": {
+        "admission_count": "1",
+        "admission_delay_seconds": "0.7608471250000548",
+        "contended_mutation_seconds": "0.9897332916666528",
+        "error_class": "none",
+        "evidence_current": "false",
+        "gate_state": "active",
+        "pf": "unknown",
+        "pf_writes": "1",
+        "receipt_matches": "false",
+        "epoch_replaced_by_old_work": false
+      }
+    },
+    {
+      "id": "R10",
+      "name": "blocked-lock-contention-keeps-admission-responsive",
+      "passed": false,
+      "failures": [
+        "main_actor_starved_by_pf_lock"
+      ],
+      "observations": {
+        "admission_count": "1",
+        "admission_delay_seconds": "0.7008197916667314",
+        "contended_mutation_seconds": "0.867554000000041",
+        "error_class": "none",
+        "evidence_current": "false",
+        "gate_state": "blocked",
+        "pf": "unknown",
+        "pf_writes": "1",
+        "receipt_matches": "false",
+        "epoch_replaced_by_old_work": false
+      }
+    }
+  ]
+}

@@ -1,5 +1,14 @@
 # Mimo changelog
 
+## 3.1 (build 12) — 2026-11-28
+
+- Keep an unchanged approved Rule/Global path open during manual, periodic and provider observations. Close on a disallowed IPv4 result; preserve the failed address. Real network, proxy, mode and profile changes still block before verification.
+- Coalesce rapid refresh and mode requests across GUI accounts. Fence obsolete completions and errors by ownership, and finish superseded requests without treating cancellation as a provider outage.
+- Move serialized PF/profile/DNS and Direct release work off the status actor. Defer congested infrastructure work without starting redundant exit checks or pausing a healthy provider. Publish readback-based firewall health receipts.
+- Consolidate infrastructure and peer supervision in core roles, removing the Perl launch jobs. Keep service health and maintenance commands accurate, expose bounded core logs in Event Log, and retain log rotation and caps.
+- Preserve incoming TCP sessions across Direct-to-protected rejection using actual local address literals. Reconcile Direct IPv4/IPv6 address inventory without a gate closure, profile reload or exit check; full Stop and uninstall remove all owned network controls.
+- Complete the 16 requested failure/race cases plus eight additional VM checks and seven new local maintenance controls. Retain historical failures and distinguish candidate validation from the published Homebrew lifecycle checks in `Design/MIMO_V3_1_RELEASE_CHECKS.md`.
+
 ## 3.0 (build 11) — 2026-11-26
 
 - Rotate runtime logs at 5 MiB and UTC-day boundaries; expire logs every minute

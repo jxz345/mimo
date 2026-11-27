@@ -13,6 +13,9 @@ enum MimoDeactivation {
               let mode = attributes[.posixPermissions] as? Int, mode & 0o022 == 0,
               (try? String(contentsOfFile: receipt, encoding: .utf8)) == "mimo-inactive-v2\n" else { return false }
         return !files.fileExists(atPath: MimoService.executable) &&
-            !files.fileExists(atPath: MimoRuntime.supervisorPlist)
+            !files.fileExists(atPath: MimoRuntime.supervisorPlist) &&
+            !files.fileExists(atPath: MimoService.plist) &&
+            !files.fileExists(atPath: MimoRuntime.jobDirectory.appendingPathComponent(MimoRuntime.engineLabel + ".plist").path) &&
+            !files.fileExists(atPath: MimoRuntime.helperDirectory.path)
     }
 }

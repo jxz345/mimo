@@ -1,0 +1,184 @@
+{
+  "schema_version": 1,
+  "scope": "Seven focused local extracted-runtime Direct maintenance contracts; real file locks/epochs, substituted PF/local-address observations. No installed app, XPC, GUI or packet qualification.",
+  "counts": {
+    "final_executed": 7,
+    "final_passed": 7,
+    "final_failed": 0
+  },
+  "baseline": {
+    "first_six": {
+      "passed": 1,
+      "failed": 5,
+      "method": "Explicit no-op adapter for absent entrypoint; feature-contract failures, not five separate proven defects."
+    },
+    "seventh": {
+      "passed": 0,
+      "failed": 1,
+      "method": "Actual prior runtime installed stale address inventory after waiting for the PF lock."
+    }
+  },
+  "source_sha256": {
+    "Sources/MimoService/MimoSystemRuntime.swift": "34ccb40a0a5f6e694bbedaf8979e0d1ea3399b850e74d944f002c60e3d2b206c",
+    "Sources/MimoService/MimoFirewallLock.swift": "9ea560933a42b8135b999148ec0555792b49d26dfe733ca2610ab4ecd80392fa",
+    "Sources/MimoService/MimoBlockingWorkQueue.swift": "5b19f14e991dbdbee446bddbdec8d808ff511907763776be99321671c0c3891e",
+    "Sources/MimoService/MimoPFHealthReceipt.swift": "78e92ee101738b6441ed362120a0f64ad3f6227d089fc31bc6c0d9c7dcb173be",
+    "Sources/MimoShared/SingleInstanceLock.swift": "0d5db865d919c56d37a4e3680aad39d806197e610be2cd211b1bcf3c47368d70",
+    "Sources/MimoShared/MimoFirewallPolicy.swift": "b9a5f11da21e85804ce9f5262d4edb7f16db35426a5a905e9a13c50bb7a94bd2",
+    "Sources/MimoShared/MimoNativeEgress.swift": "c268cacab93c66367692d2bfd48f3f4a29f9d2a045b5ff0c14bf92feb17113a7",
+    "Sources/MimoShared/MimoRouting.swift": "2b3e620d3ca36d0f67bf2854a4420bc907742ce1721133768071e4f74335a353",
+    "Sources/MimoShared/MimoAllowlist.swift": "3f3d60e5837faba51e464df09b989ad09d61fa62e5190fc4d405c5a7d005e41e",
+    "Sources/MimoService/MimoNativePolicyUpdate.swift": "fa783bf1e168ebc48bb78c430137614c2aa17a6b7a0ff3eae91a619544b39600",
+    "Tests/MimoServiceTests/NativePolicyReceipts/run.py": "8c9c93f086072174c08ec1da35c8f1a4097c158c8179198b0ed48319d48a8388",
+    "Tests/MimoServiceTests/NativePolicyReceipts/cases.swift": "5a4865c8906bbc06ab19d899ad7b93b05dc4ba45206ffedfda185615dbf2cd17",
+    "Tests/MimoServiceTests/NativePolicyReceipts/runtime-stubs.swift": "d629dafa7bb52966a6230b58bde5b9e7e82e182c5ded875555e86f1f27477e7e",
+    "Tests/MimoServiceTests/NativePolicyReceipts/support.swift": "7874a9639d18fac5b70884a6cb5a530ae2e1ea9bd960eb694eea15ba547e367a",
+    "Tests/MimoServiceTests/DirectTrackingMaintenance/run.py": "80ac108f7d473b259e95191dc75e717e8e0b5b3489cfd500911e36ddae689001",
+    "Tests/MimoServiceTests/DirectTrackingMaintenance/cases.swift": "9307f6f018b11e2d021e070b9711e848065cb24ab2383e5f0d3c7d88fa40a0d9"
+  },
+  "sources_match_repository": true,
+  "results": [
+    {
+      "name": "changed-inventory-refreshes-direct-only",
+      "passed": true,
+      "failures": [],
+      "observations": {
+        "admission_delay_seconds": "not_applicable",
+        "callbacks": "1",
+        "elapsed_seconds": "0.0013275416567921638",
+        "error_class": "none",
+        "evidence_current": "true",
+        "gate_state": "direct",
+        "pf": "healthy",
+        "pf_writes": "1",
+        "receipt_matches": "true"
+      }
+    },
+    {
+      "name": "unchanged-inventory-is-noop",
+      "passed": true,
+      "failures": [],
+      "observations": {
+        "admission_delay_seconds": "not_applicable",
+        "callbacks": "0",
+        "elapsed_seconds": "0.0003447500057518482",
+        "error_class": "none",
+        "evidence_current": "true",
+        "gate_state": "direct",
+        "pf": "healthy",
+        "pf_writes": "0",
+        "receipt_matches": "true"
+      }
+    },
+    {
+      "name": "close-supersedes-direct-refresh",
+      "passed": true,
+      "failures": [],
+      "observations": {
+        "admission_delay_seconds": "not_applicable",
+        "callbacks": "0",
+        "elapsed_seconds": "0.0037212083116173744",
+        "error_class": "CancellationError",
+        "evidence_current": "false",
+        "gate_state": "blocked",
+        "pf": "unknown",
+        "pf_writes": "0",
+        "receipt_matches": "false"
+      }
+    },
+    {
+      "name": "release-supersedes-direct-refresh",
+      "passed": true,
+      "failures": [],
+      "observations": {
+        "admission_delay_seconds": "not_applicable",
+        "callbacks": "0",
+        "elapsed_seconds": "0.0034880832536146045",
+        "error_class": "CancellationError",
+        "evidence_current": "false",
+        "gate_state": "released",
+        "pf": "unknown",
+        "pf_writes": "0",
+        "receipt_matches": "false"
+      }
+    },
+    {
+      "name": "direct-contention-keeps-admission-responsive",
+      "passed": true,
+      "failures": [],
+      "observations": {
+        "admission_delay_seconds": "2.0749983377754688e-05",
+        "callbacks": "1",
+        "elapsed_seconds": "0.8380780416773632",
+        "error_class": "none",
+        "evidence_current": "true",
+        "gate_state": "direct",
+        "pf": "healthy",
+        "pf_writes": "1",
+        "receipt_matches": "true"
+      }
+    },
+    {
+      "name": "direct-acquisition-timeout-defers",
+      "passed": true,
+      "failures": [],
+      "observations": {
+        "admission_delay_seconds": "not_applicable",
+        "callbacks": "0",
+        "elapsed_seconds": "5.0367022916907445",
+        "error_class": "none",
+        "evidence_current": "true",
+        "gate_state": "direct",
+        "pf": "healthy",
+        "pf_writes": "0",
+        "receipt_matches": "true"
+      }
+    },
+    {
+      "name": "inventory-drift-under-lock-is-superseded",
+      "passed": true,
+      "failures": [],
+      "observations": {
+        "admission_delay_seconds": "not_applicable",
+        "callbacks": "0",
+        "elapsed_seconds": "0.06871908332686871",
+        "error_class": "CancellationError",
+        "evidence_current": "true",
+        "gate_state": "direct",
+        "pf": "healthy",
+        "pf_writes": "0",
+        "receipt_matches": "true"
+      }
+    }
+  ],
+  "typecheck": {
+    "exit_code": 0,
+    "source_count": 84,
+    "changed_during_compile": [],
+    "tests_executed": 0
+  },
+  "evidence_sha256": {
+    "before-02/results.json": "0554d5bebb3589f0245caf88fa408663e1c47aea154e09dc3ccf7b70832f923e",
+    "after-01/results.json": "e6579d10bc8248249a050ccc32589965f064208c31c55d87220eb156e66ad618",
+    "drift-before-01/results.json": "50951791dd7b7688c5c46d446412c42229887c1d0f76d3ee9c1a7e139b2b33c8",
+    "drift-after-01/results.json": "d07a28dc655abfd70a379f5f3de5b61725e098bb5672daa3a4b2b98683c4df33",
+    "final-seven-01/results.json": "1b77f6ae278ea4d47e2b7ff84ead830096271270d47ecc3686838beb803ed7f0",
+    "final-seven-01/method.json": "d9f0680f0b02bc7a8b5b7e00b306b7b0b09f9a7e57aa0aeef7d66b49dceee6ef",
+    "final-seven-01/source-identities.json": "7638ce40d1106ca38989b3c2f6e978ac54500381e0fa13f951d49dcb08b501e3",
+    "typecheck-final/result.json": "51244adb5d1413d40bb5bb6cc8a6940ce14f4fe3be39da433e46fea1611bdac0",
+    "typecheck-final/source-identities.json": "b932b51e81ef7e8351b07e5206b5e44935a4897a3f71b4c9ca0d43620668d8e6"
+  },
+  "limitations": [
+    "The installed L1 failure remains separate preserved evidence.",
+    "The previous worker14 result predates literal address rendering and is not relabeled as current-source qualification.",
+    "Address reconciliation is not kernel-dynamic; existing untracked TCP sessions cannot be safely adopted."
+  ],
+  "separate_vm_confirmation": {
+    "reference": "Tests/MihomoRuntimeTests/Evidence/v3/observations/remaining-native-policy-final-source-20261128.json",
+    "sha256": "61aaf402f9fb821dfb8f40b315be4402ff7b3540a36244ae804eeafb09f65819",
+    "completed": 14,
+    "passed": 14,
+    "failed": 0,
+    "scope": "Same literal-address source, extracted runtime on primary; separate from installed network lifecycle."
+  }
+}

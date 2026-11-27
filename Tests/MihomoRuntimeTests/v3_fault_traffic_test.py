@@ -53,6 +53,31 @@ def pid(role):
     return int(match[1])
 
 
+def engine_identity():
+    process = pid('mihomo')
+    value = t.run(['/bin/ps', '-p', str(process), '-o', 'lstart=,comm='], 3)
+    assert value.returncode == 0, 'Engine identity unavailable'
+    parts = value.stdout.strip().split(None, 5)
+    assert len(parts) == 6 and parts[5] == '/Library/Application Support/Mimo/Runtime/mihomo', 'Unexpected engine executable'
+    return {'pid':process, 'started': ' '.join(parts[:5])}
+
+
+def watch_engine_replacement(done, original, family, mode, samples):
+    """Observe a supervisor replacement without mistaking it for SIGCONT."""
+    while not done.is_set():
+        try:
+            identity = engine_identity()
+            if identity != original:
+                value = t.run(['/usr/bin/curl', '-fsS', '--max-time', '1', '--unix-socket', t.SOCKET,
+                               'http://localhost/configs'], 2)
+                config = json.loads(value.stdout) if value.returncode == 0 else {}
+                if config.get('mode') == mode and config.get('mimo-destination-family') == family and engine_identity() == identity:
+                    samples.append({'t':time.time(), 'identity':identity, 'mode':mode, 'family':family})
+        except (AssertionError, OSError, ValueError, subprocess.TimeoutExpired):
+            pass
+        done.wait(.15)
+
+
 def pf_kind():
     r = t.run(['/sbin/pfctl', '-a', t.ANCHOR, '-sr'], 3)
     if r.returncode: return 'unknown'
@@ -100,17 +125,34 @@ class Traffic:
         self.lock = threading.Lock()
         self.events, self.samples, self.threads = [], [], []
         self.captures = []
-        for interface in ('en0', 'pflog0'):
-            path = ROOT / (label + '-' + interface + '.pcap')
-            error = (ROOT / (label + '-' + interface + '.capture.log')).open('w')
-            bpf = '(host 203.0.113.70 or host 203.0.113.53 or host 2001:db8:33::10 or host 2001:db8:33::53 or net 198.18.0.0/16 or net fdfe:dcba:9876::/48)'
-            # Promiscuous capture toggles interface flags and would itself cause
-            # a real protected revalidation before the intended injected fault.
-            p = subprocess.Popen(['/usr/sbin/tcpdump','-p','-n','-U','--immediate-mode','-i',interface,'-s','128','-w',str(path),bpf],
-                                 stdout=subprocess.DEVNULL, stderr=error)
-            self.captures.append((p,error,path))
-        time.sleep(.3)
-        assert all(p.poll() is None for p,_,_ in self.captures), 'Capture unavailable'
+        try:
+            for interface in ('en0', 'pflog0'):
+                path = ROOT / (label + '-' + interface + '.pcap')
+                error = (ROOT / (label + '-' + interface + '.capture.log')).open('w')
+                bpf = '(host 203.0.113.70 or host 203.0.113.53 or host 2001:db8:33::10 or host 2001:db8:33::53 or net 198.18.0.0/16 or net fdfe:dcba:9876::/48)'
+                # Promiscuous capture toggles interface flags and would itself cause
+                # a real protected revalidation before the intended injected fault.
+                try:
+                    p = subprocess.Popen(['/usr/sbin/tcpdump','-p','-n','-U','--immediate-mode','-i',interface,'-s','128','-w',str(path),bpf],
+                                         stdout=subprocess.DEVNULL, stderr=error)
+                except BaseException:
+                    error.close(); raise
+                self.captures.append((p,error,path))
+            time.sleep(.3)
+            assert all(p.poll() is None for p,_,_ in self.captures), 'Capture unavailable'
+        except BaseException:
+            # A missing second interface must not leave the first tcpdump
+            # recording indefinitely after construction fails.
+            for process, error, _ in self.captures:
+                try:
+                    if process.poll() is None:
+                        process.send_signal(signal.SIGINT)
+                        try: process.wait(timeout=5)
+                        except subprocess.TimeoutExpired:
+                            process.kill(); process.wait(timeout=5)
+                finally:
+                    error.close()
+            raise
         for family, host in ((4,F['public4']),(6,F['public6'])):
             for kind in ('tcp','stream','udp','dns-udp','dns-tcp','echo','fake-tcp','fake-udp'):
                 thread = threading.Thread(target=self.worker,args=(family,host,kind),daemon=True)
@@ -204,6 +246,8 @@ def run_case(family, mode, fault):
     t.route(mode,family); old=approved(mode,family)
     traffic=Traffic(label)
     stopped=[]; routes=[]
+    stalled_engine=None; recovered_engine=None; replacement_samples=[]
+    replacement_done=threading.Event(); replacement_thread=None
     start=None; fault_ended=None; recovered=False; error=None
     try:
         time.sleep(2)
@@ -211,12 +255,20 @@ def run_case(family, mode, fault):
         if fault=='engine-kill': os.kill(pid('mihomo'),signal.SIGKILL)
         elif fault.endswith('stall') or fault == 'owners-stall-engine-kill':
             roles={'engine-stall':['mihomo'],'core-stall':['core'],'supervisor-stall':['supervisor'],'owners-stall':['core','supervisor'],'owners-stall-engine-kill':['core','supervisor']}[fault]
-            stopped=[pid(role) for role in roles]
+            if fault == 'engine-stall':
+                stalled_engine=engine_identity()
+                stopped=[stalled_engine['pid']]
+            else:
+                stopped=[pid(role) for role in roles]
             (ROOT/'stalled.json').write_text(json.dumps(stopped))
             # Independent continuation survives a killed test process.
             code='import os,signal,time; time.sleep(14)\nfor p in '+repr(stopped)+':\n try: os.kill(p,signal.SIGCONT)\n except ProcessLookupError: pass'
             subprocess.Popen(['/usr/bin/python3','-c',code],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,start_new_session=True)
             for p in stopped: os.kill(p,signal.SIGSTOP)
+            if stalled_engine is not None:
+                replacement_thread=threading.Thread(target=watch_engine_replacement,
+                    args=(replacement_done,stalled_engine,family,mode,replacement_samples),daemon=True)
+                replacement_thread.start()
             if fault == 'owners-stall-engine-kill': os.kill(pid('mihomo'),signal.SIGKILL)
         elif fault=='native-route':
             candidates=[['-host',F['public4'],F['bridge4']],['-inet6','-host',F['public6'],F['data6']]]
@@ -232,10 +284,17 @@ def run_case(family, mode, fault):
         for args in routes: t.run(['/sbin/route','-n','delete',*args],4)
         routes=[]
         fault_ended=time.time()
-        approved(mode,family); recovered=True
+        approved(mode,family)
+        if stalled_engine is not None: recovered_engine=engine_identity()
+        recovered=True
         time.sleep(2)
     except Exception as e: error=str(e)
     finally:
+        replacement_done.set()
+        if replacement_thread is not None:
+            replacement_thread.join(15)
+            if replacement_thread.is_alive():
+                recovered=False; error='Engine identity observer did not stop'
         for p in stopped:
             try: os.kill(p,signal.SIGCONT)
             except ProcessLookupError: pass
@@ -250,7 +309,10 @@ def run_case(family, mode, fault):
         fault_echo_attempts={str(af):sum(e.get('send_attempted',False) for e in echo
                             if e['family']==af and start is not None and start<=e['t']<=(fault_ended or time.time()))
                             for af in (4,6)}
-        row={'id':label,'native_attempts_before_fault':len(before),'native_attempts_after_fault':len(after),
+        row={'id':label,'fault_started_at':start,'fault_ended_at':fault_ended,
+             'stalled_engine_identity':stalled_engine,'recovered_engine_identity':recovered_engine,
+             'responsive_replacement_samples':replacement_samples,
+             'native_attempts_before_fault':len(before),'native_attempts_after_fault':len(after),
              'native_attempts_by_family':{str(af):sum(x['family']==af for x in after) for af in (4,6)},
              'first_native_attempt_seconds':round(after[0]['t']-start,4) if after else None,
              'first_sampled_closed_seconds':round(closed,4) if closed is not None else None,

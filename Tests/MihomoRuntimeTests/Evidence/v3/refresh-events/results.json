@@ -1,0 +1,853 @@
+[
+  {
+    "name": "direct-ipv4",
+    "mode": "direct",
+    "family": "ipv4",
+    "approval": "approved",
+    "phase": "active",
+    "method": "native dashboard click",
+    "passed": true,
+    "one_lookup": true,
+    "direct_routing_untouched": true,
+    "fresh_snapshot": true,
+    "returned_to_expected_state": true,
+    "peers_preserved": true,
+    "engine_preserved": true,
+    "event_counts": {
+      "manual_refresh_queued": 1,
+      "refresh_requested": 1,
+      "provider_rotated_cooldown": 1,
+      "provider_health_changed": 2,
+      "lookup_started": 1,
+      "lookup_http_request": 1,
+      "mimo_probe_http_started": 1,
+      "mimo_probe_http_finished": 1,
+      "mimo_transition_timing": 1,
+      "lookup_succeeded": 1,
+      "lookup_finished": 1,
+      "manual_refresh_finished": 1,
+      "widget_reload_requested": 2,
+      "mimo_access_presentation_changed": 2
+    },
+    "errors": [],
+    "late_events": [],
+    "settled_observation_seconds": 35,
+    "timeline": [
+      {
+        "timestamp": "2026-11-27T00:59:08.652Z",
+        "event": "manual_refresh_queued",
+        "fields": {}
+      },
+      {
+        "timestamp": "2026-11-27T00:59:08.655Z",
+        "event": "refresh_requested",
+        "fields": {
+          "lookup": "C94534F7-3D50-4561-9FD8-26621669751F",
+          "trigger": "manual"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T00:59:08.754Z",
+        "event": "lookup_started",
+        "fields": {
+          "trigger": "manual",
+          "lookup": "C94534F7-3D50-4561-9FD8-26621669751F"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T00:59:09.745Z",
+        "event": "lookup_succeeded",
+        "fields": {
+          "lookup": "C94534F7-3D50-4561-9FD8-26621669751F"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T00:59:09.746Z",
+        "event": "lookup_finished",
+        "fields": {
+          "lookup": "C94534F7-3D50-4561-9FD8-26621669751F"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T00:59:09.747Z",
+        "event": "manual_refresh_finished",
+        "fields": {
+          "outcome": "succeeded"
+        }
+      }
+    ]
+  },
+  {
+    "name": "global-ipv4-rejected",
+    "mode": "global",
+    "family": "ipv4",
+    "approval": "rejected",
+    "phase": "blocked",
+    "method": "native dashboard click",
+    "passed": true,
+    "one_lookup": true,
+    "direct_routing_untouched": true,
+    "fresh_snapshot": true,
+    "returned_to_expected_state": true,
+    "peers_preserved": true,
+    "engine_preserved": true,
+    "event_counts": {
+      "manual_refresh_queued": 1,
+      "refresh_requested": 1,
+      "provider_health_changed": 2,
+      "lookup_started": 1,
+      "mimo_core_command_started": 2,
+      "mimo_supervisor_command_received": 2,
+      "mimo_transition_timing": 19,
+      "mimo_parallel_preparation_started": 1,
+      "mimo_pf_policy_installed": 1,
+      "mimo_gate_closed": 1,
+      "mimo_tailnet_change_scope": 1,
+      "mimo_runtime_inspection_started": 1,
+      "mimo_final_profile_reused": 1,
+      "mimo_private_probe_barrier_ready": 1,
+      "mimo_private_probe_ready": 1,
+      "mimo_core_command_finished": 2,
+      "lookup_http_request": 1,
+      "mimo_probe_http_started": 1,
+      "mimo_readiness_started": 1,
+      "mimo_readiness_passed": 1,
+      "mimo_probe_http_finished": 1,
+      "mimo_exit_ip_rejected": 1,
+      "lookup_succeeded": 1,
+      "lookup_finished": 1,
+      "manual_refresh_finished": 1,
+      "user_presentation_changed": 1,
+      "mimo_blocked_native_transport_updated": 1,
+      "widget_reload_requested": 5,
+      "allowlist_warning_cleared": 1,
+      "mimo_access_presentation_changed": 2,
+      "allowlist_warning_presented": 1
+    },
+    "errors": [],
+    "late_events": [],
+    "settled_observation_seconds": 35,
+    "timeline": [
+      {
+        "timestamp": "2026-11-27T01:01:47.350Z",
+        "event": "manual_refresh_queued",
+        "fields": {}
+      },
+      {
+        "timestamp": "2026-11-27T01:01:47.351Z",
+        "event": "refresh_requested",
+        "fields": {
+          "trigger": "manual",
+          "lookup": "8DA82F74-4712-462E-B265-B67C02031F5E"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:01:47.400Z",
+        "event": "lookup_started",
+        "fields": {
+          "trigger": "manual",
+          "lookup": "8DA82F74-4712-462E-B265-B67C02031F5E"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:01:47.402Z",
+        "event": "mimo_core_command_started",
+        "fields": {
+          "revision": "1899",
+          "sequence": "5",
+          "command": "prepare",
+          "generation": "4",
+          "lookup": "8DA82F74-4712-462E-B265-B67C02031F5E"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:01:47.403Z",
+        "event": "mimo_supervisor_command_received",
+        "fields": {
+          "revision": "1899",
+          "command": "prepare",
+          "lookup": "8DA82F74-4712-462E-B265-B67C02031F5E",
+          "sequence": "5",
+          "generation": "4"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:01:48.565Z",
+        "event": "mimo_gate_closed",
+        "fields": {}
+      },
+      {
+        "timestamp": "2026-11-27T01:01:48.669Z",
+        "event": "mimo_final_profile_reused",
+        "fields": {
+          "attempt": "65E308CD-33F7-4214-82A6-8B6B8760518C"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:01:48.817Z",
+        "event": "mimo_core_command_finished",
+        "fields": {
+          "attempt": "65E308CD-33F7-4214-82A6-8B6B8760518C",
+          "sequence": "5",
+          "lookup": "8DA82F74-4712-462E-B265-B67C02031F5E",
+          "revision": "1899",
+          "duration_ms": "1415",
+          "command": "prepare",
+          "generation": "4"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:01:48.819Z",
+        "event": "lookup_http_request",
+        "fields": {
+          "lookup": "8DA82F74-4712-462E-B265-B67C02031F5E"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:01:51.624Z",
+        "event": "mimo_core_command_started",
+        "fields": {
+          "revision": "1899",
+          "command": "approve",
+          "attempt": "65E308CD-33F7-4214-82A6-8B6B8760518C",
+          "lookup": "8DA82F74-4712-462E-B265-B67C02031F5E",
+          "sequence": "6",
+          "generation": "4"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:01:51.625Z",
+        "event": "mimo_supervisor_command_received",
+        "fields": {
+          "attempt": "65E308CD-33F7-4214-82A6-8B6B8760518C",
+          "sequence": "6",
+          "command": "approve",
+          "generation": "4",
+          "revision": "1899",
+          "lookup": "8DA82F74-4712-462E-B265-B67C02031F5E"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:01:52.154Z",
+        "event": "mimo_core_command_finished",
+        "fields": {
+          "duration_ms": "529",
+          "revision": "1899",
+          "command": "approve",
+          "attempt": "65E308CD-33F7-4214-82A6-8B6B8760518C",
+          "lookup": "8DA82F74-4712-462E-B265-B67C02031F5E",
+          "sequence": "6",
+          "generation": "4"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:01:52.303Z",
+        "event": "lookup_succeeded",
+        "fields": {
+          "lookup": "8DA82F74-4712-462E-B265-B67C02031F5E"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:01:52.303Z",
+        "event": "lookup_finished",
+        "fields": {
+          "lookup": "8DA82F74-4712-462E-B265-B67C02031F5E",
+          "duration_ms": "4902"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:01:52.304Z",
+        "event": "manual_refresh_finished",
+        "fields": {
+          "outcome": "blocked"
+        }
+      }
+    ]
+  },
+  {
+    "name": "global-ipv4-approved",
+    "mode": "global",
+    "family": "ipv4",
+    "approval": "approved",
+    "phase": "active",
+    "method": "native dashboard click",
+    "passed": true,
+    "one_lookup": true,
+    "direct_routing_untouched": true,
+    "fresh_snapshot": true,
+    "returned_to_expected_state": true,
+    "peers_preserved": true,
+    "engine_preserved": true,
+    "event_counts": {
+      "mimo_native_egress_updated": 1,
+      "manual_refresh_queued": 1,
+      "refresh_requested": 1,
+      "provider_health_changed": 2,
+      "lookup_started": 1,
+      "mimo_core_command_started": 2,
+      "mimo_supervisor_command_received": 2,
+      "mimo_transition_timing": 21,
+      "mimo_parallel_preparation_started": 1,
+      "mimo_pf_policy_installed": 1,
+      "mimo_gate_closed": 1,
+      "mimo_tailnet_change_scope": 1,
+      "mimo_final_profile_reused": 1,
+      "mimo_runtime_inspection_started": 1,
+      "mimo_private_probe_barrier_ready": 1,
+      "mimo_private_probe_ready": 1,
+      "mimo_core_command_finished": 2,
+      "lookup_http_request": 1,
+      "mimo_probe_http_started": 1,
+      "mimo_readiness_started": 1,
+      "mimo_readiness_passed": 1,
+      "mimo_probe_http_finished": 1,
+      "mimo_exits_approved": 1,
+      "mimo_opening_barrier_ready": 1,
+      "mimo_active_firewall_installed": 1,
+      "mimo_traffic_opened": 1,
+      "lookup_succeeded": 1,
+      "lookup_finished": 1,
+      "manual_refresh_finished": 1,
+      "widget_reload_requested": 4,
+      "mimo_access_presentation_changed": 3
+    },
+    "errors": [],
+    "late_events": [],
+    "settled_observation_seconds": 35,
+    "timeline": [
+      {
+        "timestamp": "2026-11-27T01:04:08.249Z",
+        "event": "manual_refresh_queued",
+        "fields": {}
+      },
+      {
+        "timestamp": "2026-11-27T01:04:08.251Z",
+        "event": "refresh_requested",
+        "fields": {
+          "lookup": "D816D2BA-E099-41D7-83A2-E4410B923109",
+          "trigger": "manual"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:04:08.256Z",
+        "event": "lookup_started",
+        "fields": {
+          "lookup": "D816D2BA-E099-41D7-83A2-E4410B923109",
+          "trigger": "manual"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:04:08.257Z",
+        "event": "mimo_core_command_started",
+        "fields": {
+          "command": "prepare",
+          "sequence": "14",
+          "revision": "1903",
+          "lookup": "D816D2BA-E099-41D7-83A2-E4410B923109",
+          "generation": "12"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:04:08.258Z",
+        "event": "mimo_supervisor_command_received",
+        "fields": {
+          "revision": "1903",
+          "sequence": "14",
+          "lookup": "D816D2BA-E099-41D7-83A2-E4410B923109",
+          "command": "prepare",
+          "generation": "12"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:04:09.389Z",
+        "event": "mimo_gate_closed",
+        "fields": {}
+      },
+      {
+        "timestamp": "2026-11-27T01:04:09.502Z",
+        "event": "mimo_final_profile_reused",
+        "fields": {
+          "attempt": "5546FE35-5DFA-48C8-8A06-E6AC34E19975"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:04:09.686Z",
+        "event": "mimo_core_command_finished",
+        "fields": {
+          "command": "prepare",
+          "revision": "1903",
+          "sequence": "14",
+          "lookup": "D816D2BA-E099-41D7-83A2-E4410B923109",
+          "generation": "12",
+          "duration_ms": "1428",
+          "attempt": "5546FE35-5DFA-48C8-8A06-E6AC34E19975"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:04:09.687Z",
+        "event": "lookup_http_request",
+        "fields": {
+          "lookup": "D816D2BA-E099-41D7-83A2-E4410B923109"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:04:10.283Z",
+        "event": "mimo_core_command_started",
+        "fields": {
+          "generation": "12",
+          "lookup": "D816D2BA-E099-41D7-83A2-E4410B923109",
+          "attempt": "5546FE35-5DFA-48C8-8A06-E6AC34E19975",
+          "sequence": "15",
+          "command": "approve",
+          "revision": "1903"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:04:10.283Z",
+        "event": "mimo_supervisor_command_received",
+        "fields": {
+          "revision": "1903",
+          "attempt": "5546FE35-5DFA-48C8-8A06-E6AC34E19975",
+          "lookup": "D816D2BA-E099-41D7-83A2-E4410B923109",
+          "command": "approve",
+          "generation": "12",
+          "sequence": "15"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:04:10.654Z",
+        "event": "mimo_traffic_opened",
+        "fields": {
+          "mode": "global",
+          "attempt": "5546FE35-5DFA-48C8-8A06-E6AC34E19975"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:04:10.655Z",
+        "event": "mimo_core_command_finished",
+        "fields": {
+          "generation": "12",
+          "lookup": "D816D2BA-E099-41D7-83A2-E4410B923109",
+          "attempt": "5546FE35-5DFA-48C8-8A06-E6AC34E19975",
+          "sequence": "15",
+          "command": "approve",
+          "duration_ms": "372",
+          "revision": "1903"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:04:10.785Z",
+        "event": "lookup_succeeded",
+        "fields": {
+          "lookup": "D816D2BA-E099-41D7-83A2-E4410B923109"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:04:10.786Z",
+        "event": "lookup_finished",
+        "fields": {
+          "duration_ms": "2530",
+          "lookup": "D816D2BA-E099-41D7-83A2-E4410B923109"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:04:10.787Z",
+        "event": "manual_refresh_finished",
+        "fields": {
+          "outcome": "succeeded"
+        }
+      }
+    ]
+  },
+  {
+    "name": "global-dual-rejected",
+    "mode": "global",
+    "family": "dual",
+    "approval": "rejected",
+    "phase": "blocked",
+    "method": "native dashboard click",
+    "passed": false,
+    "one_lookup": true,
+    "direct_routing_untouched": true,
+    "fresh_snapshot": true,
+    "commands": {
+      "prepare": 1,
+      "approve": 1
+    },
+    "returned_to_expected_state": false,
+    "peers_preserved": true,
+    "engine_preserved": true,
+    "event_counts": {
+      "manual_refresh_queued": 1,
+      "refresh_requested": 1,
+      "provider_health_changed": 2,
+      "lookup_started": 1,
+      "mimo_core_command_started": 2,
+      "mimo_supervisor_command_received": 2,
+      "mimo_transition_timing": 20,
+      "mimo_parallel_preparation_started": 1,
+      "mimo_pf_policy_installed": 1,
+      "mimo_gate_closed": 1,
+      "mimo_tailnet_change_scope": 1,
+      "mimo_runtime_inspection_started": 1,
+      "mimo_final_profile_reused": 1,
+      "mimo_private_probe_barrier_ready": 1,
+      "mimo_private_probe_ready": 1,
+      "mimo_core_command_finished": 2,
+      "lookup_http_request": 1,
+      "mimo_probe_http_started": 1,
+      "mimo_readiness_started": 1,
+      "mimo_readiness_passed": 1,
+      "mimo_probe_http_finished": 1,
+      "mimo_exit_ip_rejected": 1,
+      "lookup_succeeded": 1,
+      "lookup_finished": 1,
+      "manual_refresh_finished": 1,
+      "user_presentation_changed": 1,
+      "mimo_blocked_native_transport_updated": 1,
+      "mimo_engine_health_changed": 1,
+      "widget_reload_requested": 5,
+      "allowlist_warning_cleared": 1,
+      "mimo_access_presentation_changed": 2,
+      "allowlist_warning_presented": 1
+    },
+    "errors": [],
+    "late_events": [],
+    "settled_observation_seconds": 35,
+    "timeline": [
+      {
+        "timestamp": "2026-11-27T01:06:34.583Z",
+        "event": "manual_refresh_queued",
+        "fields": {}
+      },
+      {
+        "timestamp": "2026-11-27T01:06:34.586Z",
+        "event": "refresh_requested",
+        "fields": {
+          "lookup": "619FA6AA-3A14-4579-927C-FD31E2050707",
+          "trigger": "manual"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:06:34.600Z",
+        "event": "lookup_started",
+        "fields": {
+          "lookup": "619FA6AA-3A14-4579-927C-FD31E2050707",
+          "trigger": "manual"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:06:34.607Z",
+        "event": "mimo_core_command_started",
+        "fields": {
+          "sequence": "21",
+          "revision": "1906",
+          "command": "prepare",
+          "lookup": "619FA6AA-3A14-4579-927C-FD31E2050707",
+          "generation": "19"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:06:34.608Z",
+        "event": "mimo_supervisor_command_received",
+        "fields": {
+          "generation": "19",
+          "lookup": "619FA6AA-3A14-4579-927C-FD31E2050707",
+          "sequence": "21",
+          "command": "prepare",
+          "revision": "1906"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:06:35.950Z",
+        "event": "mimo_gate_closed",
+        "fields": {}
+      },
+      {
+        "timestamp": "2026-11-27T01:06:35.984Z",
+        "event": "mimo_final_profile_reused",
+        "fields": {
+          "attempt": "A8628D46-109E-42E3-8402-715BC7D431E2"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:06:36.153Z",
+        "event": "mimo_core_command_finished",
+        "fields": {
+          "duration_ms": "1546",
+          "generation": "19",
+          "revision": "1906",
+          "lookup": "619FA6AA-3A14-4579-927C-FD31E2050707",
+          "command": "prepare",
+          "attempt": "A8628D46-109E-42E3-8402-715BC7D431E2",
+          "sequence": "21"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:06:36.156Z",
+        "event": "lookup_http_request",
+        "fields": {
+          "lookup": "619FA6AA-3A14-4579-927C-FD31E2050707"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:06:38.468Z",
+        "event": "mimo_core_command_started",
+        "fields": {
+          "generation": "19",
+          "revision": "1906",
+          "command": "approve",
+          "lookup": "619FA6AA-3A14-4579-927C-FD31E2050707",
+          "attempt": "A8628D46-109E-42E3-8402-715BC7D431E2",
+          "sequence": "22"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:06:38.470Z",
+        "event": "mimo_supervisor_command_received",
+        "fields": {
+          "sequence": "22",
+          "command": "approve",
+          "revision": "1906",
+          "attempt": "A8628D46-109E-42E3-8402-715BC7D431E2",
+          "generation": "19",
+          "lookup": "619FA6AA-3A14-4579-927C-FD31E2050707"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:06:38.808Z",
+        "event": "mimo_core_command_finished",
+        "fields": {
+          "duration_ms": "339",
+          "generation": "19",
+          "revision": "1906",
+          "command": "approve",
+          "lookup": "619FA6AA-3A14-4579-927C-FD31E2050707",
+          "attempt": "A8628D46-109E-42E3-8402-715BC7D431E2",
+          "sequence": "22"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:06:38.977Z",
+        "event": "lookup_succeeded",
+        "fields": {
+          "lookup": "619FA6AA-3A14-4579-927C-FD31E2050707"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:06:38.977Z",
+        "event": "lookup_finished",
+        "fields": {
+          "lookup": "619FA6AA-3A14-4579-927C-FD31E2050707",
+          "duration_ms": "4377"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:06:38.978Z",
+        "event": "manual_refresh_finished",
+        "fields": {
+          "outcome": "blocked"
+        }
+      }
+    ]
+  },
+  {
+    "name": "global-dual-approved",
+    "mode": "global",
+    "family": "dual",
+    "approval": "approved",
+    "phase": "active",
+    "method": "native dashboard click",
+    "passed": true,
+    "one_lookup": true,
+    "direct_routing_untouched": true,
+    "fresh_snapshot": true,
+    "commands": {
+      "prepare": 1,
+      "approve": 1
+    },
+    "returned_to_expected_state": true,
+    "peers_preserved": true,
+    "engine_preserved": true,
+    "event_counts": {
+      "manual_refresh_queued": 1,
+      "refresh_requested": 1,
+      "provider_health_changed": 2,
+      "lookup_started": 1,
+      "mimo_core_command_started": 2,
+      "mimo_supervisor_command_received": 2,
+      "mimo_transition_timing": 21,
+      "mimo_parallel_preparation_started": 1,
+      "mimo_pf_policy_installed": 1,
+      "mimo_gate_closed": 1,
+      "mimo_tailnet_change_scope": 1,
+      "mimo_runtime_inspection_started": 1,
+      "mimo_final_profile_reused": 1,
+      "mimo_private_probe_barrier_ready": 1,
+      "mimo_private_probe_ready": 1,
+      "mimo_core_command_finished": 2,
+      "lookup_http_request": 1,
+      "mimo_probe_http_started": 1,
+      "mimo_readiness_started": 1,
+      "mimo_readiness_passed": 1,
+      "mimo_probe_http_finished": 1,
+      "mimo_exits_approved": 1,
+      "mimo_opening_barrier_ready": 1,
+      "mimo_active_firewall_installed": 1,
+      "mimo_traffic_opened": 1,
+      "lookup_succeeded": 1,
+      "lookup_finished": 1,
+      "manual_refresh_finished": 1,
+      "mimo_log_maintenance": 1,
+      "widget_reload_requested": 5,
+      "mimo_access_presentation_changed": 4
+    },
+    "errors": [],
+    "late_events": [],
+    "settled_observation_seconds": 35,
+    "timeline": [
+      {
+        "timestamp": "2026-11-27T01:09:16.391Z",
+        "event": "manual_refresh_queued",
+        "fields": {}
+      },
+      {
+        "timestamp": "2026-11-27T01:09:16.515Z",
+        "event": "refresh_requested",
+        "fields": {
+          "lookup": "77015819-8D5B-45B3-A6B0-F9420F6F55E2",
+          "trigger": "manual"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:09:16.631Z",
+        "event": "lookup_started",
+        "fields": {
+          "trigger": "manual",
+          "lookup": "77015819-8D5B-45B3-A6B0-F9420F6F55E2"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:09:16.633Z",
+        "event": "mimo_core_command_started",
+        "fields": {
+          "lookup": "77015819-8D5B-45B3-A6B0-F9420F6F55E2",
+          "revision": "1910",
+          "sequence": "30",
+          "generation": "26",
+          "command": "prepare"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:09:16.634Z",
+        "event": "mimo_supervisor_command_received",
+        "fields": {
+          "sequence": "30",
+          "command": "prepare",
+          "generation": "26",
+          "revision": "1910",
+          "lookup": "77015819-8D5B-45B3-A6B0-F9420F6F55E2"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:09:18.683Z",
+        "event": "mimo_gate_closed",
+        "fields": {}
+      },
+      {
+        "timestamp": "2026-11-27T01:09:18.915Z",
+        "event": "mimo_final_profile_reused",
+        "fields": {
+          "attempt": "38217C65-DF86-45BA-BBEB-088ED43F8163"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:09:19.099Z",
+        "event": "mimo_core_command_finished",
+        "fields": {
+          "generation": "26",
+          "command": "prepare",
+          "revision": "1910",
+          "lookup": "77015819-8D5B-45B3-A6B0-F9420F6F55E2",
+          "duration_ms": "2466",
+          "attempt": "38217C65-DF86-45BA-BBEB-088ED43F8163",
+          "sequence": "30"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:09:19.103Z",
+        "event": "lookup_http_request",
+        "fields": {
+          "lookup": "77015819-8D5B-45B3-A6B0-F9420F6F55E2"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:09:20.716Z",
+        "event": "mimo_core_command_started",
+        "fields": {
+          "generation": "26",
+          "command": "approve",
+          "revision": "1910",
+          "lookup": "77015819-8D5B-45B3-A6B0-F9420F6F55E2",
+          "attempt": "38217C65-DF86-45BA-BBEB-088ED43F8163",
+          "sequence": "31"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:09:20.721Z",
+        "event": "mimo_supervisor_command_received",
+        "fields": {
+          "lookup": "77015819-8D5B-45B3-A6B0-F9420F6F55E2",
+          "revision": "1910",
+          "sequence": "31",
+          "attempt": "38217C65-DF86-45BA-BBEB-088ED43F8163",
+          "generation": "26",
+          "command": "approve"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:09:21.251Z",
+        "event": "mimo_traffic_opened",
+        "fields": {
+          "attempt": "38217C65-DF86-45BA-BBEB-088ED43F8163",
+          "mode": "global"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:09:21.252Z",
+        "event": "mimo_core_command_finished",
+        "fields": {
+          "generation": "26",
+          "command": "approve",
+          "revision": "1910",
+          "lookup": "77015819-8D5B-45B3-A6B0-F9420F6F55E2",
+          "duration_ms": "536",
+          "attempt": "38217C65-DF86-45BA-BBEB-088ED43F8163",
+          "sequence": "31"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:09:21.387Z",
+        "event": "lookup_succeeded",
+        "fields": {
+          "lookup": "77015819-8D5B-45B3-A6B0-F9420F6F55E2"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:09:21.388Z",
+        "event": "lookup_finished",
+        "fields": {
+          "duration_ms": "4756",
+          "lookup": "77015819-8D5B-45B3-A6B0-F9420F6F55E2"
+        }
+      },
+      {
+        "timestamp": "2026-11-27T01:09:21.388Z",
+        "event": "manual_refresh_finished",
+        "fields": {
+          "outcome": "succeeded"
+        }
+      }
+    ]
+  }
+]

@@ -1,0 +1,142 @@
+{
+  "schema": 1,
+  "purpose": "Cleanup verification only after nine primary first attempts plus one authorized failed-case retry.",
+  "vm": "primary mimo-vm (Tart mimo-test-macos)",
+  "passed": true,
+  "candidate_core_sha256": "4263cf39e9779b03d00bc73b40fd523e4ba8e42012ec2aa84f824ba5dd48e067",
+  "candidate_retained": true,
+  "published": false,
+  "restored_from": "Fresh primary baseline saved before this requested confirmation round; historical worker baseline was not used.",
+  "baseline_private_sha256": "b2adfda86c15ce981e6e37c05e785a289eb673e2ddaa83ceccb8a6184e0ac865",
+  "guest_cleanup_checks": {
+    "settings": true,
+    "routing": true,
+    "hosts": true,
+    "service_intent": true,
+    "healthy_direct": true,
+    "native_controls_released": true,
+    "lab_empty": true,
+    "resolver_files": true,
+    "certificate_inventory_retained": true,
+    "certificate_trust_retained": true,
+    "core_identity": true
+  },
+  "final_readback_checks": {
+    "settings": true,
+    "routing": true,
+    "hosts": true,
+    "service_intent": true,
+    "healthy_direct": true,
+    "all_services_running": true,
+    "native_controls_released": true,
+    "core4263": true,
+    "LABempty": true,
+    "owned_helpers_stopped": true,
+    "owned_TLS_listener_absent": true,
+    "owned_DNS_listener_absent": true,
+    "owned_pflog_absent": true,
+    "original_resolver_files_restored": true
+  },
+  "final_mode": "direct",
+  "final_phase": "active",
+  "final_service_health": {
+    "core": "running",
+    "mihomo": "running",
+    "profileHosting": "running"
+  },
+  "owned_guest_processes": [
+    {
+      "name": "dns",
+      "pid": 63864,
+      "stopped": true,
+      "already_exited": false
+    },
+    {
+      "name": "native",
+      "pid": 63863,
+      "stopped": true,
+      "already_exited": false
+    },
+    {
+      "name": "caffeine",
+      "pid": 63865,
+      "stopped": true,
+      "already_exited": false
+    }
+  ],
+  "owned_host_processes": [
+    {
+      "name": "fresh",
+      "pid": 34284,
+      "stopped": true,
+      "command_identity_verified": true
+    },
+    {
+      "name": "persistent",
+      "pid": 34285,
+      "stopped": true,
+      "command_identity_verified": true
+    },
+    {
+      "name": "control",
+      "pid": 33161,
+      "stopped": true,
+      "already_exited": false,
+      "command_identity_verified": true
+    },
+    {
+      "name": "fixture",
+      "pid": 33127,
+      "stopped": true,
+      "already_exited": false,
+      "command_identity_verified": true
+    }
+  ],
+  "owned_resolver_files_removed": 6,
+  "owned_pflog_removed": true,
+  "owned_temporary_files_removed": [
+    "/var/tmp/mimo-primary-4263cf39-control.py",
+    "/tmp/Mimo-primary-4263cf39.pkg",
+    "/tmp/mimo-primary-4263-harness.tar.gz",
+    "/tmp/mimo-primary-retry05-b502.tar.gz"
+  ],
+  "approved_certificate_inventory_and_trust_retained": true,
+  "host_network_or_firewall_changed": false,
+  "global_SSH_configuration_changed": false,
+  "VMs_preserved": {
+    "mimo-test-macos": "running",
+    "mimo-observation-worker": "running",
+    "mimo-pre-v3-20261125": "stopped"
+  },
+  "evidence": {
+    "first_attempts": "primary-confirmation-4263cf39.json",
+    "failed_case_retry": "primary-confirmation-retry-4263cf39.json",
+    "host_fixture_archive": ".build/observation-parallel/primary-validation-4263cf39-20261127T134917Z-cdcb13d8/cleanup/host-fixture-private.tar.gz",
+    "host_fixture_archive_sha256": "daa5abacad977b0186aa024b6b4420177c31b01376e6ef7185efe9f98f7ded85",
+    "guest_cleanup_archive": ".build/observation-parallel/primary-validation-4263cf39-20261127T134917Z-cdcb13d8/cleanup/guest-cleanup-private.tar.gz",
+    "guest_cleanup_archive_sha256": "817c2c10421a54a758762865c531dc4e44c6bba5561a86a858dde7fa44d5d489",
+    "final_readback": ".build/observation-parallel/primary-validation-4263cf39-20261127T134917Z-cdcb13d8/cleanup/final-readback.json",
+    "final_readback_sha256": "368d12de53521c323b7f22bb1a200a673aeaa79aa021f4040af054e52545ffa8",
+    "host_cleanup": ".build/observation-parallel/primary-validation-4263cf39-20261127T134917Z-cdcb13d8/cleanup/host-cleanup.json",
+    "host_cleanup_sha256": "3feb6d3470e180437542132f08eba0f43a5a13bfc3341b08639b862eeae7154e",
+    "vm_inventory_sha256": "7b2ee6f97ea06eb8e0c92ab8d03256a33ed5945ba7459ba2799b0e6b7dc261d0",
+    "guest_cleanup_script_sha256": "5ee64182466b52bf3185423d803f4c3237d65c98c90913e9a5f3fdf5de89cd12"
+  },
+  "incoming_watchers": {
+    "target": "192.168.64.2 with strict host-key verification",
+    "fresh_samples": 1014,
+    "fresh_failures_retained": 3,
+    "persistent_sessions": 2,
+    "persistent_explicit_gaps_retained": 1,
+    "whole_campaign_continuity_claim": false,
+    "reason": "All raw failures/gaps remain; per-case incoming results govern qualification. Cleanup ended monitors deliberately.",
+    "fresh_archive_sha256": "898d636781d01b4ffd34d06e4ef5e1029322a8dd2c565d02f09a6c879d3dab58",
+    "persistent_archive_sha256": "665e2aafbd2cca08e13a661951cc851ccb06b1adfa662d3176ec6a8fc7a4adcf"
+  },
+  "remaining_known_limits": [
+    "Two primary product failures remain unresolved: Direct-born incoming reply suppression and current PF receipt loss after a verified native-policy update.",
+    "One active-native lock-contention setup attempt remains unqualified; its queue behavior was not exercised.",
+    "Original run05 log-observation failure remains archived; only its separate complete retry passed.",
+    "No native UI clicks or Screen Sharing qualification, and no additional tests were run during cleanup."
+  ]
+}

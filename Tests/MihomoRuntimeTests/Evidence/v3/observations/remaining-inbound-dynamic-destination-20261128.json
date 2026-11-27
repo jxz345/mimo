@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-11-27T18:23:35.643110+00:00",
+  "status": "One paired regression passed: dynamic-self reproduces missing state; per-interface dynamic destination creates expected inbound state.",
+  "counts": {
+    "planned_cases": 1,
+    "completed": 1,
+    "passed": 1,
+    "arms": 2
+  },
+  "installed_core_sha256": "7601ffe31089ef0eaadb4d452c5f607209eb44bbae21213a4d7a079fd374f13d",
+  "production_policy_changed": false,
+  "source_provenance": {
+    "path": ".build/observation-parallel/remaining-issues-20261128/dynamic-destination-01/source-provenance.json",
+    "sha256": "04022755118ab549c0a74ae05c50f545fe05f115438be0ba49f5084d23401e01"
+  },
+  "archive": {
+    "path": ".build/observation-parallel/remaining-issues-20261128/dynamic-destination-01/guest-private.tar.gz",
+    "sha256": "57015ed1489e73b6e7d24f57bf483529732026665582f6de912b1e145b1f4b24"
+  },
+  "independent_audit": {
+    "path": ".build/observation-parallel/remaining-issues-20261128/dynamic-destination-01/independent-audit.json",
+    "sha256": "bfe4342b3c01c6322d14b5b4b39bbe3599335b82844ce832d634ff95b5d9cda1"
+  },
+  "arms": [
+    {
+      "destination": "self",
+      "expected_state": false,
+      "state_present": false,
+      "readback": "pass in on en0 inet proto tcp from 192.168.64.1 port = 50682 to (self) port = 57768 flags S/SA keep state (if-bound, tcp.closing 1, tcp.finwait 1, tcp.closed 1) label \"mimo:test:incoming:dynamic\"\n",
+      "tuple": [
+        "192.168.64.1",
+        50682,
+        "192.168.64.2",
+        57768
+      ],
+      "tcp_packets": 14,
+      "syns": 1,
+      "nonce_packets": 2,
+      "table_contains_guest_address": false,
+      "echo_received": true,
+      "raw_path": ".build/observation-parallel/remaining-issues-20261128/dynamic-destination-01/arm-self.json",
+      "raw_sha256": "245df182f9c5a726b67f028cc44ac61fb4edafa39c44a7cb4d1df1910a58906d"
+    },
+    {
+      "destination": "en0",
+      "expected_state": true,
+      "state_present": true,
+      "readback": "pass in on en0 inet proto tcp from 192.168.64.1 port = 50684 to (en0) port = 57768 flags S/SA keep state (if-bound, tcp.closing 1, tcp.finwait 1, tcp.closed 1) label \"mimo:test:incoming:dynamic\"\n",
+      "tuple": [
+        "192.168.64.1",
+        50684,
+        "192.168.64.2",
+        57768
+      ],
+      "tcp_packets": 14,
+      "syns": 1,
+      "nonce_packets": 2,
+      "table_contains_guest_address": true,
+      "echo_received": true,
+      "raw_path": ".build/observation-parallel/remaining-issues-20261128/dynamic-destination-01/arm-en0.json",
+      "raw_sha256": "88bc7c8fb7175dca4babd357d2f2c0da286d64bd9f19b17064579eb8648e089a"
+    }
+  ],
+  "capture": {
+    "snaplen": 524288,
+    "linktype": 1,
+    "packets": 28,
+    "truncated_records": 0,
+    "unsupported_records": 0
+  },
+  "cleanup": {
+    "own_anchor_empty": true,
+    "owned_states_expired": true,
+    "root_and_production_unchanged": true,
+    "captures_watchdog_echo_joined": true,
+    "guest_files": "Exact archived files removed after hash/ownership verification; helper processes absent.",
+    "file_removal_evidence": {
+      "path": ".build/observation-parallel/remaining-issues-20261128/dynamic-and-lifecycle-file-cleanup.json",
+      "sha256": "01418f1da26a7b908cde78c15cf2cf08cb7f1b2fd954abf038fc7b975117c131"
+    }
+  },
+  "limits": [
+    "Dedicated IPv4 TCP fixture and actual dynamic destination syntax only.",
+    "No application production change or installed L1/L2 qualification.",
+    "No IPv6/UDP/interface-migration qualification; Apple dynamic-interface enumeration excludes some IPv6 address classes.",
+    "Guest BPF capture, without blanket on-wire traffic or leakage claim."
+  ],
+  "source_reference": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/main/bsd/net/pf_if.c"
+}

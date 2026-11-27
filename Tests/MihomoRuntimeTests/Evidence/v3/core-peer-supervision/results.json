@@ -1,0 +1,1168 @@
+{
+  "observed_utc": "2026-11-26T12:37:02.508707+00:00",
+  "installed_version": "3.0",
+  "installed_build": "11",
+  "installed_core_sha256": "6f8e9e4600df725102943cbcde39d6f009742526951dacf2ddbfe947629cff6b",
+  "final_unique_checks": 77,
+  "final_passed": 77,
+  "checks": [
+    {
+      "stage": "installed",
+      "name": "two-existing-core-roles-and-correct-API-owner",
+      "passed": true
+    },
+    {
+      "stage": "installed",
+      "name": "retired-jobs-absent",
+      "passed": true
+    },
+    {
+      "stage": "installed",
+      "name": "installed-Direct-quiet",
+      "passed": true,
+      "event_counts": {
+        "mimo_log_maintenance": 1
+      },
+      "unexpected_events": [],
+      "progress_advanced": true
+    },
+    {
+      "stage": "fault-heartbeat-crash",
+      "name": "heartbeat-crash-recovered",
+      "passed": true,
+      "duration_seconds": 0.33,
+      "repair_attempts": 0,
+      "event_counts": {
+        "mimo_peer_watch_started": 1
+      }
+    },
+    {
+      "stage": "fault-heartbeat-crash",
+      "name": "heartbeat-repair-has-no-network-side-effects",
+      "passed": true
+    },
+    {
+      "stage": "fault-heartbeat-crash",
+      "name": "fault-heartbeat-crash-settled",
+      "passed": true,
+      "event_counts": {},
+      "unexpected_events": [],
+      "progress_advanced": true
+    },
+    {
+      "stage": "fault-supervisor-crash",
+      "name": "supervisor-crash-recovered",
+      "passed": true,
+      "duration_seconds": 21.66,
+      "repair_attempts": 0,
+      "event_counts": {
+        "mimo_pf_policy_installed": 5,
+        "mimo_startup_guard_closed": 1,
+        "mimo_log_maintenance": 2,
+        "mimo_installed_app_control_ready": 2,
+        "mimo_peer_watch_started": 1,
+        "mimo_legacy_network_controls_removed": 1,
+        "mimo_dns_removed_and_drained": 1,
+        "mimo_direct_network_released": 1,
+        "mimo_native_release_checked": 1,
+        "mimo_supervisor_ready": 1,
+        "mimo_session_observer_ready": 1,
+        "daemon_started": 1,
+        "mimo_infrastructure_started": 1,
+        "mimo_core_command_started": 1,
+        "mimo_supervisor_command_received": 1,
+        "mimo_core_command_finished": 1,
+        "monitor_started": 1,
+        "daemon_ready": 1,
+        "refresh_requested": 1,
+        "provider_health_changed": 1,
+        "lookup_started": 1,
+        "lookup_http_request": 1,
+        "mimo_probe_http_started": 1,
+        "mimo_probe_http_finished": 1,
+        "mimo_transition_timing": 1
+      }
+    },
+    {
+      "stage": "fault-supervisor-crash",
+      "name": "fault-supervisor-crash-settled",
+      "passed": true,
+      "event_counts": {},
+      "unexpected_events": [],
+      "progress_advanced": true
+    },
+    {
+      "stage": "fault-heartbeat-hang",
+      "name": "heartbeat-hang-recovered",
+      "passed": true,
+      "duration_seconds": 50.66,
+      "repair_attempts": 1,
+      "event_counts": {
+        "mimo_peer_repair_started": 1,
+        "mimo_peer_recovery_wait": 1,
+        "mimo_peer_recovered": 1,
+        "mimo_peer_watch_started": 1
+      }
+    },
+    {
+      "stage": "fault-heartbeat-hang",
+      "name": "heartbeat-repair-has-no-network-side-effects",
+      "passed": true
+    },
+    {
+      "stage": "fault-heartbeat-hang",
+      "name": "fault-heartbeat-hang-settled",
+      "passed": true,
+      "event_counts": {},
+      "unexpected_events": [],
+      "progress_advanced": true
+    },
+    {
+      "stage": "fault-supervisor-hang",
+      "name": "supervisor-hang-recovered",
+      "passed": true,
+      "duration_seconds": 64.06,
+      "repair_attempts": 1,
+      "event_counts": {
+        "mimo_pf_policy_installed": 5,
+        "mimo_startup_guard_closed": 1,
+        "mimo_log_maintenance": 2,
+        "mimo_installed_app_control_ready": 2,
+        "mimo_peer_watch_started": 1,
+        "mimo_legacy_network_controls_removed": 1,
+        "mimo_dns_removed_and_drained": 1,
+        "mimo_direct_network_released": 1,
+        "mimo_native_release_checked": 1,
+        "mimo_supervisor_ready": 1,
+        "mimo_session_observer_ready": 1,
+        "daemon_started": 1,
+        "mimo_infrastructure_started": 1,
+        "mimo_core_command_started": 1,
+        "mimo_supervisor_command_received": 1,
+        "mimo_core_command_finished": 1,
+        "monitor_started": 1,
+        "daemon_ready": 1,
+        "refresh_requested": 1,
+        "provider_health_changed": 2,
+        "lookup_started": 1,
+        "lookup_http_request": 1,
+        "mimo_probe_http_started": 1,
+        "mimo_probe_http_finished": 1,
+        "mimo_transition_timing": 1,
+        "lookup_succeeded": 1,
+        "lookup_finished": 1,
+        "mimo_peer_repair_started": 1,
+        "mimo_peer_recovery_wait": 1,
+        "mimo_peer_recovered": 1
+      }
+    },
+    {
+      "stage": "fault-supervisor-hang",
+      "name": "fault-supervisor-hang-settled",
+      "passed": true,
+      "event_counts": {},
+      "unexpected_events": [],
+      "progress_advanced": true
+    },
+    {
+      "stage": "fault-heartbeat-remove",
+      "name": "heartbeat-remove-recovered",
+      "passed": true,
+      "duration_seconds": 16.77,
+      "repair_attempts": 1,
+      "event_counts": {
+        "mimo_peer_watch_started": 1,
+        "mimo_peer_repair_started": 1,
+        "mimo_peer_recovery_wait": 1,
+        "mimo_peer_recovered": 1
+      }
+    },
+    {
+      "stage": "fault-heartbeat-remove",
+      "name": "heartbeat-repair-has-no-network-side-effects",
+      "passed": true
+    },
+    {
+      "stage": "fault-heartbeat-remove",
+      "name": "fault-heartbeat-remove-settled",
+      "passed": true,
+      "event_counts": {},
+      "unexpected_events": [],
+      "progress_advanced": true
+    },
+    {
+      "stage": "fault-supervisor-remove",
+      "name": "supervisor-remove-recovered",
+      "passed": true,
+      "duration_seconds": 28.58,
+      "repair_attempts": 1,
+      "event_counts": {
+        "mimo_peer_repair_started": 1,
+        "mimo_peer_recovery_wait": 1,
+        "mimo_log_maintenance": 2,
+        "mimo_peer_recovered": 1,
+        "monitor_stopped": 1,
+        "daemon_stopped": 1,
+        "mimo_infrastructure_stopped": 1,
+        "mimo_pf_policy_installed": 5,
+        "mimo_startup_guard_closed": 1,
+        "mimo_installed_app_control_ready": 2,
+        "mimo_peer_watch_started": 1,
+        "mimo_legacy_network_controls_removed": 1,
+        "mimo_dns_removed_and_drained": 1,
+        "mimo_direct_network_released": 1,
+        "mimo_native_release_checked": 1,
+        "mimo_supervisor_ready": 1,
+        "mimo_session_observer_ready": 1,
+        "daemon_started": 1,
+        "mimo_infrastructure_started": 1,
+        "mimo_core_command_started": 1,
+        "mimo_supervisor_command_received": 1,
+        "mimo_core_command_finished": 1,
+        "monitor_started": 1,
+        "daemon_ready": 1,
+        "refresh_requested": 1,
+        "provider_health_changed": 2,
+        "lookup_started": 1,
+        "lookup_http_request": 1,
+        "mimo_probe_http_started": 1,
+        "mimo_probe_http_finished": 1,
+        "mimo_transition_timing": 1,
+        "lookup_succeeded": 1,
+        "lookup_finished": 1
+      }
+    },
+    {
+      "stage": "fault-supervisor-remove",
+      "name": "fault-supervisor-remove-settled",
+      "passed": true,
+      "event_counts": {},
+      "unexpected_events": [],
+      "progress_advanced": true
+    },
+    {
+      "stage": "fault-supervisor-hang-global",
+      "name": "supervisor-hang-recovered",
+      "passed": true,
+      "duration_seconds": 69.89,
+      "repair_attempts": 1,
+      "event_counts": {
+        "mimo_pf_policy_installed": 4,
+        "mimo_startup_guard_closed": 1,
+        "mimo_log_maintenance": 1,
+        "mimo_installed_app_control_ready": 2,
+        "mimo_peer_watch_started": 1,
+        "mimo_legacy_network_controls_removed": 1,
+        "mimo_supervisor_ready": 1,
+        "mimo_session_observer_ready": 1,
+        "daemon_started": 1,
+        "mimo_infrastructure_started": 1,
+        "monitor_started": 1,
+        "daemon_ready": 1,
+        "refresh_requested": 1,
+        "provider_health_changed": 2,
+        "lookup_started": 1,
+        "mimo_core_command_started": 2,
+        "mimo_supervisor_command_received": 2,
+        "mimo_recovery_verification_consumed": 1,
+        "mimo_parallel_preparation_started": 1,
+        "mimo_transition_timing": 40,
+        "mimo_gate_closed": 1,
+        "mimo_tailnet_change_scope": 1,
+        "network_configuration_changed": 4,
+        "mimo_runtime_inspection_started": 1,
+        "mimo_final_profile_loaded": 1,
+        "mimo_private_probe_barrier_ready": 1,
+        "mimo_private_probe_ready": 1,
+        "mimo_core_command_finished": 2,
+        "lookup_http_request": 1,
+        "mimo_probe_http_started": 1,
+        "mimo_infrastructure_check_deferred": 1,
+        "mimo_cycle_owned_event_ignored": 1,
+        "mimo_readiness_started": 1,
+        "mimo_readiness_passed": 1,
+        "mimo_probe_http_finished": 1,
+        "mimo_exits_approved": 1,
+        "mimo_opening_barrier_ready": 1,
+        "mimo_active_firewall_installed": 1,
+        "mimo_traffic_opened": 1,
+        "lookup_succeeded": 1,
+        "lookup_finished": 1,
+        "mimo_peer_repair_started": 1,
+        "mimo_peer_recovery_wait": 1,
+        "mimo_peer_recovered": 1
+      }
+    },
+    {
+      "stage": "fault-supervisor-hang-global",
+      "name": "fault-supervisor-hang-global-settled",
+      "passed": true,
+      "event_counts": {},
+      "unexpected_events": [],
+      "progress_advanced": true
+    },
+    {
+      "stage": "fault-heartbeat-hang-global",
+      "name": "heartbeat-hang-recovered",
+      "passed": true,
+      "duration_seconds": 49.99,
+      "repair_attempts": 1,
+      "event_counts": {
+        "provider_health_changed": 1,
+        "lookup_succeeded": 1,
+        "lookup_finished": 1,
+        "mimo_native_egress_updated": 2,
+        "mimo_peer_repair_started": 1,
+        "mimo_peer_recovery_wait": 1,
+        "mimo_peer_recovered": 1,
+        "mimo_peer_watch_started": 1
+      }
+    },
+    {
+      "stage": "fault-heartbeat-hang-global",
+      "name": "heartbeat-repair-has-no-network-side-effects",
+      "passed": true
+    },
+    {
+      "stage": "fault-heartbeat-hang-global",
+      "name": "fault-heartbeat-hang-global-settled",
+      "passed": true,
+      "event_counts": {},
+      "unexpected_events": [],
+      "progress_advanced": true
+    },
+    {
+      "stage": "mode-rule-ipv4",
+      "name": "mode-rule-ipv4-rejected-IP-visible",
+      "passed": true
+    },
+    {
+      "stage": "mode-rule-ipv4",
+      "name": "mode-rule-ipv4-denial-does-not-pause-health",
+      "passed": true,
+      "monitoring_status": [
+        "ready"
+      ],
+      "service_health": {
+        "core": "running",
+        "mihomo": "running",
+        "profileHosting": "running"
+      }
+    },
+    {
+      "stage": "mode-rule-ipv4",
+      "name": "mode-rule-ipv4-blocked-manual-refresh-completes",
+      "passed": true
+    },
+    {
+      "stage": "mode-rule-ipv4",
+      "name": "mode-rule-ipv4-rejected-settled",
+      "passed": true,
+      "event_counts": {
+        "mimo_infrastructure_check_deferred": 2,
+        "mimo_blocked_native_transport_updated": 2
+      },
+      "unexpected_events": [],
+      "progress_advanced": true
+    },
+    {
+      "stage": "mode-rule-ipv4",
+      "name": "mode-rule-ipv4-explicit-recovery-without-peer-restart",
+      "passed": true
+    },
+    {
+      "stage": "mode-rule-ipv4",
+      "name": "mode-rule-ipv4-approved-settled",
+      "passed": true,
+      "event_counts": {},
+      "unexpected_events": [],
+      "progress_advanced": true
+    },
+    {
+      "stage": "mode-global-ipv4",
+      "name": "mode-global-ipv4-rejected-IP-visible",
+      "passed": true
+    },
+    {
+      "stage": "mode-global-ipv4",
+      "name": "mode-global-ipv4-denial-does-not-pause-health",
+      "passed": true,
+      "monitoring_status": [
+        "ready"
+      ],
+      "service_health": {
+        "core": "running",
+        "mihomo": "running",
+        "profileHosting": "running"
+      }
+    },
+    {
+      "stage": "mode-global-ipv4",
+      "name": "mode-global-ipv4-blocked-manual-refresh-completes",
+      "passed": true
+    },
+    {
+      "stage": "mode-global-ipv4",
+      "name": "mode-global-ipv4-rejected-settled",
+      "passed": true,
+      "event_counts": {
+        "mimo_blocked_native_transport_updated": 2,
+        "mimo_infrastructure_check_deferred": 1
+      },
+      "unexpected_events": [],
+      "progress_advanced": true
+    },
+    {
+      "stage": "mode-global-ipv4",
+      "name": "mode-global-ipv4-explicit-recovery-without-peer-restart",
+      "passed": true
+    },
+    {
+      "stage": "mode-global-ipv4",
+      "name": "mode-global-ipv4-approved-settled",
+      "passed": true,
+      "event_counts": {},
+      "unexpected_events": [],
+      "progress_advanced": true
+    },
+    {
+      "stage": "mode-rule-dual",
+      "name": "mode-rule-dual-rejected-IP-visible",
+      "passed": true
+    },
+    {
+      "stage": "mode-rule-dual",
+      "name": "mode-rule-dual-denial-does-not-pause-health",
+      "passed": true,
+      "monitoring_status": [
+        "ready"
+      ],
+      "service_health": {
+        "core": "running",
+        "mihomo": "running",
+        "profileHosting": "running"
+      }
+    },
+    {
+      "stage": "mode-rule-dual",
+      "name": "mode-rule-dual-blocked-manual-refresh-completes",
+      "passed": true
+    },
+    {
+      "stage": "mode-rule-dual",
+      "name": "mode-rule-dual-rejected-settled",
+      "passed": true,
+      "event_counts": {},
+      "unexpected_events": [],
+      "progress_advanced": true
+    },
+    {
+      "stage": "mode-rule-dual",
+      "name": "mode-rule-dual-explicit-recovery-without-peer-restart",
+      "passed": true
+    },
+    {
+      "stage": "mode-rule-dual",
+      "name": "mode-rule-dual-approved-settled",
+      "passed": true,
+      "event_counts": {},
+      "unexpected_events": [],
+      "progress_advanced": true
+    },
+    {
+      "stage": "mode-global-dual",
+      "name": "mode-global-dual-rejected-IP-visible",
+      "passed": true
+    },
+    {
+      "stage": "mode-global-dual",
+      "name": "mode-global-dual-denial-does-not-pause-health",
+      "passed": true,
+      "monitoring_status": [
+        "ready"
+      ],
+      "service_health": {
+        "core": "running",
+        "mihomo": "running",
+        "profileHosting": "running"
+      }
+    },
+    {
+      "stage": "mode-global-dual",
+      "name": "mode-global-dual-blocked-manual-refresh-completes",
+      "passed": true
+    },
+    {
+      "stage": "mode-global-dual",
+      "name": "mode-global-dual-rejected-settled",
+      "passed": true,
+      "event_counts": {
+        "mimo_infrastructure_check_deferred": 1
+      },
+      "unexpected_events": [],
+      "progress_advanced": true
+    },
+    {
+      "stage": "mode-global-dual",
+      "name": "mode-global-dual-explicit-recovery-without-peer-restart",
+      "passed": true
+    },
+    {
+      "stage": "mode-global-dual",
+      "name": "mode-global-dual-approved-settled",
+      "passed": true,
+      "event_counts": {},
+      "unexpected_events": [],
+      "progress_advanced": true
+    },
+    {
+      "stage": "monitor",
+      "name": "IP-monitor-stop-preserves-both-peers",
+      "passed": true
+    },
+    {
+      "stage": "monitor",
+      "name": "CLI-Direct-recovery-with-monitor-stopped",
+      "passed": true
+    },
+    {
+      "stage": "monitor",
+      "name": "monitor-stopped-Direct-quiet",
+      "passed": true,
+      "event_counts": {},
+      "unexpected_events": [],
+      "progress_advanced": true
+    },
+    {
+      "stage": "monitor",
+      "name": "IP-monitor-start-preserves-both-peers",
+      "passed": true
+    },
+    {
+      "stage": "monitor",
+      "name": "monitor-started-Direct-quiet",
+      "passed": true,
+      "event_counts": {},
+      "unexpected_events": [],
+      "progress_advanced": true
+    },
+    {
+      "stage": "infrastructure-engine",
+      "name": "infrastructure-engine-repaired-by-supervisor-without-peer-restart",
+      "passed": true,
+      "event_counts": {
+        "mimo_transition_timing": 64,
+        "mimo_network_event_dispatch": 2,
+        "mimo_network_changed": 3,
+        "network_configuration_changed": 2,
+        "refresh_requested": 4,
+        "provider_health_changed": 5,
+        "lookup_started": 3,
+        "mimo_network_configuration_external": 1,
+        "mimo_cycle_event_deferred": 1,
+        "mimo_core_command_started": 4,
+        "mimo_supervisor_command_received": 4,
+        "mimo_parallel_preparation_started": 3,
+        "mimo_runtime_command_failed": 3,
+        "mimo_pf_policy_installed": 7,
+        "mimo_gate_closed": 5,
+        "mimo_tailnet_change_scope": 3,
+        "mimo_controller_recovery_pending": 2,
+        "mimo_core_command_finished": 4,
+        "refresh_coalesced_in_flight": 1,
+        "lookup_finished": 3,
+        "mimo_recovery_verification_consumed": 2,
+        "mimo_required_check_close_skipped": 1,
+        "indicator_error_set": 1,
+        "lookup_failed": 1,
+        "mimo_blocked_native_transport_updated": 1,
+        "mimo_runtime_inspection_started": 1,
+        "mimo_final_profile_loaded": 1,
+        "mimo_private_probe_barrier_ready": 1,
+        "mimo_private_probe_ready": 1,
+        "lookup_http_request": 1,
+        "mimo_probe_http_started": 1,
+        "mimo_cycle_owned_event_ignored": 1,
+        "mimo_readiness_started": 1,
+        "mimo_readiness_passed": 1,
+        "mimo_probe_http_finished": 1,
+        "mimo_exits_approved": 1,
+        "mimo_opening_barrier_ready": 1,
+        "mimo_active_firewall_installed": 1,
+        "mimo_traffic_opened": 1,
+        "lookup_succeeded": 1,
+        "mimo_startup_guard_closed": 1
+      }
+    },
+    {
+      "stage": "infrastructure-engine",
+      "name": "infrastructure-engine-settled",
+      "passed": true,
+      "event_counts": {
+        "mimo_native_egress_updated": 5,
+        "mimo_infrastructure_check_deferred": 1
+      },
+      "unexpected_events": [],
+      "progress_advanced": true
+    },
+    {
+      "stage": "infrastructure-dns",
+      "name": "infrastructure-dns-repaired-by-supervisor-without-peer-restart",
+      "passed": true,
+      "event_counts": {
+        "network_configuration_changed": 4,
+        "mimo_transition_timing": 26,
+        "mimo_network_configuration_external": 1,
+        "mimo_network_event_dispatch": 1,
+        "mimo_network_changed": 1,
+        "refresh_requested": 1,
+        "provider_health_changed": 2,
+        "lookup_started": 1,
+        "mimo_core_command_started": 2,
+        "mimo_supervisor_command_received": 2,
+        "mimo_parallel_preparation_started": 1,
+        "mimo_pf_policy_installed": 1,
+        "mimo_gate_closed": 1,
+        "mimo_tailnet_change_scope": 1,
+        "mimo_runtime_inspection_started": 1,
+        "mimo_final_profile_reused": 1,
+        "mimo_private_probe_barrier_ready": 1,
+        "mimo_private_probe_ready": 1,
+        "mimo_core_command_finished": 2,
+        "lookup_http_request": 1,
+        "mimo_probe_http_started": 1,
+        "mimo_readiness_started": 1,
+        "mimo_readiness_passed": 1,
+        "mimo_probe_http_finished": 1,
+        "mimo_exits_approved": 1,
+        "mimo_opening_barrier_ready": 1,
+        "mimo_active_firewall_installed": 1,
+        "mimo_traffic_opened": 1,
+        "lookup_succeeded": 1,
+        "lookup_finished": 1,
+        "mimo_native_egress_updated": 1
+      }
+    },
+    {
+      "stage": "infrastructure-dns",
+      "name": "infrastructure-dns-settled",
+      "passed": true,
+      "event_counts": {
+        "mimo_native_egress_updated": 2
+      },
+      "unexpected_events": [],
+      "progress_advanced": true
+    },
+    {
+      "stage": "infrastructure-pf",
+      "name": "infrastructure-pf-repaired-by-supervisor-without-peer-restart",
+      "passed": true,
+      "event_counts": {
+        "mimo_verification_audit_failed": 1,
+        "mimo_transition_timing": 24,
+        "mimo_gate_closed": 2,
+        "mimo_blocked_native_transport_updated": 1,
+        "mimo_network_changed": 1,
+        "refresh_requested": 1,
+        "provider_health_changed": 2,
+        "lookup_started": 1,
+        "mimo_core_command_started": 2,
+        "mimo_supervisor_command_received": 2,
+        "mimo_recovery_verification_consumed": 1,
+        "mimo_parallel_preparation_started": 1,
+        "mimo_pf_policy_installed": 1,
+        "mimo_tailnet_change_scope": 1,
+        "mimo_runtime_inspection_started": 1,
+        "mimo_final_profile_loaded": 1,
+        "mimo_private_probe_barrier_ready": 1,
+        "mimo_private_probe_ready": 1,
+        "mimo_core_command_finished": 2,
+        "lookup_http_request": 1,
+        "mimo_probe_http_started": 1,
+        "mimo_readiness_started": 1,
+        "mimo_readiness_passed": 1,
+        "mimo_probe_http_finished": 1,
+        "mimo_exits_approved": 1,
+        "mimo_opening_barrier_ready": 1,
+        "mimo_active_firewall_installed": 1,
+        "mimo_traffic_opened": 1,
+        "lookup_succeeded": 1,
+        "lookup_finished": 1,
+        "mimo_native_egress_updated": 1
+      }
+    },
+    {
+      "stage": "infrastructure-pf",
+      "name": "infrastructure-pf-settled",
+      "passed": true,
+      "event_counts": {
+        "mimo_native_egress_updated": 1
+      },
+      "unexpected_events": [],
+      "progress_advanced": true
+    },
+    {
+      "stage": "lifecycle-stop",
+      "name": "lifecycle-stop-completed",
+      "passed": true
+    },
+    {
+      "stage": "lifecycle-stop",
+      "name": "lifecycle-stop-no-resurrection",
+      "passed": true
+    },
+    {
+      "stage": "lifecycle-activate",
+      "name": "lifecycle-activate-completed",
+      "passed": true
+    },
+    {
+      "stage": "lifecycle-activate",
+      "name": "lifecycle-activate-settled",
+      "passed": true,
+      "event_counts": {},
+      "unexpected_events": [],
+      "progress_advanced": true
+    },
+    {
+      "stage": "uninstall",
+      "name": "uninstall-completed",
+      "passed": true
+    },
+    {
+      "stage": "uninstall",
+      "name": "uninstall-no-resurrection",
+      "passed": true
+    },
+    {
+      "stage": "reinstall",
+      "name": "reinstall-completed",
+      "passed": true
+    },
+    {
+      "stage": "reinstall",
+      "name": "reinstall-settled",
+      "passed": true,
+      "event_counts": {},
+      "unexpected_events": [],
+      "progress_advanced": true
+    },
+    {
+      "stage": "boot-after",
+      "name": "real-reboot-starts-existing-supervisor-and-both-progress-owners",
+      "passed": true
+    },
+    {
+      "stage": "boot-after",
+      "name": "rebooted-Direct-quiet",
+      "passed": true,
+      "event_counts": {},
+      "unexpected_events": [],
+      "progress_advanced": true
+    },
+    {
+      "stage": "final",
+      "name": "original-settings-retained",
+      "passed": true
+    },
+    {
+      "stage": "final",
+      "name": "local-credentials-retained-across-lifecycle",
+      "passed": true
+    },
+    {
+      "stage": "final",
+      "name": "one-existing-mimo-core-Login-Items-registration",
+      "passed": true
+    },
+    {
+      "stage": "final",
+      "name": "dashboard-health-current",
+      "passed": true
+    },
+    {
+      "stage": "final",
+      "name": "lifecycle-stop-maintenance-log-clean",
+      "passed": true,
+      "event_counts": {
+        "mimo_transition_timing": 9,
+        "mimo_pf_policy_installed": 2,
+        "mimo_gate_closed": 2,
+        "mimo_core_command_started": 1,
+        "mimo_supervisor_command_received": 1,
+        "mimo_core_command_finished": 1,
+        "monitor_stopped": 1,
+        "daemon_stopped": 1,
+        "mimo_infrastructure_stopped": 1
+      },
+      "unexpected_events": [],
+      "bounded_rate_limit_failover": false
+    },
+    {
+      "stage": "final",
+      "name": "lifecycle-activate-maintenance-log-clean",
+      "passed": true,
+      "event_counts": {
+        "mimo_pf_policy_installed": 9,
+        "mimo_startup_guard_closed": 2,
+        "mimo_log_maintenance": 1,
+        "mimo_installed_app_control_ready": 2,
+        "mimo_peer_watch_started": 2,
+        "mimo_legacy_network_controls_removed": 1,
+        "mimo_dns_removed_and_drained": 1,
+        "mimo_direct_network_released": 1,
+        "mimo_native_release_checked": 1,
+        "mimo_supervisor_ready": 1,
+        "mimo_session_observer_ready": 1,
+        "daemon_started": 1,
+        "mimo_infrastructure_started": 1,
+        "mimo_core_command_started": 1,
+        "mimo_supervisor_command_received": 1,
+        "mimo_core_command_finished": 1,
+        "monitor_started": 1,
+        "daemon_ready": 1,
+        "refresh_requested": 2,
+        "provider_health_changed": 4,
+        "lookup_started": 2,
+        "lookup_http_request": 2,
+        "mimo_probe_http_started": 2,
+        "mimo_probe_http_finished": 2,
+        "indicator_error_set": 1,
+        "lookup_failed": 1,
+        "provider_failure_paused": 1,
+        "provider_rotated_after_failure": 1,
+        "lookup_finished": 2,
+        "mimo_transition_timing": 4,
+        "lookup_succeeded": 1
+      },
+      "unexpected_events": [],
+      "bounded_rate_limit_failover": true
+    },
+    {
+      "stage": "final",
+      "name": "uninstall-maintenance-log-clean",
+      "passed": true,
+      "event_counts": {
+        "mimo_transition_timing": 9,
+        "mimo_pf_policy_installed": 2,
+        "mimo_gate_closed": 2,
+        "mimo_core_command_started": 1,
+        "mimo_supervisor_command_received": 1,
+        "mimo_core_command_finished": 1,
+        "mimo_infrastructure_check_deferred": 1,
+        "monitor_stopped": 1,
+        "daemon_stopped": 1,
+        "mimo_infrastructure_stopped": 1,
+        "mimo_log_maintenance": 1
+      },
+      "unexpected_events": [],
+      "bounded_rate_limit_failover": false
+    },
+    {
+      "stage": "final",
+      "name": "reinstall-maintenance-log-clean",
+      "passed": true,
+      "event_counts": {
+        "mimo_transition_timing": 4,
+        "mimo_pf_policy_installed": 9,
+        "mimo_startup_guard_closed": 2,
+        "mimo_peer_watch_started": 2,
+        "mimo_log_maintenance": 1,
+        "mimo_installed_app_control_ready": 2,
+        "mimo_legacy_network_controls_removed": 1,
+        "mimo_dns_removed_and_drained": 1,
+        "mimo_direct_network_released": 1,
+        "mimo_native_release_checked": 1,
+        "mimo_supervisor_ready": 1,
+        "mimo_session_observer_ready": 1,
+        "daemon_started": 1,
+        "mimo_infrastructure_started": 1,
+        "mimo_core_command_started": 1,
+        "mimo_supervisor_command_received": 1,
+        "mimo_core_command_finished": 1,
+        "monitor_started": 1,
+        "daemon_ready": 1,
+        "refresh_requested": 1,
+        "provider_health_changed": 2,
+        "lookup_started": 1,
+        "lookup_http_request": 1,
+        "mimo_probe_http_started": 1,
+        "mimo_probe_http_finished": 1,
+        "lookup_succeeded": 1,
+        "lookup_finished": 1
+      },
+      "unexpected_events": [],
+      "bounded_rate_limit_failover": false
+    },
+    {
+      "stage": "final",
+      "name": "final-Direct-quiet",
+      "passed": true,
+      "event_counts": {},
+      "unexpected_events": [],
+      "progress_advanced": true
+    }
+  ],
+  "earlier_failed_attempts": [
+    {
+      "stage": "mode-rule-ipv4",
+      "name": "mode-rule-ipv4-denial-does-not-pause-health",
+      "passed": false
+    },
+    {
+      "stage": "mode-rule-ipv4",
+      "name": "mode-rule-ipv4-denial-does-not-pause-health",
+      "passed": false,
+      "monitoring_status": [
+        "refreshing"
+      ],
+      "service_health": {
+        "core": "running",
+        "mihomo": "running",
+        "profileHosting": "running"
+      }
+    },
+    {
+      "stage": "lifecycle-activate",
+      "name": "lifecycle-activate-completed",
+      "passed": false
+    },
+    {
+      "stage": "final",
+      "name": "lifecycle-activate-maintenance-log-clean",
+      "passed": false,
+      "event_counts": {
+        "mimo_pf_policy_installed": 9,
+        "mimo_startup_guard_closed": 2,
+        "mimo_log_maintenance": 1,
+        "mimo_installed_app_control_ready": 2,
+        "mimo_peer_watch_started": 2,
+        "mimo_legacy_network_controls_removed": 1,
+        "mimo_dns_removed_and_drained": 1,
+        "mimo_direct_network_released": 1,
+        "mimo_native_release_checked": 1,
+        "mimo_supervisor_ready": 1,
+        "mimo_session_observer_ready": 1,
+        "daemon_started": 1,
+        "mimo_infrastructure_started": 1,
+        "mimo_core_command_started": 1,
+        "mimo_supervisor_command_received": 1,
+        "mimo_core_command_finished": 1,
+        "monitor_started": 1,
+        "daemon_ready": 1,
+        "refresh_requested": 2,
+        "provider_health_changed": 4,
+        "lookup_started": 2,
+        "lookup_http_request": 2,
+        "mimo_probe_http_started": 2,
+        "mimo_probe_http_finished": 2,
+        "indicator_error_set": 1,
+        "lookup_failed": 1,
+        "provider_failure_paused": 1,
+        "provider_rotated_after_failure": 1,
+        "lookup_finished": 2,
+        "mimo_transition_timing": 4,
+        "lookup_succeeded": 1
+      },
+      "unexpected_events": [
+        "indicator_error_set",
+        "lookup_failed"
+      ]
+    }
+  ],
+  "initial_peer_candidate": [
+    {
+      "stage": "installed",
+      "name": "two-existing-core-roles-and-correct-API-owner",
+      "passed": true
+    },
+    {
+      "stage": "installed",
+      "name": "retired-jobs-absent",
+      "passed": true
+    },
+    {
+      "stage": "installed",
+      "name": "installed-Direct-quiet",
+      "passed": false,
+      "event_counts": {
+        "mimo_peer_recovery_wait": 1,
+        "mimo_peer_recovered": 1
+      },
+      "unexpected_events": [
+        "mimo_peer_recovery_wait"
+      ],
+      "progress_advanced": true
+    }
+  ],
+  "publication": "Unpublished VM candidate; Delta installation unchanged",
+  "package_sha256": "67ccbcfccf8cfc4c4d9c9f0730d573f5b4ca9fb038fd3bd5149b2124c7f314d7",
+  "fault_test_core_matches_final_package": true,
+  "baseline": {
+    "scenario": "SIGSTOP old supervisor for 50 seconds",
+    "recovered": false,
+    "expected_failure": true
+  },
+  "local_validation": {
+    "shared_tests": 241,
+    "shared_failures": 0,
+    "service_suite": "passed, including 60 exception/recovery simulations and 4 pending-lookup Direct cancellations",
+    "app_suite": "passed, including heartbeat health and log export/copy/pause",
+    "installer_helper_suite": "passed; new activation-startup contract failed before installer fix",
+    "release_build": "passed"
+  },
+  "ordinary_account_log_export": {
+    "passed": true,
+    "repeated_after_final_reboot": true,
+    "core_and_heartbeat_connected": true,
+    "pause_preserves_visible_and_copied_records": true,
+    "native_clickthrough": false
+  },
+  "corrected_lifecycle_incoming_tcp_probes": {
+    "hostname": {
+      "22": {
+        "passed": 188,
+        "failed": []
+      },
+      "5900": {
+        "passed": 188,
+        "failed": []
+      }
+    },
+    "LAN-address": {
+      "22": {
+        "passed": 188,
+        "failed": []
+      },
+      "5900": {
+        "passed": 188,
+        "failed": []
+      }
+    }
+  },
+  "earlier_incoming_tcp_probes": {
+    "22": {
+      "passed": 817,
+      "failed": [
+        {
+          "time": "2026-11-26T12:20:27.800183+00:00",
+          "error": "RuntimeError"
+        },
+        {
+          "time": "2026-11-26T12:20:33.849517+00:00",
+          "error": "RuntimeError"
+        },
+        {
+          "time": "2026-11-26T12:24:43.512806+00:00",
+          "error": "RuntimeError"
+        },
+        {
+          "time": "2026-11-26T12:24:49.544972+00:00",
+          "error": "RuntimeError"
+        },
+        {
+          "time": "2026-11-26T12:24:55.587760+00:00",
+          "error": "RuntimeError"
+        }
+      ]
+    },
+    "5900": {
+      "passed": 818,
+      "failed": [
+        {
+          "time": "2026-11-26T12:20:29.818867+00:00",
+          "error": "RuntimeError"
+        },
+        {
+          "time": "2026-11-26T12:20:35.864150+00:00",
+          "error": "RuntimeError"
+        },
+        {
+          "time": "2026-11-26T12:24:45.522171+00:00",
+          "error": "RuntimeError"
+        },
+        {
+          "time": "2026-11-26T12:24:51.561346+00:00",
+          "error": "RuntimeError"
+        }
+      ]
+    }
+  },
+  "limits": [
+    "Native window click-through and visual Login Items inspection unavailable: Screen Sharing cgWindowNotFound; Tart timeout. Registry inspection and app model/render tests passed.",
+    "Corrected lifecycle TCP probes exclude deliberate reboot; TCP handshake success does not qualify full interactive sessions.",
+    "Earlier hostname-only probes recorded two failures per port shortly after the failed activation rollback. Cause was not established. Corrected lifecycle probes through both hostname and LAN address had zero failures.",
+    "Persistent peer budget/backoff exhaustion tested in unit tests, not as a live fourth-fault campaign.",
+    "Real reboot tested in managed Direct; no new protected cold-boot packet capture.",
+    "Both roles share one executable; absent/disabled roles at boot or a broken common executable may require installation repair. This is bounded recovery, not hot failover."
+  ],
+  "failure_explanations": [
+    "Baseline running-but-hung supervisor did not recover before implementation.",
+    "Initial peer candidate failed its quiet audit because healthy launchctl polling generated spurious inspection failures. Current code checks live progress/executable locally and invokes launchctl only for stale/missing progress.",
+    "Two early mode assertions sampled status=refreshing before the terminal ready snapshot. Harness now waits for ready plus blocked/address; monitoring services were running in captured states.",
+    "Activate failed health verification because the Stop receipt correctly blocked peer repair of the missing heartbeat. Installer now explicitly starts both peers before verification and retains the receipt until success; regression failed before the fix, then installed lifecycle passed.",
+    "A real startup provider rate limit caused the zero-error audit to fail. The audit now requires exactly one rate-limit pause, one provider rotation and one subsequent success, with exactly two completed lookups. Quiet-window checks remain unchanged.",
+    "The initial candidate package also failed PF parent inspection once. Added bounded command/inspection diagnostics; later normal package installs succeeded. That first occurrence was not conclusively attributed."
+  ],
+  "observed_rate_limit_recovery_timeline": [
+    {
+      "timestamp": "2026-11-26T12:28:20.083Z",
+      "event": "lookup_started",
+      "fields": {
+        "provider": "ipapiCo",
+        "trigger": "startup"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T12:28:21.457Z",
+      "event": "lookup_failed",
+      "fields": {
+        "provider": "ipapiCo",
+        "category": "rate_limited"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T12:28:21.458Z",
+      "event": "provider_failure_paused",
+      "fields": {
+        "provider": "ipapiCo",
+        "reason": "rate_limited",
+        "seconds": "599"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T12:28:21.460Z",
+      "event": "provider_rotated_after_failure",
+      "fields": {
+        "to": "ipWhois",
+        "category": "rate_limited",
+        "from": "ipapiCo"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T12:28:21.461Z",
+      "event": "lookup_finished",
+      "fields": {}
+    },
+    {
+      "timestamp": "2026-11-26T12:28:21.463Z",
+      "event": "lookup_started",
+      "fields": {
+        "trigger": "recheck",
+        "provider": "ipWhois"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T12:28:23.719Z",
+      "event": "lookup_succeeded",
+      "fields": {
+        "provider": "ipWhois"
+      }
+    },
+    {
+      "timestamp": "2026-11-26T12:28:23.720Z",
+      "event": "lookup_finished",
+      "fields": {}
+    }
+  ]
+}

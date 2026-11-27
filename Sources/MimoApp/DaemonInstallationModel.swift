@@ -75,7 +75,7 @@ final class DaemonInstallationModel: ObservableObject {
                 outcome = .failed
                 for _ in 0..<5 {
                     if let response = try? await DaemonRPC.call(DaemonRequest(.state), timeout: 2), let state = response.state,
-                       state.build == "3.0" {
+                       state.build == "3.1" {
                         MimoAppDelegate.monitor.receive(state)
                         outcome = .succeeded
                         break

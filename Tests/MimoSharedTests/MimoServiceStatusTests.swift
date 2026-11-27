@@ -10,7 +10,7 @@ final class MimoServiceStatusTests: XCTestCase {
         XCTAssertEqual(cached.healthTitle(at: checked.addingTimeInterval(3)), "Healthy")
         XCTAssertEqual(MimoHealthLabel.text(cached.healthTitle(at: checked.addingTimeInterval(3)),
             checkedAt: cached.checkedAt, at: checked.addingTimeInterval(3)), "Healthy(3 secs)")
-        XCTAssertEqual(cached.healthTitle(at: checked.addingTimeInterval(36)), "Stale")
+        XCTAssertEqual(cached.healthTitle(at: checked.addingTimeInterval(36)), "Check overdue")
         XCTAssertEqual(cached.checkedAt, checked, "Presentation must not refresh an inspection timestamp")
     }
 

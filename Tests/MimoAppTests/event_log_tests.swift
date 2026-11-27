@@ -8,20 +8,28 @@ enum EventLogTests {
         model.start()
         defer { model.stop() }
         let deadline = ContinuousClock.now.advanced(by: .seconds(12))
-        while model.sourceStatus != "Core: connected · Supervisor: connected", ContinuousClock.now < deadline {
+        while model.sourceStatus != "Core: connected · Heartbeat: connected", ContinuousClock.now < deadline {
             try await Task.sleep(for: .milliseconds(100))
         }
-        CredentialAppTests.require(model.sourceStatus == "Core: connected · Supervisor: connected",
+        CredentialAppTests.require(model.sourceStatus == "Core: connected · Heartbeat: connected",
                                    "Ordinary account must receive full records from both installed services")
         let report = model.diagnosticsText
-        for source in ["=== GUI ===", "=== Core (connected) ===", "=== Supervisor (connected) ==="] {
+        for source in ["=== GUI ===", "=== Core (connected) ===", "=== Heartbeat (connected) ==="] {
             CredentialAppTests.require(report.contains(source), "Export must identify every process")
         }
         CredentialAppTests.require(report.contains("mimo_") && report.contains("\"fields\""),
                                    "Installed export must preserve JSON events and fields")
+        for source in [EventLogModel.Source.core, .supervisor] {
+            model.selectedSource = source
+            CredentialAppTests.require(model.copyText.contains("log · connected") && model.copyText.contains("\"fields\"") && model.recordCount > 0,
+                                       "Ordinary-account log tabs must display full service records")
+        }
+        model.selectedSource = .core
+        let visible = model.copyText
         model.isPaused = true
         try await Task.sleep(for: .seconds(3))
         CredentialAppTests.require(model.diagnosticsText == report, "Pause must freeze the copied diagnostics")
+        CredentialAppTests.require(model.copyText == visible, "Pause must freeze the visible core log")
         try report.write(to: output.appendingPathComponent("installed-diagnostics.txt"), atomically: true, encoding: .utf8)
         print("PASS: ordinary-account GUI model copies installed core/supervisor JSON records and Pause freezes the report")
     }
@@ -61,11 +69,28 @@ enum EventLogTests {
         CredentialAppTests.require(model.lines.isEmpty, "Paused view must not update")
         model.isPaused = false
         CredentialAppTests.require(model.copyText.contains("route added on en0"), "Copy All must include readable triggers")
-        CredentialAppTests.require(model.copyText.contains("Core: not yet received") && model.copyText.contains("Supervisor: not yet received"),
+        CredentialAppTests.require(model.copyText.contains("Core: not yet received") && model.copyText.contains("Heartbeat: not yet received"),
                                    "Copied timeline must expose missing sources, not imply complete service history")
         CredentialAppTests.require(model.diagnosticsText.contains("mimo_network_changed") &&
-                                   model.diagnosticsText.contains("=== Supervisor"),
+                                   model.diagnosticsText.contains("=== Heartbeat"),
                                    "Diagnostics must preserve raw names and identify missing sources")
+        model.selectedSource = .core
+        CredentialAppTests.require(model.copyText.contains("Full diagnostic records have not been received") && model.recordCount == 0,
+                                   "Core log must identify missing service records without claiming local GUI records came from core")
+        model.selectedSource = .gui
+        CredentialAppTests.require(model.copyText.contains("mimo_network_changed") && model.copyText.contains("\"fields\""),
+                                   "Diagnostic tabs display raw records rather than only formatted events")
+        let frozen = model.copyText
+        let frozenCount = model.recordCount
+        model.isPaused = true
+        RuntimeLog.shared.info("mimo_infrastructure_stopped")
+        CredentialAppTests.require(model.copyText == frozen && model.recordCount == frozenCount,
+                                   "Paused diagnostic view must freeze records and count")
+        model.isPaused = false
+        CredentialAppTests.require(model.copyText.contains("mimo_infrastructure_stopped"), "Resume shows newer records")
+        try CredentialAppTests.render(EventLogView(model: model), size: NSSize(width: 820, height: 520), dark: false,
+                                      to: output.appendingPathComponent("mimo-diagnostic-log.png"))
+        model.selectedSource = .events
         try CredentialAppTests.render(EventLogView(model: model), size: NSSize(width: 820, height: 520), dark: true,
                                       to: output.appendingPathComponent("mimo-event-log.png"))
         print("PASS: native multiline copy, Unicode, Command-A, stable selection during live updates, paused history and diagnostic export")

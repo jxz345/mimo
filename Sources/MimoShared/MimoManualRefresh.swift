@@ -2,6 +2,12 @@ import Foundation
 
 public struct MimoManualRefresh: Codable, Equatable, Sendable {
     public enum Phase: String, Codable, Sendable { case queued, checking, succeeded, deferred, failed }
+    public enum Result: String, Codable, Sendable {
+        case checkedAllowed, checkedBlocked, superseded, cancelled, providerFailed, deferred, internalFailure
+    }
+    public var result: Result?
+    public var lifecycleGeneration: Int?
+    public var lookupID: UUID?
     public var id = UUID()
     public var requestedAt: Date
     public var startedAt: Date?

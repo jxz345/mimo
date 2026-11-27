@@ -1,0 +1,269 @@
+{
+  "schema": 1,
+  "purpose": "Final literal-address source revalidation on primary: fourteen extracted native-policy controls; separate from installed lifecycle qualification.",
+  "vm": "mimo-test-macos",
+  "counts": {
+    "planned": 14,
+    "completed": 14,
+    "passed": 14,
+    "failed": 0,
+    "original": 10,
+    "additional_races": 4,
+    "new_distinct_VM_cases_added": 0
+  },
+  "payload_sha256": "e41e4c530f1cbba2afaf5588a33cc8b325793425ea12207fc2e4b1751b26f5fd",
+  "groups": [
+    {
+      "directory": ".build/observation-parallel/native-final-primary-20261127T183901Z-7a2b4f75/attempt-01",
+      "completed": 10,
+      "passed": 10,
+      "archive_sha256": "9f2ad1c30132badacff65ad1ec03e439b008544e08ad1258e8707e755b1a98a4"
+    },
+    {
+      "directory": ".build/observation-parallel/native-final-primary-20261127T183901Z-7a2b4f75/attempt-02",
+      "completed": 4,
+      "passed": 4,
+      "archive_sha256": "a1dc4ea934954fb7a25d89b6b8c6112be2d1578603d02f0dc0e400a740f06c96"
+    }
+  ],
+  "executed_source_hashes": {
+    "Sources/MimoService/MimoSystemRuntime.swift": "34ccb40a0a5f6e694bbedaf8979e0d1ea3399b850e74d944f002c60e3d2b206c",
+    "Sources/MimoService/MimoFirewallLock.swift": "9ea560933a42b8135b999148ec0555792b49d26dfe733ca2610ab4ecd80392fa",
+    "Sources/MimoService/MimoBlockingWorkQueue.swift": "5b19f14e991dbdbee446bddbdec8d808ff511907763776be99321671c0c3891e",
+    "Sources/MimoService/MimoPFHealthReceipt.swift": "78e92ee101738b6441ed362120a0f64ad3f6227d089fc31bc6c0d9c7dcb173be",
+    "Sources/MimoShared/SingleInstanceLock.swift": "0d5db865d919c56d37a4e3680aad39d806197e610be2cd211b1bcf3c47368d70",
+    "Sources/MimoShared/MimoFirewallPolicy.swift": "b9a5f11da21e85804ce9f5262d4edb7f16db35426a5a905e9a13c50bb7a94bd2",
+    "Sources/MimoShared/MimoNativeEgress.swift": "c268cacab93c66367692d2bfd48f3f4a29f9d2a045b5ff0c14bf92feb17113a7",
+    "Sources/MimoShared/MimoRouting.swift": "2b3e620d3ca36d0f67bf2854a4420bc907742ce1721133768071e4f74335a353",
+    "Sources/MimoShared/MimoAllowlist.swift": "3f3d60e5837faba51e464df09b989ad09d61fa62e5190fc4d405c5a7d005e41e",
+    "Sources/MimoService/MimoNativePolicyUpdate.swift": "fa783bf1e168ebc48bb78c430137614c2aa17a6b7a0ff3eae91a619544b39600",
+    "Tests/MimoServiceTests/NativePolicyReceipts/run.py": "8c9c93f086072174c08ec1da35c8f1a4097c158c8179198b0ed48319d48a8388",
+    "Tests/MimoServiceTests/NativePolicyReceipts/cases.swift": "5a4865c8906bbc06ab19d899ad7b93b05dc4ba45206ffedfda185615dbf2cd17",
+    "Tests/MimoServiceTests/NativePolicyReceipts/runtime-stubs.swift": "d629dafa7bb52966a6230b58bde5b9e7e82e182c5ded875555e86f1f27477e7e",
+    "Tests/MimoServiceTests/NativePolicyReceipts/support.swift": "7874a9639d18fac5b70884a6cb5a530ae2e1ea9bd960eb694eea15ba547e367a"
+  },
+  "results": [
+    {
+      "failures": [],
+      "name": "active-native-update-current-receipt",
+      "observations": {
+        "error_class": "none",
+        "evidence_current": "true",
+        "gate_state": "active",
+        "mutation_epoch": "F1730495-49EE-493C-B575-993D9749A6ED",
+        "pf": "healthy",
+        "pf_writes": "1",
+        "receipt_matches": "true"
+      },
+      "passed": true
+    },
+    {
+      "failures": [],
+      "name": "blocked-native-update-current-receipt",
+      "observations": {
+        "error_class": "none",
+        "evidence_current": "true",
+        "gate_state": "blocked",
+        "mutation_epoch": "0D921564-1F8E-4BE6-A4B8-E078CA3163A4",
+        "pf": "healthy",
+        "pf_writes": "1",
+        "receipt_matches": "true"
+      },
+      "passed": true
+    },
+    {
+      "failures": [],
+      "name": "superseded-epoch-has-no-policy-or-epoch-side-effect",
+      "observations": {
+        "error_class": "CancellationError",
+        "evidence_current": "true",
+        "gate_state": "active",
+        "mutation_epoch": "new-owner-mutation",
+        "pf": "healthy",
+        "pf_writes": "0",
+        "receipt_matches": "true"
+      },
+      "passed": true
+    },
+    {
+      "failures": [],
+      "name": "superseded-close-has-no-policy-or-epoch-side-effect",
+      "observations": {
+        "error_class": "CancellationError",
+        "evidence_current": "true",
+        "gate_state": "blocked",
+        "mutation_epoch": "new-owner-mutation",
+        "pf": "healthy",
+        "pf_writes": "0",
+        "receipt_matches": "true"
+      },
+      "passed": true
+    },
+    {
+      "failures": [],
+      "name": "superseded-direct-has-no-policy-or-epoch-side-effect",
+      "observations": {
+        "error_class": "CancellationError",
+        "evidence_current": "true",
+        "gate_state": "direct",
+        "mutation_epoch": "new-owner-mutation",
+        "pf": "healthy",
+        "pf_writes": "0",
+        "receipt_matches": "true"
+      },
+      "passed": true
+    },
+    {
+      "failures": [],
+      "name": "superseded-intent-has-no-policy-or-epoch-side-effect",
+      "observations": {
+        "error_class": "CancellationError",
+        "evidence_current": "true",
+        "gate_state": "active",
+        "mutation_epoch": "new-owner-mutation",
+        "pf": "healthy",
+        "pf_writes": "0",
+        "receipt_matches": "true"
+      },
+      "passed": true
+    },
+    {
+      "failures": [],
+      "name": "narrow-readback-does-not-renew-expired-full-guard",
+      "observations": {
+        "error_class": "none",
+        "evidence_current": "true",
+        "gate_state": "active",
+        "mutation_epoch": "FBDD2ACF-95DB-4FE4-9C7A-716CA5A2C297",
+        "pf": "stale",
+        "pf_writes": "1",
+        "receipt_matches": "true"
+      },
+      "passed": true
+    },
+    {
+      "failures": [],
+      "name": "failed-readback-cannot-publish-healthy-receipt",
+      "observations": {
+        "error_class": "DaemonFailure",
+        "evidence_current": "false",
+        "gate_state": "active",
+        "mutation_epoch": "F52CCA78-F508-43BA-81C1-3EF3A0CB9E74",
+        "pf": "unknown",
+        "pf_writes": "1",
+        "receipt_matches": "false"
+      },
+      "passed": true
+    },
+    {
+      "failures": [],
+      "name": "active-lock-contention-keeps-admission-responsive",
+      "observations": {
+        "admission_count": "1",
+        "admission_delay_seconds": "0.0013869583344785497",
+        "contended_mutation_seconds": "0.9585660000011558",
+        "error_class": "none",
+        "evidence_current": "true",
+        "gate_state": "active",
+        "mutation_epoch": "467C0963-0897-4CF7-BA08-FCED11FAF549",
+        "pf": "healthy",
+        "pf_writes": "1",
+        "receipt_matches": "true"
+      },
+      "passed": true
+    },
+    {
+      "failures": [],
+      "name": "blocked-lock-contention-keeps-admission-responsive",
+      "observations": {
+        "admission_count": "1",
+        "admission_delay_seconds": "0.0012168333341833204",
+        "contended_mutation_seconds": "0.884568458335707",
+        "error_class": "none",
+        "evidence_current": "true",
+        "gate_state": "blocked",
+        "mutation_epoch": "D86D8C18-2DAA-48D3-B06E-6EEBB042C28E",
+        "pf": "healthy",
+        "pf_writes": "1",
+        "receipt_matches": "true"
+      },
+      "passed": true
+    },
+    {
+      "failures": [],
+      "name": "stale-scope-read-error-is-superseded",
+      "observations": {
+        "error_class": "CancellationError",
+        "evidence_current": "false",
+        "gate_state": "active",
+        "mutation_epoch": "replacement-mutation",
+        "pf": "unknown",
+        "pf_writes": "0",
+        "receipt_matches": "false"
+      },
+      "passed": true
+    },
+    {
+      "failures": [],
+      "name": "stale-noop-snapshot-is-superseded",
+      "observations": {
+        "error_class": "CancellationError",
+        "evidence_current": "false",
+        "gate_state": "active",
+        "mutation_epoch": "replacement-mutation",
+        "pf": "unknown",
+        "pf_writes": "0",
+        "receipt_matches": "false"
+      },
+      "passed": true
+    },
+    {
+      "failures": [],
+      "name": "cancel-after-admission-skips-pf-command",
+      "observations": {
+        "error_class": "CancellationError",
+        "evidence_current": "false",
+        "gate_state": "active",
+        "mutation_epoch": "5F65AA89-4358-40D9-9F32-AFDADDFF392F",
+        "pf": "unknown",
+        "pf_writes": "0",
+        "receipt_matches": "false"
+      },
+      "passed": true
+    },
+    {
+      "failures": [],
+      "name": "pf-acquisition-timeout-defers-without-recovery",
+      "observations": {
+        "acquisition_wait_seconds": "5.02103416666796",
+        "error_class": "none",
+        "evidence_current": "true",
+        "gate_state": "active",
+        "mutation_epoch": "initial-mutation",
+        "pf": "healthy",
+        "pf_writes": "0",
+        "receipt_matches": "true",
+        "reconciliations": "0"
+      },
+      "passed": true
+    }
+  ],
+  "scope": {
+    "real": "Extracted production methods, MainActor scheduling, isolated real filesystem locks/epochs, policy renderer, receipt checks and health projection.",
+    "substituted": "PF command output, native facts, private sandbox paths, boot identity and file ownership.",
+    "not_claimed": [
+      "Installed GUI or full-daemon RPC qualification",
+      "Actual production PF changes",
+      "Installed lifecycle L1/L2/L3 result"
+    ]
+  },
+  "cleanup": {
+    "passed": true,
+    "proof_path": ".build/observation-parallel/native-final-primary-20261127T183901Z-7a2b4f75/cleanup-proof.json",
+    "proof_sha256": "1d6cb4ddff9d4734c1a55a11bd3bd22f3bf4bf06010c4af12c6b02a1e10b21e6",
+    "temporary_files_removed": true,
+    "test_processes_remaining": 0,
+    "production_settings_and_network_untouched": true
+  },
+  "previous_worker_evidence_preserved": "Tests/MihomoRuntimeTests/Evidence/v3/observations/remaining-native-policy-fix-20261128.json"
+}

@@ -1,0 +1,1167 @@
+{
+  "schema_version": 1,
+  "method": "isolated_generated_MainActor_supervisor",
+  "counted_as_VM_case": false,
+  "installed_race_reproduction_claimed": false,
+  "scope": "Production approve/direct control flow with substituted external runtime effects and readiness facts",
+  "interleaving": "Competing MainActor operation queued in synchronous readiness completion tail; no await inserted in that tail",
+  "before": {
+    "tested_supervisor_sha256": "c44c1e7c3040b18def539f45b1066f50fd58bd4e7e06acdf998036222d8422af",
+    "planned": 28,
+    "passed": 12,
+    "failed": 16,
+    "results_sha256": "c3d58e6282a469674e77ec0fef7d9c7ae01b2851ecf4b7a67b0703aaf8dc3f85",
+    "instrumentation_diff_sha256": "9b5e35fd5214136019251a59f5fb8c6be9d1ff9ad7b7227882c452f61bad4451",
+    "cases": [
+      {
+        "family": "dual",
+        "scenario": "cooperative-direct-cancellation",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "global",
+        "phaseBeforeResume": "active",
+        "phaseAfterResume": "active",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "restoreDirect",
+          "native observer endpoint cleared",
+          "interventionCommitted"
+        ],
+        "gateHoldsAfterNewIntent": 0
+      },
+      {
+        "family": "dual",
+        "scenario": "current-readiness-failure",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "global",
+        "phaseBeforeResume": "none",
+        "phaseAfterResume": "blocked",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "readinessFailed",
+          "holdApplicationGate",
+          "revokeBaseline",
+          "holdApplicationGate",
+          "disconnectFlows",
+          "closeGate"
+        ],
+        "gateHoldsAfterNewIntent": 2
+      },
+      {
+        "family": "dual",
+        "scenario": "current-success",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "global",
+        "phaseBeforeResume": "none",
+        "phaseAfterResume": "active",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 1,
+        "baselineAttempts": 1,
+        "events": [
+          "readinessConfirmed",
+          "acceptBaseline",
+          "openGate"
+        ],
+        "gateHoldsAfterNewIntent": 0
+      },
+      {
+        "family": "dual",
+        "scenario": "direct-queued-at-completion",
+        "replacementTokenRetained": true,
+        "passed": false,
+        "mode": "global",
+        "phaseBeforeResume": "active",
+        "phaseAfterResume": "blocked",
+        "taskReturnedDespiteCancellation": true,
+        "opens": 0,
+        "baselineAttempts": 1,
+        "events": [
+          "readinessConfirmed",
+          "restoreDirect",
+          "native observer endpoint cleared",
+          "interventionCommitted",
+          "acceptBaseline",
+          "confirmationUnavailable",
+          "revokeBaseline",
+          "holdApplicationGate",
+          "disconnectFlows",
+          "closeGate"
+        ],
+        "gateHoldsAfterNewIntent": 1
+      },
+      {
+        "family": "dual",
+        "scenario": "direct-queued-at-error-completion",
+        "replacementTokenRetained": true,
+        "passed": false,
+        "mode": "global",
+        "phaseBeforeResume": "active",
+        "phaseAfterResume": "blocked",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "readinessFailed",
+          "holdApplicationGate",
+          "restoreDirect",
+          "native observer endpoint cleared",
+          "interventionCommitted",
+          "revokeBaseline",
+          "holdApplicationGate",
+          "disconnectFlows",
+          "closeGate"
+        ],
+        "gateHoldsAfterNewIntent": 1
+      },
+      {
+        "family": "dual",
+        "scenario": "replacement-queued-at-completion",
+        "replacementTokenRetained": false,
+        "passed": false,
+        "mode": "global",
+        "phaseBeforeResume": "checking",
+        "phaseAfterResume": "blocked",
+        "taskReturnedDespiteCancellation": true,
+        "opens": 0,
+        "baselineAttempts": 1,
+        "events": [
+          "readinessConfirmed",
+          "interventionCommitted",
+          "acceptBaseline",
+          "confirmationUnavailable",
+          "revokeBaseline",
+          "holdApplicationGate",
+          "disconnectFlows",
+          "closeGate"
+        ],
+        "gateHoldsAfterNewIntent": 1
+      },
+      {
+        "family": "dual",
+        "scenario": "replacement-queued-at-error-completion",
+        "replacementTokenRetained": false,
+        "passed": false,
+        "mode": "global",
+        "phaseBeforeResume": "checking",
+        "phaseAfterResume": "blocked",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "readinessFailed",
+          "holdApplicationGate",
+          "interventionCommitted",
+          "revokeBaseline",
+          "holdApplicationGate",
+          "disconnectFlows",
+          "closeGate"
+        ],
+        "gateHoldsAfterNewIntent": 1
+      },
+      {
+        "family": "ipv4",
+        "scenario": "cooperative-direct-cancellation",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "global",
+        "phaseBeforeResume": "active",
+        "phaseAfterResume": "active",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "restoreDirect",
+          "native observer endpoint cleared",
+          "interventionCommitted"
+        ],
+        "gateHoldsAfterNewIntent": 0
+      },
+      {
+        "family": "ipv4",
+        "scenario": "current-readiness-failure",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "global",
+        "phaseBeforeResume": "none",
+        "phaseAfterResume": "blocked",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "readinessFailed",
+          "holdApplicationGate",
+          "revokeBaseline",
+          "holdApplicationGate",
+          "disconnectFlows",
+          "closeGate"
+        ],
+        "gateHoldsAfterNewIntent": 2
+      },
+      {
+        "family": "ipv4",
+        "scenario": "current-success",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "global",
+        "phaseBeforeResume": "none",
+        "phaseAfterResume": "active",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 1,
+        "baselineAttempts": 1,
+        "events": [
+          "readinessConfirmed",
+          "acceptBaseline",
+          "openGate"
+        ],
+        "gateHoldsAfterNewIntent": 0
+      },
+      {
+        "family": "ipv4",
+        "scenario": "direct-queued-at-completion",
+        "replacementTokenRetained": true,
+        "passed": false,
+        "mode": "global",
+        "phaseBeforeResume": "active",
+        "phaseAfterResume": "blocked",
+        "taskReturnedDespiteCancellation": true,
+        "opens": 0,
+        "baselineAttempts": 1,
+        "events": [
+          "readinessConfirmed",
+          "restoreDirect",
+          "native observer endpoint cleared",
+          "interventionCommitted",
+          "acceptBaseline",
+          "confirmationUnavailable",
+          "revokeBaseline",
+          "holdApplicationGate",
+          "disconnectFlows",
+          "closeGate"
+        ],
+        "gateHoldsAfterNewIntent": 1
+      },
+      {
+        "family": "ipv4",
+        "scenario": "direct-queued-at-error-completion",
+        "replacementTokenRetained": true,
+        "passed": false,
+        "mode": "global",
+        "phaseBeforeResume": "active",
+        "phaseAfterResume": "blocked",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "readinessFailed",
+          "holdApplicationGate",
+          "restoreDirect",
+          "native observer endpoint cleared",
+          "interventionCommitted",
+          "revokeBaseline",
+          "holdApplicationGate",
+          "disconnectFlows",
+          "closeGate"
+        ],
+        "gateHoldsAfterNewIntent": 1
+      },
+      {
+        "family": "ipv4",
+        "scenario": "replacement-queued-at-completion",
+        "replacementTokenRetained": false,
+        "passed": false,
+        "mode": "global",
+        "phaseBeforeResume": "checking",
+        "phaseAfterResume": "blocked",
+        "taskReturnedDespiteCancellation": true,
+        "opens": 0,
+        "baselineAttempts": 1,
+        "events": [
+          "readinessConfirmed",
+          "interventionCommitted",
+          "acceptBaseline",
+          "confirmationUnavailable",
+          "revokeBaseline",
+          "holdApplicationGate",
+          "disconnectFlows",
+          "closeGate"
+        ],
+        "gateHoldsAfterNewIntent": 1
+      },
+      {
+        "family": "ipv4",
+        "scenario": "replacement-queued-at-error-completion",
+        "replacementTokenRetained": false,
+        "passed": false,
+        "mode": "global",
+        "phaseBeforeResume": "checking",
+        "phaseAfterResume": "blocked",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "readinessFailed",
+          "holdApplicationGate",
+          "interventionCommitted",
+          "revokeBaseline",
+          "holdApplicationGate",
+          "disconnectFlows",
+          "closeGate"
+        ],
+        "gateHoldsAfterNewIntent": 1
+      },
+      {
+        "family": "dual",
+        "scenario": "cooperative-direct-cancellation",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "rule",
+        "phaseBeforeResume": "active",
+        "phaseAfterResume": "active",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "restoreDirect",
+          "native observer endpoint cleared",
+          "interventionCommitted"
+        ],
+        "gateHoldsAfterNewIntent": 0
+      },
+      {
+        "family": "dual",
+        "scenario": "current-readiness-failure",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "rule",
+        "phaseBeforeResume": "none",
+        "phaseAfterResume": "blocked",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "readinessFailed",
+          "holdApplicationGate",
+          "revokeBaseline",
+          "holdApplicationGate",
+          "disconnectFlows",
+          "closeGate"
+        ],
+        "gateHoldsAfterNewIntent": 2
+      },
+      {
+        "family": "dual",
+        "scenario": "current-success",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "rule",
+        "phaseBeforeResume": "none",
+        "phaseAfterResume": "active",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 1,
+        "baselineAttempts": 1,
+        "events": [
+          "readinessConfirmed",
+          "acceptBaseline",
+          "openGate"
+        ],
+        "gateHoldsAfterNewIntent": 0
+      },
+      {
+        "family": "dual",
+        "scenario": "direct-queued-at-completion",
+        "replacementTokenRetained": true,
+        "passed": false,
+        "mode": "rule",
+        "phaseBeforeResume": "active",
+        "phaseAfterResume": "blocked",
+        "taskReturnedDespiteCancellation": true,
+        "opens": 0,
+        "baselineAttempts": 1,
+        "events": [
+          "readinessConfirmed",
+          "restoreDirect",
+          "native observer endpoint cleared",
+          "interventionCommitted",
+          "acceptBaseline",
+          "confirmationUnavailable",
+          "revokeBaseline",
+          "holdApplicationGate",
+          "disconnectFlows",
+          "closeGate"
+        ],
+        "gateHoldsAfterNewIntent": 1
+      },
+      {
+        "family": "dual",
+        "scenario": "direct-queued-at-error-completion",
+        "replacementTokenRetained": true,
+        "passed": false,
+        "mode": "rule",
+        "phaseBeforeResume": "active",
+        "phaseAfterResume": "blocked",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "readinessFailed",
+          "holdApplicationGate",
+          "restoreDirect",
+          "native observer endpoint cleared",
+          "interventionCommitted",
+          "revokeBaseline",
+          "holdApplicationGate",
+          "disconnectFlows",
+          "closeGate"
+        ],
+        "gateHoldsAfterNewIntent": 1
+      },
+      {
+        "family": "dual",
+        "scenario": "replacement-queued-at-completion",
+        "replacementTokenRetained": false,
+        "passed": false,
+        "mode": "rule",
+        "phaseBeforeResume": "checking",
+        "phaseAfterResume": "blocked",
+        "taskReturnedDespiteCancellation": true,
+        "opens": 0,
+        "baselineAttempts": 1,
+        "events": [
+          "readinessConfirmed",
+          "interventionCommitted",
+          "acceptBaseline",
+          "confirmationUnavailable",
+          "revokeBaseline",
+          "holdApplicationGate",
+          "disconnectFlows",
+          "closeGate"
+        ],
+        "gateHoldsAfterNewIntent": 1
+      },
+      {
+        "family": "dual",
+        "scenario": "replacement-queued-at-error-completion",
+        "replacementTokenRetained": false,
+        "passed": false,
+        "mode": "rule",
+        "phaseBeforeResume": "checking",
+        "phaseAfterResume": "blocked",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "readinessFailed",
+          "holdApplicationGate",
+          "interventionCommitted",
+          "revokeBaseline",
+          "holdApplicationGate",
+          "disconnectFlows",
+          "closeGate"
+        ],
+        "gateHoldsAfterNewIntent": 1
+      },
+      {
+        "family": "ipv4",
+        "scenario": "cooperative-direct-cancellation",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "rule",
+        "phaseBeforeResume": "active",
+        "phaseAfterResume": "active",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "restoreDirect",
+          "native observer endpoint cleared",
+          "interventionCommitted"
+        ],
+        "gateHoldsAfterNewIntent": 0
+      },
+      {
+        "family": "ipv4",
+        "scenario": "current-readiness-failure",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "rule",
+        "phaseBeforeResume": "none",
+        "phaseAfterResume": "blocked",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "readinessFailed",
+          "holdApplicationGate",
+          "revokeBaseline",
+          "holdApplicationGate",
+          "disconnectFlows",
+          "closeGate"
+        ],
+        "gateHoldsAfterNewIntent": 2
+      },
+      {
+        "family": "ipv4",
+        "scenario": "current-success",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "rule",
+        "phaseBeforeResume": "none",
+        "phaseAfterResume": "active",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 1,
+        "baselineAttempts": 1,
+        "events": [
+          "readinessConfirmed",
+          "acceptBaseline",
+          "openGate"
+        ],
+        "gateHoldsAfterNewIntent": 0
+      },
+      {
+        "family": "ipv4",
+        "scenario": "direct-queued-at-completion",
+        "replacementTokenRetained": true,
+        "passed": false,
+        "mode": "rule",
+        "phaseBeforeResume": "active",
+        "phaseAfterResume": "blocked",
+        "taskReturnedDespiteCancellation": true,
+        "opens": 0,
+        "baselineAttempts": 1,
+        "events": [
+          "readinessConfirmed",
+          "restoreDirect",
+          "native observer endpoint cleared",
+          "interventionCommitted",
+          "acceptBaseline",
+          "confirmationUnavailable",
+          "revokeBaseline",
+          "holdApplicationGate",
+          "disconnectFlows",
+          "closeGate"
+        ],
+        "gateHoldsAfterNewIntent": 1
+      },
+      {
+        "family": "ipv4",
+        "scenario": "direct-queued-at-error-completion",
+        "replacementTokenRetained": true,
+        "passed": false,
+        "mode": "rule",
+        "phaseBeforeResume": "active",
+        "phaseAfterResume": "blocked",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "readinessFailed",
+          "holdApplicationGate",
+          "restoreDirect",
+          "native observer endpoint cleared",
+          "interventionCommitted",
+          "revokeBaseline",
+          "holdApplicationGate",
+          "disconnectFlows",
+          "closeGate"
+        ],
+        "gateHoldsAfterNewIntent": 1
+      },
+      {
+        "family": "ipv4",
+        "scenario": "replacement-queued-at-completion",
+        "replacementTokenRetained": false,
+        "passed": false,
+        "mode": "rule",
+        "phaseBeforeResume": "checking",
+        "phaseAfterResume": "blocked",
+        "taskReturnedDespiteCancellation": true,
+        "opens": 0,
+        "baselineAttempts": 1,
+        "events": [
+          "readinessConfirmed",
+          "interventionCommitted",
+          "acceptBaseline",
+          "confirmationUnavailable",
+          "revokeBaseline",
+          "holdApplicationGate",
+          "disconnectFlows",
+          "closeGate"
+        ],
+        "gateHoldsAfterNewIntent": 1
+      },
+      {
+        "family": "ipv4",
+        "scenario": "replacement-queued-at-error-completion",
+        "replacementTokenRetained": false,
+        "passed": false,
+        "mode": "rule",
+        "phaseBeforeResume": "checking",
+        "phaseAfterResume": "blocked",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "readinessFailed",
+          "holdApplicationGate",
+          "interventionCommitted",
+          "revokeBaseline",
+          "holdApplicationGate",
+          "disconnectFlows",
+          "closeGate"
+        ],
+        "gateHoldsAfterNewIntent": 1
+      }
+    ]
+  },
+  "after": {
+    "tested_supervisor_sha256": "483c94219338ae527bebb5c34c010f91e21d326f09bc305d3c4a556e54741b9e",
+    "planned": 28,
+    "passed": 28,
+    "failed": 0,
+    "results_sha256": "abcebe81382de2f494160e48231b692348989bd321086f69ecbf7a278900266f",
+    "instrumentation_diff_sha256": "049372aece77b6803c53fa636eb8aa3f474bfe0a7e9c6c16c838fa83e83077a0",
+    "cases": [
+      {
+        "family": "dual",
+        "scenario": "cooperative-direct-cancellation",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "global",
+        "phaseBeforeResume": "active",
+        "phaseAfterResume": "active",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "restoreDirect",
+          "native observer endpoint cleared",
+          "interventionCommitted"
+        ],
+        "gateHoldsAfterNewIntent": 0
+      },
+      {
+        "family": "dual",
+        "scenario": "current-readiness-failure",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "global",
+        "phaseBeforeResume": "none",
+        "phaseAfterResume": "blocked",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "readinessFailed",
+          "holdApplicationGate"
+        ],
+        "gateHoldsAfterNewIntent": 1
+      },
+      {
+        "family": "dual",
+        "scenario": "current-success",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "global",
+        "phaseBeforeResume": "none",
+        "phaseAfterResume": "active",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 1,
+        "baselineAttempts": 1,
+        "events": [
+          "readinessConfirmed",
+          "acceptBaseline",
+          "openGate"
+        ],
+        "gateHoldsAfterNewIntent": 0
+      },
+      {
+        "family": "dual",
+        "scenario": "direct-queued-at-completion",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "global",
+        "phaseBeforeResume": "active",
+        "phaseAfterResume": "active",
+        "taskReturnedDespiteCancellation": true,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "readinessConfirmed",
+          "restoreDirect",
+          "native observer endpoint cleared",
+          "interventionCommitted"
+        ],
+        "gateHoldsAfterNewIntent": 0
+      },
+      {
+        "family": "dual",
+        "scenario": "direct-queued-at-error-completion",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "global",
+        "phaseBeforeResume": "active",
+        "phaseAfterResume": "active",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "readinessFailed",
+          "holdApplicationGate",
+          "restoreDirect",
+          "native observer endpoint cleared",
+          "interventionCommitted"
+        ],
+        "gateHoldsAfterNewIntent": 0
+      },
+      {
+        "family": "dual",
+        "scenario": "replacement-queued-at-completion",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "global",
+        "phaseBeforeResume": "checking",
+        "phaseAfterResume": "checking",
+        "taskReturnedDespiteCancellation": true,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "readinessConfirmed",
+          "interventionCommitted"
+        ],
+        "gateHoldsAfterNewIntent": 0
+      },
+      {
+        "family": "dual",
+        "scenario": "replacement-queued-at-error-completion",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "global",
+        "phaseBeforeResume": "checking",
+        "phaseAfterResume": "checking",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "readinessFailed",
+          "holdApplicationGate",
+          "interventionCommitted"
+        ],
+        "gateHoldsAfterNewIntent": 0
+      },
+      {
+        "family": "ipv4",
+        "scenario": "cooperative-direct-cancellation",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "global",
+        "phaseBeforeResume": "active",
+        "phaseAfterResume": "active",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "restoreDirect",
+          "native observer endpoint cleared",
+          "interventionCommitted"
+        ],
+        "gateHoldsAfterNewIntent": 0
+      },
+      {
+        "family": "ipv4",
+        "scenario": "current-readiness-failure",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "global",
+        "phaseBeforeResume": "none",
+        "phaseAfterResume": "blocked",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "readinessFailed",
+          "holdApplicationGate"
+        ],
+        "gateHoldsAfterNewIntent": 1
+      },
+      {
+        "family": "ipv4",
+        "scenario": "current-success",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "global",
+        "phaseBeforeResume": "none",
+        "phaseAfterResume": "active",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 1,
+        "baselineAttempts": 1,
+        "events": [
+          "readinessConfirmed",
+          "acceptBaseline",
+          "openGate"
+        ],
+        "gateHoldsAfterNewIntent": 0
+      },
+      {
+        "family": "ipv4",
+        "scenario": "direct-queued-at-completion",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "global",
+        "phaseBeforeResume": "active",
+        "phaseAfterResume": "active",
+        "taskReturnedDespiteCancellation": true,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "readinessConfirmed",
+          "restoreDirect",
+          "native observer endpoint cleared",
+          "interventionCommitted"
+        ],
+        "gateHoldsAfterNewIntent": 0
+      },
+      {
+        "family": "ipv4",
+        "scenario": "direct-queued-at-error-completion",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "global",
+        "phaseBeforeResume": "active",
+        "phaseAfterResume": "active",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "readinessFailed",
+          "holdApplicationGate",
+          "restoreDirect",
+          "native observer endpoint cleared",
+          "interventionCommitted"
+        ],
+        "gateHoldsAfterNewIntent": 0
+      },
+      {
+        "family": "ipv4",
+        "scenario": "replacement-queued-at-completion",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "global",
+        "phaseBeforeResume": "checking",
+        "phaseAfterResume": "checking",
+        "taskReturnedDespiteCancellation": true,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "readinessConfirmed",
+          "interventionCommitted"
+        ],
+        "gateHoldsAfterNewIntent": 0
+      },
+      {
+        "family": "ipv4",
+        "scenario": "replacement-queued-at-error-completion",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "global",
+        "phaseBeforeResume": "checking",
+        "phaseAfterResume": "checking",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "readinessFailed",
+          "holdApplicationGate",
+          "interventionCommitted"
+        ],
+        "gateHoldsAfterNewIntent": 0
+      },
+      {
+        "family": "dual",
+        "scenario": "cooperative-direct-cancellation",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "rule",
+        "phaseBeforeResume": "active",
+        "phaseAfterResume": "active",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "restoreDirect",
+          "native observer endpoint cleared",
+          "interventionCommitted"
+        ],
+        "gateHoldsAfterNewIntent": 0
+      },
+      {
+        "family": "dual",
+        "scenario": "current-readiness-failure",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "rule",
+        "phaseBeforeResume": "none",
+        "phaseAfterResume": "blocked",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "readinessFailed",
+          "holdApplicationGate"
+        ],
+        "gateHoldsAfterNewIntent": 1
+      },
+      {
+        "family": "dual",
+        "scenario": "current-success",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "rule",
+        "phaseBeforeResume": "none",
+        "phaseAfterResume": "active",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 1,
+        "baselineAttempts": 1,
+        "events": [
+          "readinessConfirmed",
+          "acceptBaseline",
+          "openGate"
+        ],
+        "gateHoldsAfterNewIntent": 0
+      },
+      {
+        "family": "dual",
+        "scenario": "direct-queued-at-completion",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "rule",
+        "phaseBeforeResume": "active",
+        "phaseAfterResume": "active",
+        "taskReturnedDespiteCancellation": true,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "readinessConfirmed",
+          "restoreDirect",
+          "native observer endpoint cleared",
+          "interventionCommitted"
+        ],
+        "gateHoldsAfterNewIntent": 0
+      },
+      {
+        "family": "dual",
+        "scenario": "direct-queued-at-error-completion",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "rule",
+        "phaseBeforeResume": "active",
+        "phaseAfterResume": "active",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "readinessFailed",
+          "holdApplicationGate",
+          "restoreDirect",
+          "native observer endpoint cleared",
+          "interventionCommitted"
+        ],
+        "gateHoldsAfterNewIntent": 0
+      },
+      {
+        "family": "dual",
+        "scenario": "replacement-queued-at-completion",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "rule",
+        "phaseBeforeResume": "checking",
+        "phaseAfterResume": "checking",
+        "taskReturnedDespiteCancellation": true,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "readinessConfirmed",
+          "interventionCommitted"
+        ],
+        "gateHoldsAfterNewIntent": 0
+      },
+      {
+        "family": "dual",
+        "scenario": "replacement-queued-at-error-completion",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "rule",
+        "phaseBeforeResume": "checking",
+        "phaseAfterResume": "checking",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "readinessFailed",
+          "holdApplicationGate",
+          "interventionCommitted"
+        ],
+        "gateHoldsAfterNewIntent": 0
+      },
+      {
+        "family": "ipv4",
+        "scenario": "cooperative-direct-cancellation",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "rule",
+        "phaseBeforeResume": "active",
+        "phaseAfterResume": "active",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "restoreDirect",
+          "native observer endpoint cleared",
+          "interventionCommitted"
+        ],
+        "gateHoldsAfterNewIntent": 0
+      },
+      {
+        "family": "ipv4",
+        "scenario": "current-readiness-failure",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "rule",
+        "phaseBeforeResume": "none",
+        "phaseAfterResume": "blocked",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "readinessFailed",
+          "holdApplicationGate"
+        ],
+        "gateHoldsAfterNewIntent": 1
+      },
+      {
+        "family": "ipv4",
+        "scenario": "current-success",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "rule",
+        "phaseBeforeResume": "none",
+        "phaseAfterResume": "active",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 1,
+        "baselineAttempts": 1,
+        "events": [
+          "readinessConfirmed",
+          "acceptBaseline",
+          "openGate"
+        ],
+        "gateHoldsAfterNewIntent": 0
+      },
+      {
+        "family": "ipv4",
+        "scenario": "direct-queued-at-completion",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "rule",
+        "phaseBeforeResume": "active",
+        "phaseAfterResume": "active",
+        "taskReturnedDespiteCancellation": true,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "readinessConfirmed",
+          "restoreDirect",
+          "native observer endpoint cleared",
+          "interventionCommitted"
+        ],
+        "gateHoldsAfterNewIntent": 0
+      },
+      {
+        "family": "ipv4",
+        "scenario": "direct-queued-at-error-completion",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "rule",
+        "phaseBeforeResume": "active",
+        "phaseAfterResume": "active",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "readinessFailed",
+          "holdApplicationGate",
+          "restoreDirect",
+          "native observer endpoint cleared",
+          "interventionCommitted"
+        ],
+        "gateHoldsAfterNewIntent": 0
+      },
+      {
+        "family": "ipv4",
+        "scenario": "replacement-queued-at-completion",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "rule",
+        "phaseBeforeResume": "checking",
+        "phaseAfterResume": "checking",
+        "taskReturnedDespiteCancellation": true,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "readinessConfirmed",
+          "interventionCommitted"
+        ],
+        "gateHoldsAfterNewIntent": 0
+      },
+      {
+        "family": "ipv4",
+        "scenario": "replacement-queued-at-error-completion",
+        "replacementTokenRetained": true,
+        "passed": true,
+        "mode": "rule",
+        "phaseBeforeResume": "checking",
+        "phaseAfterResume": "checking",
+        "taskReturnedDespiteCancellation": false,
+        "opens": 0,
+        "baselineAttempts": 0,
+        "events": [
+          "readinessFailed",
+          "holdApplicationGate",
+          "interventionCommitted"
+        ],
+        "gateHoldsAfterNewIntent": 0
+      }
+    ]
+  },
+  "excluded_attempt": {
+    "method": "invalid_detached_readiness_wrapper",
+    "counted_as_VM_case": false,
+    "excluded": true,
+    "reason_codes": [
+      "manufactured_actor_interleaving",
+      "missing_proxy_invalidated_current_success_controls"
+    ],
+    "reported_cases": 16,
+    "reported_passes": 4,
+    "reported_failures": 12,
+    "qualifies_product_failure": false,
+    "results_sha256": "8fbfaa76986c38c453adb97505d43416e4dd677c6abb5c8e219fb7d36a277456",
+    "classification_sha256": "832bb9582614ea9ffe7d736762299335362933ae477f27e9da779ddf72f0e2ef"
+  },
+  "candidate": {
+    "version": "3.0",
+    "build": "11",
+    "core_sha256": "40872d29e08ccfcf6514970adab890d1ae33add78e21b3b3ffbd6de8fdfc98f6",
+    "published": false,
+    "installed_followup": "Four verification-preemption and eight rapid-mixed existing planned cases; no new VM case IDs"
+  },
+  "test_harness_sha256": {
+    "cases.swift": "bad8315f2704d8401f4095213c69af6711f23f56e3c59fac5c1afb71b778e515",
+    "run.py": "3a9e1719d31cda23faf944addc637ced4a8f99b18bcf44225ded715f7495417c",
+    "supervisor-access.swift": "207fa6560b20036c5451de47db35a1ecdd559cd42d5b753d4b06ab4a4140b420"
+  }
+}

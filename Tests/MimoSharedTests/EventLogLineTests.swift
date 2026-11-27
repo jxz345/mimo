@@ -6,6 +6,21 @@ import AppKit
 
 /// The Event Log window's lines: one concise UTC line per important event, nothing for routine records.
 final class EventLogLineTests: XCTestCase {
+    func testSystemCommandFailureShowsOutcomeWithoutCommandContents() {
+        XCTAssertEqual(EventLogLine.message(event: "mimo_runtime_command_failed", fields: [
+            "program": "pfctl", "operation": "-n", "status": "124", "durationMS": "3010",
+            "detail": "private data must not be displayed"
+        ]), "System command failed · pfctl -n · status 124 · 3010 ms")
+    }
+    func testCoreInfrastructureMigrationAndFailuresAreVisible() {
+        XCTAssertTrue(EventLogLine.message(event: "mimo_installation", fields: ["stage": "infrastructure_merged"])?.contains("existing supervisor") == true)
+        XCTAssertNotNil(EventLogLine.message(event: "mimo_supervisor_recovery_requested", fields: [:]))
+        XCTAssertTrue(EventLogLine.message(event: "mimo_infrastructure_started", fields: [:])?.contains("10 seconds") == true)
+        for event in ["mimo_infrastructure_start_failed", "mimo_infrastructure_sweep_failed", "mimo_supervisor_recovery_failed"] {
+            XCTAssertTrue(EventLogLine.message(event: event, fields: ["reason": "test failure"])?.contains("test failure") == true)
+        }
+        XCTAssertNotNil(EventLogLine.message(event: "mimo_infrastructure_stopped", fields: [:]))
+    }
     func testLogMaintenanceReportsDiscardedRecordsAndAnActionableStorageFailure() {
         let message = EventLogLine.message(event: "mimo_log_maintenance", fields: ["rotated": "2", "deleted": "3", "droppedRecords": "4", "writeFailures": "1"])
         XCTAssertTrue(message?.contains("2 rotated") == true)

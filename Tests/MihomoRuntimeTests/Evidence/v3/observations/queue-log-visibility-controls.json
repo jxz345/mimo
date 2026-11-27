@@ -1,0 +1,101 @@
+{
+  "schema": 1,
+  "scope": "Harness-only log-persistence synchronization; no product changes",
+  "recorded_at": "2026-11-27T14:36:36.686807+00:00",
+  "controls_distinct": 10,
+  "controls_with_passing_history": 10,
+  "executions": 12,
+  "campaign_controls_separate": "22/22 compiled VM controls, unchanged",
+  "fail_first_results": {
+    "before": [
+      {
+        "name": "delayed-terminal-persistence",
+        "passed": false,
+        "failures": [
+          "['wrong_committed_intent_last_kept']"
+        ]
+      }
+    ],
+    "after": [
+      {
+        "name": "delayed-terminal-persistence",
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "complete-input",
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "wrong-terminal-is-fatal",
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "duplicate-terminal-is-fatal",
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "missing-terminal-times-out",
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "post-window-terminal-cannot-qualify",
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "hard-error-not-hidden-while-terminal-missing",
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "late-duplicate-final-audit-is-fatal",
+        "passed": true,
+        "failures": []
+      },
+      {
+        "name": "unrelated-post-window-activity-not-borrowed",
+        "passed": true,
+        "failures": []
+      }
+    ],
+    "before-mixed": [
+      {
+        "name": "correct-plus-wrong-owned-terminal-is-fatal",
+        "passed": false,
+        "failures": [
+          "[]"
+        ]
+      }
+    ],
+    "after-mixed": [
+      {
+        "name": "correct-plus-wrong-owned-terminal-is-fatal",
+        "passed": true,
+        "failures": []
+      }
+    ]
+  },
+  "authoritative_hashes": {
+    "Tests/MihomoRuntimeTests/v3_queue_log_visibility.py": "745adf3fd734cc1aed0516e1ed178815cf9484ff0d3fcc1760b116222f09d30b",
+    "Tests/MihomoRuntimeTests/v3_rapid_policy_test.py": "e61a8b80de059bb8b51dcb3eb3b2d572e2c33c5ddf513c80b3e4ea41d8abc8f5",
+    "Tests/MihomoRuntimeTests/v3_queue_log_visibility_tests.py": "f1ef175bc3b9303763f8be7a198c772d5fbde4099996d41c41ad2f8255343cdb",
+    "Tests/MihomoRuntimeTests/v3_rapid_policy_oracle.py": "1554c77965841f3ec2ddfa50928cc0d84a8ea3b3b6fe58822ff4f34035b7d492"
+  },
+  "source_refinements_after_controls": [
+    "Portable controls import current unchanged strict oracle instead of the .build source snapshot.",
+    "Accumulated rows sort by process identity and recordSequence first, retaining original per-process ordering across clock movements; wall timestamps remain independently checked by audit_queue."
+  ],
+  "final_syntax_validation": "AST only; earlier passing controls not rerun",
+  "limitations": [
+    "Historical run05 exact assertion-input rows were not preserved; async disk visibility remains supported inference.",
+    "Run05 remains incomplete/unqualified; later commit evidence is not a retroactive case pass.",
+    "Nine helper controls passed before the final duplicate-owned-commit review refinement; only the new failed mixed-duplicate control reran afterward.",
+    "VM retry has separate identity; no original failed result is replaced."
+  ],
+  "old_strict_oracle_unchanged": true
+}

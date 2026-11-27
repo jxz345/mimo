@@ -15,14 +15,23 @@ final class MimoPowerFence: @unchecked Sendable {
     private var epoch: UInt64 = 0
     private var sleeping = false
     private var protected = false
+    private let eventLock = NSLock()
     private var cycleActive = false
     private var cycleChanged = false
     private var pendingNetworkEvents = Set<UUID>()
 
-    var isCycleActive: Bool { lock.withLock { cycleActive } }
+    var isCycleActive: Bool { eventLock.withLock { cycleActive } }
+
+    /// Admission polls must yield while a power callback owns the fence; they
+    /// cannot synchronously wait on the control actor for that callback's PF I/O.
+    var isCycleActiveOrBusy: Bool {
+        guard lock.try() else { return true }
+        defer { lock.unlock() }
+        return eventLock.withLock { cycleActive }
+    }
 
     func beginCycle() {
-        lock.withLock {
+        eventLock.withLock {
             if !cycleActive { cycleActive = true; cycleChanged = false }
         }
     }
@@ -30,7 +39,7 @@ final class MimoPowerFence: @unchecked Sendable {
     /// Called only for an external event after the owned-event filter. Keep the
     /// current work running, but never grant its now-outdated result.
     func deferCycleEvent() -> Bool {
-        lock.withLock {
+        eventLock.withLock {
             guard cycleActive else { return false }
             cycleChanged = true
             return true
@@ -38,7 +47,7 @@ final class MimoPowerFence: @unchecked Sendable {
     }
 
     func finishCycle() -> Bool {
-        lock.withLock {
+        eventLock.withLock {
             let changed = cycleChanged || !pendingNetworkEvents.isEmpty
             cycleActive = false; cycleChanged = false
             pendingNetworkEvents.removeAll()
@@ -51,12 +60,15 @@ final class MimoPowerFence: @unchecked Sendable {
     /// events dirty. An unresolved callback still prevents opening traffic.
     func observeNetworkChange(close: () throws -> Void) throws -> MimoEarlyNetworkEvent {
         try lock.withLock {
-            if cycleActive {
-                let id = UUID()
-                pendingNetworkEvents.insert(id)
+            if let id = eventLock.withLock({ () -> UUID? in
+                guard cycleActive else { return nil }
+                let id = UUID(); pendingNetworkEvents.insert(id); return id
+            }) {
                 return MimoEarlyNetworkEvent(blocked: false, awaitingClassification: true) { [weak self] external in
                     guard let self else { return }
-                    self.lock.withLock {
+                    // Classification runs on the state actor. This lock never
+                    // surrounds PF, child processes or power callback work.
+                    self.eventLock.withLock {
                         guard self.pendingNetworkEvents.remove(id) != nil else { return }
                         if external { self.cycleChanged = true }
                     }
@@ -70,12 +82,21 @@ final class MimoPowerFence: @unchecked Sendable {
 
     func completeCycle(epoch candidate: UInt64, operation: () throws -> Void) throws {
         try lock.withLock {
-            guard !cycleChanged, pendingNetworkEvents.isEmpty else { throw MimoDeferredNetworkChange() }
+            try validateCycleEvents()
             guard protected, !sleeping, candidate == epoch else {
                 throw MimoRuntimeError.unavailable("System state changed. A fresh IP verification is required.")
             }
             try operation()
-            cycleActive = false
+            try eventLock.withLock {
+                guard !cycleChanged, pendingNetworkEvents.isEmpty else { throw MimoDeferredNetworkChange() }
+                cycleActive = false
+            }
+        }
+    }
+
+    func validateCycleEvents() throws {
+        try eventLock.withLock {
+            guard !cycleChanged, pendingNetworkEvents.isEmpty else { throw MimoDeferredNetworkChange() }
         }
     }
 
@@ -116,12 +137,12 @@ final class MimoPowerFence: @unchecked Sendable {
         }
     }
 
-    func activate(epoch candidate: UInt64, operation: () throws -> Void) throws {
+    func activate<T>(epoch candidate: UInt64, operation: () throws -> T) throws -> T {
         try lock.withLock {
             guard protected, !sleeping, candidate == epoch else {
                 throw MimoRuntimeError.unavailable("System state changed. A fresh IP verification is required.")
             }
-            try operation()
+            return try operation()
         }
     }
 
@@ -129,8 +150,10 @@ final class MimoPowerFence: @unchecked Sendable {
         try lock.withLock {
             try operation()
             protected = false
-            cycleActive = false; cycleChanged = false
-            pendingNetworkEvents.removeAll()
+            eventLock.withLock {
+                cycleActive = false; cycleChanged = false
+                pendingNetworkEvents.removeAll()
+            }
             epoch &+= 1
         }
     }

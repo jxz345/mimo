@@ -3,6 +3,8 @@ import Foundation
 /// Read-only system commands have separate bounded workers, so controller,
 /// installation and socket inspection can overlap the core's exit-IP request.
 /// They never mutate the firewall, profile or DNS configuration.
+/// Probe diagnostics are informational: the supervisor owns generation fencing
+/// and decides whether unavailable reads still represent a current failure.
 final class MimoReadinessChecks: Sendable {
     private let installation = MimoBlockingWorkQueue("com.mimo.check-installation")
     private let config = MimoBlockingWorkQueue("com.mimo.check-config")
@@ -31,10 +33,14 @@ final class MimoReadinessChecks: Sendable {
             }
             return result
         }
-        guard listenersReady, sameEngine == true,
-              MihomoRuntimeInspection.matches(profile: profile, active: true, proxy: MimoProxy(proxy),
-                config: try object(config), rules: try object(rules)["rules"] as? [[String: Any]] ?? [],
-                proxies: try object(proxies)["proxies"] as? [String: Any] ?? [:]) else {
+        let profileMatches = try MihomoRuntimeInspection.matches(profile: profile, active: true, proxy: MimoProxy(proxy),
+            config: object(config), rules: object(rules)["rules"] as? [[String: Any]] ?? [],
+            proxies: object(proxies)["proxies"] as? [String: Any] ?? [:])
+        guard listenersReady, sameEngine == true, profileMatches else {
+            RuntimeLog.shared.info("mimo_readiness_probe_unavailable", fields: [
+                "stage": "readback", "listeners": String(listenersReady),
+                "engineIdentity": String(sameEngine == true), "profile": String(profileMatches)
+            ])
             throw MimoRuntimeError.unavailable("The final profile, tunnel or protected DNS could not be confirmed.")
         }
         if recordTiming { timing.record("critical_checks") }
@@ -63,6 +69,9 @@ final class MimoReadinessChecks: Sendable {
                 "--unix-socket", MimoRuntime.controller.path, "http://localhost/\(path)"], timeout: 3)
         }) else { throw CancellationError() }
         guard result.status == 0, let data = result.text.data(using: .utf8) else {
+            RuntimeLog.shared.info("mimo_readiness_probe_unavailable", fields: [
+                "stage": "controller_\(path)", "status": String(result.status)
+            ])
             throw MimoRuntimeError.unavailable("Mihomo controller verification failed.")
         }
         return data
@@ -75,10 +84,18 @@ final class MimoReadinessChecks: Sendable {
                 if transport == "TCP" { args += ["-sTCP:LISTEN"] }
                 let result = BoundedProcess.run("/usr/sbin/lsof", args)
                 guard result.status == 0,
-                      result.text.split(separator: "\n").contains("n127.0.0.1:\(MimoRuntime.dnsPort)") else { return false }
+                      result.text.split(separator: "\n").contains("n127.0.0.1:\(MimoRuntime.dnsPort)") else {
+                    RuntimeLog.shared.info("mimo_readiness_probe_unavailable", fields: [
+                        "stage": "dns_listener_\(transport.lowercased())", "status": String(result.status)
+                    ])
+                    return false
+                }
             }
             let tunnel = BoundedProcess.run("/sbin/ifconfig", [MihomoProfile.tunnelDevice])
-            guard tunnel.status == 0, tunnel.text.contains("UP"), tunnel.text.contains("inet6 fdfe:dcba:9876::1") else { return false }
+            guard tunnel.status == 0, tunnel.text.contains("UP"), tunnel.text.contains("inet6 fdfe:dcba:9876::1") else {
+                RuntimeLog.shared.info("mimo_readiness_probe_unavailable", fields: ["stage": "tunnel", "status": String(tunnel.status)])
+                return false
+            }
             // Confirm both ordinary address families enter the profile before
             // removing PF's transition barrier. Documentation prefixes avoid
             // contacting any service; route get sends no network packets.
@@ -88,7 +105,12 @@ final class MimoReadinessChecks: Sendable {
                 let route = BoundedProcess.run("/sbin/route", ["-n", "get", family, address])
                 guard route.status == 0, route.text.split(separator: "\n").contains(where: {
                     $0.trimmingCharacters(in: .whitespaces) == "interface: \(MihomoProfile.tunnelDevice)"
-                }) else { return false }
+                }) else {
+                    RuntimeLog.shared.info("mimo_readiness_probe_unavailable", fields: [
+                        "stage": "route_\(address.contains(":") ? "ipv6" : "ipv4")", "status": String(route.status)
+                    ])
+                    return false
+                }
             }
             return true
         }) else { throw CancellationError() }

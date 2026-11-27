@@ -21,7 +21,9 @@ enum ServiceProgressCheck {
         let progress = Progress()
         var phase: String?, failure: String?
         do {
-            let response = try await DaemonRPC.call(request, timeout: 40, serviceLabel: MimoRuntime.supervisorLabel,
+            // Match PublicIPMonitor.changeService rather than imposing a shorter
+            // client deadline on the installed command/recovery audit.
+            let response = try await DaemonRPC.call(request, timeout: 75, serviceLabel: MimoRuntime.supervisorLabel,
                                                     progress: progress.receive)
             phase = response.routing?.phase.rawValue
         } catch let error as DaemonFailure { failure = error.rawValue }

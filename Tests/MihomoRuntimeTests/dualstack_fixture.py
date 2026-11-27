@@ -492,7 +492,8 @@ class Fixture:
                     self.send_error(403)
                     return
                 with fixture.lock:
-                    data = json.dumps({'mode': fixture.mode, 'fault': fixture.fault,
+                    data = json.dumps({'fixture_clock_epoch': time.time(),
+                                       'mode': fixture.mode, 'fault': fixture.fault,
                                        'dns_fault': fixture.dns_fault, 'events': fixture.events}).encode()
                 self.send_response(200)
                 self.send_header('Content-Length', str(len(data)))
@@ -522,6 +523,12 @@ class Fixture:
                                 pass
                     if 'proxy_off' in value:
                         fixture.proxy_off = bool(value['proxy_off'])
+                    if 'provider_delay' in value:
+                        assert 0 <= value['provider_delay'] <= 25
+                        fixture.provider_delay = value['provider_delay']
+                    if 'provider_ip' in value:
+                        assert value['provider_ip'] in ('203.0.113.10', '203.0.113.99', 'invalid')
+                        fixture.provider_ip = value['provider_ip']
                     if 'provider_status' in value:
                         assert value['provider_status'] in (200, 429, 503)
                         fixture.provider_status = value['provider_status']

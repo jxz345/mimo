@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-11-27T18:18:57.445949+00:00",
+  "status": "Installed L1 failed: new authenticated SSH has no inbound PF state despite exact Direct tracking readback. Rule/35s and L2 were not reached.",
+  "planned": 2,
+  "attempted_cases": 1,
+  "passed": 0,
+  "failed": 1,
+  "unstarted": 1,
+  "core_sha256": "7601ffe31089ef0eaadb4d452c5f607209eb44bbae21213a4d7a079fd374f13d",
+  "harness_sha256": "0c76444510491d29554cbdf815bdb953b5f8bdb81eb4d2e2ba47861d68cc5356",
+  "controls_sha256": "1ed7b5fb01d653f853a87de246c138ab043148e93da605284d5349dd1d68981a",
+  "failure": "incoming_state_missing_at_birth",
+  "failure_scope": "Actual installed production policy before transition; no Rule closure or Stop/Start conclusion.",
+  "evidence": {
+    "directory": ".build/observation-parallel/remaining-issues-20261128/inbound-lifecycle-02",
+    "archive_sha256": "0f9b8b3dd5c4b865c701d7727e1b26ffca6cf4c5bdd1dd2e9891efc9245d7b91",
+    "audit_path": ".build/observation-parallel/remaining-issues-20261128/inbound-lifecycle-02/tracking-failure-audit.json",
+    "audit_sha256": "f8c7540634fa4bcbe5c8a1fc32d93c0156d4710b8c9609ea8aaba59c1f690494",
+    "pf_readonly_path": ".build/observation-parallel/remaining-issues-20261128/inbound-lifecycle-02/pf-readonly-diagnostic.json",
+    "pf_readonly_sha256": "571d839841b64847ad30c1ad83fec7a7ef6baeb7c5f1a87d62a85524b2e81b08"
+  },
+  "source_inference": {
+    "url": "https://raw.githubusercontent.com/apple-oss-distributions/xnu/main/bsd/net/pf_if.c",
+    "mapping_lines": "310-311",
+    "table_update_lines": "406-420",
+    "inference": "Dynamic self maps to synthetic ALL, but table updater only enumerates a concrete interface pointer. Combined with actual PF counter/state evidence, dynamic self does not provide the intended local-destination tracking here."
+  },
+  "restoration": {
+    "settings_restored": true,
+    "routing_restored": true,
+    "hosts_unchanged": true,
+    "direct_tracking": true,
+    "healthy": true
+  },
+  "setup_attempt_preserved": {
+    "directory": ".build/observation-parallel/remaining-issues-20261128/inbound-lifecycle-01",
+    "completed_cases": 0,
+    "classification": "Harness Direct phase predicate incorrect; healthy Direct uses active+effectiveDirect. Original settings/routing independently verified unchanged.",
+    "archive_sha256": "c269aadd5e27a5139676e653cb6024ccb4f978ae39a64fe52c72c3b0b4fa5706"
+  },
+  "limits": [
+    "No native UI click or Screen Sharing test.",
+    "Packet capture is guest BPF with no truncated records; no general on-wire or leakage claim.",
+    "The earlier six policy mechanisms narrowed destinations to literal fixture addresses; they did not prove dynamic-self works in actual installed rules."
+  ],
+  "published": false,
+  "cleanup_evidence": {
+    "path": ".build/observation-parallel/remaining-issues-20261128/dynamic-and-lifecycle-file-cleanup.json",
+    "sha256": "01418f1da26a7b908cde78c15cf2cf08cb7f1b2fd954abf038fc7b975117c131",
+    "owned_guest_roots_removed": true,
+    "helpers_absent": true,
+    "production_tracking_unchanged": true
+  }
+}

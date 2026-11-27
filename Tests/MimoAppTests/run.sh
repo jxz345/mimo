@@ -10,3 +10,7 @@ xcrun swiftc -swift-version 6 -parse-as-library -D MIMO_TEST_HOST \
     "$REPO"/Sources/MimoShared/*.swift "$REPO"/Sources/MimoCore/*.swift "$REPO"/Sources/MimoApp/*.swift \
     "$REPO"/Tests/MimoAppTests/*.swift -o "$output/credential-tests"
 "$output/credential-tests" "$output"
+
+# Same-window pending modes and ordered daemon snapshots, with isolated control RPCs.
+python3 "$REPO/Tests/MimoAppTests/RapidState/run.py" \
+    "$REPO/.build/gui-rapid-state-$(/usr/bin/uuidgen)"

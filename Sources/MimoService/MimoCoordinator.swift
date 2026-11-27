@@ -15,7 +15,6 @@ final class MimoCoordinator {
     private var revision: Int
     private var networkGeneration: UInt64 = 0
     private var heartbeat: Task<Void, Never>?
-    private var heartbeatPulse: Task<Void, Never>?
     private var directRestored = false
     // Core owns Direct lookups; supervisor replies only describe the gate.
     // Keep the observation separate so a temporary repair/blocked reply cannot
@@ -24,8 +23,6 @@ final class MimoCoordinator {
     // Display-only history for this selected proxy. Never used for approval.
     private var lastExitObservation: MimoSnapshot?
     private let transport: Transport
-    private let pulse: @MainActor (MimoSupervisorRequest) async throws -> Void
-    private let heartbeatChannel: MimoHeartbeatChannel?
     private let lookupOverride: Lookup?
     private var transitionGeneration: UInt64 = 0
     private var transitionsInFlight = 0
@@ -40,36 +37,12 @@ final class MimoCoordinator {
          transport: Transport? = nil, lookup: Lookup? = nil) {
         self.configuration = configuration; self.allowlist = allowlist; self.revision = revision
         self.transport = transport ?? Self.callSupervisor
-        if let transport {
-            heartbeatChannel = nil
-            pulse = { _ = try await transport($0, { _ in }) }
-        } else {
-            let channel = MimoHeartbeatChannel()
-            heartbeatChannel = channel
-            pulse = { try await channel.send($0) }
-        }
         lookupOverride = lookup
         state = MimoRoutingState(configuration: configuration)
     }
 
     func start() async {
         guard heartbeat == nil else { return }
-        heartbeatPulse = Task { [weak self] in
-            while !Task.isCancelled {
-                guard let self else { return }
-                var message = MimoSupervisorRequest(.heartbeat)
-                message.livenessOnly = true
-                message.stamp = MimoCommandStamp(controller: self.controllerID, sequence: self.commandSequence)
-                do { try await self.pulse(message) }
-                catch {
-                    guard !Task.isCancelled else { return }
-                    RuntimeLog.shared.error("mimo_heartbeat_failed", fields: [
-                        "sequence": String(self.commandSequence), "error": error.localizedDescription
-                    ])
-                }
-                try? await Task.sleep(for: .seconds(1))
-            }
-        }
         heartbeat = Task { [weak self] in
             while !Task.isCancelled {
                 guard let self else { return }
@@ -85,12 +58,11 @@ final class MimoCoordinator {
         lastExitObservation = nil
         heartbeat?.cancel()
         heartbeat = nil
-        heartbeatPulse?.cancel()
-        heartbeatPulse = nil
-        heartbeatChannel?.invalidate()
         networkGeneration &+= 1
         transitionGeneration &+= 1
     }
+
+    func drainInfrastructure() async {}
 
     func beginConfigurationChange(reason: String, selectingDirect: Bool = false) async {
         configurationChangesInFlight += 1
@@ -160,13 +132,20 @@ final class MimoCoordinator {
             self.configuration.proxy != configuration.proxy || self.configuration.activeProxyID != configuration.activeProxyID {
             lastExitObservation = nil; state.lastExitObservation = nil
         }
+        let revokesCurrentApproval = state.allowsTraffic && configuration.mode.requiresVerification &&
+            state.observedIP.map { !allowlist.contains($0.address) } == true
         self.configuration = configuration; self.allowlist = allowlist; self.revision = revision
         state.configuration = configuration
         if preservingAccess {
             // Non-routing edits, including a future family selection in Direct,
             // do not alter the current network path. Retain core-owned selection
             // when merging the supervisor's effective state.
-            await refreshSupervisorState()
+            // A save-only edit cannot supersede preparation/approval in flight.
+            // Approval reads the latest committed list. Only known revocation
+            // requires an immediate ordered supervisor mutation.
+            var message = MimoSupervisorRequest(revokesCurrentApproval ? .updatePolicy : .heartbeat)
+            message.configuration = configuration; message.allowlist = allowlist
+            do { _ = try await send(message) } catch { /* send publishes the current failure. */ }
             return
         }
         networkGeneration &+= 1; directRestored = false
@@ -214,6 +193,12 @@ final class MimoCoordinator {
     /// a newer private probe, approval, configuration edit or Direct selection.
     func requiredCheckUnavailable(reason: String) {
         guard configuration.mode.requiresVerification else { return }
+        // Provider availability cannot revoke an intact, previously approved path.
+        // Network/runtime invalidation independently closes before requesting a check.
+        if state.allowsTraffic {
+            RuntimeLog.shared.info("mimo_observation_unavailable", fields: ["gate": "allowed"])
+            return
+        }
         guard state.phase != .blocked || transitionsInFlight > 0 else {
             RuntimeLog.shared.info("mimo_required_check_close_skipped", fields: ["reason": "already_blocked", "phase": state.phase.rawValue])
             return
@@ -245,11 +230,22 @@ final class MimoCoordinator {
     func lookup(_ lookup: LookupConfiguration) async throws -> MimoSnapshot {
         try Task.checkCancellation()
         guard configurationChangesInFlight == 0 else { throw CancellationError() }
-        let generation = networkGeneration, revision = revision, mode = configuration.mode
+        let generation = networkGeneration, mode = configuration.mode
         var check: MimoVerification?
+        var observing = false
+        var approvedPath: MimoExitObservations?
         if mode == .direct {
             if !directRestored || !state.allowsTraffic { await restoreDirect() }
             guard state.allowsTraffic else { throw MimoRuntimeError.unavailable(state.reason) }
+        } else if lookup.intent == .observation && state.allowsTraffic {
+            var message = MimoSupervisorRequest(.observe)
+            message.configuration = configuration; message.lookupID = lookup.lookupID
+            let result = try await send(message)
+            guard generation == networkGeneration, let token = result.observation, result.allowsTraffic else {
+                throw CancellationError()
+            }
+            check = token; observing = true
+            approvedPath = result.exitObservations
         } else {
             markPending("Preparing verification. Waiting for the supervisor to confirm blocking.")
             // Prepare streams confirmed blocking before slower profile work.
@@ -261,20 +257,20 @@ final class MimoCoordinator {
             message.revision = revision; message.networkGeneration = generation
             let result = try await send(message)
             try Task.checkCancellation()
-            guard generation == networkGeneration, revision == self.revision else { throw CancellationError() }
+            guard generation == networkGeneration else { throw CancellationError() }
             guard result.phase == .checking, let token = result.verification,
-                  token.revision == revision, token.networkGeneration == generation else {
+                  token.networkGeneration == generation else {
                 throw MimoRuntimeError.unavailable(result.reason)
             }
             check = token
         }
         try Task.checkCancellation()
-        guard generation == networkGeneration, revision == self.revision else { throw CancellationError() }
+        guard generation == networkGeneration else { throw CancellationError() }
         do {
             var timing = MimoTransitionTiming("lookup")
             func observe(_ family: MimoAddressFamily?) async throws -> MimoSnapshot {
                 try willRequest?(lookup.provider)
-                let request = LookupConfiguration(provider: lookup.provider, ipinfoToken: lookup.ipinfoToken, family: family, lookupID: lookup.lookupID)
+                let request = LookupConfiguration(provider: lookup.provider, ipinfoToken: lookup.ipinfoToken, family: family, lookupID: lookup.lookupID, intent: lookup.intent)
                 let started = ProcessInfo.processInfo.systemUptime
                 var fields = ["provider": lookup.provider.rawValue, "family": family?.rawValue ?? "native",
                               "path": mode.requiresVerification ? "private_proxy_probe" : "native_direct",
@@ -303,17 +299,23 @@ final class MimoCoordinator {
             let result = try await observe(mode.requiresVerification ? .ipv4 : nil)
             timing.record("exit_ip")
             try Task.checkCancellation()
-            guard generation == networkGeneration, revision == self.revision else { throw CancellationError() }
+            guard generation == networkGeneration else { throw CancellationError() }
             if let check {
+                if observing, state.observation != check || !state.allowsTraffic { throw CancellationError() }
                 lastExitObservation = result
                 state.lastExitObservation = result
-                state.observedIP = .init(address: result.ipAddress, checkedAt: result.checkedAt)
-                state.reason = "IPv4 exit received. Checking approval and runtime readiness. Internet remains blocked."
-                changed?()
-                var message = MimoSupervisorRequest(.approve); message.verification = check; message.address = result.ipAddress
+                if !observing {
+                    state.observedIP = .init(address: result.ipAddress, checkedAt: result.checkedAt)
+                    state.reason = "IPv4 exit received. Checking approval and runtime readiness. Internet remains blocked."
+                    changed?()
+                }
+                var message = MimoSupervisorRequest(observing ? .completeObservation : .approve)
+                message.verification = check; message.address = result.ipAddress
+                message.allowlist = allowlist
                 message.lookupID = lookup.lookupID
                 message.exitObservations = MimoExitObservations(verification: check, ipv4: result)
-                _ = try await send(message)
+                let completed = try await send(message)
+                if observing, completed.exitObservations?.verification != check { throw CancellationError() }
             } else {
                 directObservation = MimoIPObservation(address: result.ipAddress, checkedAt: result.checkedAt)
                 state.observedIP = directObservation
@@ -321,8 +323,57 @@ final class MimoCoordinator {
             }
             return result
         } catch {
-            if generation == networkGeneration, revision == self.revision, !(error is CancellationError) {
+            // A runtime closure can invalidate the HTTP path before core receives
+            // its network event. That obsolete timeout is cancellation, not proof
+            // that the provider failed or should receive a cooldown.
+            func cancelled(_ reason: String) -> CancellationError {
+                var fields = ["reason": reason, "mode": mode.rawValue,
+                              "family": configuration.networkFamily.rawValue, "phase": state.phase.rawValue]
+                fields["lookup"] = lookup.lookupID?.uuidString; fields["attempt"] = check?.id.uuidString
+                RuntimeLog.shared.info("mimo_probe_result_cancelled", fields: fields)
+                return CancellationError()
+            }
+            guard !Task.isCancelled else { throw cancelled("task_cancelled") }
+            guard !(error is CancellationError) else { throw cancelled("operation_cancelled") }
+            guard generation == networkGeneration else { throw cancelled("generation_changed") }
+            if observing {
+                guard let check, state.allowsTraffic, state.observation == check,
+                      state.exitObservations == approvedPath else { throw cancelled("observation_no_longer_current") }
+                var message = MimoSupervisorRequest(.observationFailed)
+                message.verification = check; message.lookupID = lookup.lookupID
+                let acknowledged: MimoRoutingState
+                do { acknowledged = try await send(message) }
+                catch { throw cancelled(error is CancellationError ? "acknowledgement_superseded" : "acknowledgement_unavailable") }
+                guard !Task.isCancelled else { throw cancelled("task_cancelled") }
+                // Only the supervisor can confirm this exact observation failed
+                // on the still-approved path. Ignored, blocked, replaced or stale
+                // acknowledgements must not charge the original provider error.
+                guard generation == networkGeneration, acknowledged.allowsTraffic,
+                      acknowledged.effectiveMode == mode, acknowledged.observation == nil,
+                      acknowledged.observationFailed == true,
+                      acknowledged.exitObservations == approvedPath else { throw cancelled("acknowledgement_no_longer_current") }
+            } else if let check {
+                guard state.phase == .checking, state.verification == check else {
+                    throw cancelled("verification_no_longer_current")
+                }
+                // Conditional closure is checked atomically by the supervisor.
+                // Do not advance the local generation or clear a newer token
+                // before that owner has accepted this exact failed verification.
+                var message = MimoSupervisorRequest(.close)
+                message.verification = check; message.lookupID = lookup.lookupID
+                message.reason = "The IPv4 exit-IP check failed. Internet remains blocked. Retry the check or use Direct."
+                let closed: MimoRoutingState
+                do { closed = try await send(message) }
+                catch { throw cancelled(error is CancellationError ? "verification_close_superseded" : "verification_close_unavailable") }
+                guard !Task.isCancelled else { throw cancelled("task_cancelled") }
+                guard generation == networkGeneration, closed.phase == .blocked,
+                      closed.verification == nil else { throw cancelled("verification_close_not_confirmed") }
+                networkGeneration &+= 1
+            } else {
+                let invalidationGeneration = networkGeneration &+ 1
                 await invalidate(reason: "The IPv4 exit-IP check failed. Internet remains blocked. Retry the check or use Direct.", lookupID: lookup.lookupID)
+                guard !Task.isCancelled else { throw cancelled("task_cancelled") }
+                guard networkGeneration == invalidationGeneration else { throw cancelled("invalidation_superseded") }
             }
             throw error
         }
@@ -438,6 +489,11 @@ final class MimoCoordinator {
             guard let state = response.routing else { return }
             Task { @MainActor in progress(state) }
         })
+        if message.command == .close, message.verification != nil, response.failure == .conflict {
+            // A rejected failure-close is obsolete work, not loss of service.
+            // Preserve the newer routing display instead of publishing unavailable.
+            throw CancellationError()
+        }
         guard let result = response.routing else { throw response.failure ?? DaemonFailure.unavailable }
         if let failure = response.failure, message.command != .service { throw failure }
         return result
@@ -457,75 +513,6 @@ final class MimoCoordinator {
     private func unavailable(_ error: Error) {
         state.phase = .unavailable; state.effectiveMode = nil; state.reason = error.localizedDescription
         directRestored = false; changed?()
-    }
-}
-
-/// Keep the liveness connection separate from status/profile RPCs. Reusing its
-/// already accepted connection avoids repeated XPC handshakes during activation.
-/// A failed transport is discarded; neither retries nor late replies extend the
-/// supervisor's unchanged five-second heartbeat deadline.
-@MainActor
-private final class MimoHeartbeatChannel {
-    private var connection: NSXPCConnection?
-
-    func invalidate() {
-        connection?.invalidate()
-        connection = nil
-    }
-
-    func send(_ message: MimoSupervisorRequest) async throws {
-        let connection: NSXPCConnection
-        if let current = self.connection { connection = current }
-        else {
-            connection = NSXPCConnection(machServiceName: MimoRuntime.supervisorLabel, options: .privileged)
-            connection.remoteObjectInterface = NSXPCInterface(with: MimoDaemonProtocol.self)
-            connection.resume()
-            self.connection = connection
-        }
-        var request = DaemonRequest(.supervisor)
-        request.supervisor = message
-        let data = try JSONEncoder().encode(request)
-        do {
-            let response: DaemonResponse = try await withCheckedThrowingContinuation { continuation in
-                let completion = MimoHeartbeatReply(continuation)
-                connection.invalidationHandler = { @Sendable in completion.finish(.failure(DaemonFailure.unavailable)) }
-                connection.interruptionHandler = { @Sendable in completion.finish(.failure(DaemonFailure.unavailable)) }
-                guard let proxy = connection.remoteObjectProxyWithErrorHandler({ @Sendable error in
-                    let failure = error as NSError
-                    RuntimeLog.shared.error("mimo_heartbeat_transport_failed", fields: [
-                        "domain": failure.domain, "code": String(failure.code), "reason": failure.localizedDescription
-                    ])
-                    completion.finish(.failure(DaemonFailure.unavailable))
-                }) as? MimoDaemonProtocol else {
-                    completion.finish(.failure(DaemonFailure.unavailable)); return
-                }
-                proxy.request(data) { data in
-                    guard data.count <= MimoService.maximumMessageSize else {
-                        completion.finish(.failure(DaemonFailure.invalidRequest)); return
-                    }
-                    completion.finish(Result { try JSONDecoder().decode(DaemonResponse.self, from: data) })
-                }
-                DispatchQueue.global().asyncAfter(deadline: .now() + 2) {
-                    completion.finish(.failure(DaemonFailure.unavailable))
-                }
-            }
-            // Initial authority is established by an ordered core command, not
-            // by this connection. A rejection keeps the channel but renews no lease.
-            if let failure = response.failure { throw failure }
-        } catch {
-            if (error as? DaemonFailure) != .conflict { invalidate() }
-            throw error
-        }
-    }
-}
-
-private final class MimoHeartbeatReply: @unchecked Sendable {
-    private let lock = NSLock()
-    private var continuation: CheckedContinuation<DaemonResponse, any Error>?
-    init(_ continuation: CheckedContinuation<DaemonResponse, any Error>) { self.continuation = continuation }
-    func finish(_ result: Result<DaemonResponse, any Error>) {
-        let pending = lock.withLock { let value = continuation; continuation = nil; return value }
-        pending?.resume(with: result)
     }
 }
 

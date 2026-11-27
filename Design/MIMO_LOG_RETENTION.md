@@ -64,6 +64,16 @@ on the next Mimo launch, rather than leaving a cleanup daemon installed.
 
 ## Validation
 
+The dashboard core-log viewer uses the existing bounded diagnostic buffers and
+does not create another disk log. Both existing `mimo-core` roles instantiate
+`MimoLogStore(serviceOutputs: true)` and own their existing maintenance timers;
+merging the former Perl jobs does not remove scheduled retention. New regression
+coverage explicitly rotates `core.log`, `supervisor.log`, `engine.log` and legacy
+`infrastructure.log`, checks append descriptors keep their inode, and checks core
+and supervisor archives share the runtime byte/file budgets. All 12 filesystem
+tests and the five logger integration cases passed on 26 November for this
+candidate. No new daemon or GUI-driven cleanup was added.
+
 - [Shared filesystem tests](../Tests/MimoSharedTests/MimoLogStoreTests.swift): size/day rotation, record integrity, age/count/size eviction, existing oversized files, open service descriptors, stale journal/output, account scope, unsafe links/directories and oversized record rejection.
 - [Event Log tests](../Tests/MimoSharedTests/EventLogLineTests.swift): cleanup/drop counters and actionable storage failure.
 - [Logger integration runner](../Tests/MimoLogTests/run.sh): four independent writer processes with simultaneous maintenance; storage failure/repair; original 450-record regression; bounded producer backlog during blocked storage; real 60-second scheduled expiry with no restart/preferences change after the fixture is created.

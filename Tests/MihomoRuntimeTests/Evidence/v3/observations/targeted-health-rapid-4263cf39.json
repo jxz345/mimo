@@ -1,0 +1,949 @@
+{
+  "schema": 1,
+  "status": "focused_scope_complete",
+  "artifact": {
+    "version": "3.0",
+    "build": "11",
+    "core_sha256": "4263cf39e9779b03d00bc73b40fd523e4ba8e42012ec2aa84f824ba5dd48e067",
+    "pkg_sha256": "d852158dd03b2ed0d933de57c9b8d5bd0094c10a59b0f2f1e2f72a73e0f414e1",
+    "source_manifest_sha256": "7c2e79e37d3dc23ab989ebfbff24014d3efe6cded12852ed4c0e5c3f270a3023",
+    "published": false
+  },
+  "install": {
+    "proof_path": ".build/observation-parallel/worker-targeted/install-4263cf39-1f28f6b5/result.json",
+    "proof_sha256": "6fd80eeaffe01057557b3c4d6bc30da2182fa45f57b8aba98362a6693060851c",
+    "passed": true,
+    "verification": {
+      "core_verified": true,
+      "backups_unchanged": true,
+      "hosts_original": true,
+      "scoped_dns_verified": true,
+      "healthy_direct": true,
+      "gui_checkpoint": {
+        "pid": "90594",
+        "connected_at": "2026-11-27T13:10:56.495Z",
+        "generation": "1"
+      },
+      "jobs": {
+        "com.mimo.core": 90085,
+        "com.mimo.supervisor": 90058,
+        "com.mimo.mihomo": 90221
+      }
+    }
+  },
+  "scope": {
+    "vm": "mimo-observation-worker",
+    "candidate_planned_new_cases": 4,
+    "candidate_completed_cases": 4,
+    "candidate_passed_cases": 4,
+    "overall_distinct_planned_cases": 5,
+    "overall_distinct_qualified_cases": 5,
+    "actual_attempts_consumed": 9,
+    "maximum_actual_attempts": 9,
+    "historical_attempts": {
+      "artifact": "d91336cb60f39d6b62e3cc2aed3c998b49a8214f0857a105c7149f8cefec142a",
+      "total": 5,
+      "passed_health_phases": 2,
+      "oracle_failures": 2,
+      "stuck_feedback_failure": 1
+    },
+    "previously_passed_cases_rerun": false,
+    "primary_vm_mutated": false,
+    "native_button_clicks": false
+  },
+  "cases": [
+    {
+      "id": "ipv4/latest-rule-denied",
+      "attempt": 6,
+      "passed": true,
+      "core_sha256": "4263cf39e9779b03d00bc73b40fd523e4ba8e42012ec2aa84f824ba5dd48e067",
+      "controls_sha256": "1ed7b5fb01d653f853a87de246c138ab043148e93da605284d5349dd1d68981a",
+      "evidence_id": "afd17f529d124eafa05a95567d04cc5f",
+      "incoming_passed": true,
+      "whole_GUI_passed": true,
+      "health_trace_passed": true,
+      "archive_sha256": "af7cc3c6fe40456b01d012bbba97a8aabe182dd8433fb84d7c1816c74cce0ddf",
+      "archive_files": 18,
+      "archive_private_path": ".build/observation-parallel/worker-targeted/20261127T131114Z-b0af33c8/case-private-private.tar.gz",
+      "terminal_sha256": "a586e3fde3a3954759fa61dceb7f8860984ff549ed62356831be73a9d6bad4ff",
+      "failures": [],
+      "last_stage": "complete",
+      "queue_proof": {
+        "passed": true,
+        "failures": [],
+        "request_ids": {
+          "first_old": "653A0CC5-5B36-41E9-A56A-B536E16C96A0",
+          "first_kept": "1C8EEAD2-D6E9-4555-8EB5-AFC3745EDE13",
+          "barrier": "BD1FB68A-2667-4E67-BB1D-0E96F9D7AA64",
+          "last_old": "0D12F4CB-5115-4DEB-9661-7CD4933F3206",
+          "last_kept": "75CAA31C-417D-428E-928A-F451593C4C0B",
+          "late_older": "522EB100-E0D6-4BFD-B94C-9346E7861AED"
+        },
+        "base_revision": 2581,
+        "final_revision": 2584,
+        "queued_request_count": 5,
+        "expected_superseded_count": 2,
+        "barrier_admission_epochs": [
+          1795785100.934,
+          1795785102.181,
+          1795785102.194
+        ],
+        "queued_epochs": {
+          "first_old": [
+            1795785094.815
+          ],
+          "first_kept": [
+            1795785095.09
+          ],
+          "barrier": [
+            1795785095.362
+          ],
+          "last_old": [
+            1795785095.636
+          ],
+          "last_kept": [
+            1795785096.055
+          ]
+        },
+        "delayed_older_intent_checked": true
+      },
+      "prior_manual_proof": {
+        "passed": true,
+        "failures": [],
+        "accepted_manual_count": 1,
+        "terminal_results": [
+          {
+            "id": "44E3C8C7-8D1B-4678-BE53-4C5E28EA32CD",
+            "generation": "3",
+            "result": "superseded",
+            "queued_epoch": 1795785096.687,
+            "finished_epoch": 1795785100.938
+          }
+        ],
+        "displayed_id": "44E3C8C7-8D1B-4678-BE53-4C5E28EA32CD",
+        "displayed_result": "superseded"
+      },
+      "final_refresh": {
+        "passed": true,
+        "failures": [],
+        "manual_id": "FB30883F-6BB9-4CDD-B8F0-9AF88C18FD13",
+        "requested_epoch": 1795785122.15384,
+        "manual_requested_at": 817477922.391043,
+        "manual_finished_at": 817477926.491408,
+        "phase": "failed",
+        "expected_outcome": "blocked",
+        "successful_lookup": "C7017D8B-67E7-4FF0-8B2D-DB46058892A4",
+        "typed_result": "checkedBlocked",
+        "lifecycle_generation": 5,
+        "snapshot_checked_at": 817477925.4412,
+        "blocking_ip_checked_at": 817477925.4412,
+        "date_normalization": "Swift Date seconds + 978307200 = Unix/log seconds"
+      },
+      "protected_traffic_precondition": {
+        "passed": true,
+        "failures": [],
+        "proxied_successes": {
+          "4:tcp": 12,
+          "4:udp": 10
+        },
+        "captured_dns_successes": {
+          "6:dns-tcp": 12,
+          "4:dns-udp": 13,
+          "6:dns-udp": 12,
+          "4:dns-tcp": 12
+        },
+        "started_epoch": 1795785090.799071,
+        "ended_epoch": 1795785093.940861
+      },
+      "protected_precondition_native": {
+        "passed": true,
+        "native_attempts": 0,
+        "started_epoch": 1795785090.799071,
+        "ended_epoch": 1795785093.940861,
+        "failures": []
+      },
+      "packet_policy": {
+        "passed": true,
+        "protected_native_attempts": 0,
+        "authorized_direct_native_attempts": 33,
+        "boundaries": [
+          [
+            1795785090.799071,
+            "protected",
+            "initial_active"
+          ],
+          [
+            1795785094.294,
+            "direct",
+            "admitted_direct"
+          ],
+          [
+            1795785101.985,
+            "protected",
+            "confirmed_close"
+          ],
+          [
+            1795785102.203,
+            "protected",
+            "confirmed_close"
+          ],
+          [
+            1795785104.557,
+            "protected",
+            "confirmed_close"
+          ],
+          [
+            1795785124.806,
+            "protected",
+            "confirmed_close"
+          ]
+        ],
+        "final_protected_closure_observed": true,
+        "leak_samples": [],
+        "scope": "zero native after confirmed closure; explicitly admitted Direct windows reported separately"
+      },
+      "direct_detector_families": [
+        4,
+        6
+      ],
+      "lab_cleanup": {
+        "flushed": true,
+        "empty": true
+      },
+      "settled_seconds": 36,
+      "http_requests": 2,
+      "max_http_per_lookup": 1,
+      "final_mode": "rule",
+      "final_phase": "blocked",
+      "settled_samples": 18,
+      "settled_healthy_samples": 18,
+      "health": {
+        "passed": true,
+        "interval_seconds": 0.5,
+        "started_epoch": 1795785076.458295,
+        "finished_epoch": 1795785174.055569,
+        "failures": [],
+        "max_infrastructure_age_seconds": 17.335091829299927,
+        "max_rpc_seconds": 1.2053077910000027,
+        "max_pf_age_seconds": 17.335091829299927,
+        "max_launchd_age_seconds": 16.76177191734314,
+        "health_overdue_sample_count": 0,
+        "method": "bounded read-only core state plus original guard health file; no timestamp synthesis",
+        "maximum_full_guard_pf_age_at_sample_finish_seconds": 16.191946983337402,
+        "scan_outcomes": {
+          "completed": 10,
+          "deferred": 3
+        },
+        "retry_events": [
+          {
+            "outcome": "deferred",
+            "delay_seconds": "1.0",
+            "retry_level": "1"
+          },
+          {
+            "outcome": "deferred",
+            "delay_seconds": "1.0",
+            "retry_level": "2"
+          },
+          {
+            "outcome": "deferred",
+            "delay_seconds": "1.0",
+            "retry_level": "1"
+          }
+        ]
+      },
+      "whole_event_verdict": {
+        "passed": true,
+        "runtime_errors": 0,
+        "provider_penalties": 0,
+        "service_repair_or_recovery_events": {},
+        "unexpected_settled_events": [],
+        "whole_case_http_requests_including_preflight": 5,
+        "operation_http_requests": 2,
+        "maximum_http_per_lookup": 1,
+        "lookup_trigger_counts_including_preflight": {
+          "settings_changed": 3,
+          "manual": 2
+        },
+        "manual_result_counts_including_preflight": {
+          "checkedAllowed": 1,
+          "superseded": 1,
+          "checkedBlocked": 1
+        },
+        "method": "retained whole-case events; expected queue/transition triggers plus no forbidden events during settled samples"
+      }
+    },
+    {
+      "id": "ipv4/latest-direct",
+      "attempt": 7,
+      "passed": true,
+      "core_sha256": "4263cf39e9779b03d00bc73b40fd523e4ba8e42012ec2aa84f824ba5dd48e067",
+      "controls_sha256": "1ed7b5fb01d653f853a87de246c138ab043148e93da605284d5349dd1d68981a",
+      "evidence_id": "38289fbe6c174f2a8d978babc502d778",
+      "incoming_passed": true,
+      "whole_GUI_passed": true,
+      "health_trace_passed": true,
+      "archive_sha256": "72233fe13eaebb8b319fffa24787ac9ad9011d7e65b6a9198f90b170719184c8",
+      "archive_files": 18,
+      "archive_private_path": ".build/observation-parallel/worker-targeted/20261127T131314Z-906d610f/case-private-private.tar.gz",
+      "terminal_sha256": "fa82b3683e2bc7806515f02a203c2882573f37fa7464143912f03d9f28a409d1",
+      "failures": [],
+      "last_stage": "complete",
+      "queue_proof": {
+        "passed": true,
+        "failures": [],
+        "request_ids": {
+          "first_old": "CB36139D-FFDF-4CDA-8AA2-B235D2B3E21F",
+          "first_kept": "7A932E36-AF15-466E-8681-84DACBF38D88",
+          "barrier": "1CD215D8-1078-4BDB-B471-8AB53C1EF0E5",
+          "last_old": "5B4661BC-B033-47F7-BD21-8F0DFA6F11F0",
+          "last_kept": "1C240499-4EBD-4A53-8F2A-E00C80AD4E4A",
+          "late_older": "405F1CAC-9F28-4D37-B199-1917F2D8192A"
+        },
+        "base_revision": 2589,
+        "final_revision": 2592,
+        "queued_request_count": 5,
+        "expected_superseded_count": 2,
+        "barrier_admission_epochs": [
+          1795785223.696,
+          1795785224.375,
+          1795785224.381
+        ],
+        "queued_epochs": {
+          "first_old": [
+            1795785217.434
+          ],
+          "first_kept": [
+            1795785217.734
+          ],
+          "barrier": [
+            1795785218.141
+          ],
+          "last_old": [
+            1795785218.457
+          ],
+          "last_kept": [
+            1795785218.722
+          ]
+        },
+        "delayed_older_intent_checked": true
+      },
+      "prior_manual_proof": {
+        "passed": true,
+        "failures": [],
+        "accepted_manual_count": 1,
+        "terminal_results": [
+          {
+            "id": "B24DA50A-9AE1-4E80-8BF9-589396909D76",
+            "generation": "8",
+            "result": "superseded",
+            "queued_epoch": 1795785219.298,
+            "finished_epoch": 1795785223.703
+          }
+        ],
+        "displayed_id": "B24DA50A-9AE1-4E80-8BF9-589396909D76",
+        "displayed_result": "superseded"
+      },
+      "final_refresh": {
+        "passed": true,
+        "failures": [],
+        "manual_id": "E92D76A4-052F-4F36-B827-878B1EA06607",
+        "requested_epoch": 1795785229.612213,
+        "manual_requested_at": 817478029.850536,
+        "manual_finished_at": 817478029.965136,
+        "phase": "succeeded",
+        "expected_outcome": "succeeded",
+        "successful_lookup": "4190623A-D07C-430F-ADD7-4B612BB9A147",
+        "typed_result": "checkedAllowed",
+        "lifecycle_generation": 10,
+        "snapshot_checked_at": 817478029.915189,
+        "blocking_ip_checked_at": null,
+        "date_normalization": "Swift Date seconds + 978307200 = Unix/log seconds"
+      },
+      "protected_traffic_precondition": {
+        "passed": true,
+        "failures": [],
+        "proxied_successes": {
+          "4:tcp": 12,
+          "4:udp": 12
+        },
+        "captured_dns_successes": {
+          "6:dns-udp": 13,
+          "4:dns-tcp": 11,
+          "6:dns-tcp": 13,
+          "4:dns-udp": 12
+        },
+        "started_epoch": 1795785213.579752,
+        "ended_epoch": 1795785216.631119
+      },
+      "protected_precondition_native": {
+        "passed": true,
+        "native_attempts": 0,
+        "started_epoch": 1795785213.579752,
+        "ended_epoch": 1795785216.631119,
+        "failures": []
+      },
+      "packet_policy": {
+        "passed": true,
+        "protected_native_attempts": 0,
+        "authorized_direct_native_attempts": 1345,
+        "boundaries": [
+          [
+            1795785213.579752,
+            "protected",
+            "initial_active"
+          ],
+          [
+            1795785216.914,
+            "direct",
+            "admitted_direct"
+          ],
+          [
+            1795785224.326,
+            "protected",
+            "confirmed_close"
+          ],
+          [
+            1795785224.385,
+            "direct",
+            "admitted_direct"
+          ]
+        ],
+        "final_protected_closure_observed": null,
+        "leak_samples": [],
+        "scope": "zero native after confirmed closure; explicitly admitted Direct windows reported separately"
+      },
+      "direct_detector_families": [
+        4,
+        6
+      ],
+      "lab_cleanup": {
+        "flushed": true,
+        "empty": true
+      },
+      "settled_seconds": 36,
+      "http_requests": 2,
+      "max_http_per_lookup": 1,
+      "final_mode": "direct",
+      "final_phase": "active",
+      "settled_samples": 18,
+      "settled_healthy_samples": 18,
+      "health": {
+        "passed": true,
+        "interval_seconds": 0.5,
+        "started_epoch": 1795785196.0158038,
+        "finished_epoch": 1795785272.830534,
+        "failures": [],
+        "max_infrastructure_age_seconds": 15.829626083374023,
+        "max_rpc_seconds": 0.2590083340000007,
+        "max_pf_age_seconds": 15.829626083374023,
+        "max_launchd_age_seconds": 15.141226053237915,
+        "health_overdue_sample_count": 0,
+        "method": "bounded read-only core state plus original guard health file; no timestamp synthesis",
+        "maximum_full_guard_pf_age_at_sample_finish_seconds": 15.20593810081482,
+        "scan_outcomes": {
+          "completed": 7,
+          "superseded": 1
+        },
+        "retry_events": []
+      },
+      "whole_event_verdict": {
+        "passed": true,
+        "runtime_errors": 0,
+        "provider_penalties": 0,
+        "service_repair_or_recovery_events": {},
+        "unexpected_settled_events": [],
+        "whole_case_http_requests_including_preflight": 5,
+        "operation_http_requests": 2,
+        "maximum_http_per_lookup": 1,
+        "lookup_trigger_counts_including_preflight": {
+          "settings_changed": 4,
+          "manual": 2
+        },
+        "manual_result_counts_including_preflight": {
+          "checkedAllowed": 2,
+          "superseded": 1
+        },
+        "method": "retained whole-case events; expected queue/transition triggers plus no forbidden events during settled samples"
+      }
+    },
+    {
+      "id": "dual/latest-rule-denied",
+      "attempt": 8,
+      "passed": true,
+      "core_sha256": "4263cf39e9779b03d00bc73b40fd523e4ba8e42012ec2aa84f824ba5dd48e067",
+      "controls_sha256": "1ed7b5fb01d653f853a87de246c138ab043148e93da605284d5349dd1d68981a",
+      "evidence_id": "25f4ea09a2984bd6b9a79dd82eacf0fc",
+      "incoming_passed": true,
+      "whole_GUI_passed": true,
+      "health_trace_passed": true,
+      "archive_sha256": "3254eeddb0e40a203ebbcf018ec51b5e4fad570714a2012be5ed76deb112eeb9",
+      "archive_files": 18,
+      "archive_private_path": ".build/observation-parallel/worker-targeted/20261127T131539Z-98c20ab6/case-private-private.tar.gz",
+      "terminal_sha256": "b02f961ba2771406de317f06888c415e33971910d9e86017cf7a4ddbb1afb5ab",
+      "failures": [],
+      "last_stage": "complete",
+      "queue_proof": {
+        "passed": true,
+        "failures": [],
+        "request_ids": {
+          "first_old": "5CC0721F-780F-45AF-AD9E-BF8A6030B142",
+          "first_kept": "155147E1-9A00-4D95-A167-EB20094D6B30",
+          "barrier": "7E89A05D-2C46-4E78-ADFE-9F645F927342",
+          "last_old": "E588A4B9-8AE2-4239-9D27-EAFD89B16E20",
+          "last_kept": "69749142-16B6-4731-A923-C4046F8C890E",
+          "late_older": "554317B9-DE3D-4521-B71A-50298E7EDE7C"
+        },
+        "base_revision": 2597,
+        "final_revision": 2600,
+        "queued_request_count": 5,
+        "expected_superseded_count": 2,
+        "barrier_admission_epochs": [
+          1795785364.348,
+          1795785365.148,
+          1795785365.333
+        ],
+        "queued_epochs": {
+          "first_old": [
+            1795785358.58
+          ],
+          "first_kept": [
+            1795785358.878
+          ],
+          "barrier": [
+            1795785359.229
+          ],
+          "last_old": [
+            1795785359.539
+          ],
+          "last_kept": [
+            1795785359.831
+          ]
+        },
+        "delayed_older_intent_checked": true
+      },
+      "prior_manual_proof": {
+        "passed": true,
+        "failures": [],
+        "accepted_manual_count": 1,
+        "terminal_results": [
+          {
+            "id": "069EC42E-EAB6-4990-A9AE-FC85F751AD92",
+            "generation": "12",
+            "result": "superseded",
+            "queued_epoch": 1795785360.473,
+            "finished_epoch": 1795785364.353
+          }
+        ],
+        "displayed_id": "069EC42E-EAB6-4990-A9AE-FC85F751AD92",
+        "displayed_result": "superseded"
+      },
+      "final_refresh": {
+        "passed": true,
+        "failures": [],
+        "manual_id": "EBA23820-3C63-49CA-9FBF-359DCE6D0688",
+        "requested_epoch": 1795785385.209924,
+        "manual_requested_at": 817478185.454619,
+        "manual_finished_at": 817478188.693133,
+        "phase": "failed",
+        "expected_outcome": "blocked",
+        "successful_lookup": "27BB5836-56E2-4890-8696-5884DBB1A138",
+        "typed_result": "checkedBlocked",
+        "lifecycle_generation": 14,
+        "snapshot_checked_at": 817478187.854065,
+        "blocking_ip_checked_at": 817478187.854065,
+        "date_normalization": "Swift Date seconds + 978307200 = Unix/log seconds"
+      },
+      "protected_traffic_precondition": {
+        "passed": true,
+        "failures": [],
+        "proxied_successes": {
+          "4:tcp": 13,
+          "4:udp": 13,
+          "6:tcp": 12,
+          "6:udp": 13
+        },
+        "captured_dns_successes": {
+          "6:dns-tcp": 12,
+          "4:dns-tcp": 14,
+          "4:dns-udp": 12,
+          "6:dns-udp": 12
+        },
+        "started_epoch": 1795785354.565042,
+        "ended_epoch": 1795785357.709826
+      },
+      "protected_precondition_native": {
+        "passed": true,
+        "native_attempts": 0,
+        "started_epoch": 1795785354.565042,
+        "ended_epoch": 1795785357.709826,
+        "failures": []
+      },
+      "packet_policy": {
+        "passed": true,
+        "protected_native_attempts": 0,
+        "authorized_direct_native_attempts": 39,
+        "boundaries": [
+          [
+            1795785354.565042,
+            "protected",
+            "initial_active"
+          ],
+          [
+            1795785358.048,
+            "direct",
+            "admitted_direct"
+          ],
+          [
+            1795785365.095,
+            "protected",
+            "confirmed_close"
+          ],
+          [
+            1795785365.341,
+            "protected",
+            "confirmed_close"
+          ],
+          [
+            1795785367.851,
+            "protected",
+            "confirmed_close"
+          ],
+          [
+            1795785387.281,
+            "protected",
+            "confirmed_close"
+          ]
+        ],
+        "final_protected_closure_observed": true,
+        "leak_samples": [],
+        "scope": "zero native after confirmed closure; explicitly admitted Direct windows reported separately"
+      },
+      "direct_detector_families": [
+        4,
+        6
+      ],
+      "lab_cleanup": {
+        "flushed": true,
+        "empty": true
+      },
+      "settled_seconds": 36,
+      "http_requests": 2,
+      "max_http_per_lookup": 1,
+      "final_mode": "rule",
+      "final_phase": "blocked",
+      "settled_samples": 18,
+      "settled_healthy_samples": 18,
+      "health": {
+        "passed": true,
+        "interval_seconds": 0.5,
+        "started_epoch": 1795785340.1923242,
+        "finished_epoch": 1795785436.9752488,
+        "failures": [],
+        "max_infrastructure_age_seconds": 20.520010948181152,
+        "max_rpc_seconds": 0.9489170409999979,
+        "max_pf_age_seconds": 20.520010948181152,
+        "max_launchd_age_seconds": 20.028151035308838,
+        "health_overdue_sample_count": 0,
+        "method": "bounded read-only core state plus original guard health file; no timestamp synthesis",
+        "maximum_full_guard_pf_age_at_sample_finish_seconds": 18.772031784057617,
+        "scan_outcomes": {
+          "completed": 9,
+          "deferred": 4
+        },
+        "retry_events": [
+          {
+            "outcome": "deferred",
+            "delay_seconds": "1.0",
+            "retry_level": "1"
+          },
+          {
+            "outcome": "deferred",
+            "delay_seconds": "1.0",
+            "retry_level": "2"
+          },
+          {
+            "outcome": "deferred",
+            "delay_seconds": "4.0",
+            "retry_level": "3"
+          },
+          {
+            "outcome": "deferred",
+            "delay_seconds": "1.0",
+            "retry_level": "1"
+          }
+        ]
+      },
+      "whole_event_verdict": {
+        "passed": true,
+        "runtime_errors": 0,
+        "provider_penalties": 0,
+        "service_repair_or_recovery_events": {},
+        "unexpected_settled_events": [],
+        "whole_case_http_requests_including_preflight": 5,
+        "operation_http_requests": 2,
+        "maximum_http_per_lookup": 1,
+        "lookup_trigger_counts_including_preflight": {
+          "settings_changed": 3,
+          "manual": 2
+        },
+        "manual_result_counts_including_preflight": {
+          "checkedAllowed": 1,
+          "superseded": 1,
+          "checkedBlocked": 1
+        },
+        "method": "retained whole-case events; expected queue/transition triggers plus no forbidden events during settled samples"
+      }
+    },
+    {
+      "id": "dual/latest-direct",
+      "attempt": 9,
+      "passed": true,
+      "core_sha256": "4263cf39e9779b03d00bc73b40fd523e4ba8e42012ec2aa84f824ba5dd48e067",
+      "controls_sha256": "1ed7b5fb01d653f853a87de246c138ab043148e93da605284d5349dd1d68981a",
+      "evidence_id": "10599f46c3a042dc885c39b5df4f5739",
+      "incoming_passed": true,
+      "whole_GUI_passed": true,
+      "health_trace_passed": true,
+      "archive_sha256": "1dc1d5b7807ac1fb3ad488465f420534246549d89389802a44f33c2f47bb953b",
+      "archive_files": 18,
+      "archive_private_path": ".build/observation-parallel/worker-targeted/20261127T131736Z-e2f5d275/case-private-private.tar.gz",
+      "terminal_sha256": "e4ab3eddf92997ef9413906ffc18ebf0537ebe814ee5a8e808d3352a4e75087c",
+      "failures": [],
+      "last_stage": "complete",
+      "queue_proof": {
+        "passed": true,
+        "failures": [],
+        "request_ids": {
+          "first_old": "00FC63EC-699E-4F89-906D-129F9C4AB5F3",
+          "first_kept": "6242E2E5-A4DD-414B-AE24-ECE994FA7616",
+          "barrier": "90B68958-3885-4D55-99BD-DF2EA79EA2CB",
+          "last_old": "D29B0A2A-D8C3-42F1-8BEA-DE15A4707522",
+          "last_kept": "794D77CE-5D34-40BE-A26C-712521EC5396",
+          "late_older": "4C355271-B7E3-4053-B8BC-031122CD3777"
+        },
+        "base_revision": 2605,
+        "final_revision": 2608,
+        "queued_request_count": 5,
+        "expected_superseded_count": 2,
+        "barrier_admission_epochs": [
+          1795785485.376,
+          1795785486.554,
+          1795785486.566
+        ],
+        "queued_epochs": {
+          "first_old": [
+            1795785479.185
+          ],
+          "first_kept": [
+            1795785479.601
+          ],
+          "barrier": [
+            1795785479.919
+          ],
+          "last_old": [
+            1795785480.263
+          ],
+          "last_kept": [
+            1795785480.524
+          ]
+        },
+        "delayed_older_intent_checked": true
+      },
+      "prior_manual_proof": {
+        "passed": true,
+        "failures": [],
+        "accepted_manual_count": 1,
+        "terminal_results": [
+          {
+            "id": "96DE53E9-8896-4C3B-82D6-99127E15BDED",
+            "generation": "17",
+            "result": "superseded",
+            "queued_epoch": 1795785481.166,
+            "finished_epoch": 1795785485.382
+          }
+        ],
+        "displayed_id": "96DE53E9-8896-4C3B-82D6-99127E15BDED",
+        "displayed_result": "superseded"
+      },
+      "final_refresh": {
+        "passed": true,
+        "failures": [],
+        "manual_id": "2E0923B9-0190-4016-A968-253EB840C9C0",
+        "requested_epoch": 1795785492.620275,
+        "manual_requested_at": 817478292.861538,
+        "manual_finished_at": 817478292.973487,
+        "phase": "succeeded",
+        "expected_outcome": "succeeded",
+        "successful_lookup": "3D346C62-97B0-419F-8D10-39132736AAB2",
+        "typed_result": "checkedAllowed",
+        "lifecycle_generation": 19,
+        "snapshot_checked_at": 817478292.926323,
+        "blocking_ip_checked_at": null,
+        "date_normalization": "Swift Date seconds + 978307200 = Unix/log seconds"
+      },
+      "protected_traffic_precondition": {
+        "passed": true,
+        "failures": [],
+        "proxied_successes": {
+          "4:tcp": 12,
+          "4:udp": 11,
+          "6:tcp": 12,
+          "6:udp": 13
+        },
+        "captured_dns_successes": {
+          "4:dns-udp": 12,
+          "6:dns-tcp": 13,
+          "6:dns-udp": 13,
+          "4:dns-tcp": 12
+        },
+        "started_epoch": 1795785475.251862,
+        "ended_epoch": 1795785478.298358
+      },
+      "protected_precondition_native": {
+        "passed": true,
+        "native_attempts": 0,
+        "started_epoch": 1795785475.251862,
+        "ended_epoch": 1795785478.298358,
+        "failures": []
+      },
+      "packet_policy": {
+        "passed": true,
+        "protected_native_attempts": 0,
+        "authorized_direct_native_attempts": 1341,
+        "boundaries": [
+          [
+            1795785475.251862,
+            "protected",
+            "initial_active"
+          ],
+          [
+            1795785478.599,
+            "direct",
+            "admitted_direct"
+          ],
+          [
+            1795785486.35,
+            "protected",
+            "confirmed_close"
+          ],
+          [
+            1795785486.572,
+            "direct",
+            "admitted_direct"
+          ]
+        ],
+        "final_protected_closure_observed": null,
+        "leak_samples": [],
+        "scope": "zero native after confirmed closure; explicitly admitted Direct windows reported separately"
+      },
+      "direct_detector_families": [
+        4,
+        6
+      ],
+      "lab_cleanup": {
+        "flushed": true,
+        "empty": true
+      },
+      "settled_seconds": 36,
+      "http_requests": 2,
+      "max_http_per_lookup": 1,
+      "final_mode": "direct",
+      "final_phase": "active",
+      "settled_samples": 18,
+      "settled_healthy_samples": 18,
+      "health": {
+        "passed": true,
+        "interval_seconds": 0.5,
+        "started_epoch": 1795785457.386795,
+        "finished_epoch": 1795785535.8609421,
+        "failures": [],
+        "max_infrastructure_age_seconds": 15.059329986572266,
+        "max_rpc_seconds": 0.4106035420000005,
+        "max_pf_age_seconds": 15.059329986572266,
+        "max_launchd_age_seconds": 14.374930143356323,
+        "health_overdue_sample_count": 0,
+        "method": "bounded read-only core state plus original guard health file; no timestamp synthesis",
+        "maximum_full_guard_pf_age_at_sample_finish_seconds": 14.50632905960083,
+        "scan_outcomes": {
+          "completed": 6,
+          "deferred": 2,
+          "superseded": 1
+        },
+        "retry_events": [
+          {
+            "outcome": "deferred",
+            "delay_seconds": "1.0",
+            "retry_level": "1"
+          },
+          {
+            "outcome": "deferred",
+            "delay_seconds": "1.0",
+            "retry_level": "2"
+          }
+        ]
+      },
+      "whole_event_verdict": {
+        "passed": true,
+        "runtime_errors": 0,
+        "provider_penalties": 0,
+        "service_repair_or_recovery_events": {},
+        "unexpected_settled_events": [],
+        "whole_case_http_requests_including_preflight": 5,
+        "operation_http_requests": 2,
+        "maximum_http_per_lookup": 1,
+        "lookup_trigger_counts_including_preflight": {
+          "settings_changed": 4,
+          "manual": 2
+        },
+        "manual_result_counts_including_preflight": {
+          "checkedAllowed": 2,
+          "superseded": 1
+        },
+        "method": "retained whole-case events; expected queue/transition triggers plus no forbidden events during settled samples"
+      }
+    }
+  ],
+  "uncompleted_candidate_cases": [],
+  "historical_evidence": "targeted-health-rapid-d91336cb.json",
+  "typed_oracle_controls": {
+    "new_controls": 7,
+    "before": {
+      "passed": 1,
+      "failed": 3,
+      "errors": 3
+    },
+    "after_failed_only": {
+      "run": 6,
+      "passed": 6
+    },
+    "baseline_passes_not_rerun": 1,
+    "before_oracle_sha256": "b362afff9553913cf69c0b2876caa57125a90c773a791c6712ed36539ae0462a",
+    "after_source_sha256": {
+      "v3_rapid_policy_oracle.py": "1554c77965841f3ec2ddfa50928cc0d84a8ea3b3b6fe58822ff4f34035b7d492",
+      "v3_rapid_policy_test.py": "be1163a84c343d641014b69784cd8d74542bbb68f00f34f0a78eb48009c217fa",
+      "v3_targeted_policy_harness_tests.py": "58c2d744e98f81e4b02702ba26d57fb043ce0695978e17b99ff8e3bac1c39ca7"
+    },
+    "logs_sha256": {
+      "before.log": "550b3270ac04368c0bce59fd9ee65853c2198fc7afa14048c475a00bda0292a9",
+      "after-failed-only.log": "5b535f6888afec17794af2af881b3da1405c07a3b5c83f4d3795914438463634"
+    },
+    "VM_test_started": false,
+    "production_changed": false
+  },
+  "limits": [
+    "The two health timing results remain scoped to d91336cb; they were not repeated on this candidate.",
+    "The four new scenarios use production RPCs, not native button clicks or Screen Sharing tests.",
+    "Existing incoming TCP SSH controls qualify management continuity; they do not qualify every incoming protocol.",
+    "Explicitly admitted Direct windows permit native traffic. Zero native escape is required after confirmed protection.",
+    "Effective PF age and real full-guard dates are measured; private in-memory receipt age is not separately observable.",
+    "All original failures and setup support failures remain in the historical evidence; no retroactive pass.",
+    "No broad suite rerun, publication or worker teardown is authorized by these results."
+  ],
+  "cleanup": {
+    "status": "complete",
+    "summary": "targeted-health-rapid-cleanup-4263cf39.json",
+    "summary_sha256": "5e29828c821e464575f1c7f78d6dc9ba2c4dc8400a450fc2d5dd7ec7858eccf5",
+    "separately_authorized": true
+  }
+}

@@ -10,8 +10,8 @@ from dualstack_fixture import socks_address
 
 
 class ClosureFixture(InstalledFixture):
-    def __init__(self, *args):
-        super().__init__(*args)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         # Reserve a real non-listening endpoint for connection-refused tests.
         self.refused = self.bind(socket.AF_INET, socket.SOCK_STREAM, self.bridge4)
         first = self.bind(socket.AF_INET, socket.SOCK_STREAM, self.data4)
@@ -74,7 +74,9 @@ class ClosureFixture(InstalledFixture):
 
 if __name__ == '__main__':
     root = Path(sys.argv[1])
-    fixture = ClosureFixture(root, *sys.argv[2:6], 'S00')
+    assert sys.argv[6:] in ([], ['--loopback-provider-alias']), 'Unknown fixture option'
+    fixture = ClosureFixture(root, *sys.argv[2:6], 'S00',
+                             loopback_provider_alias='--loopback-provider-alias' in sys.argv[6:])
     (root / 'fixture.json').write_text(json.dumps(fixture.manifest()))
     signal.signal(signal.SIGTERM, lambda *_: fixture.done.set())
     signal.signal(signal.SIGINT, lambda *_: fixture.done.set())

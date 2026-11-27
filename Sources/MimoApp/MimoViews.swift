@@ -108,7 +108,7 @@ struct DashboardView: View {
     private let serviceTitleFont = Font.system(size: 14, weight: .medium)
     private let serviceStatusFont = Font.system(size: 14)
     private let serviceControlFont = Font.system(size: 13)
-    private let serviceStatusWidth: CGFloat = 134
+    private let serviceStatusWidth: CGFloat = 162
     private let serviceAccessoryWidth: CGFloat = 190
     private let serviceRowHeight: CGFloat = 40
     private var routing: MimoRoutingState { monitor.routingState }
@@ -135,7 +135,7 @@ struct DashboardView: View {
                 Spacer()
                 Picker("Routing mode", selection: Binding(get: { routing.configuration.mode }, set: monitor.setMode)) {
                     ForEach(ProxyMode.allCases) { Text($0.title).tag($0).disabled($0.requiresVerification && routing.configuration.proxy == nil) }
-                }.pickerStyle(.segmented).labelsHidden().frame(width: 280).disabled(!monitor.canChangeSharedSettings || installer.isInstalling)
+                }.pickerStyle(.segmented).labelsHidden().frame(width: 280).disabled(!monitor.canChangeModes || installer.isInstalling)
                     .help("Direct: no proxy. Rule: apply the saved profile. Global: proxy all public internet traffic.")
             }.padding(.horizontal, 18).padding(.vertical, 10).modifier(MimoBarBackground())
             Divider()
@@ -387,26 +387,29 @@ struct DashboardView: View {
     private func infrastructureStatus(at date: Date) -> some View {
         let status = (routing.infrastructure ?? .init()).current(at: date)
         return VStack(spacing: 0) {
-            infrastructureIndicator("Transition guard", symbol: "shield.lefthalf.filled", health: status.pf, checkedAt: status.checkedAt, at: date)
+            infrastructureIndicator("Transition guard", symbol: "shield.lefthalf.filled", health: status.pf, checkedAt: status.pfCheckedAt ?? status.checkedAt, at: date)
             Divider()
-            infrastructureIndicator("Service monitor", symbol: "waveform.path.ecg", health: status.launchd, checkedAt: status.checkedAt, at: date)
+            infrastructureIndicator("Core supervisor", symbol: "waveform.path.ecg", health: status.launchd, checkedAt: status.launchdCheckedAt ?? status.checkedAt, at: date)
+            Divider()
+            infrastructureIndicator("Core heartbeat", symbol: "heart", health: routing.heartbeatHealth ?? .unknown, checkedAt: routing.heartbeatCheckedAt, at: date)
         }
-        .help("Independent checks run every 10 seconds. " + (status.checkedAt.map { "Last check: \($0.formatted(date: .omitted, time: .standard))." } ?? "No current inspection is available.") + " The active firewall blocks native application fallback; launchd reports startup jobs and saved service intent. Intentional Stop choices are healthy.")
-        .padding(.horizontal, 16).frame(height: serviceRowHeight * 2 + 1)
+        .help("mimo-core-supervisor normally checks infrastructure every 10 seconds and retries deferred inspections sooner after transitions. Each age uses the actual component observation, not when the check finished. Checking does not renew health; evidence older than 35 seconds remains overdue. " + (status.inspection.map { $0.outcome == nil ? "An inspection is running. " : "Last inspection: \($0.outcome!.rawValue). " } ?? "") + "mimo-core-heartbeat independently watches supervisor progress. Intentional Stop choices are shown as Stopped.")
+        .padding(.horizontal, 16).frame(height: serviceRowHeight * 3 + 2)
     }
 
     private func infrastructureIndicator(_ title: String, symbol: String, health: MimoInfrastructureHealth, checkedAt: Date?, at date: Date) -> some View {
-        let hasReport = monitor.connected || monitor.hasSupervisorReply(at: date)
-        let color = monitor.installationInactive || hasReport && (health == .healthy || health == .released) ? Color.secondary : Color.orange
+        let hasReport = monitor.hasInfrastructureReport(at: date)
+        let label = title == "Core heartbeat" ? monitor.heartbeatHealthLabel(at: date) : monitor.infrastructureHealthLabel(firewall: title == "Transition guard", at: date)
+        let color = monitor.installationInactive || label.hasPrefix("Healthy(") || label.hasPrefix("Released(") ? Color.secondary : Color.orange
         return HStack(spacing: 6) {
             Image(systemName: symbol).foregroundStyle(.secondary).frame(width: 20)
             Text(title).font(serviceTitleFont).lineLimit(1).frame(maxWidth: .infinity, alignment: .leading)
             HStack(spacing: 4) {
                 Circle().fill(color).frame(width: 5, height: 5)
-                Text(monitor.installationInactive ? (title == "Transition guard" ? "Released" : "Removed") : hasReport ? MimoHealthLabel.text(health == .stale ? "Stale" : health.title, checkedAt: checkedAt, at: date) : monitor.connection.rowTitle).lineLimit(1)
+                Text(label).lineLimit(1)
             }.font(serviceStatusFont).monospacedDigit().foregroundStyle(color)
                 .frame(width: serviceStatusWidth, alignment: .leading)
-                .help(hasReport ? "The latest reported inspection result." : monitor.connection.detail + " " + monitor.connection.lastReplyText(at: date))
+                .help(hasReport ? "The latest reported inspection result." : monitor.serviceCommunicationDetail)
             Color.clear.frame(width: serviceAccessoryWidth, height: 1).accessibilityHidden(true)
         }.font(serviceStatusFont).frame(maxWidth: .infinity).frame(height: serviceRowHeight)
             .accessibilityElement(children: .combine)
@@ -447,7 +450,7 @@ struct DashboardView: View {
     private var blockedRecoveryActions: some View {
         HStack {
             Button("Retry verification") { Task { await monitor.refresh() } }.disabled(!monitor.canRefresh)
-            Button("Use Direct") { monitor.setMode(.direct) }.disabled(!monitor.canChangeSharedSettings)
+            Button("Use Direct") { monitor.setMode(.direct) }.disabled(!monitor.canChangeModes)
         }
     }
 
@@ -457,7 +460,7 @@ struct DashboardView: View {
         let hasReport = monitor.hasServiceReport(id, at: date)
         let title = monitor.serviceOperation == id ? "Working…" : status?.healthTitle(at: date) ?? "Unavailable"
         let stale = health == .running && title != "Healthy" && monitor.serviceOperation != id
-        let color = monitor.installationInactive ? Color.secondary : !hasReport || stale ? Color.orange : Color.secondary
+        let color = monitor.installationInactive ? Color.secondary : !hasReport || stale || health == .unavailable ? Color.orange : Color.secondary
         return VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 6) {
                 Image(systemName: serviceSymbol(id)).foregroundStyle(Color.secondary).frame(width: 20)
@@ -467,7 +470,7 @@ struct DashboardView: View {
                     Text(monitor.serviceHealthLabel(id, at: date)).lineLimit(1)
                 }
                     .font(serviceStatusFont).monospacedDigit().foregroundStyle(color).frame(width: serviceStatusWidth, alignment: .leading)
-                    .help((hasReport ? "" : monitor.connection.detail + " ") + (status?.checkedAt.map { "Last checked: \($0.formatted(date: .omitted, time: .standard))." } ?? "No service inspection time is available."))
+                    .help((hasReport ? "" : monitor.serviceCommunicationDetail + " ") + (status?.checkedAt.map { "Last checked: \($0.formatted(date: .omitted, time: .standard))." } ?? "No service inspection time is available."))
                 serviceButtons(id, health: health).disabled(!hasReport || installer.isInstalling).frame(width: serviceAccessoryWidth, alignment: .trailing)
             }
             HStack(spacing: 8) {
@@ -645,7 +648,7 @@ struct SettingsView: View {
                     DisclosureGroup("Active Rule / Global") {
                         Text("Allows Mimo’s own TUN and loopback, engine-owned TCP/UDP, native LAN and link-local addresses, DHCP, local mDNS and IPv6 link control. Tailnet addresses are allowed only on a verified native tunnel. Synthetic addresses and Tailnet traffic on another path are dropped before other exceptions. All remaining native outbound traffic is silently dropped, for IPv4 and IPv6.")
                             .padding(.top, 4)
-                        Text("Outbound permissions create no connection states. Peer-initiated TCP on non-Mimo interfaces uses interface-bound state so SSH, Screen Sharing and web-server replies remain available. Administrator incoming restrictions still apply. Engine ownership uses Mimo’s private group; root alone does not grant public access. Native LAN ranges are 10/8, 172.16/12, 192.168/16, 169.254/16, fc00::/7 and fe80::/10. Intentional native destinations remain outside proxy protection.")
+                        Text("Outbound permissions create no connection states. Peer-initiated TCP to this Mac on non-Mimo interfaces uses interface-bound state so tracked SSH, Screen Sharing and web-server replies remain available. Later administrator incoming restrictions can veto new connections; earlier non-quick rules need ordering review. Engine ownership uses Mimo’s private group; root alone does not grant public access. Native LAN ranges are 10/8, 172.16/12, 192.168/16, 169.254/16, fc00::/7 and fe80::/10. Intentional native destinations remain outside proxy protection.")
                             .padding(.top, 4)
                         Text("For the signed Tailscale system extension, core permits root-owned UDP on its held source ports and HTTPS only to its observed control/relay addresses, including startup before its tunnel exists. Core refreshes these scopes during its existing audit. Private Tailnet traffic still requires its verified native interface. This native VPN transport is an explicit exception; other users and arbitrary root HTTPS destinations are not allowed.")
                             .padding(.top, 4)
@@ -655,16 +658,18 @@ struct SettingsView: View {
                             .padding(.top, 4)
                     }
                     DisclosureGroup("Direct, Stop engine and uninstall") {
-                        Text("Direct removes Mimo’s TUN and DNS override and leaves its PF policy empty. Stop engine and uninstall also remove owned services and current or legacy firewall controls. Cleanup preserves other applications’ firewall rules and restores native network settings. Check Event Log for each cleanup step.")
+                        Text("Direct removes Mimo’s TUN and DNS override. It keeps incoming TCP tracking, with no outgoing restrictions, so new incoming sessions can survive a later protected transition. Sessions established before tracking began may need reconnecting. Stop engine and uninstall remove all Mimo rules and owned services, including legacy controls. Cleanup preserves other applications’ firewall rules. Check Event Log for each cleanup step.")
                             .padding(.top, 4)
                     }
-                    maintenanceCommand("Inspect Mimo’s live rules", command: "sudo pfctl -a com.apple/000.mimo -sr", detail: "Read-only. Labels show each rule’s purpose; Direct has no Mimo packet rules.")
+                    maintenanceCommand("Inspect Mimo’s live rules", command: "sudo pfctl -a com.apple/000.mimo -sr", detail: "Read-only. Labels show each rule’s purpose; ordinary Direct retains incoming TCP tracking only. Stop/uninstall leaves this anchor empty.")
                 }
             }
             MimoCard("Maintenance CLI") {
                 VStack(alignment: .leading, spacing: 16) {
                     Text("Copy a command and run it in Terminal on this Mac. Administrator commands may ask for your password. These controls affect every account.")
-                    maintenanceCommand("Supervisor status", command: "sudo /Library/PrivilegedHelperTools/mimo-manage status", detail: "Shows launchd status. The dashboard reports the complete service health check.")
+                    maintenanceCommand("All background services", command: "sudo /Library/PrivilegedHelperTools/mimo-manage status", detail: "Reads all three jobs: mimo-core-supervisor (com.mimo.supervisor), mimo-core-heartbeat (com.mimo.core) and mihomo (com.mimo.mihomo). A running PID alone does not prove health; use the dashboard’s timed checks and Event Log.")
+                    maintenanceCommand("Return to Direct", command: "sudo /Library/PrivilegedHelperTools/mimo-core --recover-direct", detail: "Requests Direct through the supervisor, releasing Mimo’s firewall and DNS controls. Keeps installed services and the IP monitor’s saved preference.")
+                    Text("Open Event Log on the dashboard to read Core and Heartbeat logs. Logs rotate daily or at 5 MiB and are capped at 64 MiB and 128 files. Retention follows Diagnostics (7 days by default). Maintenance never runs automatically when this page opens.").foregroundStyle(.secondary)
                     maintenanceCommand("Inspect system DNS", command: "scutil --dns", detail: "Read-only. Mimo’s protected resolver uses 127.0.0.1:1053; native private scopes remain separate.")
                     maintenanceCommand("Stop engine and release controls", command: "sudo /Library/PrivilegedHelperTools/mimo-manage deactivate", detail: "Runs the shared cleanup and keeps the open app available for IP monitoring. The installed helper is removed after successful cleanup.")
                     maintenanceCommand("Install or restore all services", command: "sudo bash /Applications/Mimo.app/Contents/Resources/daemon.sh install", detail: "Requires Mimo.app. Restores all roles, checks health and asks before replacing conflicting services.")

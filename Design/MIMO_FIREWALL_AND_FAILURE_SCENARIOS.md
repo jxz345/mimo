@@ -1,11 +1,64 @@
 # Firewall and failure scenarios
 
-Current v3 candidate revision: flat Closed/Verification/Active root, empty Direct
-policy, no provider machinery or optimistic opening. Active PF contains native
+Current v3 candidate revision: flat Closed/Verification/Active root, incoming-only
+TCP tracking in ordinary Direct, empty policy after Stop/uninstall, no provider
+machinery or optimistic opening. Active PF contains native
 application fallback; the profile and pinned engine own destination-family and
 routing decisions. The user approved this revision after the measured failures
 below. Scoped VM evidence and remaining limits are recorded below. See [current workflows](MIMO_EVENT_DRIVEN_WORKFLOWS.md)
 and [the revised v3 contract](MIMO_3_0_PLAN.md#6-simplified-firewall-and-cleanup-ordering).
+
+The first 28 November candidate (`7601ffe3`) used dynamic `(self)` for incoming
+tracking. Installed L1 failed before Rule: the Direct-born SSH connection had no
+PF state, the rule had no packet matches, and the kernel `_pf/self` table was
+empty. A paired real-PF regression reproduced no state with `(self)` and a state
+with `(en0)`. The earlier fixture's literal destination had missed this exact
+production expression. Those mechanism results remain scoped evidence; they do
+not establish installed continuity.
+
+The follow-up source renders literal local host addresses from one `getifaddrs`
+snapshot, including IPv6 link-local/temporary addresses and excluding Mimo's TUN.
+The bounded set is canonicalized, deduplicated and sorted. SYN-only, non-quick,
+interface-bound rules target only that captured set; a later loopback no-state
+rule prevents local proxy/DNS clients retaining state across closure. Snapshot
+parsing must reject malformed/widened prefixes, and live readback must match the
+exact root-owned `guard.expected`. Neither labels nor an arbitrary valid-looking
+address list is sufficient. An unreadable inventory cannot fall back to `any`.
+
+Ordinary Direct retains only those incoming rules, with no outgoing restriction.
+Core coalesces address changes into an owned serial background reconciliation:
+validate the old Direct scope/epochs, render and commit the new captured prefix,
+read it back, and adopt only current health evidence. Unchanged snapshots neither
+mutate PF nor renew timestamps. This operation causes no gate closure, exit-IP
+lookup, profile/DNS reload or service restart. Full Stop/uninstall cancels/joins
+it and removes all Mimo rules/references. Protected address changes still follow
+their existing close/verification path; blocked native maintenance can refresh
+the local prefix without granting application egress.
+
+The loss boundary includes sessions born before initial tracking and connections
+to an added address before its refresh completes. They may require reconnect;
+no established-flow adoption is permitted. State loss, interface migration and
+arbitrary UDP service continuity remain outside the guarantee. Non-quick rules
+allow later administrator ingress restrictions to veto new connections; earlier
+non-quick rules still need ordering review. Local candidate `1942a60a` passed the
+declared 24-case VM scope: six final-source PF mechanisms, fourteen native-policy
+controls, the paired expression regression and installed L1/L2/L3. L1 retained
+109/109 authenticated SSH echoes through rejection/recovery; L2 proved complete
+Stop release and exact Direct restoration after Activate. L3 passed addition/removal
+of owned IPv4 and IPv6 loopback aliases with exactly two tracking updates; the
+watchdog work joined, and the gate, profile, DNS and jobs were unchanged with no
+exit-IP checks. The [installed evidence and cleanup record](../Tests/MihomoRuntimeTests/Evidence/v3/observations/remaining-inbound-installed-after-20261128.json)
+retains the packet/state/application proof and expected Stop/Activate communication
+notices. Owned test resources and aliases were removed; original settings/routing/
+hosts were restored with primary healthy in Direct. The temporary worker is absent,
+and the pre-existing backup and approved testing CA are preserved.
+Seven local Direct-maintenance controls and the focused shared/guard/typecheck/
+package checks passed separately. This does not qualify arbitrary UDP continuity,
+pretracking-session adoption or physical sleep, and it is not a publication. L3
+qualifies alias-inventory reconciliation, not TCP delivery to the added aliases,
+IPv6 ingress or route/interface migration.
+See the [before/after investigation](MIMO_REMAINING_FAILURE_INVESTIGATION.md) for
+exact artifact scope and the retained failures and excluded harness attempts.
 
 The active revision scopes Tailnet destinations to observed native tunnels and
 denies those destinations on other paths before the engine-group grant. Native
@@ -23,7 +76,8 @@ or a compromised native VPN. The Settings Maintenance reference describes the
 current policies and copyable inspection/release/uninstall commands.
 
 The incoming-access correction adds interface-bound state for peer-initiated TCP
-on non-Mimo, non-loopback interfaces to every protected policy. Outbound-only denial must not
+to the captured local host-address prefix on non-Mimo, non-loopback interfaces in
+ordinary Direct and every protected policy. Outbound-only denial must not
 silently deny TCP server replies. Original inbound states survive selective
 outbound-source revocation; global state purges are removed from core, independent
 guard and teardown. Settled blocked mode retains verified signed VPN transport,
@@ -248,7 +302,7 @@ Important boundaries:
 - **THEORETICAL T06 — engine violates Rule policy:** active Rule requires trusting mihomo to enforce its direct-routing rules: PF allows broader TCP/UDP egress for the dedicated runtime group in that mode. A corrupted or wrongly configured running engine can violate policy before detection; the group restriction is not per-rule verification.
 - **THEORETICAL T08 — new-interface IPv6 window:** IPv6 denial uses both PF and saved network-service settings. If a newly discovered interface can send IPv6 before an effective denial covers it, that traffic is not protected by the saved settings alone. This is not a measured IPv6 leak; it must not be advertised as a first-packet boot guarantee.
 
-Sources: [policy generator](../Sources/MimoShared/MimoFirewallPolicy.swift), [native transport rules](../Sources/MimoShared/MimoNativeTransport.swift), [native transport writer](../Sources/MimoService/MimoNativeTransportWriter.swift), [IPv4 configuration](../Sources/MimoService/MimoIPv4Configuration.swift).
+Sources: [policy generator](../Sources/MimoShared/MimoFirewallPolicy.swift), [current native egress model](../Sources/MimoShared/MimoNativeEgress.swift), [current runtime owner](../Sources/MimoService/MimoSystemRuntime.swift), [IPv4 configuration cleanup](../Sources/MimoService/MimoIPv4Configuration.swift). The historical provider-era paths `Sources/MimoShared/MimoNativeTransport.swift` and `Sources/MimoService/MimoNativeTransportWriter.swift` were removed; they are not current provider components.
 
 ## 6. Why a blocked machine can still verify the proxy
 

@@ -1,0 +1,151 @@
+{
+  "schema": 1,
+  "issue": "Protected preparation blocks state/heartbeat control RPCs",
+  "installed_failure": {
+    "state_rpc_seconds": 3.002945,
+    "deadline_seconds": 3,
+    "synchronous_policy_seconds": 1.358,
+    "synchronous_profile_probe_seconds": 2.472,
+    "gui_poll_did_not_report_disconnect": true
+  },
+  "before": {
+    "passed": 4,
+    "total": 24,
+    "failing_slow_cases": 20,
+    "terminal_ownership_correct": 24,
+    "source_manifest_sha256": "f549b60ea8680ed0c9e2736e173652c81918123f0105632968bb77f0f928d8cc"
+  },
+  "after": {
+    "original_failures_passed": 20,
+    "original_failures_total": 20,
+    "replacement_controls_passed": 4,
+    "pending_policy_controls_passed": 4,
+    "transaction_controls_passed": 20,
+    "observer_controls_passed": 8,
+    "focused_total": 60,
+    "maximum_rpc_seconds": 0.007678985595703125
+  },
+  "final_source_hashes": {
+    "Sources/MimoService/MimoSystemRuntime.swift": "020a10309cad64a54d3911b9092ca1688a2a583df0126dd4f02ded236ec14804",
+    "Sources/MimoService/MimoSupervisor.swift": "dfd575c4bd757fb8952a8e1c090d672a9816a2f66c8ff2c2637ee205c1efa4e1",
+    "Sources/MimoService/MimoPowerGuard.swift": "a49aa67dc26de3545de9df67b28a20ca5743c9bdba9f9f65767222f87750a95c",
+    "Sources/MimoService/MimoNetworkObserver.swift": "770c50677378335c8af3fd87a5738ff63915e7c52843123dbb0f78ec6320c3c6",
+    "Sources/MimoService/MimoDNSConfiguration.swift": "91a57ec77388fd362a92c47eefb4d2928e1c308898b11329b4416423ee4e437c",
+    "Sources/MimoService/MimoProtectedIO.swift": "2404724b72741486dc1e87607999e35fd02af3eb6733d66116d17a05ed278c8e",
+    "Sources/MimoService/MimoProtectedDNSIO.swift": "2850086d28144d9f3dccd1dc72079552502154d72f89225a4176feccd1bd7998",
+    "Tests/MimoServiceTests/ProtectedPreparation/cases.swift": "748f5bdcb5bac86b32f648edf98981aea845b7c57db2dcccfbd917ebd4b72c43",
+    "Tests/MimoServiceTests/ProtectedPreparation/run.py": "396bd62371c9acc4a7378a9a6db74bd63a6fad06ba23ccbb82b8920b0a7db2b8",
+    "Tests/MimoServiceTests/ProtectedIOOwnership/cases.swift": "99024b0296b6b4588f1253264438388e2dfea8873bc5b3947e5e9bd5e1e33e6b",
+    "Tests/MimoServiceTests/ProtectedIOOwnership/run.py": "265637c189a3b2cc89fbc35204bc302d110c0c2df601978b69f458f958db97ad",
+    "Tests/MimoServiceTests/ProtectedObserver/cases.swift": "992697f0e23e9b29f9d9fb69a9e1a9724e94a56f02da706be1cf9ac37a8bc894",
+    "Tests/MimoServiceTests/ProtectedObserver/run.py": "177fb43b68107c0a49ae44fc9fb8f1e0d1254246f425a6a8e0c8e9cabee4d7d6",
+    "Tests/MimoServiceTests/run.sh": "5e997e387184adb325110446da75bc861da3f65d469b542dc761af7056f58242"
+  },
+  "validation": [
+    {
+      "artifact": ".build/observation-parallel/protected-preparation-repro/after-04/results.json",
+      "sha256": "7741d7d06c803637f1fcb9c5ed69fdd61c28596e710ee3834845b8d298062748",
+      "passed": 28,
+      "total": 28,
+      "kind": "supervisor RPC and pending-policy",
+      "source_manifest": ".build/observation-parallel/protected-preparation-repro/after-04/sources.json"
+    },
+    {
+      "artifact": ".build/observation-parallel/protected-preparation-repro/ownership-06/results.json",
+      "sha256": "d0e1ef4a7a716a608fe7135aabcbae322667b71057d5dd3758284e04b0645ad8",
+      "passed": 20,
+      "total": 20,
+      "kind": "actual fixed-path transaction with kernel effects substituted",
+      "source_manifest": ".build/observation-parallel/protected-preparation-repro/ownership-06/sources.json"
+    },
+    {
+      "artifact": ".build/observation-parallel/protected-preparation-repro/observer-02/results.json",
+      "sha256": "2c4aa19f945534245408151ab168c2cbb6bf5900923cd56bc89e0acc41efe379",
+      "passed": 8,
+      "total": 8,
+      "kind": "actual observer classification with OS facts substituted",
+      "source_manifest": ".build/observation-parallel/protected-preparation-repro/observer-02/sources.json"
+    },
+    {
+      "artifact": ".build/observation-parallel/protected-preparation-repro/shutdown-after/results.json",
+      "sha256": "1ced9263b98ca269dfa6d23d076b32f0427dcfe97fd94853f8c8c845b9e6a8c8",
+      "passed": 4,
+      "total": 4,
+      "kind": "graceful shutdown joins physical I/O and rejects new mutations",
+      "source_manifest": ".build/observation-parallel/protected-preparation-repro/shutdown-after/sources.json"
+    }
+  ],
+  "scope_limits": [
+    "Installed candidate has not been retested yet.",
+    "Parent death with an already-running external child is inherited and remains unqualified.",
+    "The fixed-path I/O tests substitute kernel, saved-settings and root-file effects; the real network path still requires VM qualification.",
+    "The full integrated service runner passed all eight groups against the final frozen production source; installed VM qualification is separate and pending."
+  ],
+  "graceful_shutdown": {
+    "before_passed": 0,
+    "before_total": 4,
+    "after_passed": 4,
+    "after_total": 4,
+    "behavior": "Join protected closure, physical I/O and observer completion before shutdown; reject new mutating requests while stopping."
+  },
+  "integrated_final_validation": {
+    "integrated_runner_exit": 0,
+    "service_binary_passed": true,
+    "groups": [
+      {
+        "group": "approval",
+        "passed": 28,
+        "total": 28,
+        "evidence": ".build/approval-ownership-AB408850-9C18-413C-9619-E5B63F535CD7/results.json",
+        "sha256": "96604119838f67a796c4fd8bf08ee038a28786d721f2f2ba4652e8d7c87acd1e"
+      },
+      {
+        "group": "control",
+        "passed": 52,
+        "total": 52,
+        "evidence": ".build/control-responsiveness-438819B1-5567-4FDE-BE4C-13E827921918/results.json",
+        "sha256": "d339c2561536f4f6f7931e54d18503d4c281eeb50cbeca406cc89a9dda1947b2"
+      },
+      {
+        "group": "direct-publication",
+        "passed": 4,
+        "total": 4,
+        "evidence": ".build/direct-publication-97DC3332-7368-4985-8AA3-1FF3A10D5E03/test.log",
+        "sha256": "6e21c798cdf1432b95ca525fe042d988e9b5e692caae268166ce91c9b9639858"
+      },
+      {
+        "group": "cancellation",
+        "passed": 15,
+        "total": 15,
+        "evidence": ".build/cancellation-diagnostics-B2E3486D-DE2C-479E-AE51-310522DDD6FD/results.json",
+        "sha256": "b7d0c38d51863127d60532ecc5acb686c28c0b4185680970c006750849efd62f"
+      },
+      {
+        "group": "protected-preparation",
+        "passed": 32,
+        "total": 32,
+        "evidence": ".build/protected-preparation-7CE04C56-75A4-456B-8162-CB40AE26B4C8/results.json",
+        "sha256": "53c62d6e3483c3cdcffa5d795e6ea38394772f97597d821a243c7f714fe0abf1"
+      },
+      {
+        "group": "protected-io",
+        "passed": 20,
+        "total": 20,
+        "evidence": ".build/protected-io-ownership-99DE49F6-0732-4647-A657-19179F928D03/results.json",
+        "sha256": "be4a8e31f7ac192a618bbb03c4ef21aa26a01e1171ddf843730bd74f107ab5d3"
+      },
+      {
+        "group": "protected-observer",
+        "passed": 8,
+        "total": 8,
+        "evidence": ".build/protected-observer-DCAA6ABA-9DE5-4A09-9800-FD301CD6CCE6/results.json",
+        "sha256": "3a032aed74faee1642541db89eecd23646ebfaf73bfb29d0baa61645dbeb4539"
+      }
+    ],
+    "groups_passed": 8,
+    "groups_total": 8,
+    "production_manifest_matches": true,
+    "production_mismatches": [],
+    "source_manifest": ".build/observation-parallel/protected-preparation-repro/final-source-and-validation-shutdown.json"
+  }
+}

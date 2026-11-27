@@ -1,0 +1,169 @@
+{
+  "schema": 1,
+  "status": "cleanup_complete",
+  "support_only": true,
+  "tests_rerun": 0,
+  "case_counts": {
+    "distinct_qualified": 5,
+    "distinct_planned": 5,
+    "actual_attempts": 9,
+    "maximum_attempts": 9,
+    "new_cases_passed_on_4263cf39": 4,
+    "historical_health_phase_passes_on_d91336cb": 2
+  },
+  "worker": {
+    "name": "mimo-observation-worker",
+    "core_sha256": "4263cf39e9779b03d00bc73b40fd523e4ba8e42012ec2aa84f824ba5dd48e067",
+    "state_before_deletion": "healthy Direct",
+    "checks": {
+      "healthy_direct": true,
+      "settings_restored": true,
+      "routing_restored": false,
+      "hosts_restored": true,
+      "native_controls_released": true,
+      "lab_anchor_empty": true,
+      "owned_resolvers_absent": true
+    },
+    "owned_resolver_files_removed": 6,
+    "owned_guest_processes_stopped": [
+      {
+        "pid": 65711,
+        "marker": "v3_native_provider_dns.py",
+        "stopped": true,
+        "already_ended": false
+      },
+      {
+        "pid": 62119,
+        "marker": "v3_observation_native.py",
+        "stopped": true,
+        "already_ended": false
+      },
+      {
+        "pid": 59490,
+        "marker": "/usr/bin/caffeinate -dimsu -t 7200",
+        "stopped": true,
+        "already_ended": false
+      }
+    ],
+    "deleted": true,
+    "original_backup_sha256": "c908d448eacf752d41da195037e2ce5e2c4e6cc431cfeaadb310258ae9926bb3",
+    "hosts_original_sha256": "c7dd0e2ed261ce76d76f852596c5b54026b9a894fa481381ffd399b556c0e2da",
+    "restoration_limitation": "The clone inherited a selected proxy UUID that no longer existed. Settings and hosts were restored and network controls released, but exact proxy selection/routing readback could not be restored. This mismatch was retained and the temporary worker deleted; it was not repaired or hidden."
+  },
+  "primary": {
+    "name": "mimo-test-macos",
+    "core_sha256": "00f51db8ff8690de4a47c8ea98ef6562820054da86011a71319ec621ce943e61",
+    "read_only": true,
+    "checks": {
+      "settings_restored": true,
+      "routing_restored": true,
+      "hosts_restored": true,
+      "healthy_direct": true,
+      "controls_released": true,
+      "test_control_listener_removed": true,
+      "core_identity": true,
+      "owned_resolvers_absent": true,
+      "owned_fixture_processes_absent": true
+    },
+    "state": "healthy Direct",
+    "mutated": false
+  },
+  "host": {
+    "owned_fixture_processes_stopped": [
+      {
+        "pid": 68550,
+        "marker": "control-relay-tart.py",
+        "stopped": true,
+        "already_ended": false
+      },
+      {
+        "pid": 68517,
+        "marker": "v3_blocked_retry_test.py",
+        "stopped": true,
+        "already_ended": false
+      }
+    ],
+    "owned_host_processes_remaining": [],
+    "network_settings_changed": false
+  },
+  "remaining_vms": [
+    {
+      "name": "mimo-pre-v3-20261125",
+      "state": "stopped"
+    },
+    {
+      "name": "mimo-test-macos",
+      "state": "running"
+    }
+  ],
+  "certificates": "Existing primary trust and host test CA/certificate files were left unchanged. The temporary worker certificate store disappeared with the authorized worker deletion.",
+  "raw_archives": [
+    {
+      "sha256": "70049578fab51e2a33df6c0d90be2c0357668eb79cd409ebb5ff12a2db693a9d",
+      "files": [
+        "original.json",
+        "hosts.original",
+        "fixture.json",
+        "native-resolver.json",
+        "native-resolver-journal.json",
+        "cleanup-resolver-journal-before.json",
+        "cleanup-resolver-journal-after.json",
+        "cleanup-final-state.json",
+        "cleanup-owned-resources.json"
+      ],
+      "path": ".build/observation-parallel/worker-targeted/cleanup-4263cf39/guest-cleanup-private.tar.gz"
+    },
+    {
+      "path": ".build/observation-parallel/worker-targeted/cleanup-4263cf39/host-fixture-private.tar.gz",
+      "sha256": "a01ff25ca5fdf172b7afc1760c8ff34e0255f12c10588cfd66980f5e9b9ad438",
+      "files": [
+        "events.jsonl",
+        "fixture.log",
+        "control-relay.log",
+        "lifecycle.json",
+        "fixture.json",
+        "guest-fixture.json",
+        "server.crt"
+      ]
+    }
+  ],
+  "evidence": {
+    "original-restore.json": {
+      "path": ".build/observation-parallel/worker-targeted/cleanup-4263cf39/original-restore.json",
+      "sha256": "a34f5ac3aa8e946f2f6880db3ed517a75b285a39cf4ce9cb704bb60454d88687"
+    },
+    "primary-readonly-final.json": {
+      "path": ".build/observation-parallel/worker-targeted/cleanup-4263cf39/primary-readonly-final.json",
+      "sha256": "01dc186bdf6868e0ef87d2be1c887155032701afef42c2086f77535c63ddbda2"
+    },
+    "worker-cleanup.json": {
+      "path": ".build/observation-parallel/worker-targeted/cleanup-4263cf39/worker-cleanup.json",
+      "sha256": "b3ea4c853a8a12949066bd8573110dd0ef233ebfa95d143dd3b12619b2a921fd"
+    },
+    "host-cleanup.json": {
+      "path": ".build/observation-parallel/worker-targeted/cleanup-4263cf39/host-cleanup.json",
+      "sha256": "dcb8d797963b610dc597f26453d459cd3dcd80e5fe16c3f02963ab19889bc808"
+    },
+    "vm-deletion.json": {
+      "path": ".build/observation-parallel/worker-targeted/cleanup-4263cf39/vm-deletion.json",
+      "sha256": "9db7ff4275bf5b81cb02d41aceb1a6f22a7e5d40d81a2b9b1d2b6d9f339d6bb6"
+    },
+    "vm-inventory-before.json": {
+      "path": ".build/observation-parallel/worker-targeted/cleanup-4263cf39/vm-inventory-before.json",
+      "sha256": "e1b200eebf28dc58ce733a4c581728771fcee754b92d22083f3aa781d647d505"
+    },
+    "vm-inventory-after.json": {
+      "path": ".build/observation-parallel/worker-targeted/cleanup-4263cf39/vm-inventory-after.json",
+      "sha256": "da9a920e4282ca9195ad31b7b7f407f0e91a7c987a0d4fec0932bc70ae957880"
+    }
+  },
+  "ssh_watchers": {
+    "path": ".build/observation-parallel/cleanup/ssh-final-summary.json",
+    "sha256": "26b0bd16461756e3b16486fc1ccc15568eb76ca15aa6ddc102c4e8b8d0147483",
+    "stopped_and_joined_by_root": true,
+    "whole_campaign_continuity_claimed": false,
+    "historical_failures_and_gaps_retained": true
+  },
+  "support_check_note": "The initial primary process scan matched its own Python source in argv; an exact script-argument check corrected that diagnostic false positive. Both checks remain archived.",
+  "published": false
+}

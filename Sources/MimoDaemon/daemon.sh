@@ -1,5 +1,5 @@
 #!/bin/bash
-# Install Mimo's supervisor and its independently supervised core/engine jobs.
+# Install the supervisor, its minimal peer heartbeat, and the engine.
 # install: administrator-only; uninstall/remove: remove runtime and login items, retain configuration/credentials/logs.
 # The root-owned copy permits only the fixed uninstall command through the removal grant.
 set -uo pipefail
@@ -15,7 +15,12 @@ MANAGER="/Library/PrivilegedHelperTools/mimo-manage"
 OLD_MANAGER=/Library/PrivilegedHelperTools/com.example.exitipmonitor.manage
 OLD_GRANT=/etc/sudoers.d/exitipmonitor-service
 LEGACY_BRIDGE_MARKER='/Library/Application Support/ExitIPMonitor/needs-removal-bridge'
-JOBS="$DIR/LaunchDaemons"
+JOBS=/Library/LaunchDaemons
+LEGACY_JOBS="$DIR/LaunchDaemons"
+HELPERS="$DIR/LaunchHelpers"
+SUPERVISOR_EXECUTABLE="$HELPERS/mimo-core-supervisor"
+HEARTBEAT_EXECUTABLE="$HELPERS/mimo-core-heartbeat"
+ENGINE_EXECUTABLE="$HELPERS/mihomo"
 RUNTIME="$DIR/Runtime"
 PROFILES='/Library/Application Support/Mimo/Mihomo'
 APP_IDENTITY='/Library/Application Support/Mimo/app.cdhash'
@@ -23,7 +28,8 @@ LOGIN_APP=/Library/PrivilegedHelperTools/MimoUninstaller.app
 PLIST="$JOBS/$LABEL.plist"
 ENGINE_PLIST="$JOBS/$ENGINE.plist"
 SUPERVISOR_PLIST="/Library/LaunchDaemons/$SUPERVISOR.plist"
-LEGACY_CORE_PLIST="/Library/LaunchDaemons/$LABEL.plist"
+LEGACY_CORE_PLIST="$LEGACY_JOBS/$LABEL.plist"
+LEGACY_ENGINE_PLIST="$LEGACY_JOBS/$ENGINE.plist"
 GRANT=/etc/sudoers.d/mimo-service
 GUARD='/Library/Application Support/Mimo/Guard'
 GUARD_SCRIPT="$GUARD/pf-guard.pl"
@@ -81,15 +87,25 @@ secure_directory() {
     /usr/sbin/chown root:wheel "$path" && /bin/chmod "$mode" "$path"
 }
 
+service_status() {
+    local job result=0
+    for job in "$SUPERVISOR" "$LABEL" "$ENGINE"; do
+        printf '\n=== %s ===\n' "$job"
+        run /bin/launchctl print "system/$job" || result=1
+    done
+    return "$result"
+}
+
 service_plist() {
-    local kind=${1:-core} label=$LABEL argument="" group="" mach=""
+    local kind=${1:-core} label=$LABEL argument="" group="" mach="" exit_timeout=35 executable="$HEARTBEAT_EXECUTABLE"
     case "$kind" in
-        core) mach="<key>MachServices</key><dict><key>$LABEL</key><true/><key>$LABEL.control</key><true/></dict>" ;;
+        core) argument='<string>--heartbeat</string>'; mach="<key>MachServices</key><dict><key>$LABEL.heartbeat</key><true/></dict>" ;;
         supervisor)
+            executable=$SUPERVISOR_EXECUTABLE
             label=$SUPERVISOR argument='<string>--supervisor</string>'
             group='<key>GroupName</key><string>_mimo</string>'
-            mach="<key>MachServices</key><dict><key>$SUPERVISOR</key><true/><key>$SUPERVISOR.control</key><true/></dict>" ;;
-        engine) label=$ENGINE argument='<string>--engine</string>'; group='<key>GroupName</key><string>_mimo</string>' ;;
+            mach="<key>MachServices</key><dict><key>$SUPERVISOR</key><true/><key>$SUPERVISOR.control</key><true/><key>$LABEL</key><true/><key>$LABEL.control</key><true/></dict>" ;;
+        engine) executable=$ENGINE_EXECUTABLE; label=$ENGINE argument='<string>--engine</string>'; group='<key>GroupName</key><string>_mimo</string>'; exit_timeout=10 ;;
         *) return 2 ;;
     esac
     cat <<PLIST
@@ -97,40 +113,16 @@ service_plist() {
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
 <key>Label</key><string>$label</string>
-<key>ProgramArguments</key><array><string>$EXECUTABLE</string>$argument</array>
+<key>ProgramArguments</key><array><string>$executable</string>$argument</array>
 $group
 <key>RunAtLoad</key><true/>
 <key>KeepAlive</key><true/>
 <key>ThrottleInterval</key><integer>10</integer>
-<key>ExitTimeOut</key><integer>10</integer>
+<key>ExitTimeOut</key><integer>$exit_timeout</integer>
 <key>ProcessType</key><string>Background</string>
 $mach
 <key>StandardOutPath</key><string>/Library/Logs/Mimo/$kind.log</string>
 <key>StandardErrorPath</key><string>/Library/Logs/Mimo/$kind.log</string>
-</dict></plist>
-PLIST
-}
-
-infrastructure_plist() {
-    local kind=$1 label argument interval=""
-    case "$kind" in
-        boot) label=$BOOT_GUARD argument=--boot ;;
-        health) label=$INFRASTRUCTURE argument=--check interval='<key>StartInterval</key><integer>10</integer>' ;;
-        *) return 2 ;;
-    esac
-    cat <<PLIST
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0"><dict>
-<key>Label</key><string>$label</string>
-<key>ProgramArguments</key><array><string>/usr/bin/perl</string><string>$GUARD_SCRIPT</string><string>$argument</string></array>
-<key>RunAtLoad</key><true/>
-<key>KeepAlive</key><dict><key>SuccessfulExit</key><false/></dict>
-<key>ThrottleInterval</key><integer>10</integer>
-<key>ExitTimeOut</key><integer>10</integer>
-$interval
-<key>StandardOutPath</key><string>/Library/Logs/Mimo/infrastructure.log</string>
-<key>StandardErrorPath</key><string>/Library/Logs/Mimo/infrastructure.log</string>
 </dict></plist>
 PLIST
 }
@@ -200,7 +192,7 @@ directory_query() { /usr/bin/dscl /Search "$@"; }
 
 is_competing_engine() {
     case "$1" in
-        "$RUNTIME/mihomo"|"$EXECUTABLE") return 1 ;;
+        "$RUNTIME/mihomo"|"$EXECUTABLE"|"$SUPERVISOR_EXECUTABLE"|"$HEARTBEAT_EXECUTABLE"|"$ENGINE_EXECUTABLE") return 1 ;;
         */mihomo|*/clash|*/clash-meta|*/verge-mihomo|*/clash-verge-service) return 0 ;;
         *) return 1 ;;
     esac
@@ -229,7 +221,7 @@ confirmed_deactivation() {
     permissions=$(/usr/bin/stat -f %Lp "$receipt") || return 1
     [ "$((8#$permissions & 022))" = 0 ] || return 1
     case "$(/bin/cat "$receipt")" in mimo-inactive-v1|mimo-inactive-v2) ;; *) return 1 ;; esac
-    [ ! -e "$EXECUTABLE" ] && [ ! -e "$SUPERVISOR_PLIST" ] || return 1
+    [ ! -e "$EXECUTABLE" ] && [ ! -e "$SUPERVISOR_PLIST" ] && [ ! -e "$PLIST" ] && [ ! -e "$ENGINE_PLIST" ] && [ ! -e "$HELPERS" ] || return 1
     for job in "$LABEL" "$ENGINE" "$SUPERVISOR" "$BOOT_GUARD" "$INFRASTRUCTURE"; do
         state=0; job_state "$job" || state=$?
         [ "$state" = 1 ] || return 1
@@ -237,7 +229,7 @@ confirmed_deactivation() {
 }
 
 is_competing_process() {
-    case "$2" in "$RUNTIME/mihomo"|"$EXECUTABLE") return 1 ;; esac
+    case "$2" in "$RUNTIME/mihomo"|"$EXECUTABLE"|"$SUPERVISOR_EXECUTABLE"|"$HEARTBEAT_EXECUTABLE"|"$ENGINE_EXECUTABLE") return 1 ;; esac
     is_competing_engine "$2" || /usr/bin/grep -Fxq "$1" <<< "$resource_pids"
 }
 
@@ -426,12 +418,15 @@ ensure_loaded() {
 }
 
 unload() {
-    local label=$1 state=0 ticks=0
+    local label=$1 state=0 ticks=0 maximum_ticks=100
+    # Existing core roles drain bounded helpers; retain the candidate's old
+    # infrastructure job in migration/removal handling too.
+    case "$label" in "$LABEL"|"$SUPERVISOR"|"$INFRASTRUCTURE") maximum_ticks=200 ;; esac
     job_state "$label" || state=$?
     [ "$state" != 1 ] || return 0
     [ "$state" = 0 ] || return 1
     run /bin/launchctl bootout "system/$label" || return 1
-    while [ "$ticks" -lt 100 ]; do
+    while [ "$ticks" -lt "$maximum_ticks" ]; do
         state=0; job_state "$label" || state=$?
         [ "$state" != 1 ] || return 0
         [ "$state" = 0 ] || return 1
@@ -452,7 +447,7 @@ wait_mimo_workers() {
         found=0
         while read -r pid command; do
             case "$command" in
-                "$EXECUTABLE"|"$EXECUTABLE "*|"$RUNTIME/mihomo"|"$RUNTIME/mihomo "*|"/usr/bin/perl $GUARD_SCRIPT "*|"/usr/bin/perl5."*" $GUARD_SCRIPT "*) found=1 ;;
+                "$EXECUTABLE"|"$EXECUTABLE "*|"$SUPERVISOR_EXECUTABLE"|"$SUPERVISOR_EXECUTABLE "*|"$HEARTBEAT_EXECUTABLE"|"$HEARTBEAT_EXECUTABLE "*|"$ENGINE_EXECUTABLE"|"$ENGINE_EXECUTABLE "*|"$RUNTIME/mihomo"|"$RUNTIME/mihomo "*|"/usr/bin/perl $GUARD_SCRIPT "*|"/usr/bin/perl5."*" $GUARD_SCRIPT "*) found=1 ;;
             esac
         done <<< "$table"
         [ "$found" = 1 ] || return 0
@@ -527,8 +522,14 @@ restore_installation() {
     /bin/rm -f "$RUNTIME/maintenance" || return 1
     if [ "$supervisor_loaded" = 1 ]; then
         run /bin/launchctl bootstrap system "$SUPERVISOR_PLIST" || return 1
-    elif [ "$old_loaded" = 1 ]; then
-        run /bin/launchctl bootstrap system "$LEGACY_CORE_PLIST" || return 1
+    fi
+    if [ "$old_loaded" = 1 ]; then
+        path=$PLIST; [ -f "$path" ] || path=$LEGACY_CORE_PLIST
+        run /bin/launchctl bootstrap system "$path" || return 1
+    fi
+    if [ "${engine_loaded:-0}" = 1 ]; then
+        path=$ENGINE_PLIST; [ -f "$path" ] || path=$LEGACY_ENGINE_PLIST
+        run /bin/launchctl bootstrap system "$path" || return 1
     fi
     if [ "${boot_loaded:-0}" = 1 ]; then ensure_loaded "$BOOT_GUARD" "$BOOT_PLIST" || return 1; fi
     if [ "${health_loaded:-0}" = 1 ]; then ensure_loaded "$INFRASTRUCTURE" "$HEALTH_PLIST" || return 1; fi
@@ -567,13 +568,13 @@ finish_installation() {
 install_service() (
     require_root || return 1
     local binary="$SCRIPT_DIR/../MacOS/mimo-core" app stage="" owner=${SUDO_USER:-} path state
-    local mutation_started=0 old_loaded=0 supervisor_loaded=0 legacy_loaded=0 legacy_http_loaded=0 old_mode=direct old_ipv4_policy=0 index=0 was_deactivated=0
+    local mutation_started=0 old_loaded=0 engine_loaded=0 supervisor_loaded=0 legacy_loaded=0 legacy_http_loaded=0 old_mode=direct old_ipv4_policy=0 index=0 was_deactivated=0
     local boot_loaded=0 health_loaded=0 guard_was_installed=0
     local login_installed=0 login_backup=0
     local legacy_removal_bridge=0 stopped_engine_conflicts=""
     local dependency expected_hash actual_hash manager_mode
     local installation_id installation_logger="" installation_stage=preflight installer_lock=0
-    local installed_files=("$DIR/deactivated" "$RUNTIME/services.json" "$DIR/Service/state.plist" "$EXECUTABLE" "$PLIST" "$ENGINE_PLIST" "$SUPERVISOR_PLIST" "$LEGACY_CORE_PLIST" "$MANAGER" "$DIR/command-support.sh" "$DIR/cleanup-installation.sh" "$DIR/release-network.pl" "$DIR/installed-app" "$GRANT" "$RUNTIME/mihomo" "$RUNTIME/engine.sha256" "$RUNTIME/blocking.yaml" "$LEGACY_EXECUTABLE" "$PROFILES/blocking.yaml")
+    local installed_files=("$DIR/deactivated" "$RUNTIME/services.json" "$DIR/Service/state.plist" "$EXECUTABLE" "$PLIST" "$ENGINE_PLIST" "$SUPERVISOR_PLIST" "$LEGACY_CORE_PLIST" "$LEGACY_ENGINE_PLIST" "$SUPERVISOR_EXECUTABLE" "$HEARTBEAT_EXECUTABLE" "$ENGINE_EXECUTABLE" "$MANAGER" "$DIR/command-support.sh" "$DIR/cleanup-installation.sh" "$DIR/release-network.pl" "$DIR/installed-app" "$GRANT" "$RUNTIME/mihomo" "$RUNTIME/engine.sha256" "$RUNTIME/blocking.yaml" "$LEGACY_EXECUTABLE" "$PROFILES/blocking.yaml")
     installed_files+=("$APP_IDENTITY" "$OLD_MANAGER" "$OLD_GRANT")
     installed_files+=("$GUARD_SCRIPT" "$BOOT_PLIST" "$HEALTH_PLIST" "$BOOT_RULES" /etc/pf.conf "$GUARD/blocking.pf")
     for path in "$LABEL" "$ENGINE" "$SUPERVISOR" "$BOOT_GUARD" "$INFRASTRUCTURE"; do installed_files+=("$GUARD/$path.plist"); done
@@ -630,7 +631,7 @@ install_service() (
         fi
     done
     secure_directory /Library/PrivilegedHelperTools && secure_directory /Library/LaunchDaemons &&
-        secure_directory /etc/sudoers.d && secure_directory "$DIR" && secure_directory "$JOBS" &&
+        secure_directory /etc/sudoers.d && secure_directory "$DIR" && secure_directory "$JOBS" && secure_directory "$LEGACY_JOBS" && secure_directory "$HELPERS" &&
         secure_directory "$RUNTIME" 0700 && secure_directory /Library/Logs/Mimo &&
         secure_directory "$PROFILES" 0700 &&
         secure_directory "$GUARD" 0700 && secure_directory /etc/pf.anchors || return 1
@@ -662,21 +663,17 @@ install_service() (
         service_plist "$path" > "$stage/$path.plist" || return 1
         /usr/bin/plutil -lint "$stage/$path.plist" || return 1
     done
-    for path in boot health; do
-        infrastructure_plist "$path" > "$stage/$path.plist" || return 1
-        /usr/bin/plutil -lint "$stage/$path.plist" || return 1
-    done
     [ ! -f "$GUARD_SCRIPT" ] || guard_was_installed=1
     /usr/bin/perl -c "$SCRIPT_DIR/pf-guard.pl" || return 1
     run "$stage/new" --print-startup-firewall > "$stage/blocking.pf" || return 1
     run /sbin/pfctl -n -a com.apple/000.mimo -f "$stage/blocking.pf" || return 1
     old_mode=$(run "$stage/new" --installation-mode) || return 1
     case "$old_mode" in direct|rule|global) ;; *) return 1 ;; esac
-    for path in "$LABEL" "$SUPERVISOR" "$LEGACY" "$LEGACY-http" "$BOOT_GUARD" "$INFRASTRUCTURE"; do
+    for path in "$LABEL" "$ENGINE" "$SUPERVISOR" "$LEGACY" "$LEGACY-http" "$BOOT_GUARD" "$INFRASTRUCTURE"; do
         state=0; job_state "$path" || state=$?
         [ "$state" != 2 ] || return 1
         if [ "$state" = 0 ]; then
-            case "$path" in "$LABEL") old_loaded=1 ;; "$SUPERVISOR") supervisor_loaded=1 ;; "$LEGACY") legacy_loaded=1 ;; "$BOOT_GUARD") boot_loaded=1 ;; "$INFRASTRUCTURE") health_loaded=1 ;; *) legacy_http_loaded=1 ;; esac
+            case "$path" in "$LABEL") old_loaded=1 ;; "$ENGINE") engine_loaded=1 ;; "$SUPERVISOR") supervisor_loaded=1 ;; "$LEGACY") legacy_loaded=1 ;; "$BOOT_GUARD") boot_loaded=1 ;; "$INFRASTRUCTURE") health_loaded=1 ;; *) legacy_http_loaded=1 ;; esac
         fi
     done
     if [ -f "/Library/LaunchDaemons/$LEGACY.plist" ]; then /usr/bin/touch "$DIR/legacy-provider-enabled" || return 1; fi
@@ -687,11 +684,19 @@ install_service() (
     if [ -f "$RUNTIME/ipv6-original.plist" ]; then old_ipv4_policy=1; fi
     mutation_started=1
     install_stage replacing_services || return 1
-    run "$stage/new" --begin-maintenance || return 1
+    bounded_command 45 begin-maintenance "$stage/new" --begin-maintenance || return 1
     unload "$INFRASTRUCTURE" && unload "$BOOT_GUARD" && unload "$LEGACY-http" && unload "$LEGACY" && unload "$LABEL" && unload "$ENGINE" && unload "$SUPERVISOR" || return 1
     wait_mimo_workers || return 1
     wait_legacy_workers || return 1
-    /usr/bin/install -o root -g wheel -m 0755 "$stage/new" "$EXECUTABLE" || return 1
+    # A deliberate installation/Activate resets recovery budgets after writers
+    # drain. Ordinary peer restarts never clear their persistent backoff.
+    /bin/rm -f "$RUNTIME/supervisor.repair-budget.json" "$RUNTIME/heartbeat.repair-budget.json" \
+        "$RUNTIME/supervisor.progress.json" "$RUNTIME/heartbeat.progress.json" || return 1
+    # Identical signed core code, distinct role paths for macOS background-item attribution.
+    # The canonical utility has no launchd job. Never re-sign installed binaries.
+    for path in "$EXECUTABLE" "$SUPERVISOR_EXECUTABLE" "$HEARTBEAT_EXECUTABLE" "$ENGINE_EXECUTABLE"; do
+        /usr/bin/install -o root -g wheel -m 0755 "$stage/new" "$path" || return 1
+    done
     # Pin only the verified app selected during this administrator-approved
     # installation. Updates replace this pin atomically with the helper/jobs;
     # rollback restores it, and no ordinary user can rewrite it.
@@ -719,21 +724,22 @@ install_service() (
     /usr/bin/install -o root -g wheel -m 0644 "$stage/engine.plist" "$ENGINE_PLIST" || return 1
     /usr/bin/install -o root -g wheel -m 0644 "$stage/supervisor.plist" "$SUPERVISOR_PLIST" || return 1
     /usr/bin/install -o root -g wheel -m 0644 "$SCRIPT_DIR/pf-guard.pl" "$GUARD_SCRIPT" || return 1
-    /usr/bin/install -o root -g wheel -m 0644 "$stage/boot.plist" "$BOOT_PLIST" || return 1
-    /usr/bin/install -o root -g wheel -m 0644 "$stage/health.plist" "$HEALTH_PLIST" || return 1
+    # The existing supervisor owns boot and health. Retire both legacy Perl
+    # jobs and the interim --infrastructure job after all old workers exit.
+    # The backup/rollback inventory retains both old registrations.
+    /bin/rm -f "$BOOT_PLIST" "$HEALTH_PLIST" "$GUARD/$BOOT_GUARD.plist" "$GUARD/$INFRASTRUCTURE.plist" || return 1
     /usr/bin/install -o root -g wheel -m 0644 "$stage/blocking.pf" "$BOOT_RULES" || return 1
     /usr/bin/install -o root -g wheel -m 0600 "$stage/blocking.pf" "$GUARD/blocking.pf" || return 1
-    /usr/bin/install -o root -g wheel -m 0600 "$stage/boot.plist" "$GUARD/$BOOT_GUARD.plist" || return 1
-    /usr/bin/install -o root -g wheel -m 0600 "$stage/health.plist" "$GUARD/$INFRASTRUCTURE.plist" || return 1
     /usr/bin/install -o root -g wheel -m 0600 "$stage/supervisor.plist" "$GUARD/$SUPERVISOR.plist" || return 1
     /usr/bin/install -o root -g wheel -m 0600 "$stage/core.plist" "$GUARD/$LABEL.plist" || return 1
     /usr/bin/install -o root -g wheel -m 0600 "$stage/engine.plist" "$GUARD/$ENGINE.plist" || return 1
     if [ "${activation_requested:-0}" = 1 ]; then run "$EXECUTABLE" --prepare-activation || return 1
     else run "$EXECUTABLE" --prepare-installation || return 1; fi
     install_event services_enabled || return 1
+    install_event infrastructure_merged || return 1
     run /usr/bin/perl "$GUARD_SCRIPT" --configure || return 1
     run /usr/bin/perl "$GUARD_SCRIPT" --boot || return 1
-    /bin/rm -f "$LEGACY_CORE_PLIST" || return 1
+    /bin/rm -f "$LEGACY_CORE_PLIST" "$LEGACY_ENGINE_PLIST" || return 1
     /usr/bin/install -o root -g wheel -m 0755 "${BASH_SOURCE[0]}" "$MANAGER" || return 1
     /usr/bin/install -o root -g wheel -m 0644 "$SCRIPT_DIR/command-support.sh" "$DIR/command-support.sh" || return 1
     /usr/bin/install -o root -g wheel -m 0644 "$SCRIPT_DIR/cleanup-installation.sh" "$DIR/cleanup-installation.sh" || return 1
@@ -758,14 +764,14 @@ install_service() (
     fi
     /bin/rm -f "$RUNTIME/maintenance" || return 1
     install_stage starting_services || return 1
-    for path in "$BOOT_GUARD" "$INFRASTRUCTURE" "$SUPERVISOR" "$LABEL" "$ENGINE"; do
+    for path in "$SUPERVISOR" "$LABEL" "$ENGINE"; do
         run /bin/launchctl enable "system/$path" || return 1
     done
-    run /bin/launchctl bootstrap system "$BOOT_PLIST" || return 1
     run /bin/launchctl bootstrap system "$SUPERVISOR_PLIST" || return 1
-    # The supervisor may already have registered the health job during its first
-    # watchdog iteration. Never bootstrap the same job twice.
-    ensure_loaded "$INFRASTRUCTURE" "$HEALTH_PLIST" || return 1
+    # The completed Stop receipt remains until verification succeeds. Peer
+    # repair correctly respects it, so the authorized installer must start
+    # the heartbeat itself instead of waiting for recovery to override Stop.
+    ensure_loaded "$LABEL" "$PLIST" || return 1
     install_stage verifying_services || return 1
     bounded_command 150 check-services "$EXECUTABLE" --check-installation "$installation_id" || return 1
     install_event services_verified || return 1
@@ -835,7 +841,7 @@ remove_runtime_files() {
     local path
     # These roots contain generated runtime material, not user profile sources.
     # Refuse substituted roots, and never traverse symlinks when deleting children.
-    for path in "$RUNTIME" "$PROFILES" "$GUARD" "$DIR/Service" "$JOBS" "$DIR/TailscaleVerge" "$LOGIN_APP"; do
+    for path in "$RUNTIME" "$PROFILES" "$GUARD" "$DIR/Service" "$LEGACY_JOBS" "$HELPERS" "$DIR/TailscaleVerge" "$LOGIN_APP"; do
         [ ! -L "$path" ] || return 1
         [ ! -e "$path" ] || { [ -d "$path" ] && [ "$(/usr/bin/stat -f %u "$path")" = 0 ]; } || return 1
     done
@@ -843,7 +849,7 @@ remove_runtime_files() {
         [ -e "$path" ] || [ -L "$path" ] || continue
         [ "$path" = "$RUNTIME/services.json" ] || /bin/rm -rf "$path" || return 1
     done
-    /bin/rm -rf "$PROFILES" "$GUARD" "$JOBS" "$DIR/TailscaleVerge" || return 1
+    /bin/rm -rf "$PROFILES" "$GUARD" "$LEGACY_JOBS" "$HELPERS" "$DIR/TailscaleVerge" || return 1
     for path in "$DIR/Service"/install.*; do
         # Keep the active install.lock until the exit trap releases it.
         [ -d "$path" ] && [ ! -L "$path" ] || continue
@@ -865,7 +871,7 @@ uninstall_service() (
         if [ "$keep_gui" != 1 ]; then cleanup_stop_app || return 1; fi
         user_name_operation uninstall || return 1
     fi
-    if [ -x "$EXECUTABLE" ] && [ -f "$SUPERVISOR_PLIST" ]; then run "$EXECUTABLE" --begin-maintenance || return 1; fi
+    if [ -x "$EXECUTABLE" ] && [ -f "$SUPERVISOR_PLIST" ]; then bounded_command 45 begin-maintenance "$EXECUTABLE" --begin-maintenance || return 1; fi
     release_script="$SCRIPT_DIR/release-network.pl"
     [ -f "$release_script" ] || release_script="$DIR/release-network.pl"
     [ -f "$release_script" ] || { echo 'Network release helper missing; reinstall the complete app.' >&2; return 1; }
@@ -886,7 +892,7 @@ uninstall_service() (
     fi
     if [ -x "$EXECUTABLE" ]; then run "$EXECUTABLE" --remove-right || return 1; fi
     remove_runtime_group || return 1
-    /bin/rm -f "$PLIST" "$ENGINE_PLIST" "$SUPERVISOR_PLIST" "$LEGACY_CORE_PLIST" "$EXECUTABLE" "$LEGACY_EXECUTABLE" "$RUNTIME/maintenance" "$RUNTIME/mihomo" "$RUNTIME/engine.sha256" "/Library/LaunchDaemons/$LEGACY.plist" "/Library/LaunchDaemons/$LEGACY-http.plist" || return 1
+    /bin/rm -f "$PLIST" "$ENGINE_PLIST" "$SUPERVISOR_PLIST" "$LEGACY_CORE_PLIST" "$LEGACY_ENGINE_PLIST" "$EXECUTABLE" "$LEGACY_EXECUTABLE" "$RUNTIME/maintenance" "$RUNTIME/mihomo" "$RUNTIME/engine.sha256" "/Library/LaunchDaemons/$LEGACY.plist" "/Library/LaunchDaemons/$LEGACY-http.plist" || return 1
     # Runtime profiles can contain proxy/probe credentials. Retain their source
     # settings in machine storage/Keychain, never stale generated copies.
     /bin/rm -f "$RUNTIME/candidate.yaml" "$RUNTIME/blocking.yaml" "$RUNTIME/reload.json" "$RUNTIME/controller.sock" "$RUNTIME/guard.pf" "$RUNTIME/native-transport.pf" "$PROFILES/blocking.yaml" "$PROFILES/controller.sock" || return 1
@@ -920,7 +926,7 @@ main() {
         activate) activation_requested=1; install_service ;;
         deactivate) uninstall_service 1 ;;
         remove|uninstall) uninstall_service ;;
-        status) /bin/launchctl print "system/$SUPERVISOR" ;;
+        status) service_status ;;
         *) echo 'Usage: daemon.sh install [--app APP | --non-interactive] | status | uninstall' >&2; return 2 ;;
     esac
 }

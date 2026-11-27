@@ -1,0 +1,653 @@
+{
+  "schema": 1,
+  "status": "stopped_on_reproduced_manual_feedback_failure",
+  "artifact": {
+    "version": "3.0",
+    "build": 11,
+    "published": false,
+    "core_sha256": "d91336cb60f39d6b62e3cc2aed3c998b49a8214f0857a105c7149f8cefec142a",
+    "package_sha256": "5a7fce932632195de48cf04e9e7176eca30628621a57c1d2b0ea1a67fc11c280",
+    "controls_sha256": "98eb525707dbcae38ef811de289dd45813b3a5ec98886f24d0c8b42b27e7829d"
+  },
+  "scope": {
+    "vm": "mimo-observation-worker",
+    "distinct_planned_cases": 5,
+    "maximum_actual_attempts": 9,
+    "attempts_completed": 5,
+    "attempts_passed": 2,
+    "distinct_fully_qualified": 1,
+    "primary_mutated": false,
+    "native_button_clicks": false,
+    "publication": false,
+    "original113_inventory_unchanged": true
+  },
+  "attempts": [
+    {
+      "choice": "failed-early",
+      "attempt": 1,
+      "group": "rapid mixed",
+      "id": "dual/global-to-rule/allowed",
+      "new_case": false,
+      "core_sha256": "d91336cb60f39d6b62e3cc2aed3c998b49a8214f0857a105c7149f8cefec142a",
+      "evidence_id": "406ecbe40ecf42e79f28913464988bfb",
+      "passed": true,
+      "incoming_passed": true,
+      "whole_GUI_passed": true,
+      "health_trace_passed": true,
+      "archive_sha256": "bef182f05e2a7f60498e2ed9c9c5bdd49cb32b2ef3cd7e94b93167a59f396cad",
+      "archive_files": 7,
+      "terminal_log_sha256": "60a104adeaeba1fd44564c9f98dd891ee97ce69e4f190a56e690d5625e28d964",
+      "failures": [],
+      "last_stage": "complete",
+      "phase_offset_seconds": 0.7076928615570068,
+      "phase_guard_record": {
+        "checkedAt": 1795779567.99592,
+        "pf": "enabled",
+        "launchd": "healthy",
+        "status": "healthy",
+        "pfCheckedAt": 1795779567.99592,
+        "launchdCheckedAt": 1795779568.96454,
+        "completedAt": 1795779569.26377,
+        "pfMutationEpoch": "D3CDAEC9-EE76-4443-A649-B0C3318549AB",
+        "pfState": "active",
+        "pfPolicyDigest": "9654a71fe8d7ccb4155fef6affe585b9cd7ca2d8c6722b7379e5331370ed602a"
+      },
+      "settled_seconds": 36,
+      "http_requests": 2,
+      "health": {
+        "passed": true,
+        "interval_seconds": 0.5,
+        "started_epoch": 1795779556.738004,
+        "finished_epoch": 1795779631.4385228,
+        "failures": [],
+        "max_infrastructure_age_seconds": 13.697263956069946,
+        "max_rpc_seconds": 1.073709167,
+        "max_pf_age_seconds": 13.697263956069946,
+        "max_launchd_age_seconds": 12.728643894195557,
+        "health_overdue_sample_count": 0,
+        "method": "bounded read-only core state plus original guard health file; no timestamp synthesis",
+        "scan_outcomes": {
+          "completed": 7,
+          "deferred": 3
+        },
+        "deferred_events": 3,
+        "retry_events": [
+          {
+            "outcome": "deferred",
+            "delay_seconds": "1.0",
+            "retry_level": "1"
+          },
+          {
+            "outcome": "deferred",
+            "delay_seconds": "1.0",
+            "retry_level": "2"
+          },
+          {
+            "outcome": "deferred",
+            "delay_seconds": "1.0",
+            "retry_level": "1"
+          }
+        ],
+        "maximum_full_guard_pf_age_at_sample_finish_seconds": 13.146407127380371
+      }
+    },
+    {
+      "choice": "failed-late",
+      "attempt": 2,
+      "group": "rapid mixed",
+      "id": "dual/global-to-rule/allowed",
+      "new_case": false,
+      "core_sha256": "d91336cb60f39d6b62e3cc2aed3c998b49a8214f0857a105c7149f8cefec142a",
+      "evidence_id": "e5f4baa33a9a4c099fc3e68c823525d2",
+      "passed": true,
+      "incoming_passed": true,
+      "whole_GUI_passed": true,
+      "health_trace_passed": true,
+      "archive_sha256": "c35009d1face4b3977dc8dd3b2335b4e8d45de8274e9431525bc8b3ce61d0e4d",
+      "archive_files": 7,
+      "terminal_log_sha256": "6783422200b2c0df50ce2eb5ec3f97f1e440e2c79f0484b07e9211a4719a3777",
+      "failures": [],
+      "last_stage": "complete",
+      "phase_offset_seconds": 5.372225046157837,
+      "phase_guard_record": {
+        "checkedAt": 1795779705.38777,
+        "pf": "enabled",
+        "launchd": "healthy",
+        "status": "healthy",
+        "pfCheckedAt": 1795779705.38777,
+        "launchdCheckedAt": 1795779705.89337,
+        "completedAt": 1795779706.01898,
+        "pfMutationEpoch": "9C2AC746-B8DF-4C63-AD70-3AAC10E5565E",
+        "pfState": "active",
+        "pfPolicyDigest": "9cd8d0540a07c67d877d04c111f7d82970adab7999d63cea58ca56156047d199"
+      },
+      "settled_seconds": 36,
+      "http_requests": 2,
+      "health": {
+        "passed": true,
+        "interval_seconds": 0.5,
+        "started_epoch": 1795779680.475272,
+        "finished_epoch": 1795779772.9111521,
+        "failures": [],
+        "max_infrastructure_age_seconds": 20.344269275665283,
+        "max_rpc_seconds": 0.5253829169999982,
+        "max_pf_age_seconds": 20.344269275665283,
+        "max_launchd_age_seconds": 19.675209045410156,
+        "health_overdue_sample_count": 0,
+        "method": "bounded read-only core state plus original guard health file; no timestamp synthesis",
+        "scan_outcomes": {
+          "deferred": 2,
+          "completed": 8
+        },
+        "deferred_events": 2,
+        "retry_events": [
+          {
+            "outcome": "deferred",
+            "delay_seconds": "1.0",
+            "retry_level": "1"
+          }
+        ],
+        "maximum_full_guard_pf_age_at_sample_finish_seconds": 19.70299196243286
+      }
+    },
+    {
+      "choice": "ipv4-rule-denied",
+      "attempt": 3,
+      "group": "pending mode",
+      "id": "ipv4/latest-rule-denied",
+      "new_case": true,
+      "core_sha256": "d91336cb60f39d6b62e3cc2aed3c998b49a8214f0857a105c7149f8cefec142a",
+      "evidence_id": "604375faf0514638b20e2b57e63abd46",
+      "passed": false,
+      "incoming_passed": true,
+      "whole_GUI_passed": true,
+      "health_trace_passed": true,
+      "archive_sha256": "f3d5aa4fbc47745272b7e32d64e8d993feab237f888a39cddd41d7068a252245",
+      "archive_files": 12,
+      "terminal_log_sha256": "6abaf4359350eaaed79962ea18aea8c227d8bcd0fb14ece109094c31d81164f6",
+      "failures": [
+        "setup:AssertionError"
+      ],
+      "last_stage": "setup",
+      "protected_traffic_precondition": {
+        "passed": false,
+        "failures": [
+          "IPv6_succeeded_under_IPv4_policy"
+        ],
+        "proxied_successes": {
+          "4:tcp": 13,
+          "4:udp": 11
+        },
+        "started_epoch": 1795779914.361574,
+        "ended_epoch": 1795779917.502049
+      },
+      "lab_cleanup": {
+        "flushed": true,
+        "empty": true
+      },
+      "health": {
+        "passed": true,
+        "interval_seconds": 0.5,
+        "started_epoch": 1795779896.450851,
+        "finished_epoch": 1795779918.1838121,
+        "failures": [],
+        "max_infrastructure_age_seconds": 10.089120149612427,
+        "max_rpc_seconds": 0.3921178750000003,
+        "max_pf_age_seconds": 10.089120149612427,
+        "max_launchd_age_seconds": 9.38506007194519,
+        "health_overdue_sample_count": 0,
+        "method": "bounded read-only core state plus original guard health file; no timestamp synthesis",
+        "scan_outcomes": {
+          "completed": 3
+        },
+        "deferred_events": 0,
+        "retry_events": []
+      }
+    },
+    {
+      "choice": "ipv4-rule-denied",
+      "attempt": 4,
+      "group": "pending mode",
+      "id": "ipv4/latest-rule-denied",
+      "new_case": true,
+      "core_sha256": "d91336cb60f39d6b62e3cc2aed3c998b49a8214f0857a105c7149f8cefec142a",
+      "evidence_id": "2d6ab3b19bb54aa69f2ceefbeb70f9fc",
+      "passed": false,
+      "incoming_passed": true,
+      "whole_GUI_passed": true,
+      "health_trace_passed": true,
+      "archive_sha256": "15bee67eb407cac09f9b8efd36acc43fdf1b27374821601a195382e61ceea2b5",
+      "archive_files": 16,
+      "terminal_log_sha256": "25daa59b1769e8f79b4fbdfb04b5dada1ece1da67fa912469daf4eaa932d2904",
+      "failures": [
+        "final-state:AssertionError"
+      ],
+      "last_stage": "final-state",
+      "protected_traffic_precondition": {
+        "passed": true,
+        "failures": [],
+        "proxied_successes": {
+          "4:tcp": 11,
+          "4:udp": 11
+        },
+        "captured_dns_successes": {
+          "6:dns-tcp": 15,
+          "4:dns-udp": 13,
+          "6:dns-udp": 13,
+          "4:dns-tcp": 12
+        },
+        "started_epoch": 1795780394.4820359,
+        "ended_epoch": 1795780397.616582
+      },
+      "protected_precondition_native": {
+        "passed": true,
+        "native_attempts": 0,
+        "started_epoch": 1795780394.4820359,
+        "ended_epoch": 1795780397.616582,
+        "failures": []
+      },
+      "packet_policy": {
+        "passed": true,
+        "protected_native_attempts": 0,
+        "authorized_direct_native_attempts": 30,
+        "boundaries": [
+          [
+            1795780394.4820359,
+            "protected",
+            "initial_active"
+          ],
+          [
+            1795780397.944,
+            "direct",
+            "admitted_direct"
+          ],
+          [
+            1795780404.958,
+            "protected",
+            "confirmed_close"
+          ],
+          [
+            1795780405.168,
+            "protected",
+            "confirmed_close"
+          ],
+          [
+            1795780407.368,
+            "protected",
+            "confirmed_close"
+          ]
+        ],
+        "final_protected_closure_observed": true,
+        "leak_samples": [],
+        "scope": "zero native after confirmed closure; explicitly admitted Direct windows reported separately"
+      },
+      "queue_proof": {
+        "passed": true,
+        "failures": [],
+        "request_ids": {
+          "first_old": "7BA56E0D-7693-401F-8AE6-847256CC2E9D",
+          "first_kept": "33561CFE-01C6-4C28-89BF-7B2AF4058322",
+          "barrier": "1DA06374-4CD8-4CB5-8A68-2D51411E2486",
+          "last_old": "99DEA601-DC89-4EAA-AF03-9CCDA5079F43",
+          "last_kept": "CE5B1A25-2366-4F92-94ED-01351857568B",
+          "late_older": "EC851958-48BD-43E7-BAD3-5151858800B0"
+        },
+        "base_revision": 2563,
+        "final_revision": 2566,
+        "queued_request_count": 5,
+        "expected_superseded_count": 2,
+        "barrier_admission_epochs": [
+          1795780404.293,
+          1795780405.15,
+          1795780405.16
+        ],
+        "queued_epochs": {
+          "first_old": [
+            1795780398.489
+          ],
+          "first_kept": [
+            1795780398.852
+          ],
+          "barrier": [
+            1795780399.149
+          ],
+          "last_old": [
+            1795780399.401
+          ],
+          "last_kept": [
+            1795780399.667
+          ]
+        },
+        "delayed_older_intent_checked": true
+      },
+      "lab_cleanup": {
+        "flushed": true,
+        "empty": true
+      },
+      "health": {
+        "passed": true,
+        "interval_seconds": 0.5,
+        "started_epoch": 1795780376.910906,
+        "finished_epoch": 1795780426.125452,
+        "failures": [],
+        "max_infrastructure_age_seconds": 17.3451030254364,
+        "max_rpc_seconds": 0.8926600830000027,
+        "max_pf_age_seconds": 17.3451030254364,
+        "max_launchd_age_seconds": 16.61948299407959,
+        "health_overdue_sample_count": 0,
+        "method": "bounded read-only core state plus original guard health file; no timestamp synthesis",
+        "scan_outcomes": {
+          "completed": 6,
+          "deferred": 1
+        },
+        "deferred_events": 1,
+        "retry_events": [
+          {
+            "outcome": "deferred",
+            "delay_seconds": "1.0",
+            "retry_level": "1"
+          }
+        ]
+      }
+    },
+    {
+      "choice": "ipv4-rule-denied",
+      "attempt": 5,
+      "group": "pending mode",
+      "id": "ipv4/latest-rule-denied",
+      "new_case": true,
+      "core_sha256": "d91336cb60f39d6b62e3cc2aed3c998b49a8214f0857a105c7149f8cefec142a",
+      "evidence_id": "31c06d9ba3f44842829d5d0be18a7561",
+      "passed": false,
+      "incoming_passed": true,
+      "whole_GUI_passed": true,
+      "health_trace_passed": true,
+      "archive_sha256": "6c657d8d82419d08425c80f950924ef4f74394fd0af4b7f50ded9957c9fde27d",
+      "archive_files": 16,
+      "terminal_log_sha256": "2408b2d69c20e4602c7f0468b6c79994b743aff60e6528f2de63824ef1fc8e97",
+      "last_stage": "prior-manual-terminal",
+      "failures": [
+        "prior-manual-terminal:AssertionError"
+      ],
+      "protected_traffic_precondition": {
+        "passed": true,
+        "failures": [],
+        "proxied_successes": {
+          "4:tcp": 12,
+          "4:udp": 13
+        },
+        "captured_dns_successes": {
+          "6:dns-tcp": 13,
+          "6:dns-udp": 13,
+          "4:dns-udp": 12,
+          "4:dns-tcp": 13
+        },
+        "started_epoch": 1795783059.448158,
+        "ended_epoch": 1795783062.5170019
+      },
+      "protected_precondition_native": {
+        "passed": true,
+        "native_attempts": 0,
+        "started_epoch": 1795783059.448158,
+        "ended_epoch": 1795783062.5170019,
+        "failures": []
+      },
+      "packet_policy": {
+        "passed": true,
+        "protected_native_attempts": 0,
+        "authorized_direct_native_attempts": 33,
+        "boundaries": [
+          [
+            1795783059.448158,
+            "protected",
+            "initial_active"
+          ],
+          [
+            1795783062.84,
+            "direct",
+            "admitted_direct"
+          ],
+          [
+            1795783070.425,
+            "protected",
+            "confirmed_close"
+          ],
+          [
+            1795783070.621,
+            "protected",
+            "confirmed_close"
+          ],
+          [
+            1795783072.955,
+            "protected",
+            "confirmed_close"
+          ]
+        ],
+        "final_protected_closure_observed": true,
+        "leak_samples": [],
+        "scope": "zero native after confirmed closure; explicitly admitted Direct windows reported separately"
+      },
+      "queue_proof": {
+        "passed": true,
+        "failures": [],
+        "request_ids": {
+          "first_old": "1B547A65-F45E-4496-BDA7-B471499ECD13",
+          "first_kept": "12E3A43D-FC54-435B-9D1E-CE933C367C9A",
+          "barrier": "7CC13298-2877-4A0D-A773-838123C5A704",
+          "last_old": "1F5768BC-BC09-4DA5-81C6-DD86934B957D",
+          "last_kept": "2CBE89E6-D673-4F1D-8AFC-9F730920450A",
+          "late_older": "551C9492-1E22-401F-A758-B74531E9D65F"
+        },
+        "base_revision": 2571,
+        "final_revision": 2574,
+        "queued_request_count": 5,
+        "expected_superseded_count": 2,
+        "barrier_admission_epochs": [
+          1795783069.594,
+          1795783070.604,
+          1795783070.614
+        ],
+        "queued_epochs": {
+          "first_old": [
+            1795783063.403
+          ],
+          "first_kept": [
+            1795783063.715
+          ],
+          "barrier": [
+            1795783064.011
+          ],
+          "last_old": [
+            1795783064.339
+          ],
+          "last_kept": [
+            1795783064.676
+          ]
+        },
+        "delayed_older_intent_checked": true
+      },
+      "lab_cleanup": {
+        "flushed": true,
+        "empty": true
+      },
+      "continuous_health": {
+        "passed": true,
+        "interval_seconds": 0.5,
+        "started_epoch": 1795783041.255253,
+        "finished_epoch": 1795783127.0036008,
+        "failures": [],
+        "max_infrastructure_age_seconds": 13.904843091964722,
+        "max_rpc_seconds": 0.9734420420000021,
+        "max_pf_age_seconds": 13.904843091964722,
+        "max_launchd_age_seconds": 13.13817310333252,
+        "health_overdue_sample_count": 0,
+        "method": "bounded read-only core state plus original guard health file; no timestamp synthesis"
+      }
+    }
+  ],
+  "pending_new_cases": [
+    "ipv4/latest-rule-denied",
+    "dual/latest-rule-denied",
+    "ipv4/latest-direct",
+    "dual/latest-direct"
+  ],
+  "setup_support_failures": [
+    {
+      "kind": "obsolete_fixture_endpoint",
+      "effect": "native provider preflight failed; real cooldown retained; no candidate install/test admitted",
+      "repair": "only owned fixture endpoints updated to current host address; same certificates, original hosts, scoped DNS journals"
+    },
+    {
+      "kind": "invalid_fixture_bridge_data_identity",
+      "effect": "constructor rejected equal bridge/data addresses; no test ran",
+      "repair": "preserved separate currently owned data/bridge addresses"
+    }
+  ],
+  "harness_dns_correction": {
+    "before": {
+      "new_controls": 5,
+      "passed": 2,
+      "failed": 1,
+      "errors": 2
+    },
+    "after_failed_only": {
+      "run": 3,
+      "passed": 3
+    },
+    "passing_controls_not_rerun": 2,
+    "production_changed": false,
+    "source_sha256": {
+      "Tests/MihomoRuntimeTests/v3_rapid_policy_oracle.py": "308d57b7f4dbd253e884c3d87798d950545a6e9fb64400bb0621c7ce1c0faa47",
+      "Tests/MihomoRuntimeTests/v3_rapid_policy_test.py": "27ea1aeec05d239bd32443001322f797d2ede5c2c80527a56d6240636f5a7eac",
+      "Tests/MihomoRuntimeTests/v3_targeted_policy_harness_tests.py": "52b59db380fcc5e9f4c00d25a1d774ab3965c941196d121f9aec27fd8f8d7eee",
+      ".build/observation-parallel/worker-targeted/run.py": "1f4b60d00498903879c0e1e712dfe09b6ec4165cb5a088ea3b7ad59870c6df20"
+    },
+    "evidence_sha256": {
+      "before.log": "66bf87605d9885bbd9ce28a1e37706b3f65d3225506b51b2739b8fe45c60b260",
+      "after-failed-only.log": "ef954dcbf775a55b9b5b9611b6f087ea7cbfbde2a6803837c75eb9fa98622989"
+    },
+    "before_oracle_source_sha256": {
+      "v3_rapid_policy_oracle.py": "1d2a5ba3abf531a6a5e87dd37468092872eaf246b28637a31bf5c1c77d5a7642",
+      "v3_rapid_policy_test.py": "86e613e0337948b081b334a3f3b5c6de17eaece0ad9b0802ec5f6cd972b44ed9"
+    }
+  },
+  "limits": [
+    "No native UI button-click or Screen Sharing qualification.",
+    "Effective PF age and real full-guard timestamps retained; narrow private in-memory policy-receipt age is not separately observable.",
+    "Historical original failed health sample lacks component details and is not retroactively reclassified.",
+    "Explicitly admitted Direct windows permit native traffic; strict zero applies after confirmed closure and while protected.",
+    "Fixture/VM retained pending final evidence and owner-approved cleanup.",
+    "Three remaining new cases are unrun; no further VM tests or mutations after attempt5 pending proposal approval."
+  ],
+  "manual_completion_harness_correction": {
+    "new_controls": 10,
+    "before": {
+      "passed": 3,
+      "failed": 7
+    },
+    "after_failed_only": {
+      "run": 7,
+      "passed": 7
+    },
+    "baseline_passes_not_rerun": 3,
+    "before_source_sha256": {
+      "v3_rapid_policy_oracle.py": "dbaa577ff9d384710a8550513417e8b9c8bc5c48db2d1c9ef36fa90c1d66f85a",
+      "v3_targeted_policy_harness_tests.py": "5ec84774c49b4be80ab5a040a2be7ae29abc33911df709b520912a850372b4e0",
+      "v3_rapid_policy_test.py": "27ea1aeec05d239bd32443001322f797d2ede5c2c80527a56d6240636f5a7eac"
+    },
+    "after_source_sha256": {
+      "v3_rapid_policy_oracle.py": "b362afff9553913cf69c0b2876caa57125a90c773a791c6712ed36539ae0462a",
+      "v3_targeted_policy_harness_tests.py": "8a4fd43aac755025deb831a88fde851cd9538c81af1cc8beb98622de0338f74a",
+      "v3_rapid_policy_test.py": "4b3a841c06267ea1dc3a8cf4cc7cb5825650b542a22a642dd035c3f5db54dbbc"
+    },
+    "logs_sha256": {
+      "before.log": "ce5fa0232c345c6e63357494acb0c7b412baa59cc0f0dd9da5bb1732a1db19b5",
+      "after-failed-only.log": "0e85925c5719003ff01428e1402d7305db173d1c562a610bc00ac90025136560",
+      "before-freshness.log": "bab3dba5bbebdae64998c4c75e93ca0db1b133ecf6f2a643981ae480bf32d8e1",
+      "after-freshness-failed-only.log": "92b89eb961339656a43d23a7b93d9ff2efb5f8337346c84b2d7bf45e9fa36887"
+    },
+    "production_changed": false,
+    "freshness": {
+      "new_controls": 3,
+      "before": {
+        "passed": 1,
+        "failed": 2
+      },
+      "after_failed_only": {
+        "run": 2,
+        "passed": 2
+      },
+      "baseline_passes_not_rerun": 1,
+      "before_oracle_sha256": "0e97ba31a6fc546dcee3cdbf9ae64b75a8efcc2343b8dcf4bbb3856306498a53"
+    }
+  },
+  "current_failure": {
+    "captured_epoch": 1795783250.942366,
+    "manual": {
+      "id": "523AC6B2-73F8-41BB-93EB-711DCD1A8538",
+      "message": "Checking the exit IP\u2026",
+      "phase": "checking",
+      "requestedAt": 817475865.376591,
+      "startedAt": 817475870.62784
+    },
+    "manual_unix_times": {
+      "requestedAt": 1795783065.376591,
+      "startedAt": 1795783070.62784
+    },
+    "terminal_event_after_success": false,
+    "state": {
+      "revision": 2574,
+      "status": {
+        "ready": {}
+      },
+      "mode": "rule",
+      "phase": "blocked"
+    },
+    "manual_lifecycle_generation": "not public or logged; inferred mismatch requires local reproduction",
+    "source_hypothesis": [
+      "invalidatePendingLookup increments lifecycle but does not finish pending manual requests when no lookup is active (MonitoringEngine.swift452).",
+      "refresh under controlHolds records a deferred request and returns before the completion defer (MonitoringEngine.swift616).",
+      "next settings lookup marks any pending manual checking without updating manualRefreshGeneration (MonitoringEngine.swift761).",
+      "finishManualRefresh refuses mismatched manual/current lifecycle (MonitoringEngine.swift379)."
+    ],
+    "raw_sha256": "21a88f58199c9b532d03bbd34091b8cfeed5c32376a982a841df7ff0cb1c0aa3",
+    "supplemental_archive_sha256": "df3f0a5b56e90421865c6372363a96a0291179291e7853bdda5cc6518afa38e4",
+    "classification": "Actual pending manual feedback exceeded35s after current lookup completed; root-cause proposal awaits local deterministic reproduction.",
+    "explicit_final_refresh_issued": false
+  },
+  "follow_up": {
+    "status": "approved_waiting_for_new_artifact",
+    "remaining_attempts": 4,
+    "order": [
+      "retry_failed_ipv4/latest-rule-denied",
+      "three_unstarted_new_cases_if_retry_passes"
+    ],
+    "passed_health_phases_must_not_repeat": true,
+    "original_artifact_evidence_unchanged": true,
+    "typed_manual_oracle_controls": {
+      "new_controls": 7,
+      "before": {
+        "passed": 1,
+        "failed": 3,
+        "errors": 3
+      },
+      "after_failed_only": {
+        "run": 6,
+        "passed": 6
+      },
+      "baseline_passes_not_rerun": 1,
+      "before_oracle_sha256": "b362afff9553913cf69c0b2876caa57125a90c773a791c6712ed36539ae0462a",
+      "after_source_sha256": {
+        "v3_rapid_policy_oracle.py": "1554c77965841f3ec2ddfa50928cc0d84a8ea3b3b6fe58822ff4f34035b7d492",
+        "v3_rapid_policy_test.py": "be1163a84c343d641014b69784cd8d74542bbb68f00f34f0a78eb48009c217fa",
+        "v3_targeted_policy_harness_tests.py": "58c2d744e98f81e4b02702ba26d57fb043ce0695978e17b99ff8e3bac1c39ca7"
+      },
+      "logs_sha256": {
+        "before.log": "550b3270ac04368c0bce59fd9ee65853c2198fc7afa14048c475a00bda0292a9",
+        "after-failed-only.log": "5b535f6888afec17794af2af881b3da1405c07a3b5c83f4d3795914438463634"
+      },
+      "VM_test_started": false,
+      "production_changed": false
+    }
+  }
+}

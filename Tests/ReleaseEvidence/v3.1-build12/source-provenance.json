@@ -1,0 +1,29 @@
+{
+  "version": "3.1",
+  "build": "12",
+  "qualified_candidate_core_sha256": "1942a60ab1b5f635f1eb61b4de25140e1b1d83c15eb7fbf3b732b56e5706395e",
+  "input_count": 141,
+  "unchanged_inputs": 136,
+  "release_identity_changes": {
+    "Configuration/BuildNumber.txt": {
+      "before": "25d4f2a86deb5e2574bb3210b67bb24fcc4afb19f93a7b65a057daa874a9d18e",
+      "after": "a1fb50e6c86fae1679ef3351296fd6713411a08cf8dd1790a4fd05fae8688164"
+    },
+    "Scripts/generate-xcode-project.sh": {
+      "before": "c28db0c98466546bd2ee0682ad42e397c7bf5f35f7b791cf0b85865f62f04d39",
+      "after": "04b18f1426d2fe195044e341b7c970653ff1389d10f58b92ff2f09ec817de4b6"
+    },
+    "Sources/MimoApp/DaemonInstallationModel.swift": {
+      "before": "90d4052bd1735c93355f22f905a110e82e414205d4e6a5cef40405db21b7960c",
+      "after": "fb00bad8c5898cfa07f12dac84ee9896e582f8a23ebb1cf41817d955b2cb77d0"
+    },
+    "Sources/MimoService/DaemonMain.swift": {
+      "before": "5d8e1a2574a1a4deaf2888c2631f869de9d3ea73413d8a932446a81d84001a04",
+      "after": "bc7c1e166041e8d227351787f11398fab630df4a98e64c8b565eabc8bff93f77"
+    },
+    "Sources/MimoService/DaemonService.swift": {
+      "before": "45c483fd39c624029db938526826954b64e8fe948ed324f11838726c92d3faf0",
+      "after": "5c208723a0df9ca4e0224a2651958e733ec8aba04e1bcf5d52158587bf7b6dfe"
+    }
+  }
+}

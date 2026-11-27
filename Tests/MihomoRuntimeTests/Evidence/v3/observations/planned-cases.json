@@ -1,0 +1,454 @@
+[
+  {
+    "group": "rapid mixed",
+    "id": "ipv4/rule-to-direct/allowed"
+  },
+  {
+    "group": "rapid mixed",
+    "id": "ipv4/global-to-rule/allowed"
+  },
+  {
+    "group": "rapid mixed",
+    "id": "ipv4/rule-to-direct/denied"
+  },
+  {
+    "group": "rapid mixed",
+    "id": "ipv4/global-to-direct/proxy-down"
+  },
+  {
+    "group": "rapid mixed",
+    "id": "dual/rule-to-direct/allowed"
+  },
+  {
+    "group": "rapid mixed",
+    "id": "dual/global-to-rule/allowed"
+  },
+  {
+    "group": "rapid mixed",
+    "id": "dual/rule-to-direct/denied"
+  },
+  {
+    "group": "rapid mixed",
+    "id": "dual/global-to-direct/proxy-down"
+  },
+  {
+    "group": "workflow",
+    "id": "rule/ipv4/refresh"
+  },
+  {
+    "group": "workflow",
+    "id": "rule/ipv4/concurrent"
+  },
+  {
+    "group": "workflow",
+    "id": "rule/ipv4/policy-retain"
+  },
+  {
+    "group": "workflow",
+    "id": "rule/ipv4/503"
+  },
+  {
+    "group": "workflow",
+    "id": "rule/ipv4/recover-after-503"
+  },
+  {
+    "group": "workflow",
+    "id": "rule/ipv4/denied"
+  },
+  {
+    "group": "workflow",
+    "id": "rule/ipv4/approve-rejected"
+  },
+  {
+    "group": "workflow",
+    "id": "rule/ipv4/policy-revoke"
+  },
+  {
+    "group": "workflow",
+    "id": "rule/ipv4/policy-repair"
+  },
+  {
+    "group": "workflow",
+    "id": "rule/ipv4/direct"
+  },
+  {
+    "group": "workflow",
+    "id": "rule/ipv4/refused-proxy"
+  },
+  {
+    "group": "workflow",
+    "id": "rule/ipv4/repair-proxy"
+  },
+  {
+    "group": "workflow",
+    "id": "rule/ipv4/rapid-refresh"
+  },
+  {
+    "group": "workflow",
+    "id": "rule/ipv4/invalid"
+  },
+  {
+    "group": "workflow",
+    "id": "rule/ipv4/recover-after-invalid"
+  },
+  {
+    "group": "workflow",
+    "id": "global/ipv4/refresh"
+  },
+  {
+    "group": "workflow",
+    "id": "global/ipv4/concurrent"
+  },
+  {
+    "group": "workflow",
+    "id": "global/ipv4/policy-retain"
+  },
+  {
+    "group": "workflow",
+    "id": "global/ipv4/503"
+  },
+  {
+    "group": "workflow",
+    "id": "global/ipv4/recover-after-503"
+  },
+  {
+    "group": "workflow",
+    "id": "global/ipv4/denied"
+  },
+  {
+    "group": "workflow",
+    "id": "global/ipv4/approve-rejected"
+  },
+  {
+    "group": "workflow",
+    "id": "global/ipv4/policy-revoke"
+  },
+  {
+    "group": "workflow",
+    "id": "global/ipv4/policy-repair"
+  },
+  {
+    "group": "workflow",
+    "id": "global/ipv4/direct"
+  },
+  {
+    "group": "workflow",
+    "id": "global/ipv4/refused-proxy"
+  },
+  {
+    "group": "workflow",
+    "id": "global/ipv4/repair-proxy"
+  },
+  {
+    "group": "workflow",
+    "id": "global/ipv4/rapid-refresh"
+  },
+  {
+    "group": "workflow",
+    "id": "global/ipv4/invalid"
+  },
+  {
+    "group": "workflow",
+    "id": "global/ipv4/recover-after-invalid"
+  },
+  {
+    "group": "workflow",
+    "id": "rule/dual/refresh"
+  },
+  {
+    "group": "workflow",
+    "id": "rule/dual/concurrent"
+  },
+  {
+    "group": "workflow",
+    "id": "rule/dual/policy-retain"
+  },
+  {
+    "group": "workflow",
+    "id": "rule/dual/503"
+  },
+  {
+    "group": "workflow",
+    "id": "rule/dual/recover-after-503"
+  },
+  {
+    "group": "workflow",
+    "id": "rule/dual/denied"
+  },
+  {
+    "group": "workflow",
+    "id": "rule/dual/approve-rejected"
+  },
+  {
+    "group": "workflow",
+    "id": "rule/dual/policy-revoke"
+  },
+  {
+    "group": "workflow",
+    "id": "rule/dual/policy-repair"
+  },
+  {
+    "group": "workflow",
+    "id": "rule/dual/direct"
+  },
+  {
+    "group": "workflow",
+    "id": "rule/dual/refused-proxy"
+  },
+  {
+    "group": "workflow",
+    "id": "rule/dual/repair-proxy"
+  },
+  {
+    "group": "workflow",
+    "id": "rule/dual/rapid-refresh"
+  },
+  {
+    "group": "workflow",
+    "id": "rule/dual/invalid"
+  },
+  {
+    "group": "workflow",
+    "id": "rule/dual/recover-after-invalid"
+  },
+  {
+    "group": "workflow",
+    "id": "global/dual/refresh"
+  },
+  {
+    "group": "workflow",
+    "id": "global/dual/concurrent"
+  },
+  {
+    "group": "workflow",
+    "id": "global/dual/policy-retain"
+  },
+  {
+    "group": "workflow",
+    "id": "global/dual/503"
+  },
+  {
+    "group": "workflow",
+    "id": "global/dual/recover-after-503"
+  },
+  {
+    "group": "workflow",
+    "id": "global/dual/denied"
+  },
+  {
+    "group": "workflow",
+    "id": "global/dual/approve-rejected"
+  },
+  {
+    "group": "workflow",
+    "id": "global/dual/policy-revoke"
+  },
+  {
+    "group": "workflow",
+    "id": "global/dual/policy-repair"
+  },
+  {
+    "group": "workflow",
+    "id": "global/dual/direct"
+  },
+  {
+    "group": "workflow",
+    "id": "global/dual/refused-proxy"
+  },
+  {
+    "group": "workflow",
+    "id": "global/dual/repair-proxy"
+  },
+  {
+    "group": "workflow",
+    "id": "global/dual/rapid-refresh"
+  },
+  {
+    "group": "workflow",
+    "id": "global/dual/invalid"
+  },
+  {
+    "group": "workflow",
+    "id": "global/dual/recover-after-invalid"
+  },
+  {
+    "group": "workflow",
+    "id": "rule/ipv4/inflight-retain"
+  },
+  {
+    "group": "workflow",
+    "id": "global/dual/inflight-revoke"
+  },
+  {
+    "group": "workflow",
+    "id": "global/dual/repair-after-inflight-revoke"
+  },
+  {
+    "group": "workflow",
+    "id": "rule/ipv4/429"
+  },
+  {
+    "group": "workflow",
+    "id": "direct/ipv4/paused-refresh"
+  },
+  {
+    "group": "workflow",
+    "id": "global/ipv4/429"
+  },
+  {
+    "group": "workflow",
+    "id": "global/ipv4/paused-refresh"
+  },
+  {
+    "group": "workflow",
+    "id": "rule/dual/429"
+  },
+  {
+    "group": "workflow",
+    "id": "rule/dual/paused-refresh"
+  },
+  {
+    "group": "workflow",
+    "id": "global/dual/429"
+  },
+  {
+    "group": "workflow",
+    "id": "global/dual/paused-refresh"
+  },
+  {
+    "group": "workflow",
+    "id": "select-ipapiCo-before-rule-dual"
+  },
+  {
+    "group": "workflow",
+    "id": "select-ipWhois-before-global-dual"
+  },
+  {
+    "group": "workflow",
+    "id": "select-ipapiCo-before-packets"
+  },
+  {
+    "group": "packet",
+    "id": "Direct-positive-control"
+  },
+  {
+    "group": "packet",
+    "id": "rule/ipv4/refresh"
+  },
+  {
+    "group": "packet",
+    "id": "rule/ipv4/provider-failure"
+  },
+  {
+    "group": "packet",
+    "id": "rule/ipv4/engine-kill"
+  },
+  {
+    "group": "packet",
+    "id": "rule/ipv4/engine-stall"
+  },
+  {
+    "group": "packet",
+    "id": "rule/ipv4/native-route"
+  },
+  {
+    "group": "packet",
+    "id": "global/ipv4/refresh"
+  },
+  {
+    "group": "packet",
+    "id": "global/ipv4/provider-failure"
+  },
+  {
+    "group": "packet",
+    "id": "global/ipv4/engine-kill"
+  },
+  {
+    "group": "packet",
+    "id": "global/ipv4/engine-stall"
+  },
+  {
+    "group": "packet",
+    "id": "global/ipv4/native-route"
+  },
+  {
+    "group": "packet",
+    "id": "rule/dual/refresh"
+  },
+  {
+    "group": "packet",
+    "id": "rule/dual/provider-failure"
+  },
+  {
+    "group": "packet",
+    "id": "rule/dual/engine-kill"
+  },
+  {
+    "group": "packet",
+    "id": "rule/dual/engine-stall"
+  },
+  {
+    "group": "packet",
+    "id": "rule/dual/native-route"
+  },
+  {
+    "group": "packet",
+    "id": "global/dual/refresh"
+  },
+  {
+    "group": "packet",
+    "id": "global/dual/provider-failure"
+  },
+  {
+    "group": "packet",
+    "id": "global/dual/engine-kill"
+  },
+  {
+    "group": "packet",
+    "id": "global/dual/engine-stall"
+  },
+  {
+    "group": "packet",
+    "id": "global/dual/native-route"
+  },
+  {
+    "group": "packet",
+    "id": "rule/ipv4/verification-preemption"
+  },
+  {
+    "group": "packet",
+    "id": "global/ipv4/verification-preemption"
+  },
+  {
+    "group": "packet",
+    "id": "rule/dual/verification-preemption"
+  },
+  {
+    "group": "packet",
+    "id": "global/dual/verification-preemption"
+  },
+  {
+    "group": "native UI",
+    "id": "direct"
+  },
+  {
+    "group": "native UI",
+    "id": "rule/ipv4"
+  },
+  {
+    "group": "native UI",
+    "id": "global/ipv4"
+  },
+  {
+    "group": "native UI",
+    "id": "rule/dual"
+  },
+  {
+    "group": "native UI",
+    "id": "global/dual"
+  },
+  {
+    "group": "timer",
+    "id": "installed-five-minute-cycle"
+  }
+]

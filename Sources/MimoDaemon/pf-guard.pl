@@ -1,6 +1,6 @@
 #!/usr/bin/perl
-# Independent boot protection and infrastructure repair. Uses only macOS tools
-# and Perl's bundled modules; never executes mimo-core or mihomo directly.
+# Fixed, bounded helper for mimo-core's boot protection and infrastructure repair.
+# No launchd job executes Perl; mimo-core owns scheduling and process lifetime.
 use strict;
 use warnings;
 use Fcntl qw(:DEFAULT :flock :mode);
@@ -8,7 +8,8 @@ use POSIX qw(WNOHANG);
 use JSON::PP;
 use File::Temp qw(tempfile);
 use Time::HiRes qw(time sleep);
-use Socket qw(AF_INET AF_INET6 inet_pton);
+use Socket qw(AF_INET AF_INET6 inet_pton inet_ntop);
+use Digest::SHA qw(sha256_hex);
 
 my $support = '/Library/Application Support/Mimo';
 my $runtime = "$support/Runtime";
@@ -17,12 +18,11 @@ my $anchor = 'com.apple/000.mimo';
 my $rules = '/etc/pf.anchors/com.mimo.boot';
 my $configuration = '/etc/pf.conf';
 my $supervisor = 'com.mimo.supervisor';
-my $health = 'com.mimo.infrastructure';
-my $boot = 'com.mimo.pf-boot';
 my $begin = '# BEGIN MIMO BOOT GUARD';
 my $end = '# END MIMO BOOT GUARD';
 my $active_child;
-my ($current_boot, $pf_healthy);
+my ($current_boot, $pf_healthy, $pf_observed_at, $launchd_observed_at);
+my ($pf_evidence_epoch, $pf_evidence_state, $pf_evidence_digest);
 our $pf_mutation_held = 0;
 our $pf_revoking = 0;
 
@@ -55,7 +55,7 @@ sub read_file {
     secure($path, 0);
     open my $f, '<', $path or die "Cannot read $path\n";
     local $/;
-    # An empty file is a valid expected policy in Direct and active v3 modes.
+    # An empty file is a valid expected policy only after full network release.
     # Missing files are distinguished by the caller before opening them.
     return scalar(<$f>) // '';
 }
@@ -87,7 +87,7 @@ sub command {
     # A routine scan keeps a coherent snapshot only while no revocation is
     # waiting. Yield at command boundaries, release mutation, and retry later.
     # A deferred scan must never publish a healthy result or clear repair state.
-    die "MIMO_PF_DEFERRED\n" if $pf_mutation_held && !$pf_revoking && revocation_pending();
+    die "MIMO_PF_DEFERRED revocation_pending\n" if $pf_mutation_held && !$pf_revoking && revocation_pending();
     my ($out, $out_path) = tempfile('.command-out-XXXXXXXX', DIR => $guard, UNLINK => 1);
     my ($err, $err_path) = tempfile('.command-err-XXXXXXXX', DIR => $guard, UNLINK => 1);
     my $pid = fork();
@@ -203,7 +203,7 @@ sub with_pf_mutation {
                 flock($priority, LOCK_UN) or die "Cannot release PF admission\n";
                 last if $acquired;
             }
-            die "MIMO_PF_DEFERRED\n" if time() >= $deadline;
+            die "MIMO_PF_DEFERRED mutation_busy\n" if time() >= $deadline;
             sleep 0.01;
         }
     }
@@ -227,6 +227,13 @@ sub pf_snapshot_identity {
          "$runtime/probe-policy.expected", "$runtime/open-policy.expected", "$guard/pf-reference.json")];
 }
 
+sub capture_pf_health_scope {
+    my ($policy) = @_;
+    $pf_evidence_epoch = -e "$runtime/pf-mutation.epoch" ? read_file("$runtime/pf-mutation.epoch") : 'absent';
+    $pf_evidence_state = -e "$runtime/gate.state" ? read_file("$runtime/gate.state") : '';
+    $pf_evidence_digest = sha256_hex($policy);
+}
+
 sub inspect_pf_snapshot {
     my ($snapshot, $id) = @_;
     my ($epoch, $state, $expected, $probe, $final, $reference) = @$snapshot;
@@ -237,7 +244,7 @@ sub inspect_pf_snapshot {
     my $children_valid = 1;
     my $withdrawn = 0;
     if ($state eq 'direct') {
-        $children_valid = 0 if $live =~ /\S/;
+        $children_valid = 0 unless is_direct_tracking_snapshot($live);
     } elsif ($state eq 'active') {
         $children_valid = 0 if $live =~ /^anchor /m;
         $children_valid = 0 unless $live =~ /^block drop out quick all label "mimo:active:deny-native-fallback"\n?\z/m;
@@ -254,6 +261,28 @@ sub inspect_pf_snapshot {
         withdrawn => $withdrawn,
         reference_live => ($saved->{boot} // '') eq $id && reference_live($saved->{token}, $references)
     };
+}
+
+sub is_direct_tracking_snapshot {
+    my ($policy) = @_;
+    my @lines = split /\n/, $policy;
+    return 0 unless @lines >= 2 && @lines <= 257 && $policy =~ /\n\z/;
+    return 0 unless pop(@lines) eq 'pass in on lo0 all no state label "mimo:inbound:loopback"';
+    my @addresses;
+    for my $line (@lines) {
+        return 0 unless $line =~ /^pass in on ! utun239 (inet6?) proto tcp from any to (\S+) flags S\/SA keep state \(if-bound\) label "mimo:inbound:tcp"$/;
+        my ($family, $address) = ($1 eq 'inet' ? AF_INET : AF_INET6, $2);
+        my $bytes = inet_pton($family, $address);
+        return 0 unless defined($bytes) && inet_ntop($family, $bytes) eq $address;
+        my @octets = unpack('C*', $bytes);
+        return 0 unless grep { $_ != 0 } @octets;
+        return 0 if $family == AF_INET ? $octets[0] >= 224 : $octets[0] == 255;
+        return 0 if @addresses && $address le $addresses[-1];
+        push @addresses, $address;
+    }
+    # The owner-only guard.expected binds this exact snapshot. Address changes
+    # belong to core's tracking-only maintenance, not a guard-triggered close.
+    return 1;
 }
 
 # pfctl's arrow records the original connection direction. Kill only original
@@ -290,6 +319,7 @@ sub close_gate {
 
 sub close_gate_locked {
     my ($id) = @_;
+    $pf_observed_at //= time();
     $pf_healthy = 0;
     atomic_write("$runtime/gate.state", 'pending');
     secure($rules, 0);
@@ -311,6 +341,7 @@ sub close_gate_locked {
     atomic_write("$runtime/guard.expected", $actual);
     atomic_write("$runtime/gate.state", 'blocked');
     $pf_healthy = 1;
+    capture_pf_health_scope($actual);
 }
 
 sub restore_file {
@@ -347,7 +378,6 @@ sub job_matches {
     return 0 unless defined $arguments;
     my @actual = grep { length } map { s/^\s+|\s+$//gr } split /\n/, $arguments;
     my @expected = ($program);
-    push @expected, "$guard/pf-guard.pl" if $program eq '/usr/bin/perl';
     push @expected, $argument if defined $argument;
     return 0 unless join("\0", @actual) eq join("\0", @expected);
     return 0 unless $text =~ /^\s*properties = .*\brunatload\b/m;
@@ -363,19 +393,19 @@ sub begin_job_repair {
     }, 1);
 }
 
-sub repair_jobs {
-    my ($id, $released) = @_;
-    my $preferences = decode_json(read_file("$runtime/services.json"));
+sub intended_jobs {
+    my ($preferences) = @_;
     for my $key ('core', 'engine') {
         die "Invalid saved service intent\n" unless exists($preferences->{$key}) && JSON::PP::is_bool($preferences->{$key});
     }
-    my @jobs = (
-        [$boot, "/Library/LaunchDaemons/$boot.plist", '/usr/bin/perl', '--boot', 0, 1],
-        [$health, "/Library/LaunchDaemons/$health.plist", '/usr/bin/perl', '--check', 0, 1],
-        [$supervisor, "/Library/LaunchDaemons/$supervisor.plist", '/Library/PrivilegedHelperTools/mimo-core', '--supervisor', 1, 1],
-        ['com.mimo.mihomo', "$support/LaunchDaemons/com.mimo.mihomo.plist", '/Library/PrivilegedHelperTools/mimo-core', '--engine', 1, $preferences->{engine}],
-        ['com.mimo.core', "$support/LaunchDaemons/com.mimo.core.plist", '/Library/PrivilegedHelperTools/mimo-core', undef, 1, $preferences->{core}]
+    return (
+        ['com.mimo.mihomo', '/Library/LaunchDaemons/com.mimo.mihomo.plist', "$support/LaunchHelpers/mihomo", '--engine', 1, $preferences->{engine}]
     );
+}
+
+sub repair_jobs {
+    my ($id, $released) = @_;
+    my @jobs = intended_jobs(decode_json(read_file("$runtime/services.json")));
     my $disabled = required('/bin/launchctl', 'print-disabled', 'system');
     my $changed = 0;
     for my $job (@jobs) {
@@ -389,10 +419,11 @@ sub repair_jobs {
         my $wrong = defined($state) && (!job_matches($state, $path, $program, $argument, $keepalive) || $file_changed);
         my $is_disabled = $disabled =~ /"\Q$label\E"\s*=>\s*(?:true|disabled)\b/;
         my $not_running = $keepalive && defined($state) && $state !~ /^\s*state = running$/m;
-        next if !$file_changed && ($wanted ? defined($state) && !$wrong && !$is_disabled && !$not_running : !defined($state));
+        next if !$file_changed && ($wanted ? defined($state) && !$wrong && !$is_disabled && !$not_running : !defined($state) && $is_disabled);
         # A launchd repair never restores active permissions. Supervision must
         # recover and perform a new verification; Direct can recover normally.
         begin_job_repair($id) unless $changed || $released;
+        if (!$wanted && !$is_disabled) { required('/bin/launchctl', 'disable', "system/$label"); }
         if (defined($state) && (!$wanted || $wrong)) { required('/bin/launchctl', 'bootout', "system/$label"); $state = undef; }
         if ($wanted) {
             required('/bin/launchctl', 'enable', "system/$label");
@@ -465,9 +496,17 @@ sub run {
     if (network_release_requested()) {
         atomic_write($configuration, managed_configuration(read_file($configuration), 0), 0644);
         return if $operation eq '--boot' || -e "$runtime/maintenance";
+        $launchd_observed_at = time();
         my $changed = repair_jobs($id, 1);
-        my $policy = required('/sbin/pfctl', '-a', $anchor, '-sr');
-        atomic_write("$guard/health.json", encode_json({boot => $id, checkedAt => time(),
+        $pf_observed_at = time();
+        my $policy = with_pf_mutation(sub {
+            my $policy = required('/sbin/pfctl', '-a', $anchor, '-sr');
+            capture_pf_health_scope($policy);
+            return $policy;
+        }, 0, 0);
+        atomic_write("$guard/health.json", encode_json({boot => $id, checkedAt => $launchd_observed_at,
+            pfCheckedAt => $pf_observed_at, launchdCheckedAt => $launchd_observed_at, completedAt => time(),
+            pfMutationEpoch => $pf_evidence_epoch, pfState => $pf_evidence_state, pfPolicyDigest => $pf_evidence_digest,
             status => 'healthy', pf => $policy =~ /\S/ ? 'unavailable' : 'released', launchd => 'healthy'}));
         print "repaired\n" if $changed;
         return;
@@ -483,6 +522,7 @@ sub run {
     return if $operation eq '--boot' || -e "$runtime/maintenance";
     my $changed = restore_file("$guard/blocking.pf", $rules, 0644) + configure();
     my $observed_at = time();
+    $pf_observed_at = $observed_at;
     my $snapshot = with_pf_mutation(sub { pf_snapshot_identity(); }, 0, 0);
     print STDERR "mimo_pf_scan_started mutation_lock=not_held\n";
     my $observation = inspect_pf_snapshot($snapshot, $id);
@@ -490,7 +530,7 @@ sub run {
     with_pf_mutation(sub {
         # Token + expected-file checks catch an ABA state change or a writer
         # that died mid-transaction. Never repair/publish a mixed snapshot.
-        die "MIMO_PF_DEFERRED\n" unless encode_json($snapshot) eq encode_json(pf_snapshot_identity());
+        die "MIMO_PF_DEFERRED snapshot_changed\n" unless encode_json($snapshot) eq encode_json(pf_snapshot_identity());
         if ($observation->{needs_block}) {
             stamp_mutation();
             close_gate_locked($id);
@@ -507,7 +547,9 @@ sub run {
             }
         }
         $pf_healthy = 1;
+        capture_pf_health_scope(read_file("$runtime/guard.expected"));
     }, 0, 0);
+    $launchd_observed_at = time();
     $changed += repair_jobs($id);
     # All job changes have finished under the lifecycle lock. Clear only after
     # a healthy scan; a killed/failed checker leaves opening inhibited until
@@ -518,7 +560,10 @@ sub run {
                 if -e "$runtime/infrastructure-repair";
         });
     }
-    atomic_write("$guard/health.json", encode_json({boot => $id, checkedAt => $observed_at, repaired => $changed, status => 'healthy', pf => 'enabled', launchd => 'healthy'}));
+    atomic_write("$guard/health.json", encode_json({boot => $id, checkedAt => $observed_at,
+        pfCheckedAt => $pf_observed_at, launchdCheckedAt => $launchd_observed_at, completedAt => time(),
+        pfMutationEpoch => $pf_evidence_epoch, pfState => $pf_evidence_state, pfPolicyDigest => $pf_evidence_digest,
+        repaired => $changed, status => 'healthy', pf => 'enabled', launchd => 'healthy'}));
     print "repaired\n" if $changed;
 }
 
@@ -527,11 +572,28 @@ unless (caller) {
     if ($@) {
         my $error = $@;
         if ($error =~ /^MIMO_PF_DEFERRED\b/) {
-            print STDERR "mimo_infrastructure_deferred reason=pf_snapshot_changed_or_revocation\n";
+            my ($reason) = $error =~ /^MIMO_PF_DEFERRED (snapshot_changed|revocation_pending|mutation_busy)\b/;
+            $reason //= 'pf_snapshot_changed_or_revocation';
+            print STDERR "mimo_infrastructure_deferred reason=$reason\n";
             exit 75;
         }
         if (($ARGV[0] // '') eq '--check' && defined $current_boot) {
-            eval { atomic_write("$guard/health.json", encode_json({boot => $current_boot, checkedAt => time(), status => 'failed', pf => $pf_healthy ? 'enabled' : 'unavailable', launchd => 'unavailable'})); };
+            eval {
+                my $failed_at = time();
+                # A PF read can fail before launchd is inspected. Preserve the
+                # last real launchd evidence instead of inventing a new failure
+                # or a fresh observation for that independent component.
+                my $previous = eval { decode_json(read_file("$guard/health.json")) } // {};
+                $previous = {} unless ($previous->{boot} // '') eq $current_boot;
+                my $launchd = defined($launchd_observed_at) ? 'unavailable' : ($previous->{launchd} // 'unknown');
+                my $launchd_at = defined($launchd_observed_at) ? $launchd_observed_at : ($previous->{launchdCheckedAt} // $previous->{checkedAt});
+                atomic_write("$guard/health.json", encode_json({boot => $current_boot,
+                    checkedAt => $pf_healthy ? $pf_observed_at : $failed_at,
+                    pfCheckedAt => $pf_healthy ? $pf_observed_at : $failed_at,
+                    launchdCheckedAt => $launchd_at, completedAt => $failed_at,
+                    pfMutationEpoch => $pf_evidence_epoch, pfState => $pf_evidence_state, pfPolicyDigest => $pf_evidence_digest,
+                    status => 'failed', pf => $pf_healthy ? 'enabled' : 'unavailable', launchd => $launchd}));
+            };
         }
         print STDERR "mimo_infrastructure_failed $error";
         exit 1;

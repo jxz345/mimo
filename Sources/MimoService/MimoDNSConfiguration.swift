@@ -55,7 +55,7 @@ final class MimoDNSConfiguration {
     }
 
     var matches: Bool {
-        guard installed, let store, let expected,
+        guard installed, let store = store ?? SCDynamicStoreCreate(nil, "Mimo DNS receipt readback" as CFString, nil, nil), let expected,
               let actual = SCDynamicStoreCopyValue(store, MimoRuntime.dnsStateKey as CFString) as? NSDictionary else { return false }
         return actual == expected
     }
@@ -94,6 +94,14 @@ final class MimoDNSConfiguration {
         installed = true
         expected = value as NSDictionary
     }
+
+    func adoptReceipt(_ data: Data) throws {
+        guard let value = try PropertyListSerialization.propertyList(from: data, format: nil) as? NSDictionary else { throw DaemonFailure.invalidRequest }
+        expected = value; installed = true
+    }
+
+    /// A joined child removes the live key; no old in-memory receipt can qualify it.
+    func discardReceipt() { installed = false; expected = nil }
 
     /// Unregister and drain queued resolver work before destroying the TUN.
     /// The caller keeps the transition barrier closed throughout this operation.

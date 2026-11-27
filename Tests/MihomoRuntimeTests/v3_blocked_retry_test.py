@@ -39,7 +39,9 @@ def fixture_main():
                     pass
 
     root = Path(sys.argv[1])
-    fixture = RetryFixture(root, *sys.argv[3:7], 'S00')
+    assert sys.argv[7:] in ([], ['--loopback-provider-alias']), 'Unknown fixture option'
+    fixture = RetryFixture(root, *sys.argv[3:7], 'S00',
+                           loopback_provider_alias='--loopback-provider-alias' in sys.argv[7:])
     (root / 'fixture.json').write_text(json.dumps(fixture.manifest()))
     signal.signal(signal.SIGTERM, lambda *_: fixture.done.set())
     signal.signal(signal.SIGINT, lambda *_: fixture.done.set())

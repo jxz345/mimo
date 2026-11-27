@@ -18,6 +18,7 @@ enum ClientConnectionTests {
             return service
         }
         routing.infrastructure = .init(pf: .healthy, launchd: .healthy, checkedAt: .now)
+        routing.heartbeatHealth = .healthy; routing.heartbeatCheckedAt = .now
         state.routing = routing
         return state
     }
@@ -52,6 +53,31 @@ enum ClientConnectionTests {
         try await settle()
         require(monitor.connected && monitor.daemonState?.revision == 1, "The new subscription must recover immediately")
         require(monitor.serviceHealthLabel(.core, at: .now).hasPrefix("Healthy("), "Live inspections keep the uniform age format")
+        require(monitor.heartbeatHealthLabel(at: .now).hasPrefix("Healthy("), "Heartbeat must report a fresh inspection age")
+        var staleHeartbeat = current
+        staleHeartbeat.routing?.heartbeatCheckedAt = Date.now.addingTimeInterval(-20)
+        transport.subscribers[1](.state(staleHeartbeat))
+        try await settle()
+        require(monitor.heartbeatHealthLabel(at: .now).hasPrefix("Check overdue("), "Old heartbeat health cannot remain Healthy")
+        var futureHeartbeat = current
+        futureHeartbeat.routing?.heartbeatCheckedAt = Date.now.addingTimeInterval(60)
+        transport.subscribers[1](.state(futureHeartbeat))
+        try await settle()
+        require(monitor.heartbeatHealthLabel(at: .now) == "Unavailable", "A future timestamp is not healthy peer evidence")
+        var hungEngine = current
+        for index in hungEngine.routing!.services.indices where hungEngine.routing!.services[index].id != .core {
+            hungEngine.routing!.services[index].health = .unavailable
+        }
+        transport.subscribers[1](.state(hungEngine))
+        try await settle()
+        require(monitor.serviceHealthLabel(.mihomo, at: .now).hasPrefix("Unavailable(") &&
+                monitor.serviceHealthLabel(.profileHosting, at: .now).hasPrefix("Unavailable("),
+                "Controller failure must remain visible even while core communication is healthy")
+        require(monitor.heartbeatHealthLabel(at: .now).hasPrefix("Healthy("), "Engine failure cannot invent a heartbeat failure")
+        try CredentialAppTests.render(DashboardView(monitor: monitor), size: NSSize(width: 1040, height: 660), dark: false,
+            to: output.appendingPathComponent("dashboard-engine-unresponsive.png"), padding: 0)
+        transport.subscribers[1](.state(current))
+        try await settle()
         let lastReply = monitor.connection.lastReplyAt
 
         // A failed probe must not discard a newer, successful subscription update.
@@ -71,6 +97,7 @@ enum ClientConnectionTests {
         for id in MimoServiceID.allCases {
             require(monitor.serviceHealthLabel(id, at: .now) == "No connection", "Cached health must not be shown as Stale or Healthy while disconnected")
         }
+        require(monitor.heartbeatHealthLabel(at: .now) == "No connection", "Lost communication must not reuse cached heartbeat health")
         require(monitor.serviceMessage?.contains("Not receiving updates") == true, "The explanation must describe transport, not service failure")
         for dark in [false, true] {
             try CredentialAppTests.render(DashboardView(monitor: monitor), size: NSSize(width: 1040, height: 660), dark: dark,
@@ -110,6 +137,32 @@ enum ClientConnectionTests {
         transport.subscribers.last?(.state(current))
         try await settle()
         require(monitor.connected, "Returning account must display the fresh service report")
+        var noSupervisor = current
+        noSupervisor.routing?.phase = .unavailable
+        transport.subscribers.last?(.state(noSupervisor))
+        try await settle()
+        require(monitor.connected && !monitor.hasServiceReport(.mihomo),
+                "a live core channel cannot confirm engine health when its supervisor is unavailable")
+        require(monitor.serviceHealthLabel(.mihomo, at: .now) == "Unconfirmed",
+                "lost supervisor communication must not leave cached engine health visible")
+        require(monitor.serviceHealthLabel(.core, at: .now) == "Unconfirmed",
+                "A responding connection alone does not prove the IP monitor is enabled or healthy")
+        for firewall in [false, true] {
+            require(monitor.infrastructureHealthLabel(firewall: firewall, at: .now) == "Unconfirmed",
+                    "PF and launchd rows cannot reuse cached health after supervisor communication fails")
+        }
+        try CredentialAppTests.render(DashboardView(monitor: monitor), size: NSSize(width: 1040, height: 660), dark: false,
+            to: output.appendingPathComponent("dashboard-core-only.png"), padding: 0)
+        transport.subscribers.last?(.state(current))
+        try await settle()
+        require(monitor.serviceHealthLabel(.mihomo, at: .now).hasPrefix("Healthy("),
+                "a fresh supervisor report restores the normal service row")
+        require(monitor.infrastructureHealthLabel(firewall: false, at: .now).hasPrefix("Healthy("),
+                "fresh checks restore the service monitor's timestamp")
+        let removed = PublicIPMonitor(readDeactivation: { true })
+        for id in MimoServiceID.allCases { require(removed.serviceHealthLabel(id, at: .now) == "Removed", "full Stop removes all managed service rows") }
+        require(removed.infrastructureHealthLabel(firewall: true, at: .now) == "Released" &&
+                removed.infrastructureHealthLabel(firewall: false, at: .now) == "Removed", "full Stop distinguishes released PF from removed monitoring")
         monitor.stop()
         let count = transport.subscribers.count
         transport.subscribers[3](.state(current))

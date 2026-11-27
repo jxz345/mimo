@@ -45,39 +45,23 @@ enum MimoRecoveryState {
     }
 }
 
-/// Stop core before taking its storage lock. Commit the saved mode before restoring
-/// access, and restart only a core that the user had enabled before recovery.
+/// Persist through the sole settings owner. Never stop the supervisor to take
+/// its storage lock, and never turn a stopped IP monitor back on during recovery.
 @MainActor
 enum MimoDirectRecovery {
-    typealias Send = @MainActor (MimoSupervisorRequest) async throws -> MimoRoutingState
-
-    static func run(coreWasEnabled: Bool, send: Send,
-                    persist: @MainActor () throws -> MimoConfiguration) async throws {
-        var stop = MimoSupervisorRequest(.service)
-        stop.service = .core; stop.operation = .stop
-        let stopped = try await send(stop)
-        guard stopped.services.first(where: { $0.id == .core })?.health == .stopped else {
-            throw MimoRuntimeError.unavailable("Core did not stop; Direct recovery was not applied.")
-        }
-        let configuration = try persist()
-        var direct = MimoSupervisorRequest(.direct)
-        direct.configuration = configuration
-        let restored = try await send(direct)
-        guard restored.allowsTraffic, restored.effectiveMode == .direct else {
-            throw MimoRuntimeError.unavailable("Direct was saved, but networking recovery could not be confirmed.")
-        }
-        if coreWasEnabled {
-            var start = MimoSupervisorRequest(.service)
-            start.service = .core; start.operation = .start
-            var restarted = try await send(start)
-            for _ in 0..<30 {
-                if restarted.services.first(where: { $0.id == .core })?.health == .running { break }
-                try await Task.sleep(for: .milliseconds(100))
-                restarted = try await send(MimoSupervisorRequest(.state))
-            }
-            guard restarted.services.first(where: { $0.id == .core })?.health == .running else {
-                throw MimoRuntimeError.unavailable("Direct was saved and networking restored, but core did not restart. Start core from Background services.")
-            }
+    static func run(authorization: Data,
+                    call: @MainActor (DaemonRequest) async throws -> DaemonResponse) async throws {
+        let response = try await call(DaemonRequest(.state))
+        guard let state = response.state, var configuration = state.routing?.configuration else { throw DaemonFailure.unavailable }
+        configuration.mode = .direct
+        var request = DaemonRequest(.configureRouting)
+        request.authorization = authorization
+        request.expectedRevision = state.revision
+        request.routing = configuration
+        let changed = try await call(request)
+        if let failure = changed.failure { throw failure }
+        guard let restored = changed.state?.routing, restored.allowsTraffic, restored.effectiveMode == .direct else {
+            throw MimoRuntimeError.unavailable("Direct recovery could not be confirmed. Inspect the core log or use full Stop cleanup.")
         }
     }
 }

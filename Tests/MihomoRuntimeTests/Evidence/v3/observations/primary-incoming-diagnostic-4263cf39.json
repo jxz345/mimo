@@ -1,0 +1,144 @@
+{
+  "schema": 1,
+  "core_sha256": "4263cf39e9779b03d00bc73b40fd523e4ba8e42012ec2aa84f824ba5dd48e067",
+  "vm": "mimo-test-macos",
+  "status": "incoming_failure_reproduced",
+  "diagnostic_checks_completed": 2,
+  "diagnostic_checks_planned": 2,
+  "separate_from_runtime_runs": true,
+  "diagnostic_results": [
+    {
+      "kind": "direct-born",
+      "observation_complete": true,
+      "incoming_reply_while_blocked_passed": false,
+      "checking_after_echo_wait": true,
+      "client_tuple": {
+        "client_ip": "192.168.64.1",
+        "client_port": 51688,
+        "server_ip": "192.168.64.2",
+        "server_port": 22,
+        "protocol": "tcp"
+      },
+      "authenticated_READY_host_epoch": 1795788315.4842172,
+      "echo_sent_host_epoch": 1795788329.8871129,
+      "blocked_window_result": {
+        "received": false,
+        "host_epoch": 1795788334.889854,
+        "partial": ""
+      },
+      "after_approval_result": {
+        "received": true,
+        "host_epoch": 1795788337.8004549,
+        "line": "{\"echo\": \"6fbfc4a5101b4523a6213fce66e8125c-echo\", \"guest_epoch\": 1795788329.886635}"
+      },
+      "pf_state_observed": {
+        "birth_snapshot": false,
+        "preclose_snapshot": false,
+        "closed_snapshot": false,
+        "after_echo_snapshot": false,
+        "final_snapshot": false
+      },
+      "native_route_interfaces": {
+        "birth_snapshot": [
+          "interface: en0"
+        ],
+        "preclose_snapshot": [
+          "interface: en0"
+        ],
+        "closed_snapshot": [
+          "interface: en0"
+        ],
+        "after_echo_snapshot": [
+          "interface: en0"
+        ],
+        "final_snapshot": [
+          "interface: en0"
+        ]
+      },
+      "capture_sha256": "66b859f214dac59009e7062e1909e644884813ac64d05bbd2b8580e75b692ca7",
+      "result_private_path": ".build/observation-parallel/primary-validation-4263cf39-20261127T134917Z-cdcb13d8/incoming-paired-diagnostic/direct-born-result.json",
+      "result_sha256": "103d9304b53826a9065381a880836e1ee339418b9dca6c6d3e812984cb99297c"
+    },
+    {
+      "kind": "protected-born",
+      "observation_complete": true,
+      "incoming_reply_while_blocked_passed": true,
+      "checking_after_echo_wait": true,
+      "client_tuple": {
+        "client_ip": "192.168.64.1",
+        "client_port": 51751,
+        "server_ip": "192.168.64.2",
+        "server_port": 22,
+        "protocol": "tcp"
+      },
+      "authenticated_READY_host_epoch": 1795788349.8389099,
+      "echo_sent_host_epoch": 1795788364.643897,
+      "blocked_window_result": {
+        "received": true,
+        "host_epoch": 1795788364.6444721,
+        "line": "{\"echo\": \"d391f144817047c1816292bcca5696b4-echo\", \"guest_epoch\": 1795788364.6433122}"
+      },
+      "after_approval_result": {
+        "not_needed": true
+      },
+      "pf_state_observed": {
+        "birth_snapshot": true,
+        "preclose_snapshot": true,
+        "closed_snapshot": true,
+        "after_echo_snapshot": true,
+        "final_snapshot": true
+      },
+      "native_route_interfaces": {
+        "birth_snapshot": [
+          "interface: en0"
+        ],
+        "preclose_snapshot": [
+          "interface: en0"
+        ],
+        "closed_snapshot": [
+          "interface: en0"
+        ],
+        "after_echo_snapshot": [
+          "interface: en0"
+        ],
+        "final_snapshot": [
+          "interface: en0"
+        ]
+      },
+      "capture_sha256": "2b3908f1058443f0d48ef45b36a652809e6f16927add8469c485e4eae0045036",
+      "result_private_path": ".build/observation-parallel/primary-validation-4263cf39-20261127T134917Z-cdcb13d8/incoming-paired-diagnostic/protected-born-result.json",
+      "result_sha256": "c89c1de196d8ab7f15ba2d2f855e4bd7199767a2453cba0974ec058ea4d0d352"
+    }
+  ],
+  "cause": "An SSH connection created while the Direct policy is empty has no inbound PF state. A subsequent protected closure blocks its replies; the SYN-only inbound rule cannot create state from its already-established packets. The identical transition preserves a protected-origin inbound state and its replies.",
+  "evidence_scope": "Exact socket tuple and PF state snapshots, authenticated READY, server-generated echo timestamp, client receipt timing, confirmed checking/closed policy, unchanged en0 route, and paired protected-origin control. No production or PF/SSH policy edits.",
+  "capture_limits": [
+    "Host bridge capture unavailable: BPF is root-only and noninteractive sudo unavailable; host permissions were not changed.",
+    "Guest pktap PCAPs were retained without kernel drops, but192-byte snaplen truncated TCP headers after pktap metadata. They do not independently establish tuple packet timing. No missing-packet claim is made."
+  ],
+  "proposal": {
+    "status": "Not implemented; requires separate design approval.",
+    "preferred_option_to_evaluate": "While the engine remains installed in ordinary Direct, retain only SYN-created inbound TCP state tracking with no Mimo outbound restrictions. Stop engine/uninstall must still remove all Mimo rules. This changes the current empty-Direct-policy contract and must be explicit in design, status and cleanup tests.",
+    "alternative": "Evaluate narrowly authenticated existing inbound-flow preservation at the Direct-to-protected boundary. It must prove original server direction and exact tuple ownership, join closure safely and expire obsolete entries; avoid arbitrary packet-based midstream adoption.",
+    "rejected_shortcut": "Do not replace flags S/SA with blanket flags any: replies to old outbound connections could be misclassified as new inbound permission and reopen egress.",
+    "future_validation": [
+      "Direct-origin SSH/HTTP connections across approved and rejected protected transitions",
+      "Protected-origin incoming state survives transitions",
+      "Closed-policy native TCP/UDP and public ping/ping6 still fail closed",
+      "Ordinary Direct and Stop engine/uninstall retain their documented distinct cleanup contracts"
+    ]
+  },
+  "source_references": [
+    "Sources/MimoShared/MimoFirewallPolicy.swift:9",
+    "Sources/MimoShared/MimoFirewallPolicy.swift:15",
+    "Sources/MimoShared/MimoFirewallPolicy.swift:23",
+    "Sources/MimoShared/MimoFirewallPolicy.swift:104"
+  ],
+  "raw_archive": {
+    "path": ".build/observation-parallel/primary-validation-4263cf39-20261127T134917Z-cdcb13d8/incoming-paired-diagnostic-private.tar.gz",
+    "sha256": "bb23c5905bb53115ee38a55fc7886366c7a8fcbd696e0abb1e95c52fd7abeffe"
+  },
+  "original_primary_runtime_failure_preserved": ".build/observation-parallel/primary-validation-4263cf39-20261127T134917Z-cdcb13d8/run-01-health-early-c8face6d/ledger.json",
+  "remaining_matrix_decision": "Continue remaining authorized runtime runs on frozen4263 without changing or waiving the known failure. New or different failure still stops execution.",
+  "published": false
+}

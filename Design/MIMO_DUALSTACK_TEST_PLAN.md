@@ -2,6 +2,10 @@
 
 ## Current failure/recovery acceptance contract (26 November)
 
+User service commands also require the [command and supervision matrix](#user-service-command-and-supervision-matrix)
+below. A successful RPC or installer exit alone does not qualify the visible
+button, the completed network transition or the subsequent watchdog behavior.
+
 Every UI and failure/recovery run must correlate GUI, core and supervisor events
 with the actual actions. Declare expected verification triggers and terminal
 states, record command/attempt/navigation IDs, and fail on unexplained repeated
@@ -170,6 +174,157 @@ dual-stack short-name DNS assertions failed**. See the [final-template results](
 The IPv4-oriented template passed 905 cases in each mode. Dual-stack passed 900
 and failed five in each mode, so it is not deployment-ready. These counts remain
 separate from the older 6,240-case experiment.
+
+## User service command and supervision matrix
+
+### Focused Refresh now audit — 27 November 2026
+
+Audit the actual Dashboard button in managed Direct (both saved family choices)
+and Rule/Global × IPv4/dual-stack × approved/rejected exit: ten starting states.
+Use production RPC only to prepare the starting state, then wait 35 seconds,
+arm log offsets, click once, and observe completion plus another 35 seconds.
+Temporarily select Never for the periodic interval and restore original settings
+afterward. Record periodic-timer overlap separately; do not hide it by counting
+only the manual trigger. Raw state stays root-private in the VM.
+
+`Tests/MihomoRuntimeTests/v3_refresh_event_test.py` correlates manual request,
+lookup ID, provider HTTP count, prepare/approve commands, gate changes and terminal
+state. A normal click must produce one lookup and a fresh result. Direct must not
+close the traffic gate. Protected modes intentionally close application outbound
+traffic, allow the private proxy probe and reopen only for an approved IPv4.
+Denial is a completed lookup, not a provider failure. Display/widget notifications
+and infrastructure inspections are not additional IP checks. Fail on unexplained
+follow-up lookups, errors, process replacement or late gate changes. Record native
+clicks separately from API-only concurrency and scheduler tests.
+
+Execution stopped at the user's request for a new workflow proposal: five native
+clicks completed (Direct IPv4 and all four Global approval/family combinations),
+four fully passed and one had transient engine/profile Unavailable after a single
+successful lookup. No duplicate IP request occurred in those windows. Rule setup
+was interrupted before its click; remaining cases are pending. See the
+[scoped results and evidence](MIMO_REFRESH_EVENT_AUDIT.md). The new
+[observation/transition proposal](MIMO_3_0_PLAN.md#proposed-observation-and-transition-workflows--27-november-2026)
+has separate acceptance requirements and has not been implemented.
+
+Added 26 November 2026 at the user's request. This is an additional acceptance
+matrix, **not a report of newly executed tests**. Keep it separate from the
+template packet/query totals below. Record each concrete operation, starting
+state, fault and invocation method as a separate case before execution; do not
+count one scenario family as one completed test.
+
+### Ownership and invocation methods
+
+- **Native GUI:** click the actual Dashboard controls, including both the engine
+  row's Stop and the main “Stop engine” action. Check progress, disabled controls,
+  errors, terminal labels and check ages. These both currently invoke full
+  deactivation. Activation goes through the installer. Capture the actual click
+  and resulting events; an RPC simulation is not native UI coverage.
+- **Installed API:** use the production service-control route to the supervisor
+  for IP-monitor Start/Stop/Restart, engine Start/Restart and Profile Reload
+  (`profileHosting/restart`). Heartbeat observes supervisor progress; it does not
+  execute user network commands. Call backend engine-only Stop separately:
+  it releases controls and preserves the peers, unlike GUI full deactivation.
+- **Lifecycle CLI:** exercise the installed `mimo-manage`/bundled `daemon.sh`
+  deactivate, install/restore and uninstall paths. Record which entry point ran.
+  For uninstall after app deletion, use the retained management helper. Do not
+  treat CLI success as proof that the GUI authorization/progress path works.
+- **Deterministic service/installer tests:** inject failures at intent persistence,
+  confirmed blocking, launchd operation, profile delivery and final readback.
+  Control barriers explicitly when testing races with peer repair; supplement
+  these tests with installed observations and real native clicks.
+
+Use managed Direct and Rule/Global × IPv4/dual-stack for applicable commands.
+In each protected cell exercise both approved and rejected exits. Repeat relevant
+recovery commands while a proxy/provider/controller fault is active. Full release
+and activation also need the released-Direct starting state. Use isolated VM
+fixtures, save the original settings privately, and restore them in final cleanup.
+
+### Required cases
+
+| ID | User operation or scenario | Required outcome and observations |
+| --- | --- | --- |
+| SC01 | Stop IP monitor | Logical monitoring stops; supervisor and heartbeat retain their PIDs and advance progress. Persist the monitor preference, allow no new periodic lookup, and cancel or explicitly account for any in-flight lookup. Protected traffic remains safely blocked if approval can no longer be maintained. Direct stays native. Stop must not be mistaken for a dead peer. |
+| SC02 | Start IP monitor | Monitoring resumes and a requested fresh check completes or reports its specific failure. Both peers stay running. A rejected but successfully fetched IPv4 is displayed without pausing a healthy provider. Do not clear a genuine provider rate limit to make this pass. |
+| SC03 | Restart IP monitor | Stop/start the logical monitor once, without restarting either peer. Fence the old attempt so its late reply cannot overwrite the new result. Require a terminal new check and no duplicate timer or verification loop. |
+| SC04 | Start engine from the backend engine-stopped state | Re-enable its launchd registration, start one engine, verify controller/profile health and reconcile to the intended mode. Conflict or launch failure must leave an accurate recoverable state. This does not substitute for full Activate. |
+| SC05 | Restart engine | Establish confirmed protection before replacing a protected engine. Observe its PID replacement and unchanged peer PIDs; require actual controller readiness and one accounted-for verification cycle before approved traffic resumes. In Direct, keep native networking and avoid a protected-mode cycle. |
+| SC06 | Reload profile | Deliver the current profile and verify its receipt/controller response, normally without replacing the engine PID. Protected mode closes before mutation and verifies afterward; Direct must not install a protected tunnel or DNS override. A malformed profile or controller failure reports failure and permits Direct recovery. |
+| SC07 | Full Stop from both Dashboard entry points | Run the shared deactivation lifecycle. Cancel/fence pending verification; remove all three jobs, current/legacy Mimo PF rules, DNS override and owned tunnel/settings. Verify native LAN/Tailnet and incoming-service access. The UI changes to Activate and may continue released IP monitoring; removed daemons must not remain Healthy or reappear. |
+| SC08 | Activate after full Stop | Restore all three roles, clear saved stop intent as installation specifies, verify health, and finish in the installation state (managed Direct). Exercise both consent and cancellation for a conflicting engine/occupied resource. Do not replace a competing service before consent or report success after a partial install. |
+| SC09 | Backend engine Stop → real reboot → Start | Persist the engine-disabled intent before unloading. Peers remain running and must not restore it, including after a real reboot. Start re-enables the job and restores actual controller/profile health. Record this separately from SC07. |
+| SC10 | Duplicate requests and two GUI accounts | Double-click where possible, issue overlapping identical and conflicting commands, and alternate accounts. Require serialization/coalescing or an explicit conflict response; no lost accepted command, competing settings writer, duplicate process or GUI freeze. Both clients converge on the same durable result. An intentionally rejected stale/conflicting request is recorded, not hidden. |
+| SC11 | Stop/reload/restart during verification or peer repair | Hold a lookup/profile operation in flight, then request Stop/Direct/Reload/Restart. Repeat with peer loss and maintenance entry. Check cancellation/generation fences and the shared repair lock. Late completions cannot reopen the gate, overwrite newer intent or resurrect a removed job. Repair must honor the final durable service intent. |
+| SC12 | Lost reply, GUI exit and partial operation failure | Disconnect/reopen the GUI or interrupt a reply after acceptance; inject service/cleanup failures. Distinguish “not delivered” from “accepted, completion unconfirmed.” Reconcile from core/durable state instead of blindly repeating destructive work. Show communication failure separately from service failure; provide retry or Direct recovery. |
+| SC13 | Commands during rejected exit, proxy down, provider failure or hung controller | Exercise relevant Start/Restart/Reload/retry requests without first escaping through Direct. A responsive provider is not paused because its result is disallowed. Recover within the same blocked session after fixing the cause, then separately prove the user can always select Direct. No peer restart may be caused solely by denial/provider failure. |
+| SC14 | Uninstall/reinstall, app deletion and repeated cleanup | Test the Homebrew hooks and retained-helper cleanup, not just direct installer calls. Verify old/current rules and registrations disappear, removed jobs do not resurrect, native networking survives app deletion, and reinstall restores all roles. Retain local settings/credentials according to policy and export no secrets. |
+
+### Test procedure and log assertions
+
+1. **Identify the artifact and baseline.** Record version/build, core/engine hashes,
+   boot UUID, selected/effective mode, traffic family, saved service intent,
+   launchd labels/PIDs and progress sequences. Read live PF/DNS/TUN/controller
+   state. Use fresh uncached requests and native LAN/Tailnet plus incoming-service
+   probes where release or protection is being qualified. A running PID alone is
+   not a health result.
+2. **Declare the expected transition before acting.** Specify the permitted
+   process changes, block/open sequence, expected lookup trigger and terminal
+   state. User Start/Restart/Reload may explicitly request an IP check; ordinary
+   state polling/navigation may not. Direct must not enter protected verification.
+   A backend-only command and a GUI action that additionally requests Refresh
+   need separate expectations. No-op and conflicting requests must not create
+   unexplained extra work.
+3. **Capture the complete operation.** Collect GUI records from every participating
+   account, supervisor/core runtime and service logs, heartbeat repair records,
+   installer output and engine errors from before submission through settlement.
+   Correlate available request/command, revision, attempt, PID and generation
+   identifiers. For paths without a shared identifier, record the invocation
+   interval and readback; ambiguous attribution remains a qualification gap.
+   Reconcile receipt, admission/rejection, progress and terminal completion.
+   `mimo_service_changed` alone does not establish completed re-verification or
+   network cleanup.
+4. **Verify independently and through the GUI.** Compare returned state with live
+   launchd/controller/PF/DNS/tunnel state. Measure bounded API response and UI
+   completion against the operation's declared deadline; report durations, not
+   just success. Check pending controls settle, stopped/unavailable/communication
+   labels are accurate and Healthy ages use genuine inspections. Probe outgoing
+   leakage and incoming access throughout protected mutations. Routine monitor/
+   profile controls must not restart peers or create additional daemons.
+5. **Observe the terminal state.** Require at least **35 seconds** of settled
+   observation spanning infrastructure scans. After deactivation/uninstall,
+   observe **at least 50 seconds** for resurrection, and use real reboot checks
+   for durable Stop intent. Use at least **135 seconds** for repair/Stop races to
+   span the 120-second startup grace and another infrastructure scan; extend the
+   window through any still-pending repair/backoff. Continue collecting progress
+   and logs.
+   A healthy/blocked terminal state must not generate unexplained lookup, network
+   change, gate transition, stale command, peer repair, repeated PF mutation or
+   overdue-health events. Planned repair/backoff/fault errors must match the
+   injected case exactly; never blanket-ignore warnings/errors.
+6. **Qualify recovery and preserve evidence.** Record one terminal outcome for each
+   accepted request and account for joined/cancelled/rejected requests. Test retry
+   after the cause is removed and verify Direct remains usable. Restore settings,
+   service intent and all test fixtures; confirm no deliberate fault remains.
+   Keep raw logs/settings root-private and publish sanitized results with case ID,
+   method, artifact, timing, expected/actual event counts, cleanup and limitations.
+   Preserve failing evidence before any production fix, then rerun the same case.
+
+### Existing evidence and outstanding coverage
+
+The [named-background-services campaign](MIMO_CORE_INFRASTRUCTURE.md#qualification-completed--26-november-2026)
+contains backend IP-monitor Stop/Start, engine Stop→reboot→Start, full
+deactivate/activate and uninstall/reinstall checks with settled log audits.
+Those lifecycle runs preceded the final conditional-PF-write binary; their
+artifact scope is preserved. Final-artifact audits cover rejected Rule/IPv4 and
+Global/dual-stack recovery, controller health, normal reboot and other listed
+follow-ups. They do not establish every mode/fault/command combination above.
+
+**Still to execute for this expanded matrix:** explicit IP-monitor Restart,
+engine Restart and Profile Reload campaigns; actual native clicks on each
+mutating control; simultaneous two-account commands; deterministic command/repair
+races and lost-reply reconciliation; and the complete mode/fault combinations.
+Prior native navigation/copy tests are read-only UI evidence. Do not mark these
+new cases passed by reusing RPC tests, historical lifecycle tests or the existing
+64-distinct-check summary. This documentation update runs no VM operations.
 
 ## Current plan summary
 
@@ -1018,3 +1173,414 @@ overlapped a periodic refresh and is retained separately, not counted as a pass.
 See [the layout record and evidence](MIMO_3_0_IMPLEMENTATION.md#compact-stable-dashboard--26-november).
 This is presentation/navigation coverage, not a new traffic or fault campaign;
 the existing running core and the user's Direct/IPv4 settings were preserved.
+
+## Approved observation workflow regression — 27 November 2026
+
+The installed inventory now contains 113 distinct cases (original 109 plus four
+initial-verification preemptions). Run these in Rule/Global × IPv4/dual-stack:
+enter protected mode from Direct in the opposite initial family, prove ingress
+of the held private IP request, restore subsequent fixture replies to healthy/no-delay,
+then select the requested final family through the production routing command.
+Require higher-generation closure, cancellation of the obsolete verification
+without a provider pause or accepted stale close, a distinct fresh approved
+receipt for the final family, unchanged engine identity, blocked native escape
+probes and 35 settled seconds without extra work. Preserve the unit-only
+fail-first stale-token race separately from this installed preemption coverage.
+
+Run the [observation qualification strategy](MIMO_OBSERVATION_TEST_RESULTS.md)
+after the new core/supervisor split. This changes the expected active refresh
+trace from `prepare → approve` to `observe → completeObservation`; it must show
+zero profile reloads, connection cleanup and PF permission writes for successful
+unchanged-path observations. Blocked verification keeps the existing transition
+trace. Do not reuse the historical five-click audit as qualification of this change.
+
+Provider errors must preserve approved traffic; path/runtime faults must revoke.
+Keep incoming SSH/Screen Sharing replies usable, check the displayed rejected IP,
+and inspect all logs during at least 35 seconds of settled operation. Exercise
+both traffic families in Rule and Global; approval remains IPv4 only. Native UI
+clicks and RPC-driven cases must be reported separately, with artifact identity.
+
+Include rapid user operations: twelve overlapping Refresh requests, then twenty
+Refresh requests interleaved with mode changes and a final explicit selection.
+Run Rule/Global and both families, including denied-IP/proxy-down recovery to
+Direct. Audit cancellation, bounded lookup counts, last-intent ordering, service
+health and 36 seconds of settled logs. Details and results are maintained in
+the observation report; a sequence of RPC calls is not native-click evidence.
+
+Before a mixed Direct/protected sequence, prove that actual core requests reach
+both closed fixture routes, with correlated lookup IDs and distinct native/proxy
+TLS ingress. Keep exact original hosts bytes throughout the sequence. The native
+fixture uses journaled, exact-provider `/etc/resolver` files and a loopback DNS
+stub; the engine uses its existing closed DoH route. Verify resolver ownership and
+contents before, during and after the burst. Do not clear provider cooldowns or
+count a failed fixture preflight as a product failure or a qualifying pass. Archive
+raw evidence before removing owned resolvers/listeners and deleting the worker VM.
+
+Audit GUI communication across setup, the operation and the settled interval,
+starting from a known connected GUI process and a saved log cursor. Retain raw
+GUI/core/supervisor records and process identities. Treat informational
+`daemon_client_disconnected` events as failures too; an error-level-only scan
+missed real status-probe interruptions during synchronous Direct teardown.
+Missing GUI records are an evidence gap, not proof of continuity. Preserve the
+original verdict and append an audit correction rather than rewriting raw results.
+
+The initial joined Direct-cleanup follow-up planned 91 existing IDs on candidate
+`9940200f08416e0f8ee3aab9c8cccf22bec020186eb14e4d844518e73010c78d`:
+74 workflow cases, eight rapid-operation cases, four verification preemptions and
+five actual dashboard Refresh clicks. The primary VM owns 37 workflow cases and
+the five UI clicks; the temporary worker owns the other 49 cases. Require complete
+GUI communication evidence for all 91, including preparation and cleanup where
+applicable. Local scheduling/ownership regressions are separate evidence and do
+not increase the 113-case installed inventory. Remaining 22 packet/timer results
+retain their recorded older artifact scope until explicitly repeated.
+
+**Latest execution restriction:** only new or previously failed cases may run.
+The three original failed rapid cases now pass. Four previous-pass rapid cases
+ran before the user stopped those reruns: three passed and one failed a settled
+health assertion. Investigate/retest only that new failure; preserve the original
+boolean-only health result and add component-level diagnostics before attributing
+its cause. Do not widen health freshness limits to make it pass. Previously
+successful cases, including the remaining primary/worker partitions, require
+explicit user approval before rerunning. No automatic broad resume follows a
+focused pass. Keep native UI clicks distinct from RPC cases; preserve every
+attempt and its artifact identity.
+
+### Focused health and pending-mode follow-up — 27 November 2026
+
+The approved installed scope is **five distinct cases, at most nine VM
+attempts**, all on `mimo-observation-worker` (`mimo-vm-worker`). The original
+six-attempt limit gained two explicitly approved retries: the first new IPv4
+case failed its DNS setup oracle before any queued operation; the next attempt
+incorrectly required a `succeeded` manual phase for a completed lookup whose IP
+was rejected. The congestion follow-up adds one retry of the subsequently
+reproduced stuck manual-feedback failure. All failed attempts remain in the
+total with unchanged evidence. Five attempts are consumed; only that failed
+case retry and the three unstarted new cases remain. Nothing in this
+appendix authorizes rerunning the six retained passing cases, other passing
+members of the 113-case inventory, or the paused primary/worker partitions.
+The worker waits for a packaged candidate and recorded core/helper hashes.
+
+| Case | Attempts | Trigger and required evidence |
+| --- | ---: | --- |
+| Existing failed `rapid mixed / dual/global-to-rule/allowed` | Up to 2 | Retain the original failure and both later non-resolving diagnostic passes. Retry at 0–1 seconds, then if useful 5–6 seconds, after a newly completed successful infrastructure scan. Record actual scan/receipt timestamps and the phase reached. Stop once the failure is captured; a later pass alone does not explain the original failure. |
+| New `pending mode / ipv4/latest-rule-denied` | 4 | Retain both failed oracle attempts and the stuck-feedback failure, then retry after the congestion fix is packaged. Queue overlapping mode intents and Refresh requests behind an admitted Direct cleanup; an accepted allowlist edit separates two mode groups. The newest pending mode ends in Rule, with the observed IPv4 exit excluded. |
+| New `pending mode / dual/latest-rule-denied` | 1 | Same queued-operation proof with dual-stack routing. |
+| New `pending mode / ipv4/latest-direct` | 1 | Same edit barrier and coalescing proof; the newest pending mode ends in clean Direct. |
+| New `pending mode / dual/latest-direct` | 1 | Same final Direct proof with dual-stack routing. |
+
+The four new cases use real production RPCs, **not native button clicks**. A
+separate native inspection may validate the pending-mode buttons and health
+labels; it must not be represented by these RPC results. Local harness controls
+are also separate: the first 28 controls, expanded with two PF/status-bracket
+checks, three current-policy-evidence checks and three delayed-intent checks,
+plus seven single-case runner/incoming-coverage controls, do not increase the VM
+case or attempt counts. Five additional DNS-precondition controls exposed one
+false rejection and two missing native-proof checks; only those three failures
+were rerun after correction, and all three passed. The two baseline passes were
+not rerun.
+
+On core `d91336cb60f39d6b62e3cc2aed3c998b49a8214f0857a105c7149f8cefec142a`,
+both planned health offsets passed, with real deferred scans and bounded retries.
+The first new IPv4 attempt failed because its precondition counted intercepted
+IPv6-carried DNS A responses as successful IPv6 application egress. Its protected
+window contained 12 UDP and 12 TCP DNS replies, zero IPv6 application/echo
+successes, and zero native packet attempts. The managed profile intentionally
+intercepts both DNS transports. The corrected oracle excludes only the known
+`dns-udp` and `dns-tcp` probe kinds from that application-success check; unknown
+successful kinds still fail. A separate captured-packet assertion requires zero
+native attempts throughout the approved precondition window, including when
+setup fails. DNS escape therefore still fails. The original setup failure is
+retained and does not qualify the new queued-operation behavior.
+
+The new contention fixture briefly acquires the existing PF mutation lock on
+the worker, without writing its contents, replacing its inode, or changing PF
+rules. Its independent helper has a hard maximum of eight seconds (the current
+case requests four) and releases immediately when queue admission is proved.
+Verify its PID, exact lock identity, exit, and unchanged inode. A case does not
+qualify unless at least two mode-only requests demonstrably wait behind an
+active physical operation, with an exact superseded-request/replacement pair.
+Use one authenticated mode-intent stream with increasing issued sequence numbers.
+After the newest request is proved pending, deliberately deliver one older
+sequence from that stream. Require an ordinary superseded response with no queue
+entry, replacement of the newest ticket, or configuration commit.
+The allowlist edit must be accepted at its expected revision and retain its
+position between the two mode groups; a conflict is not an accepted edit.
+Refreshes superseded by later admitted mode changes may be cancelled normally.
+After the queue drains, issue one final current Refresh and require its successful
+HTTP result; in denied Rule that success still leaves traffic blocked and displays
+the rejected address. First wait boundedly for the prior manual operation to reach
+a terminal state, then capture the new request's response ID and requested time.
+Wait for that exact ID's finished time and correlate its HTTP success and terminal
+event. A completed denied lookup intentionally has manual phase `failed` and
+event outcome `blocked`; neither that phase alone nor an old ready state qualifies.
+Require ready provider, fresh expected rejected IP, closed PF and no provider
+pause/failure/cancellation. Direct requires a matching `succeeded` completion.
+Archive the complete owner-only final response and state. Ten new completion
+controls exposed seven deficiencies in the old phase-only assertion; only those
+seven failures were rerun after correction, all passing. Three baseline controls
+were not rerun. Three additional fresh-result controls require the snapshot time
+to fall within the final HTTP lookup and the rejected-IP timestamp to match that
+snapshot; two failed first and then passed, with the baseline pass not rerun.
+Swift Date values are converted explicitly by adding 978307200 seconds before
+comparison with Unix/log time. No production behavior changed for either oracle correction.
+
+The approved congestion follow-up keeps that bounded wait and requires the new
+structured result and owner fields. Every manual ID accepted during the burst
+must have exactly one matching-generation terminal event; explicit `superseded`
+or `cancelled` may finish an obsolete prior request without HTTP. An arbitrary
+`failed` phase does not qualify. The final request requires `checkedBlocked` or
+`checkedAllowed` with matching request ID, lifecycle, lookup ID and routing
+revision, plus the existing successful HTTP and fresh-IP evidence. Seven new
+typed-ownership controls produced six deficiencies; only those six were rerun
+after correction, all passing. The initial passing control was not rerun.
+
+**Historical interruption after attempt five:** both health phases passed; the first
+two new-case attempts retain their oracle failures. The next IPv4 denied-Rule
+attempt proved queue coalescing, the edit barrier, delayed-old-intent rejection,
+closed protected traffic, and responsive GUI/management access, but its earlier
+burst manual Refresh remained `checking` for the full 35-second terminal wait.
+The final settings lookup had succeeded and core was ready/blocked; no matching
+manual completion followed. The explicit final Refresh was not issued. This is
+a reproduced pending-feedback failure, not the earlier blocked-result assertion
+error. The three remaining new cases were held until the congestion fix was
+packaged. The exact historical manual lifecycle generation was not public/logged;
+the ownership-mismatch hypothesis requires a deterministic local reproduction.
+The [sanitized focused evidence](../Tests/MihomoRuntimeTests/Evidence/v3/observations/targeted-health-rapid-d91336cb.json)
+binds the artifact, five consumed attempts, private archive hashes, both oracle
+corrections, setup support failures and current limitations. Nothing here claims
+native button-click coverage or separately measured private PF receipt age.
+
+**Focused execution completed:** all four new cases passed on
+`4263cf39e9779b03d00bc73b40fd523e4ba8e42012ec2aa84f824ba5dd48e067`,
+version3.0/build11, unpublished. The failed IPv4 denied-Rule case ran first;
+the three previously unstarted cases followed. Neither passed health offset nor
+any other previously passing case was rerun. Total: **five distinct cases
+qualified across nine actual attempts**, with six passing attempts and the three
+earlier failures retained. The two health-offset passes remain scoped to
+`d91336cb`; this is not a blanket rerun of the 113-case inventory on the newest
+binary.
+
+| New RPC case | Final manual result | Settled health | Operation HTTP requests | Protected native attempts |
+| --- | --- | ---: | ---: | ---: |
+| IPv4 → denied Rule | `checkedBlocked` | 18/18 | 2 | 0 |
+| IPv4 → Direct | `checkedAllowed` | 18/18 | 2 | 0 |
+| Dual stack → denied Rule | `checkedBlocked` | 18/18 | 2 | 0 |
+| Dual stack → Direct | `checkedAllowed` | 18/18 | 2 | 0 |
+
+Each case proved five queued control requests, two exact supersessions, an
+accepted allowlist revision barrier and rejection of a delayed older intent.
+The earlier manual ticket terminated as `superseded`; the final ticket bound
+its typed result to the exact request, lifecycle, lookup and fresh IP timestamps.
+All four whole-case event audits found zero runtime errors, provider penalties,
+service repairs/recovery loops or unexpected settled checks. Each had five HTTP
+requests including setup and two during the operation, never more than one per
+lookup. GUI communication and both fresh/persistent incoming SSH controls passed.
+The maximum effective PF age was20.521seconds, maximum sampled full-guard PF age
+18.773seconds and maximum sampled state RPC1.206seconds; no35-second health bound
+was exceeded. These maxima are conservative rounded-up summaries.
+
+The [candidate-scoped summary](../Tests/MihomoRuntimeTests/Evidence/v3/observations/targeted-health-rapid-4263cf39.json)
+records installation proof, exact case/archive digests, per-component health,
+typed request ownership and independent retained-event verdicts. Direct windows
+explicitly authorized native traffic; zero escape applies after confirmed
+closure and while protected, not to the whole mixed-mode sequence. Native button
+clicks, Screen Sharing and separate private PF-receipt age remain outside this
+qualification. Cleanup is a separate support action; it does not rerun cases or
+authorize publication.
+
+**Cleanup completed:** the temporary `mimo-observation-worker` was stopped and
+deleted after its six journaled resolver files, guest helpers and host fixture
+processes were removed. Its settings and hosts file were restored, and healthy
+Direct with empty Mimo/LAB policies was confirmed. Exact proxy-selection/routing
+restoration remained impossible because the cloned baseline referenced a missing
+proxy UUID; that mismatch is preserved in the evidence. Read-only checks confirmed
+the primary `mimo-test-macos` still has core `00f51db8`, its original settings,
+routing and hosts file, and healthy Direct. The primary VM and stopped
+`mimo-pre-v3-20261125` backup remain. The [cleanup summary](../Tests/MihomoRuntimeTests/Evidence/v3/observations/targeted-health-rapid-cleanup-4263cf39.json)
+binds archive hashes, owned-resource removal and final VM inventory. No tests were
+rerun during cleanup; existing primary certificate trust was preserved.
+
+Capture infrastructure state continuously across setup, transition and settling:
+separate PF/launchd observations and ages, heartbeat, inspection ownership and
+outcome, producer `checkedAt`, component timestamps, completion time, PF mutation
+epoch/state/digest, and scan started/finished/deferred/retry/reconciliation events.
+The existing **35-second** health threshold remains unchanged. Preserve real
+producer evidence; never advance timestamps to hide an inspection delay. Keep
+at least 36 settled seconds and retain each sample, including failures.
+A healthy/released PF claim cannot coexist with explicitly non-current policy
+evidence. A historical inspection's `isCurrent: false` alone is not a failure:
+current PF receipts and independent launchd evidence must be assessed separately.
+
+The packet audit distinguishes an admitted Direct operation from a merely queued
+intent. An already admitted Direct cleanup may finish and release native
+networking. Record queued, admitted, confirmed-closure and observed native-window
+times explicitly. Once protection is confirmed, or while protected operation is
+active/blocked, require zero native escape attempts. Do not call the entire
+mixed-mode sequence leak-free: its explicitly authorized Direct window has a
+different policy. Calibrate the packet detector in Direct within each new case,
+prove proxy TCP/UDP traffic for the selected family, and verify public ping and
+ping6 remain blocked while protected. The lab contains any detected escape and
+must be empty after cleanup. Bracket status samples with actual PF readback so
+an active protected display over a stably released policy cannot pass.
+
+Require whole-case GUI communication coverage, bounded read-only state RPCs,
+stable service identities, a visible rejected exit IP for the denied Rule cases,
+no healthy-provider pause, no stale approval, and no repeated settled work.
+Retain fresh incoming SSH observations and the existing persistent incoming
+connection across each case; missing coverage or unexplained interruption is a
+failure, even if a host event overlaps. Do not change the host to improve the
+result. Archive full reports, raw events, packet captures, health samples and
+cleanup evidence before advancing. No successful targeted result automatically
+restarts the broader regression campaign or authorizes publication.
+
+Harness sources: [`v3_rapid_policy_test.py`](../Tests/MihomoRuntimeTests/v3_rapid_policy_test.py),
+[`v3_rapid_policy_oracle.py`](../Tests/MihomoRuntimeTests/v3_rapid_policy_oracle.py),
+[`v3_health_trace.py`](../Tests/MihomoRuntimeTests/v3_health_trace.py), and the
+optional `--health-phase=early|late` path in
+[`v3_observation_burst_test.py`](../Tests/MihomoRuntimeTests/v3_observation_burst_test.py).
+
+### Authorized confirmation on both VMs — 27 November 2026
+
+The user explicitly authorized rerunning the completed focused tests on
+`mimo-vm`, adding a few relevant prior successes, and running the same scope on
+both VMs. This supersedes the earlier no-rerun restriction **only for this named
+scope**. No full 113-case rerun or publication is authorized.
+
+Each VM runs all 11 `ManualDemand` controls from the exact final candidate source,
+plus eight distinct installed cases across nine runs. Total: **22 local-control
+executions and 18 installed runs**. The prior worker was deleted; its replacement
+is a temporary clone, initially booted without network access. After user-assisted
+logout, setup may use NAT with the Tailnet VPN and automatic connection disabled;
+copied identity removal and a fresh login are required before Tailnet connection
+or runtime qualification. Primary baseline settings, routing, hosts, service intent and
+certificate trust are captured before mutation. Core identity is
+`4263cf39e9779b03d00bc73b40fd523e4ba8e42012ec2aa84f824ba5dd48e067`.
+
+| Installed case, repeated on each VM | Runs per VM | Why included |
+| --- | ---: | --- |
+| Dual-stack Global → Rule, approved exit | 2 | Repeat both early and late infrastructure-scan timings on the final candidate. |
+| Queued IPv4 → rejected-IP Rule | 1 | Recheck the reproduced stuck-Refresh failure. |
+| Queued IPv4 → Direct | 1 | Confirm supersession and clean Direct completion. |
+| Queued dual-stack → rejected-IP Rule | 1 | Confirm denied result/IP display and healthy provider under dual-stack congestion. |
+| Queued dual-stack → Direct | 1 | Confirm dual-stack cleanup and final native observation. |
+| Rapid IPv4 Rule → Direct, rejected exit | 1 | Previously passing failure-to-Direct recovery with overlapping Refresh/mode requests. |
+| Rapid IPv4 Global → Direct, proxy down | 1 | Previously passing physical cancellation and recovery from a real provider-path failure. |
+| Rapid dual-stack Rule → Direct, approved exit | 1 | Previously passing normal rapid transition, without denied-IP recovery obscuring the result. |
+
+Compile controls inside each VM in isolated test directories. Do not run timed
+installed cases during compilation on that VM. Runtime fixtures have separate
+roots, client addresses and bound ports. Keep the established whole-case event,
+GUI communication, health, ticket ownership, packet and incoming SSH assertions;
+retain the 35-second health expiry and at least 36-second settled observation.
+These remain production RPC simulations, not native clicks. Preserve every
+failed attempt before diagnosing or making any change. Record per-VM results
+separately from all historical evidence and restore owned test resources afterward.
+The recreated worker is deleted only after evidence is archived; primary remains.
+
+The primary's nine first attempts are recorded in the
+[current report](MIMO_OBSERVATION_TEST_RESULTS.md). A single extra attempt is
+performed only for its unqualified dual-stack/rejected-Rule log-observation case.
+The harness now preserves first/final queue inputs and waits at most three
+seconds for absent asynchronous disk records. Wrong, duplicate or late owned
+records fail; existing application timing, queue semantics and health/packet
+assertions remain unchanged. Recheck ownership after settling. Record this retry
+separately from the 18 original runtime slots and retain the original failure.
+That extra attempt passed all queue, final Refresh, settled-health, GUI, incoming
+SSH and protected-packet assertions; it does not waive the other failures.
+Use the corrected observer for the worker's unstarted cases with exact staged
+hashes; keep the installed candidate unchanged on both VMs.
+
+**Final test results:** all 22 local controls passed. All 18 original runtime runs
+are terminal: primary 5 PASS / 2 product FAIL / 2 unqualified; worker 7 PASS /
+2 product FAIL. The separate primary failed-case retry passed, giving 19 actual
+runtime attempts with 13 passes and six preserved nonpasses. The two standalone
+incoming diagnostics and ten harness support controls are separate counts.
+The [observation report](MIMO_OBSERVATION_TEST_RESULTS.md) retains the per-run
+matrix, exact artifacts, event audit and unresolved PF-receipt/incoming-state
+findings. No broader successful cases were rerun. Primary is restored with its
+candidate and test certificate retained. Worker archival, owned-resource cleanup,
+verified Tailscale logout and exact temporary-VM deletion passed; the pre-existing
+backup remains. These support actions are recorded separately and do not change
+test verdicts.
+
+### New remaining-failure investigation — 28 November 2026
+
+The user authorized new tests and workflow design using both VMs. The exact
+[16-case matrix and boundaries](MIMO_REMAINING_FAILURE_INVESTIGATION.md) cover
+incoming-state continuity on primary (six real-PF mechanism cases) and native
+policy receipt/ownership/actor congestion on the isolated worker (ten actual
+extracted-runtime controls). No prior successful suite is rerun. Preserve failed
+expectations and evidence before changing production behavior; neither mechanism
+tests nor extracted-method tests imply full installed/UI qualification.
+
+Completed 16/16: primary's six mechanism assertions passed (including expected
+reproductions of broken continuity); worker controls recorded three passes and
+seven failures. Exact evidence, capture limits and proposed fixes are linked in
+the investigation. No production fix was deployed. Primary's owned resources
+were removed and its Direct policy preserved; the isolated temporary worker was
+deleted after archival. The pre-existing backup remains unchanged.
+
+
+### Literal-destination follow-up and installed lifecycle checks — 28 November
+
+The first corrected candidate `7601ffe3` passed sixteen targeted post-fix checks
+and four additional race controls. Its installed L1 supplement then failed
+**before the Direct-to-Rule request**: the authenticated Direct-born SSH connection
+had no PF state, despite a captured handshake and working echo. The exact dynamic
+`(self)` rule recorded no packet matches and `_pf/self` was empty. The six earlier
+PF mechanism tests had used a literal destination, so they did not exercise this
+expression. Preserve [the installed failure](../Tests/MihomoRuntimeTests/Evidence/v3/observations/remaining-inbound-installed-before-20261128.json).
+
+A separately counted paired real-PF regression reproduced no state with `(self)`
+and interface-bound state with `(en0)` under the same narrow fixture. Preserve
+[its packet/state/table proof](../Tests/MihomoRuntimeTests/Evidence/v3/observations/remaining-inbound-dynamic-destination-20261128.json).
+This is a passing reproduction of the expression defect, not proof that dynamic
+per-interface addressing covers all IPv6 addresses or that installed L1 passed.
+
+The final-source acceptance target is a single captured `getifaddrs` inventory of
+validated literal IPv4/IPv6 host addresses, excluding Mimo's TUN. It must retain
+SYN-only/interface-bound/non-quick tracking and the loopback no-state override.
+Test canonical/sorted/bounded snapshots, exact `guard.expected` ownership and
+live equality; malformed or widened prefixes must not qualify. Reconcile Direct
+address changes off the actor, without close, exit checking, profile/DNS mutation
+or service restart. An unchanged snapshot must not write PF or refresh health age.
+Preserve the initial-install/address-refresh loss window: a connection born
+before the applicable prefix exists may require reconnect. No UDP continuity or
+established-flow adoption is claimed.
+
+| Installed check | Required evidence | Final result on `1942a60a` |
+|---|---|---|
+| L1 — Direct-born SSH through rejection and recovery | Prove the actual installed literal prefix matches the current local inventory and creates state before switching; retain that session through settled Rule rejection and explicit recovery. Correlate packets, PF state, commands, monitor results and a minimum 35-second settled event audit. | PASS: 109/109 authenticated SSH echoes, 27 samples and a clean 35-second settled Rule-denial/recovery audit. The earlier dynamic-expression failure remains recorded. |
+| L2 — full Stop/Activate | Invoke the real dashboard action's RPC/installer backend. Stop removes every Mimo packet rule/reference and owned service; Activate restores the intended Direct tracking and services. Confirm full release is not confused with tracking-only Direct. | PASS: all owned jobs/rules/references/DNS/TUN removed; Activate restored the exact literal Direct policy and healthy services for 35 seconds. Backend lifecycle evidence, not a native button click. |
+| L3 — Direct address addition/removal | Add and remove owned IPv4/IPv6 loopback aliases and require the exact committed prefix and current PF health to converge. Keep Direct usable and GUI/control responsive. Require no exit-IP request, profile/DNS reload, gate closure, restart or event loop from tracking reconciliation. Restore the exact address/interface baseline. | PASS: Addition/removal of owned IPv4 and IPv6 loopback aliases with exactly two tracking updates; the watchdog work joined, and the gate, profile, DNS and jobs were unchanged with no exit-IP checks. |
+
+L3 measures local-address inventory reconciliation, not a TCP connection to an
+added alias. The loopback no-state override remains intentional. L1 separately
+proves non-loopback IPv4 SSH continuity; IPv6 ingress, new-alias connection
+boundaries, and interface/route migration remain unqualified by these supplements.
+The four settled 35-second windows had healthy current-PF samples, with maximum
+observed age 13.19 seconds. Nine GUI daemon-disconnection notices occurred only
+during the explicit Stop/Activate service-removal window; reconnect completed,
+with no unexpected L1 or settled-window communication losses. These expected
+lifecycle notices remain recorded rather than filtered out as nonexistent.
+
+The declared VM inventory is **24/24 passed**: original sixteen, four added race
+controls, one paired destination-expression regression and L1/L2/L3. The six PF
+mechanisms and fourteen native-policy controls were revalidated against final
+source on primary after the temporary worker was deleted. Repeated executions do
+not add distinct cases. The original installed L1 failure, other before failures
+and excluded harness attempts remain preserved; later passes do not erase them.
+
+Seven local Direct-maintenance controls cover no-op/change, supersession and
+congestion separately. Also passed: 27 focused shared checks, 45 guard-parser
+controls, the 84-source Swift 6 typecheck and signed-package verification. These
+support checks do not enlarge the VM denominator. Candidate `1942a60a` remains
+local and unpublished. Actual RPC/installer backends and event evidence do not
+stand in for native UI clicks, arbitrary UDP continuity, pretracking-session
+adoption or physical sleep qualification. Final artifact identities and cleanup
+are recorded in [the installed evidence](../Tests/MihomoRuntimeTests/Evidence/v3/observations/remaining-inbound-installed-after-20261128.json)
+and [the investigation](MIMO_REMAINING_FAILURE_INVESTIGATION.md). Owned test roots,
+helpers, transfer files and aliases were removed; original settings/routing/hosts
+were restored, with primary healthy in Direct on the tested candidate. The
+temporary worker is absent, the pre-existing backup is preserved and stopped,
+and the approved testing CA remains trusted.

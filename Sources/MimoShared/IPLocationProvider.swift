@@ -84,17 +84,24 @@ public enum LookupError: Error, LocalizedError, Sendable, Equatable {
     }
 }
 
+public enum MimoCheckIntent: String, Codable, Sendable {
+    case observation, transition
+}
+
 public struct LookupConfiguration: Sendable {
     public let provider: ProviderID
     public let ipinfoToken: String?
     public let family: MimoAddressFamily?
     public let lookupID: UUID?
+    public let intent: MimoCheckIntent
 
-    public init(provider: ProviderID, ipinfoToken: String?, family: MimoAddressFamily? = nil, lookupID: UUID? = nil) {
+    public init(provider: ProviderID, ipinfoToken: String?, family: MimoAddressFamily? = nil, lookupID: UUID? = nil,
+                intent: MimoCheckIntent = .observation) {
         self.provider = provider
         self.ipinfoToken = ipinfoToken
         self.family = family
         self.lookupID = lookupID
+        self.intent = intent
     }
 }
 

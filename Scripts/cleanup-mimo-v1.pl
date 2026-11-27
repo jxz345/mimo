@@ -270,7 +270,7 @@ sub component_paths {
     my ($jobs) = @_;
     return (
         (map { "/Library/LaunchDaemons/$_.plist" } @$jobs),
-        (map { "$support/$_" } qw(LaunchDaemons Guard Runtime Mihomo TailscaleVerge)),
+        (map { "$support/$_" } qw(LaunchDaemons LaunchHelpers Guard Runtime Mihomo TailscaleVerge)),
         (map { "$support/$_" } qw(installed-app app.cdhash command-support.sh cleanup-installation.sh tailscale-verge.sh)),
         '/Library/PrivilegedHelperTools/mimo-core', '/Library/PrivilegedHelperTools/com.mimo.core',
         '/Library/PrivilegedHelperTools/mimo-manage', '/Library/PrivilegedHelperTools/MimoUninstaller.app',

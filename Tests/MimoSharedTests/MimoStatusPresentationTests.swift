@@ -2,6 +2,27 @@ import XCTest
 @testable import MimoShared
 
 final class MimoStatusPresentationTests: XCTestCase {
+    func testObservationKeepsTrafficStateAndShowsFailureAge() {
+        var routing = MimoRoutingState()
+        routing.configuration.mode = .global
+        routing.phase = .active; routing.effectiveMode = .global
+        let date = Date()
+        routing.observedIP = .init(address: "192.0.2.1", checkedAt: date.addingTimeInterval(-42))
+        routing.observation = MimoVerification(revision: 1, networkGeneration: 1)
+        routing.observationFailed = false
+        func display(_ status: MonitoringStatus) -> MimoStatusPresentation {
+            .init(routing: routing, snapshot: nil, preferences: .init(), date: date, monitoringStatus: status)
+        }
+        XCTAssertEqual(display(.refreshing).kind, .verified)
+        XCTAssertFalse(display(.refreshing).trafficIsBlocked)
+        XCTAssertTrue(display(.refreshing).detail.contains("traffic remains allowed"))
+        XCTAssertFalse(display(.refreshing).verificationProgress!.contains("blocked"))
+        routing.observation = nil; routing.observationFailed = true
+        XCTAssertTrue(display(.failed("timeout")).detail.contains("42 seconds ago"))
+        XCTAssertTrue(display(.failed("timeout")).detail.contains("last approved result"))
+        XCTAssertEqual(display(.failed("timeout")).address, "192.0.2.1")
+    }
+
     func testBlockedProviderFailuresOfferRecoveryWithoutHidingRejection() {
         var routing = MimoRoutingState()
         routing.configuration.mode = .rule

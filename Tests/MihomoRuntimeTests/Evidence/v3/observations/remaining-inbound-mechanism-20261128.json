@@ -1,0 +1,294 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-11-27T17:36:24.391582+00:00",
+  "status": "Six isolated PF mechanism assertions passed; no application fix or installed-lifecycle qualification.",
+  "counts": {
+    "planned_mechanism_cases": 6,
+    "completed_mechanism_cases": 6,
+    "passed_mechanism_assertions": 6,
+    "fixture_setup_attempts": 2,
+    "first_attempt_failed_before_cases": true,
+    "application_test_reruns": 0
+  },
+  "core_sha256": "4263cf39e9779b03d00bc73b40fd523e4ba8e42012ec2aa84f824ba5dd48e067",
+  "candidate_app_changed": false,
+  "published": false,
+  "scope": {
+    "vm": "mimo-test-macos",
+    "production_state": "Direct throughout; production anchor and root rules unchanged",
+    "test_anchor": "com.apple/001.mimo-inbound-test",
+    "traffic": "Dedicated exact IPv4 TCP fixture tuples on en0 and lo0",
+    "incoming_transport": "Host /usr/bin/nc with source IPv4 and source port pinned; actual guest accepted tuple verified",
+    "not_qualified": [
+      "Installed Direct/Rule/Global transition lifecycle",
+      "Stop engine or uninstall behavior",
+      "SSH or Screen Sharing application continuity",
+      "IPv6 or UDP/QUIC services",
+      "Pre-existing sessions before first tracking installation",
+      "Route/interface migration",
+      "Blanket zero-leak or all-wire-traffic claim"
+    ]
+  },
+  "design_conclusion": {
+    "supported": "A SYN-only, interface-bound inbound state created before connection birth preserves that connection across a later outgoing deny. The chosen old-outbound reply does not acquire reverse permission; loopback no-state override permits listener closure.",
+    "limitation": "Adding tracking after connection birth does not preserve the existing untracked session. This partial solution does not by itself meet a guarantee for startup, Stop/reactivation or lost PF state.",
+    "recommended_next_step": "Design explicit ordinary-Direct tracking versus fully released Stop/uninstall, current-policy health/readback, owned-state cleanup and startup limits before implementing an application change."
+  },
+  "harness": {
+    "path": "Tests/MihomoRuntimeTests/v3_inbound_state_mechanism_test.py",
+    "sha256": "8b3703d73fc0a8beb22ae3e16dfe82259b19204d4fcb2825f50492e34041b774",
+    "syntax_checked": true,
+    "source_copied_into_guest_archive": true,
+    "first_attempt_source_sha256": "72df39881b1bc2ea62202ca683fb6f567e6ea0f26a3d99db42af79677c287d8d"
+  },
+  "first_attempt": {
+    "classification": "fixture_connectivity_failure",
+    "completed_cases": 0,
+    "failure": "Host Python connect() returned EHOSTUNREACH/65 before the first READY. No application failure or case result inferred.",
+    "root_diagnostic": "Root reported native nc SSH connectivity succeeded while host Python bound/unbound SSH connects failed; guest Application Firewall was disabled. Exact host permission mechanism was not attributed.",
+    "preserved_summary": ".build/observation-parallel/remaining-issues-20261128/inbound-mechanism-01/summary.json",
+    "summary_sha256": "3af0d093863d42697ad73f1a07661aad27d93e37d0621024ad5ded5395a7d050",
+    "archive": ".build/observation-parallel/remaining-issues-20261128/inbound-mechanism-01/guest-private.tar.gz",
+    "archive_sha256": "51c1193417106eb870282a9356eba65a41ee268af59cf93e65f8763583aa4b72",
+    "cleanup_passed": true,
+    "capture_limit": "Both captures were started but no packets were captured before the fast setup failure; no missing-packet inference."
+  },
+  "successful_attempt": {
+    "summary": ".build/observation-parallel/remaining-issues-20261128/inbound-mechanism-02/summary.json",
+    "summary_sha256": "ec1df0e82af28b24786596b9d53c5606e4317ca46771f3e60a937267198b7412",
+    "archive": ".build/observation-parallel/remaining-issues-20261128/inbound-mechanism-02/guest-private.tar.gz",
+    "archive_sha256": "4f4ecb78df7ef25f59d339f1bef037fe38382b0d111608cd433d5c539e99e46f",
+    "independent_audit": ".build/observation-parallel/remaining-issues-20261128/inbound-mechanism-02/independent-audit.json",
+    "independent_audit_sha256": "0cc387471320688166899cb7f43b60b483994eb805affa44b78562ba67814d66",
+    "cases": [
+      {
+        "number": 1,
+        "name": "empty-direct-born",
+        "passed": true,
+        "path": ".build/observation-parallel/remaining-issues-20261128/inbound-mechanism-02/case-1.json",
+        "sha256": "7b559c5772d97a4bd9c79c101759b40175e0d31b3f886da6a872d902189c47b9",
+        "tuple": {
+          "source": [
+            "192.168.64.1",
+            64658
+          ],
+          "destination": [
+            "192.168.64.2",
+            57363
+          ],
+          "interface": "en0",
+          "protocol": "tcp"
+        },
+        "captured_packets": 22,
+        "initial_syn_captured": true,
+        "PF_state_lines": {
+          "birth": [],
+          "closed_snapshot": [],
+          "after_send": []
+        },
+        "nonce_packet_occurrences": 10,
+        "nonce_sha256": "5c5762c87dcb4adffff39d6d91347063679d79492ca9dd803f7dd2bf29c61568",
+        "expected_continuity": false,
+        "observed_continuity": false,
+        "server_generated_echoes": 1,
+        "captured_echo_packets_during_confirmed_scope": 0
+      },
+      {
+        "number": 2,
+        "name": "tracking-before-birth",
+        "passed": true,
+        "path": ".build/observation-parallel/remaining-issues-20261128/inbound-mechanism-02/case-2.json",
+        "sha256": "e38ee846f0b42b0665d9a6655702940de42280145416e96c5744747c6596f054",
+        "tuple": {
+          "source": [
+            "192.168.64.1",
+            64659
+          ],
+          "destination": [
+            "192.168.64.2",
+            57363
+          ],
+          "interface": "en0",
+          "protocol": "tcp"
+        },
+        "captured_packets": 14,
+        "initial_syn_captured": true,
+        "PF_state_lines": {
+          "birth": [
+            "en0 tcp 192.168.64.2:57363 <- 192.168.64.1:64659       ESTABLISHED:ESTABLISHED"
+          ],
+          "closed_snapshot": [
+            "en0 tcp 192.168.64.2:57363 <- 192.168.64.1:64659       ESTABLISHED:ESTABLISHED"
+          ],
+          "after_send": [
+            "en0 tcp 192.168.64.2:57363 <- 192.168.64.1:64659       ESTABLISHED:ESTABLISHED"
+          ]
+        },
+        "nonce_packet_occurrences": 2,
+        "nonce_sha256": "90ddbbdac5e4dcb0293b8380b939259b1e2f90dd903a2a52e7217f579508645f",
+        "expected_continuity": true,
+        "observed_continuity": true,
+        "server_generated_echoes": 1,
+        "captured_echo_packets_during_confirmed_scope": 1
+      },
+      {
+        "number": 3,
+        "name": "tracking-after-birth",
+        "passed": true,
+        "path": ".build/observation-parallel/remaining-issues-20261128/inbound-mechanism-02/case-3.json",
+        "sha256": "b168ae38d4dd8fe4b871f598a2a394f861d0c5340c39369fc7eacfc27dbf77d1",
+        "tuple": {
+          "source": [
+            "192.168.64.1",
+            64668
+          ],
+          "destination": [
+            "192.168.64.2",
+            57363
+          ],
+          "interface": "en0",
+          "protocol": "tcp"
+        },
+        "captured_packets": 22,
+        "initial_syn_captured": true,
+        "PF_state_lines": {
+          "birth": [],
+          "closed_snapshot": [],
+          "after_send": []
+        },
+        "nonce_packet_occurrences": 10,
+        "nonce_sha256": "ee7a2f1703df898d0381d10e88ddff8bbbb6b6aedced3bfebf980c6e7216ae44",
+        "expected_continuity": false,
+        "observed_continuity": false,
+        "server_generated_echoes": 1,
+        "captured_echo_packets_during_confirmed_scope": 0
+      },
+      {
+        "number": 4,
+        "name": "old-outbound-reply-negative",
+        "passed": true,
+        "path": ".build/observation-parallel/remaining-issues-20261128/inbound-mechanism-02/case-4.json",
+        "sha256": "de0e23d80e11acca5774daeaeeae9802918a62de45cdaf8152e6aed0dd463fad",
+        "tuple": {
+          "source": [
+            "192.168.64.2",
+            57390
+          ],
+          "destination": [
+            "192.168.64.1",
+            64649
+          ],
+          "interface": "en0",
+          "protocol": "tcp"
+        },
+        "captured_packets": 23,
+        "initial_syn_captured": true,
+        "PF_state_lines": {
+          "birth": [],
+          "after_send": []
+        },
+        "incoming_return_delivered": true,
+        "remote_received_while_blocked": false,
+        "packet_nonce_occurrences": 2,
+        "nonce_limit": "The generated outgoing nonce was not independently stored as a field in case4; packet data and endpoint events are retained. The live exact-nonce delivery assertion is supported by frozen source, but packet-to-planned-nonce binding cannot be reconstructed from the case row alone."
+      },
+      {
+        "number": 5,
+        "name": "loopback-state-exclusion",
+        "passed": true,
+        "path": ".build/observation-parallel/remaining-issues-20261128/inbound-mechanism-02/case-5.json",
+        "sha256": "6d438e39fca352e3bd7a5a6ebb6e3bce2ff6d4bb9ba40a1785a7e43e2b2bb416",
+        "tuple": {
+          "source": [
+            "127.0.0.1",
+            57398
+          ],
+          "destination": [
+            "127.0.0.1",
+            57364
+          ],
+          "interface": "lo0",
+          "protocol": "tcp"
+        },
+        "captured_packets": 10,
+        "initial_syn_captured": true,
+        "PF_state_lines": {
+          "birth": [],
+          "after_send": []
+        },
+        "nonce_packet_occurrences": 2,
+        "blocked_receive": false,
+        "release_receive": true
+      },
+      {
+        "number": 6,
+        "name": "cleanup-and-native-release",
+        "passed": true,
+        "path": ".build/observation-parallel/remaining-issues-20261128/inbound-mechanism-02/case-6.json",
+        "sha256": "aedb9533c1304dfe562023d39a777fa3b4bc5d26ad6b90d4bd8f3b28700058bb",
+        "native_echo_after_release": true
+      }
+    ],
+    "captures": {
+      "en0": {
+        "snaplen": 524288,
+        "linktype": 1,
+        "packets": 105,
+        "truncated_records": 0,
+        "unsupported_records": 0,
+        "sha256": "b7ef254c905a93339f5425dd9ec5e050dbe85d3571e0680b54463ff3e95ebc6e",
+        "log": "tcpdump: listening on en0, link-type EN10MB (Ethernet), snapshot length 524288 bytes\n105 packets captured\n248 packets received by filter\n0 packets dropped by kernel\n"
+      },
+      "lo0": {
+        "snaplen": 524288,
+        "linktype": 0,
+        "packets": 10,
+        "truncated_records": 0,
+        "unsupported_records": 0,
+        "sha256": "6edd9876185411df6f177aadb3ee5e802f87906cb650896ff02cd669f4f49718",
+        "log": "tcpdump: listening on lo0, link-type NULL (BSD loopback), snapshot length 524288 bytes\n10 packets captured\n664 packets received by filter\n0 packets dropped by kernel\n"
+      }
+    }
+  },
+  "audit_limits": [
+    "Only isolated IPv4 TCP PF mechanism; installed Mimo stays Direct. No installed lifecycle, SSH, Screen Sharing, IPv6 or UDP qualification.",
+    "Captures show guest BPF observations; filter-hook position and absence of host capture prevent a blanket on-wire delivery/leakage claim. Client/server receipts support behavior.",
+    "Case4 nonce field gap retained; not repaired by rerun or changed assertion."
+  ],
+  "cleanup": {
+    "anchor_empty": true,
+    "owned_states_remaining": 0,
+    "host_echo_joined": true,
+    "nc_clients_joined": 4,
+    "guest_echo_joined": true,
+    "captures_joined": true,
+    "watchdog_joined": true,
+    "root_and_production_rules_unchanged": true,
+    "guest_root_files_remain": false,
+    "guest_file_cleanup_proof": ".build/observation-parallel/remaining-issues-20261128/primary-final-file-cleanup.json",
+    "guest_file_cleanup_sha256": "5543e6129331cf0ac0d4c836fd17a7180b2a7718f084e5e9dd4056433b11a720",
+    "removed_owned_roots": [
+      {
+        "root": "/var/tmp/mimo-inbound-mechanism-bf11094b622b444ead0478dbe2a25513",
+        "removed_files": 12
+      },
+      {
+        "root": "/var/tmp/mimo-inbound-mechanism-583845ca5ae84a3b9323caca94332cbc",
+        "removed_files": 12
+      }
+    ]
+  },
+  "source_references": [
+    "Sources/MimoShared/MimoFirewallPolicy.swift:9",
+    "Sources/MimoShared/MimoFirewallPolicy.swift:15",
+    "Sources/MimoShared/MimoFirewallPolicy.swift:18",
+    "Sources/MimoService/MimoPowerGuard.swift:263",
+    "Sources/MimoService/MimoSystemRuntime.swift:791",
+    "Sources/MimoService/MimoSystemRuntime.swift:822"
+  ],
+  "design_review": {
+    "path": ".build/observation-parallel/remaining-issues-20261128/incoming-continuity-review.md",
+    "sha256": "65507bfeaa6dcf045e448ef435c6242c15c3a3e4368dfa92f57f8bc14bd3463b"
+  },
+  "before_evidence": "Tests/MihomoRuntimeTests/Evidence/v3/observations/primary-incoming-diagnostic-4263cf39.json"
+}

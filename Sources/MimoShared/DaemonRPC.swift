@@ -34,7 +34,7 @@ public enum DaemonRPC {
     public static func call(_ request: DaemonRequest, timeout: TimeInterval = 8, serviceLabel: String = MimoService.label,
                             returningFailures: Bool = false,
                             progress: (@Sendable (DaemonResponse) -> Void)? = nil) async throws -> DaemonResponse {
-        guard [MimoService.label, MimoRuntime.supervisorLabel,
+        guard [MimoService.label, MimoRuntime.supervisorLabel, MimoService.heartbeatLogLabel,
                MimoService.controlLabel, MimoService.supervisorControlLabel].contains(serviceLabel) else { throw DaemonFailure.invalidRequest }
         let connection = NSXPCConnection(machServiceName: serviceLabel, options: .privileged)
         return try await call(request, connection: connection, timeout: timeout, returningFailures: returningFailures, progress: progress)

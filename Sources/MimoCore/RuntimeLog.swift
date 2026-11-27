@@ -26,6 +26,7 @@ final class RuntimeLog: @unchecked Sendable {
     private var recordSequence: UInt64 = 0
     private let processRole: String = {
         if CommandLine.arguments.contains("--supervisor") { return "supervisor" }
+        if CommandLine.arguments.contains("--heartbeat") { return "heartbeat" }
         if CommandLine.arguments.contains("--engine") { return "engine" }
         if ProcessInfo.processInfo.processName.contains("gui") { return "gui" }
         return "core"

@@ -1,0 +1,242 @@
+{
+  "schema": 1,
+  "purpose": "Completed temporary worker confirmation of the frozen congestion candidate, including owned cleanup; original failure results are retained.",
+  "version": "3.0",
+  "build": 11,
+  "published": false,
+  "vm": "temporary independently authenticated worker; primary and backup untouched",
+  "candidate": {
+    "version": "3.0",
+    "build": 11,
+    "published": false,
+    "core_sha256": "4263cf39e9779b03d00bc73b40fd523e4ba8e42012ec2aa84f824ba5dd48e067",
+    "controls_sha256": "1ed7b5fb01d653f853a87de246c138ab043148e93da605284d5349dd1d68981a",
+    "package_path": ".build/observation-parallel/artifacts/4263cf39-congestion/Mimo-3.0.pkg",
+    "package_sha256": "d852158dd03b2ed0d933de57c9b8d5bd0094c10a59b0f2f1e2f72a73e0f414e1",
+    "source_manifest_path": ".build/observation-parallel/artifacts/4263cf39-congestion/source-manifest.json",
+    "source_manifest_sha256": "7c2e79e37d3dc23ab989ebfbff24014d3efe6cded12852ed4c0e5c3f270a3023",
+    "frozen_production_inputs_verified": 126,
+    "production_input_mismatches": []
+  },
+  "scope_counts": {
+    "planned_runtime_runs": 9,
+    "completed_runtime_runs": 9,
+    "distinct_runtime_cases": 8,
+    "passed": 7,
+    "failed": 2,
+    "independently_verified_archives": 9,
+    "separate_worker_isolated_controls": {
+      "passed": 11,
+      "planned": 11
+    }
+  },
+  "runs": [
+    {
+      "run": 1,
+      "scenario": "health-early",
+      "passed": false,
+      "guest_evidence_id": "e82529b212ad48b6b721846e12371f99",
+      "whole_GUI_passed": true,
+      "incoming_passed": false,
+      "continuous_health_passed": true,
+      "failures": [
+        "unstable final mode or health"
+      ],
+      "archive_path": ".build/observation-parallel/worker-validation-4263cf39-20261127T141639Z-23914b98/run-01-health-early-7bd59115/case-private.tar.gz",
+      "archive_sha256": "9ced138aa1f98af5bd4f9176e5245fe8cbea72fd7b062927cb384b47d3a01363",
+      "archive_file_count": 7
+    },
+    {
+      "run": 2,
+      "scenario": "health-late",
+      "passed": false,
+      "guest_evidence_id": "dc4b471315d8403583e3dc7ebf6f47c8",
+      "whole_GUI_passed": true,
+      "incoming_passed": false,
+      "continuous_health_passed": true,
+      "failures": [
+        "unstable final mode or health"
+      ],
+      "archive_path": ".build/observation-parallel/worker-validation-4263cf39-20261127T141639Z-23914b98/run-02-health-late-d39dbb30/case-private.tar.gz",
+      "archive_sha256": "fab7edfc6a635c1be96039d7fa33da5f77b80786bc38fae3847c551252d68b39",
+      "archive_file_count": 7
+    },
+    {
+      "run": 3,
+      "scenario": "ipv4-rule-denied",
+      "passed": true,
+      "guest_evidence_id": "649b95792c754ba2bdda72178b8f68cb",
+      "whole_GUI_passed": true,
+      "incoming_passed": true,
+      "continuous_health_passed": true,
+      "failures": [],
+      "archive_path": ".build/observation-parallel/worker-validation-4263cf39-20261127T141639Z-23914b98/run-03-ipv4-rule-denied-27d7a374/case-private.tar.gz",
+      "archive_sha256": "b5fe1256eeaa9a4d487e28a85ba1e0e50d04d3f043a979acd1e7e260e3f9c30b",
+      "archive_file_count": 21
+    },
+    {
+      "run": 4,
+      "scenario": "ipv4-direct",
+      "passed": true,
+      "guest_evidence_id": "bff083c05da44913a147265f169d3bdc",
+      "whole_GUI_passed": true,
+      "incoming_passed": true,
+      "continuous_health_passed": true,
+      "failures": [],
+      "archive_path": ".build/observation-parallel/worker-validation-4263cf39-20261127T141639Z-23914b98/run-04-ipv4-direct-827cf8d4/case-private.tar.gz",
+      "archive_sha256": "b118bc99b4ed03530f28e22e15a1180588920e3f5277de8e5fa0d28b0cc05f03",
+      "archive_file_count": 21
+    },
+    {
+      "run": 5,
+      "scenario": "dual-rule-denied",
+      "passed": true,
+      "guest_evidence_id": "3fbfda4c4a4f41f48f91321924716877",
+      "whole_GUI_passed": true,
+      "incoming_passed": true,
+      "continuous_health_passed": true,
+      "failures": [],
+      "archive_path": ".build/observation-parallel/worker-validation-4263cf39-20261127T141639Z-23914b98/run-05-dual-rule-denied-07faa1e4/case-private.tar.gz",
+      "archive_sha256": "f7eebb78704cdb14fe5e19de7c34ef7d5f2f3afa9886122ba0024e28086d5f57",
+      "archive_file_count": 21
+    },
+    {
+      "run": 6,
+      "scenario": "dual-direct",
+      "passed": true,
+      "guest_evidence_id": "0e95eda810b543dbacb0f816069d8650",
+      "whole_GUI_passed": true,
+      "incoming_passed": true,
+      "continuous_health_passed": true,
+      "failures": [],
+      "archive_path": ".build/observation-parallel/worker-validation-4263cf39-20261127T141639Z-23914b98/run-06-dual-direct-c7759c17/case-private.tar.gz",
+      "archive_sha256": "e5219c2d27114907caab9c9d9ab0edc1975c9ad689af3b4c3c756e94a3044dbf",
+      "archive_file_count": 21
+    },
+    {
+      "run": 7,
+      "scenario": "mixed-ipv4-rule-direct-denied",
+      "passed": true,
+      "guest_evidence_id": "b0c96612558b4b64b028e1cbfa472228",
+      "whole_GUI_passed": true,
+      "incoming_passed": true,
+      "continuous_health_passed": null,
+      "failures": [],
+      "archive_path": ".build/observation-parallel/worker-validation-4263cf39-20261127T141639Z-23914b98/run-07-mixed-ipv4-rule-direct-denied-6fca6370/case-private.tar.gz",
+      "archive_sha256": "e1d9cc791b079603ed58f4abd6dc5a9f8df74d717960ecbfebb7cc5c1aa5597c",
+      "archive_file_count": 5
+    },
+    {
+      "run": 8,
+      "scenario": "mixed-ipv4-global-direct-proxy-down",
+      "passed": true,
+      "guest_evidence_id": "4415b4f5f42045bb8c4ed337c4792170",
+      "whole_GUI_passed": true,
+      "incoming_passed": true,
+      "continuous_health_passed": null,
+      "failures": [],
+      "archive_path": ".build/observation-parallel/worker-validation-4263cf39-20261127T141639Z-23914b98/run-08-mixed-ipv4-global-direct-proxy-down-62c4b484/case-private.tar.gz",
+      "archive_sha256": "f8334358b499eac197849c08d643f8574a8865ddf2e36ec5ec8d134c4ed6bb89",
+      "archive_file_count": 5
+    },
+    {
+      "run": 9,
+      "scenario": "mixed-dual-rule-direct-allowed",
+      "passed": true,
+      "guest_evidence_id": "b01b515b4adf45319e299143d0b3d538",
+      "whole_GUI_passed": true,
+      "incoming_passed": true,
+      "continuous_health_passed": null,
+      "failures": [],
+      "archive_path": ".build/observation-parallel/worker-validation-4263cf39-20261127T141639Z-23914b98/run-09-mixed-dual-rule-direct-allowed-890b8608/case-private.tar.gz",
+      "archive_sha256": "4c6d43a069682846cd9ed743ddabf968b34be77d40e236b6c4af6a064a79f082",
+      "archive_file_count": 5
+    }
+  ],
+  "failure_evidence": [
+    {
+      "runs": [
+        1,
+        2
+      ],
+      "class": "active_native_policy_health_receipt_gap",
+      "observed": "Fresh launchd/heartbeat and Rule-active routing coexisted with PF unknown and pfEvidenceCurrent false after native egress policy updates; a later full guard scan restored evidence.",
+      "production_changed": false
+    },
+    {
+      "runs": [
+        1,
+        2
+      ],
+      "class": "incoming_connection_interruption",
+      "observed": "Run1 Direct-born persistent session interrupted; run2 fresh connection crossed Direct-to-protected closure and timed out.",
+      "attribution": "Consistent with primary state-and-timing-confirmed reply-suppression class; no usable tuple-PCAP attribution for either campaign."
+    }
+  ],
+  "expected_injected_failure": {
+    "run": 8,
+    "classification": "intentional proxy-down setup TLS failure before rapid operation cursor; subsequent fresh Direct lookup and manual completion succeeded",
+    "independent_audit": "Tests/MihomoRuntimeTests/Evidence/v3/observations/worker-confirmation-audit-4263cf39.json",
+    "limitation": "Separate fixture-toggle timestamp journal was not retained."
+  },
+  "whole_scope_archive": {
+    "path": ".build/observation-parallel/worker-validation-4263cf39-20261127T141639Z-23914b98/whole-guest-scope-private.tar.gz",
+    "sha256": "1b5f4e3e2ed3ade52218660ef688665132d2c2c6f2fe01a2846e662a65335bee",
+    "file_count": 314
+  },
+  "observer_history_hashes": {
+    "worker-ssh-watch.json": "348c54271991f65b0ba58504d2815c16059062666ea3ef60dccf71b0e3bd805b",
+    "worker-ssh-continuity.jsonl": "5fc376bcafb8b1599a9fb304aedce1f3e194ee8c57d0819f44c31ed614452dfc"
+  },
+  "cleanup": {
+    "passed": true,
+    "result_path": ".build/observation-parallel/worker-validation-4263cf39-20261127T141639Z-23914b98/final-cleanup/result.json",
+    "result_sha256": "c6075b2432fd1f88c7c34fc84a173fbf446f9b96a4a063ec6578127a86f406d6",
+    "baseline_settings_restored": true,
+    "baseline_routing_restored": true,
+    "hosts_restored": true,
+    "native_network_controls_released": true,
+    "owned_resolvers_removed": 6,
+    "owned_guest_helpers_joined": true,
+    "owned_host_fixture_and_control_joined": true,
+    "incoming_observers_joined": true,
+    "tailnet_logout": {
+      "logout_exit": 0,
+      "status_exit": 0,
+      "backend_state": "NeedsLogin",
+      "assigned_ips_absent": true,
+      "current_tailnet_absent": true,
+      "backend_requires_login": true,
+      "vpn_disconnected": true,
+      "passed": true
+    },
+    "temporary_vm_deleted": true,
+    "deletion_status": "exact temporary worker stopped and deleted after archive and cleanup verification",
+    "deletion_proof_path": ".build/observation-parallel/worker-validation-4263cf39-20261127T141639Z-23914b98/final-cleanup/deletion.json",
+    "deletion_proof_sha256": "5cd67cb460c2a78e1760005ed76f3707028034b0cdf5bcc637cdf3531a9bf72e",
+    "primary_and_backup_preserved": true,
+    "remaining_vms": [
+      {
+        "name": "mimo-pre-v3-20261125",
+        "running": false
+      },
+      {
+        "name": "mimo-test-macos",
+        "running": true
+      }
+    ]
+  },
+  "independent_audit": {
+    "path": "Tests/MihomoRuntimeTests/Evidence/v3/observations/worker-confirmation-audit-4263cf39.json",
+    "sha256": "c519ca1b81c758807c45094413bf463c0b73926910241f2a1807e2362cdb5dd9",
+    "cases_reviewed": 9,
+    "archive_gaps_reported": 0
+  },
+  "limits": [
+    "Runtime operations were XPC-driven, with real GUI communication monitored; they are not native button-click qualification.",
+    "Both failed health-timing cases remain failures; no retry or waiver.",
+    "Worker incoming failures are temporally consistent with the primary state-and-timing-confirmed reply-suppression class; worker per-tuple packet causation was not established.",
+    "Case8 proxy-down setup errors were expected and correlated to the injected-fault generation before the rapid cursor; a separate fixture-toggle timestamp was not retained.",
+    "Neither this worker campaign nor the primary incoming diagnostic supplied usable tuple-PCAP attribution; primary diagnosis used PF state and connection/phase timing."
+  ]
+}

@@ -4,8 +4,15 @@ import SwiftUI
 /// Readable events and full, already-redacted records from all three processes.
 @MainActor
 final class EventLogModel: ObservableObject {
+    enum Source: String, CaseIterable, Identifiable {
+        case events = "Events", core = "Core log", supervisor = "Heartbeat log", gui = "GUI log"
+        var id: Self { self }
+    }
+    @Published var selectedSource: Source = .events
     @Published private(set) var lines: [String] = []
     @Published private(set) var diagnosticsText = ""
+    @Published private var sourceTexts: [Source: String] = [:]
+    private var sourceCounts: [Source: Int] = [:]
     @Published private(set) var sourceStatus = "Connecting to background logs…"
     @Published var isPaused = false {
         didSet { if !isPaused { updateLines() } }
@@ -20,7 +27,29 @@ final class EventLogModel: ObservableObject {
     private var polling: Task<Void, Never>?
 
     var copyText: String {
-        "Log sources · \(sourceStatus)\n" + (lines.isEmpty ? "No events received.\n" : lines.joined(separator: "\n") + "\n")
+        switch selectedSource {
+        case .events:
+            "Log sources · \(sourceStatus)\n" + (lines.isEmpty ? "No events received.\n" : lines.joined(separator: "\n") + "\n")
+        case .core, .supervisor, .gui:
+            sourceTexts[selectedSource] ?? "\(selectedSource.rawValue) · not yet received\n"
+        }
+    }
+
+    private var guiRecords: [String] = []
+
+    var recordCount: Int {
+        switch selectedSource {
+        case .events: lines.count
+        case .core, .supervisor, .gui: sourceCounts[selectedSource] ?? 0
+        }
+    }
+
+    private func sourceText(_ title: String, status: String, records: [String]?, fallback: [String]) -> String {
+        let header = "\(title) log · \(status) · UTC\nIP-address visibility follows Settings → General → Diagnostics.\n\n"
+        guard let records else {
+            return header + "Full diagnostic records have not been received.\n" + fallback.joined(separator: "\n")
+        }
+        return header + (records.isEmpty ? "No records received.\n" : records.joined(separator: "\n") + "\n")
     }
 
     func start() {
@@ -31,17 +60,13 @@ final class EventLogModel: ObservableObject {
             while !Task.isCancelled {
                 if MimoDeactivation.isConfirmed() {
                     self?.coreStatus = "removed; monitoring in GUI"
-                    self?.supervisorStatus = "removed; network controls released"
+                    self?.supervisorStatus = "removed; peer supervision stopped"
                     self?.updateLines()
                     try? await Task.sleep(for: .seconds(2))
                     continue
                 }
-                var request = DaemonRequest(.supervisor)
-                var message = MimoSupervisorRequest(.state)
-                message.includeEvents = true
-                request.supervisor = message
                 async let core = try? DaemonRPC.call(DaemonRequest(.events), timeout: 2)
-                async let supervisor = try? DaemonRPC.call(request, timeout: 2, serviceLabel: MimoRuntime.supervisorLabel)
+                async let supervisor = try? DaemonRPC.call(DaemonRequest(.events), timeout: 2, serviceLabel: MimoService.heartbeatLogLabel)
                 let (coreResponse, supervisorResponse) = await (core, supervisor)
                 guard !Task.isCancelled else { return }
                 if let events = coreResponse?.events {
@@ -72,17 +97,26 @@ final class EventLogModel: ObservableObject {
 
     private func updateLines() {
         guard !isPaused else { return }
+        guiRecords = RuntimeLog.shared.recentDiagnosticRecords()
+        sourceCounts = [.core: (serviceRecords ?? serviceEvents).count,
+                        .supervisor: (supervisorRecords ?? supervisorEvents).count, .gui: guiRecords.count]
+        let texts: [Source: String] = [
+            .core: sourceText("Core", status: coreStatus, records: serviceRecords, fallback: serviceEvents),
+            .supervisor: sourceText("Heartbeat", status: supervisorStatus, records: supervisorRecords, fallback: supervisorEvents),
+            .gui: sourceText("GUI", status: "local", records: guiRecords, fallback: [])
+        ]
+        if sourceTexts != texts { sourceTexts = texts }
         let next = Array(Set(serviceEvents + supervisorEvents + RuntimeLog.shared.recentLines()).sorted().suffix(500))
         if lines != next { lines = next }
-        let status = "Core: \(coreStatus) · Supervisor: \(supervisorStatus)"
+        let status = "Core: \(coreStatus) · Heartbeat: \(supervisorStatus)"
         if sourceStatus != status { sourceStatus = status }
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown"
         let report = "Mimo \(version) (build \(build)) · recent diagnostic records · UTC\n" +
             "IP-address visibility follows Settings → General → Diagnostics.\n\n" +
-            "=== GUI ===\n" + RuntimeLog.shared.recentDiagnosticRecords().joined(separator: "\n") +
+            "=== GUI ===\n" + guiRecords.joined(separator: "\n") +
             "\n\n=== Core (\(coreStatus)) ===\n" + (serviceRecords ?? serviceEvents).joined(separator: "\n") +
-            "\n\n=== Supervisor (\(supervisorStatus)) ===\n" + (supervisorRecords ?? supervisorEvents).joined(separator: "\n") + "\n"
+            "\n\n=== Heartbeat (\(supervisorStatus)) ===\n" + (supervisorRecords ?? supervisorEvents).joined(separator: "\n") + "\n"
         if diagnosticsText != report { diagnosticsText = report }
     }
 }
@@ -179,19 +213,24 @@ struct EventLogView: View {
                 Spacer()
                 MimoCopyButton(text: model.copyText, label: "Copy All", iconOnly: false)
                     .keyboardShortcut("c", modifiers: [.command, .shift])
-                    .help("Copy all readable events (⇧⌘C). Select text and press ⌘C to copy part of the log.")
+                    .help("Copy the selected log (⇧⌘C). Select text and press ⌘C to copy part of it.")
                 MimoCopyButton(text: model.diagnosticsText, label: "Copy Diagnostics", iconOnly: false)
                     .keyboardShortcut("c", modifiers: [.command, .option])
                     .help("Copy full recent GUI, core and supervisor records, including verification triggers (⌥⌘C).")
-                Button("Show Log Files") {
+                Button("GUI Log Files") {
                     NSWorkspace.shared.activateFileViewerSelecting([RuntimeLog.shared.directory])
                 }
             }.padding(12)
+            Picker("Log source", selection: $model.selectedSource) {
+                ForEach(EventLogModel.Source.allCases) { source in Text(source.rawValue).tag(source) }
+            }
+            .pickerStyle(.segmented).padding(.horizontal, 12).padding(.bottom, 12)
+            .accessibilityIdentifier("mimo-log-source")
             Divider()
-            EventLogText(text: model.copyText)
+            EventLogText(text: model.copyText).id(model.selectedSource)
             Divider()
             VStack(alignment: .leading, spacing: 4) {
-                Text("\(model.lines.count) events · UTC · \(model.isPaused ? "Updates paused" : "Select text to copy; updates wait while selected")")
+                Text("\(model.recordCount) \(model.selectedSource == .events ? "events" : "records") · UTC · \(model.isPaused ? "Updates paused" : "Select text to copy; updates wait while selected")")
                 Text(model.sourceStatus)
             }
             .font(.footnote).foregroundStyle(.secondary)

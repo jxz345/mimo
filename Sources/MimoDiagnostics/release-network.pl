@@ -333,8 +333,10 @@ sub prepare_network {
         rename($temporary, $path) or die "Cannot publish cleanup epoch\n";
     }
     # This fixed closed policy has no provider, process or native-TUN exception.
+    # Bare self expands to literal local addresses at load time. Do not change
+    # it to (self): Apple's synthetic dynamic ALL address table can be empty.
     my $rules = <<'PF';
-pass in on ! utun239 proto tcp all flags S/SA keep state (if-bound) label "mimo:inbound:tcp"
+pass in on ! utun239 proto tcp from any to self flags S/SA keep state (if-bound) label "mimo:inbound:tcp"
 pass in on lo0 all no state label "mimo:inbound:loopback"
 block return out quick on lo0 proto { tcp, udp } to { 127.0.0.1, ::1 } port { 7890, 1053 } label "mimo:transition:public-listeners"
 pass out quick on lo0 all no state label "mimo:transition:local-control"

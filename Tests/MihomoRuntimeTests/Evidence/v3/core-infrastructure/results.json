@@ -1,0 +1,268 @@
+{
+  "date": "2026-11-26",
+  "scope": "Normal locally built 3.0/build 11 candidate, installed in mimo-vm. Not published.",
+  "coreSHA256": "15f6349063bb5bd24c1f94a77eab19e565532dca6e8ecdb78f4c6cab9eeefbdf",
+  "packageSHA256": "1dff27ed7bc4ee810c25d6893f931e155479c0c8ba92154a9b4237a1d14852b7",
+  "sharedTestsPassed": 239,
+  "checks": [
+    {
+      "stage": "installed",
+      "name": "upgrade-replaces-Perl-jobs-with-one-core-role",
+      "passed": true,
+      "core_sha256": "15f6349063bb5bd24c1f94a77eab19e565532dca6e8ecdb78f4c6cab9eeefbdf"
+    },
+    {
+      "stage": "installed",
+      "name": "installed-core-matches-sealed-candidate",
+      "passed": true
+    },
+    {
+      "stage": "installed",
+      "name": "initial-Direct-stable-through-multiple-audits",
+      "passed": true,
+      "event_counts": {
+        "mimo_log_maintenance": 2
+      },
+      "error_events": []
+    },
+    {
+      "stage": "recovery",
+      "name": "launchd-restarts-crashed-core-infrastructure",
+      "passed": true
+    },
+    {
+      "stage": "recovery",
+      "name": "supervisor-restores-disabled-infrastructure-role",
+      "passed": true
+    },
+    {
+      "stage": "recovery",
+      "name": "infrastructure-restores-disabled-supervisor",
+      "passed": true
+    },
+    {
+      "stage": "recovery",
+      "name": "recovered-Direct-stable-through-multiple-audits",
+      "passed": true,
+      "event_counts": {
+        "mimo_log_maintenance": 1
+      },
+      "error_events": []
+    },
+    {
+      "stage": "modes-rule-ipv4",
+      "name": "original-Direct-settings-restored",
+      "passed": true
+    },
+    {
+      "stage": "modes-rule-ipv4",
+      "name": "rule-ipv4-rejection-visible",
+      "passed": true
+    },
+    {
+      "stage": "modes-rule-ipv4",
+      "name": "rule-ipv4-rejected-stable-through-multiple-audits",
+      "passed": true,
+      "event_counts": {
+        "mimo_blocked_native_transport_updated": 1
+      },
+      "error_events": []
+    },
+    {
+      "stage": "modes-rule-ipv4",
+      "name": "rule-ipv4-explicit-allowlist-edit-recovers",
+      "passed": true
+    },
+    {
+      "stage": "modes-rule-ipv4",
+      "name": "rule-ipv4-approved-stable-through-multiple-audits",
+      "passed": true,
+      "event_counts": {},
+      "error_events": []
+    },
+    {
+      "stage": "modes-global-ipv4",
+      "name": "global-ipv4-rejection-visible",
+      "passed": true
+    },
+    {
+      "stage": "modes-global-ipv4",
+      "name": "global-ipv4-rejected-stable-through-multiple-audits",
+      "passed": true,
+      "event_counts": {
+        "mimo_blocked_native_transport_updated": 1
+      },
+      "error_events": []
+    },
+    {
+      "stage": "modes-global-ipv4",
+      "name": "global-ipv4-explicit-allowlist-edit-recovers",
+      "passed": true
+    },
+    {
+      "stage": "modes-global-ipv4",
+      "name": "global-ipv4-approved-stable-through-multiple-audits",
+      "passed": true,
+      "event_counts": {
+        "mimo_native_egress_updated": 3,
+        "mimo_infrastructure_check_deferred": 1
+      },
+      "error_events": []
+    },
+    {
+      "stage": "modes-global-ipv4",
+      "name": "original-Direct-settings-restored",
+      "passed": true
+    },
+    {
+      "stage": "modes-rule-dual",
+      "name": "rule-dual-rejection-visible",
+      "passed": true
+    },
+    {
+      "stage": "modes-rule-dual",
+      "name": "rule-dual-rejected-stable-through-multiple-audits",
+      "passed": true,
+      "event_counts": {
+        "mimo_blocked_native_transport_updated": 5,
+        "mimo_infrastructure_check_deferred": 3
+      },
+      "error_events": []
+    },
+    {
+      "stage": "modes-rule-dual",
+      "name": "rule-dual-explicit-allowlist-edit-recovers",
+      "passed": true
+    },
+    {
+      "stage": "modes-rule-dual",
+      "name": "rule-dual-approved-stable-through-multiple-audits",
+      "passed": true,
+      "event_counts": {
+        "mimo_native_egress_updated": 2
+      },
+      "error_events": []
+    },
+    {
+      "stage": "modes-rule-dual",
+      "name": "original-Direct-settings-restored",
+      "passed": true
+    },
+    {
+      "stage": "modes-global-dual",
+      "name": "global-dual-rejection-visible",
+      "passed": true
+    },
+    {
+      "stage": "modes-global-dual",
+      "name": "global-dual-rejected-stable-through-multiple-audits",
+      "passed": true,
+      "event_counts": {
+        "mimo_blocked_native_transport_updated": 3,
+        "mimo_infrastructure_check_deferred": 3
+      },
+      "error_events": []
+    },
+    {
+      "stage": "modes-global-dual",
+      "name": "global-dual-explicit-allowlist-edit-recovers",
+      "passed": true
+    },
+    {
+      "stage": "modes-global-dual",
+      "name": "global-dual-approved-stable-through-multiple-audits",
+      "passed": true,
+      "event_counts": {},
+      "error_events": []
+    },
+    {
+      "stage": "modes-global-dual",
+      "name": "original-Direct-settings-restored",
+      "passed": true
+    },
+    {
+      "stage": "lifecycle-stop",
+      "name": "deactivate-completed",
+      "passed": true
+    },
+    {
+      "stage": "lifecycle-stop",
+      "name": "Stop-removes-current-and-legacy-jobs-and-network-controls",
+      "passed": true
+    },
+    {
+      "stage": "lifecycle-activate",
+      "name": "install-completed",
+      "passed": true
+    },
+    {
+      "stage": "lifecycle-activate",
+      "name": "Activate-restores-only-core-owned-infrastructure",
+      "passed": true
+    },
+    {
+      "stage": "lifecycle-activate",
+      "name": "reactivated-Direct-stable-through-multiple-audits",
+      "passed": true,
+      "event_counts": {
+        "mimo_log_maintenance": 1
+      },
+      "error_events": []
+    },
+    {
+      "stage": "boot-prepare",
+      "name": "reboot-baseline-saved",
+      "passed": true
+    },
+    {
+      "stage": "boot-check",
+      "name": "real-reboot-runs-core-boot-guard-and-restores-Direct",
+      "passed": true
+    },
+    {
+      "stage": "boot-check",
+      "name": "rebooted-Direct-stable-through-multiple-audits",
+      "passed": true,
+      "event_counts": {},
+      "error_events": []
+    },
+    {
+      "stage": "final",
+      "name": "original-settings-and-routing-retained",
+      "passed": true
+    },
+    {
+      "stage": "final",
+      "name": "local-credentials-retained",
+      "passed": true
+    },
+    {
+      "stage": "final",
+      "name": "final-services-healthy-and-Direct-network-controls-released",
+      "passed": true
+    },
+    {
+      "stage": "final",
+      "name": "macOS-attributes-infrastructure-to-mimo-core",
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "passedCheckCount": 39,
+  "initialHarnessFailures": [
+    {
+      "case": "recovery",
+      "reason": "Accepted exiting old PID as recovered, then removed the other watchdog. Corrected to require new PID and fresh health; full rerun passed."
+    },
+    {
+      "case": "modes-rule-ipv4",
+      "reason": "Wait used a computed Swift property absent from JSON. Corrected to blockingIP; full four-cell run passed."
+    }
+  ],
+  "limits": [
+    "Reboot checked in managed Direct; no new protected cold-boot packet-capture qualification.",
+    "Stop/Activate invoked the real dashboard backend through the installed manager; no native button-click campaign.",
+    "macOS registration inspected with sfltool; no fresh physical-Mac Login Items visual qualification.",
+    "Early SSH runner sessions dropped during installation/fault work; later tests used Tart. Uninterrupted incoming SSH/Screen Sharing through transitions is not qualified here."
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "classification": "local_deterministic_health_deferral_and_ownership_regression",
+  "diagnostic_before": {
+    "passed": 5,
+    "total": 6,
+    "failed_case": "two-discrete-deferrals",
+    "scan_results": [
+      {
+        "start": 10,
+        "end": 11,
+        "status": 75
+      },
+      {
+        "start": 21,
+        "end": 22,
+        "status": 75
+      },
+      {
+        "start": 32,
+        "end": 36,
+        "status": 0
+      }
+    ],
+    "stale_sample_seconds": [
+      35.25,
+      35.5,
+      35.75
+    ]
+  },
+  "implementation_before_additional_hardening": {
+    "passed": 11,
+    "total": 13,
+    "failures": [
+      "new-scan-does-not-adopt-old-evidence",
+      "persistent-failure-single-episode"
+    ]
+  },
+  "latest_targeted_run": {
+    "passed": 6,
+    "total": 6,
+    "scope": "Only the2 newly failed controls plus4 new PF receipt controls."
+  },
+  "distinct_passing_histories": 17,
+  "same_final_artifact_all_cases": false,
+  "production_source_manifest_sha256": "8e635caabd7428c91c84986e263cdca815ac54ea82c9ad34c7b487f57a50290d",
+  "method": [
+    "Execute actual pf-guard run/snapshot comparison/publication/exit dispatch with isolated filesystem, OS facts and controllable time.",
+    "Execute actual supervisor monitor loop/runtime status projection and real blocking worker; only time/OS boundaries substituted.",
+    "Exercise actual scheduler with controllable waits and actual PF receipt scope/adoption functions."
+  ],
+  "scope_limits": [
+    "Original installed failure retained only a boolean unhealthy sample; deterministic mechanism is not causal attribution.",
+    "Policy receipts do not renew full PF baseline observation; no extra PF inspection occurs on the control actor.",
+    "Real full-component inspections and the35-second freshness limit remain authoritative.",
+    "Latest6 tests precede a small guard release-snapshot lock/observation-preservation tightening; no17-case final-binary qualification is claimed."
+  ],
+  "no_vm_actions": true,
+  "no_passed_suite_reruns": true,
+  "final_production_typecheck": "passed"
+}

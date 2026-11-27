@@ -27,6 +27,29 @@ public enum EventLogLine {
     public static func message(event: String, fields: [String: String]) -> String? {
         let provider = providerName(fields["provider"])
         switch event {
+        case "mimo_runtime_command_failed": return "System command failed · \(fields["program"] ?? "unknown") \(fields["operation"] ?? "") · status \(fields["status"] ?? "?") · \(fields["durationMS"] ?? "?") ms"
+        case "mimo_infrastructure_started": return "Supervisor infrastructure monitor started · checks every 10 seconds"
+        case "mimo_infrastructure_stopped": return "Supervisor infrastructure monitor stopped"
+        case "mimo_infrastructure_check_started": return "Inspecting firewall and startup services"
+        case "mimo_infrastructure_check_finished":
+            return "Infrastructure inspection · \(fields["outcome"] ?? "finished") · \(fields["duration_ms"] ?? "—") ms"
+        case "mimo_infrastructure_check_deferred":
+            return "Infrastructure inspection deferred · \(fields["reason"] ?? "network controls are changing")"
+        case "mimo_infrastructure_retry_scheduled":
+            return "Infrastructure inspection retry in \(fields["delay_seconds"] ?? "—") seconds"
+        case "mimo_infrastructure_reconcile_requested":
+            return "Infrastructure inspection requested · \(fields["reason"] ?? "transition finished")"
+        case "mimo_infrastructure_check_failed": return "Infrastructure inspection failed · \(detail(fields["detail"]))"
+        case "mimo_infrastructure_repaired": return "Infrastructure repair completed"
+        case "mimo_engine_health_changed": return "mihomo controller health · \(fields["health"] ?? "unknown")"
+        case "mimo_peer_watch_started": return "\(fields["owner"] ?? "Core") watching \(fields["target"] ?? "peer") progress"
+        case "mimo_peer_repair_started": return "Recovering \(fields["target"] ?? "peer") · \(fields["reason"] ?? "unresponsive") · attempt \(fields["attempt"] ?? "?")"
+        case "mimo_peer_recovery_wait": return "\(fields["target"] ?? "Peer") recovery · \(detail(fields["reason"]))"
+        case "mimo_peer_recovered": return "\(fields["target"] ?? "Peer") recovered · progress confirmed"
+        case "mimo_supervisor_recovery_requested": return "Core is restoring the missing traffic supervisor"
+        case "mimo_supervisor_recovery_failed": return "Supervisor recovery failed · \(detail(fields["reason"]))"
+        case "mimo_infrastructure_start_failed": return "Mimo core boot guard failed · \(detail(fields["reason"]))"
+        case "mimo_infrastructure_sweep_failed": return "Mimo core infrastructure check failed · \(detail(fields["reason"]))"
         case "mimo_installation":
             let action = fields["operation"] == "activate" ? "Activation" : "Installation"
             let item = detail(fields["item"].flatMap { $0.isEmpty ? nil : $0 })
@@ -42,6 +65,7 @@ public enum EventLogLine {
             case "conflicts_cleared": return "Competing services stopped · resources available"
             case "replacing_services": return "\(action) · replacing Mimo engine and daemons"
             case "services_enabled": return "All Mimo services enabled · saved stop preferences cleared"
+            case "infrastructure_merged": return "Startup guard and checks merged into existing supervisor · separate boot and infrastructure jobs removed"
             case "starting_services": return "\(action) · starting all Mimo services"
             case "verifying_services": return "\(action) · checking core, engine and infrastructure health"
             case "services_verified": return "All Mimo services passed health verification"
@@ -56,8 +80,12 @@ public enum EventLogLine {
             }
         case "mimo_dns_removed_and_drained": return "Mimo DNS override removed · queued queries drained before tunnel teardown"
         case "mimo_direct_network_released": return "Direct restored · Mimo packet rules and tunnel removed"
+        case "mimo_direct_tracking_ready": return "Direct restored · tunnel and DNS override removed; incoming TCP tracking ready"
+        case "mimo_direct_tracking_updated": return "Direct incoming TCP tracking updated · \(fields["destinations"] ?? "?") local addresses"
+        case "mimo_direct_tracking_reconcile_requested": return "Direct local-address check requested · \(fields["source"] ?? "network event")"
+        case "mimo_direct_tracking_refresh_failed": return "Direct incoming TCP tracking update failed · native networking remains open"
         case "mimo_native_release_checked": return "Native network release check completed"
-        case "mimo_native_release_check_failed": return "Mimo controls released · native Tailnet DNS check failed"
+        case "mimo_native_release_check_failed": return "Native networking restored · Tailnet DNS check failed"
         case "mimo_deactivation_started": return "Stop engine · full service uninstall started"
         case "mimo_deactivation_succeeded": return "Network controls released · IP monitoring continues in this app"
         case "mimo_deactivation_cancelled": return "Service uninstall cancelled · removal not confirmed"
@@ -95,14 +123,21 @@ public enum EventLogLine {
             return "\(action) · \(fields["count"] ?? "?") saved · \(fields["mode"] ?? "unknown")" +
                 (fields["reload"] == "true" ? " · applying routing change" : " · routing unchanged")
         case "manual_refresh_queued": return "Refresh now requested · waiting for a lookup result"
+        case "manual_refresh_joined": return "Refresh now joined the current exit-IP check"
+        case "manual_refresh_started": return "Refresh now checking the exit IP"
         case "manual_refresh_finished":
             switch fields["outcome"] {
             case "succeeded": return "Refresh now completed · exit IP updated"
             case "blocked": return "Exit IP checked · outbound access remains blocked by Allowed IPs"
             case "deferred": return "Refresh now deferred · no lookup ran; see provider availability"
+            case "superseded": return "Refresh now superseded · a newer network configuration is in use"
             case "cancelled": return "Refresh now cancelled · networking or services changed"
+            case "internal_failure": return "Refresh request could not finish · no current operation owns it"
             default: return "Refresh now failed · last successful IP retained"
             }
+        case "refresh_demand_queued": return "Exit-IP check pending · waiting for the current operation"
+        case "refresh_demand_consumed": return "Pending exit-IP check admitted"
+        case "refresh_demand_discarded": return "Obsolete pending exit-IP check discarded"
         case "mimo_network_changed": return "Check trigger · \(trigger(fields["source"]))" + detail(fields["detail"]) + " · generation \(fields["generation"] ?? "?")"
         case "mimo_cycle_owned_event_ignored": return "Own tunnel update ignored · \(trigger(fields["source"]))"
         case "network_airport_telemetry_ignored": return nil // Retained in full diagnostics, not the failure timeline.
@@ -131,6 +166,11 @@ public enum EventLogLine {
             return fields["outcome"] == "direct"
                 ? "Recovery cleared · returning to Direct"
                 : "Recovery check started · a rejected exit will remain blocked without repeated recovery checks"
+        case "mimo_observation_started": return "Checking exit IP · traffic remains allowed"
+        case "mimo_observation_approved": return "Exit IP approved · traffic remained allowed"
+        case "mimo_observation_failed", "mimo_observation_unavailable": return "IP check unavailable · retaining the last approved path"
+        case "mimo_policy_revoked": return "Allowed IP policy changed · current exit rejected · outbound access blocked"
+        case "periodic_check_scheduled": return "Next periodic IP check · " + (fields["next"] ?? "scheduled")
         case "mimo_private_probe_ready": return "Checking exit IP · application traffic blocked"
         case "mimo_service_changed": return "\(fields["service"] ?? "Service") · \(fields["operation"] ?? "changed")"
         case "mimo_routing_changed": return "Routing changed · \(fields["mode"] ?? "unknown")"
@@ -185,6 +225,8 @@ public enum EventLogLine {
         case "mimo_cycle_event_deferred": return "Event held until check finishes · \(trigger(fields["source"]))" + detail(fields["detail"])
         case "mimo_control_queued": return "Control queued until check finishes · \(fields["command"] ?? "command")"
         case "mimo_control_resumed": return "Running queued control · \(fields["command"] ?? "command")"
+        case "mimo_control_superseded": return "Pending mode request replaced by a newer request"
+        case "mimo_control_cancelled": return "Pending control request cancelled · \(fields["command"] ?? "command")"
         case "lookup_failed":
             return "Lookup failed · \(provider)" + detail(fields["message"])
         case "lookup_cancelled":

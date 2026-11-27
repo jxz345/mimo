@@ -46,6 +46,11 @@ final class PublicIPMonitor: ObservableObject {
     @Published private(set) var serviceMessage: String? = "Connecting to background service…"
     @Published private(set) var operationError: String?
     @Published private(set) var isChangingSettings = false
+    @Published private(set) var pendingModeRequests = 0
+    private var changingNonModeSettings = false
+    private let modeIntentStream = UUID()
+    private var modeIntentSequence: UInt64 = 0
+    private var retiredDaemonInstances: Set<UUID> = []
     @Published private(set) var isCredentialBusy = false
     @Published private(set) var serviceOperation: MimoServiceID?
     @Published private(set) var supervisorState: MimoRoutingState?
@@ -100,12 +105,38 @@ final class PublicIPMonitor: ObservableObject {
     }
 
     func hasServiceReport(_ id: MimoServiceID, at date: Date = .now) -> Bool {
-        connected || hasSupervisorReply(at: date)
+        id == .core ? connected || hasSupervisorReply(at: date) : hasInfrastructureReport(at: date)
+    }
+
+    func hasInfrastructureReport(at date: Date = .now) -> Bool {
+        (connected && routingState.phase != .unavailable) || hasSupervisorReply(at: date)
+    }
+
+    var unconfirmedServiceLabel: String { connected ? "Unconfirmed" : connection.rowTitle }
+
+    var serviceCommunicationDetail: String {
+        connected ? "Core is connected, but supervisor updates are unavailable. Engine and firewall health are unconfirmed." : connection.detail
+    }
+
+    func infrastructureHealthLabel(firewall: Bool, at date: Date) -> String {
+        if installationInactive { return firewall ? "Released" : "Removed" }
+        guard hasInfrastructureReport(at: date) else { return unconfirmedServiceLabel }
+        return (routingState.infrastructure ?? .init()).healthLabel(firewall: firewall, at: date)
+    }
+
+    func heartbeatHealthLabel(at date: Date) -> String {
+        if installationInactive { return "Removed" }
+        guard hasInfrastructureReport(at: date) else { return unconfirmedServiceLabel }
+        guard let checked = routingState.heartbeatCheckedAt, let health = routingState.heartbeatHealth else { return "Unavailable" }
+        guard let age = MimoHealthLabel.age(checkedAt: checked, at: date) else { return "Unavailable" }
+        let title = age > 15 ? "Check overdue" : health.title
+        return MimoHealthLabel.text(title, checkedAt: checked, at: date)
     }
 
     func serviceHealthLabel(_ id: MimoServiceID, at date: Date) -> String {
         if installationInactive { return "Removed" }
-        guard hasServiceReport(id, at: date) else { return connection.rowTitle }
+        guard hasServiceReport(id, at: date) else { return unconfirmedServiceLabel }
+        if id == .core, connected, !hasInfrastructureReport(at: date) { return "Unconfirmed" }
         let service = routingState.services.first { $0.id == id }
         var title = serviceOperation == id ? "Working…" : service?.healthTitle(at: date) ?? "Unavailable"
         // A supervisor process inspection does not establish a working core connection.
@@ -124,6 +155,10 @@ final class PublicIPMonitor: ObservableObject {
     var nextProvider: ProviderID { installationInactive ? preferences.provider : daemonState?.nextProvider ?? preferences.provider }
     var isIPinfoTokenUnavailable: Bool { daemonState?.hasIPinfoToken != true }
     var canChangeSharedSettings: Bool { connected && daemonState?.initialized == true && !isChangingSettings && serviceOperation == nil }
+    var canChangeModes: Bool {
+        connected && daemonState?.initialized == true && !changingNonModeSettings
+            && serviceOperation == nil && pendingModeRequests < 32
+    }
     var canRefresh: Bool {
         if installationInactive { return releasedMonitor.engine != nil && status != .refreshing }
         return connected && !isChangingSettings && (daemonState?.initialized == true || routingState.configuration.mode == .direct)
@@ -187,7 +222,14 @@ final class PublicIPMonitor: ObservableObject {
     }
 
     func setMode(_ mode: ProxyMode) {
+        guard modeIntentSequence < UInt64.max else {
+            operationError = "Reopen Mimo before changing the mode again."
+            return
+        }
+        modeIntentSequence += 1
         var request = DaemonRequest(.configureRouting)
+        request.requestedMode = mode
+        request.modeIntent = MimoModeIntent(stream: modeIntentStream, sequence: modeIntentSequence)
         var configuration = routingState.configuration; configuration.mode = mode; request.routing = configuration
         Task { _ = await changeShared(request) }
     }
@@ -450,11 +492,30 @@ final class PublicIPMonitor: ObservableObject {
         }
     }
 
-    func receive(_ state: DaemonState) {
+    func receive(_ state: DaemonState) { receive(state, reapplying: false) }
+
+    private func accepts(_ state: DaemonState) -> Bool {
+        guard !retiredDaemonInstances.contains(state.instanceID) else { return false }
+        guard let previous = daemonState else { return true }
+        guard previous.instanceID == state.instanceID else { return true }
+        guard state.revision >= previous.revision else { return false }
+        if let sequence = previous.stateSequence {
+            guard let incoming = state.stateSequence, incoming > sequence else { return false }
+        }
+        return true
+    }
+
+    private func receive(_ state: DaemonState, reapplying: Bool) {
         refreshInstallationState()
         guard sessionActive, !installationInactive else { return }
         guard state.protocolVersion == MimoService.protocolVersion else {
             disconnected(failure: .incompatible); return
+        }
+        if !reapplying {
+            guard accepts(state) else { return }
+            if let previous = daemonState, previous.instanceID != state.instanceID {
+                retiredDaemonInstances.insert(previous.instanceID)
+            }
         }
         let oldSnapshot = snapshot, oldIndicators = indicators
         let oldStatusPresentation = statusPresentation
@@ -628,12 +689,25 @@ final class PublicIPMonitor: ObservableObject {
 
     @discardableResult
     private func send(_ request: DaemonRequest, serviceLabel: String = MimoService.label) async -> Bool {
+        let generation = connectionGeneration
+        let instance = daemonState?.instanceID
         do {
             let response = try await DaemonRPC.call(request, timeout: 75, serviceLabel: serviceLabel)
-            if let state = response.state { receive(state) }
-            if request.command != .state { operationError = nil }
-            return true
+            guard generation == connectionGeneration, sessionActive,
+                  instance == nil || daemonState?.instanceID == instance else { return false }
+            var acceptedSnapshot = true
+            if let state = response.state {
+                guard !retiredDaemonInstances.contains(state.instanceID) else { return false }
+                acceptedSnapshot = accepts(state)
+                if acceptedSnapshot { receive(state) }
+            }
+            // A newer subscription may overtake an applied reply. Its snapshot
+            // is stale, but the command acknowledgment still belongs to us.
+            if request.command != .state, acceptedSnapshot { operationError = nil }
+            return response.controlOutcome != .superseded && response.controlOutcome != .cancelled
         } catch {
+            guard generation == connectionGeneration, sessionActive,
+                  instance == nil || daemonState?.instanceID == instance else { return false }
             operationError = error.localizedDescription
             if let failure = error as? DaemonFailure, failure == .unavailable { disconnected() }
             // A stale editor must see the winning revision before retrying.
@@ -711,11 +785,23 @@ final class PublicIPMonitor: ObservableObject {
             operationError = "Initialize shared settings before changing monitoring or proxy configuration."
             return false
         }
-        guard !isChangingSettings else { return false }
+        let modeOnly = request.command == .configureRouting && request.requestedMode != nil
+        guard serviceOperation == nil else { return false }
+        if modeOnly {
+            guard !changingNonModeSettings, pendingModeRequests < 32 else { return false }
+            pendingModeRequests += 1
+        } else {
+            guard !isChangingSettings else { return false }
+            changingNonModeSettings = true
+        }
         isChangingSettings = true
-        defer { isChangingSettings = false }
+        defer {
+            if modeOnly { pendingModeRequests -= 1 }
+            else { changingNonModeSettings = false }
+            isChangingSettings = changingNonModeSettings || pendingModeRequests > 0
+        }
         var request = request
-        if let revision = request.expectedRevision, revision != state.revision {
+        if !modeOnly, let revision = request.expectedRevision, revision != state.revision {
             operationError = DaemonFailure.conflict.localizedDescription
             return false
         }
@@ -782,7 +868,7 @@ final class PublicIPMonitor: ObservableObject {
         case .notAllowedAddress: authorizationState = .notAllowed("203.0.113.8")
         }
     }
-    func clearDebugSimulation() { simulationMessage = nil; if let state = daemonState { receive(state) } }
+    func clearDebugSimulation() { simulationMessage = nil; if let state = daemonState { receive(state, reapplying: true) } }
     private func reloadSurfaces() {
         RuntimeLog.shared.info("widget_reload_requested")
         WidgetCenter.shared.reloadTimelines(ofKind: MimoSurfaceID.widget)

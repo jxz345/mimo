@@ -400,7 +400,8 @@ cask "mimo" do
     Mihomo 1.19.34-mimo-v3.2 engine. Strict IPv4 captures and rejects public IPv6;
     dual-stack proxies supported IPv6 traffic. Public ping/ping6 is silently blocked.
     Active Rule/Global uses profile routing plus a firewall guard against native fallback.
-    Ordinary Direct releases Mimo's DNS and firewall controls. Stop engine and
+    Ordinary Direct releases outgoing restrictions and DNS override, retaining only
+    incoming TCP tracking. Stop engine and
     use Direct removes all Mimo services and old network controls, verifies native
     Tailnet DNS when connected, and keeps IP monitoring in the open app.
     Activate Mimo restores all services in Direct. Uninstall also restores networking.

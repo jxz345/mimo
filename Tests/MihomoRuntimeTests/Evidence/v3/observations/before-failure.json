@@ -1,0 +1,9 @@
+{
+  "method": "Deterministic service regression before production change",
+  "scenario": "approved Rule/IPv4; hold next provider response",
+  "assertion": "observing an unchanged approved path must not block before the IP response",
+  "exit_code": 133,
+  "native_ui": false,
+  "packet_capture": false,
+  "raw_log": "Local ignored .build/observation-before.log"
+}
