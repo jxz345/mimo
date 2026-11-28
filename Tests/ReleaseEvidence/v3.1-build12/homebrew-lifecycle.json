@@ -1,0 +1,330 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-11-28T00:09:58.998022+00:00",
+  "status": "PASS: allfour actual Homebrew lifecycle commands and verification gates; final3.1/build12 remains usable.",
+  "release": {
+    "version": "3.1",
+    "build": "12",
+    "tag": "v3.1-build.12",
+    "url": "https://github.com/jxz345/mimo/releases/tag/v3.1-build.12",
+    "tap_commit": "f6afe69205be4a083b53bab5ae25ca4addcde893",
+    "downloaded_public_ZIP_sha256": "53af2899718a80a956baff03c97e77f65e8f01d62e1e55a815fee531c5946d57",
+    "expected_public_ZIP_sha256": "53af2899718a80a956baff03c97e77f65e8f01d62e1e55a815fee531c5946d57",
+    "installed_core_sha256": "49e2f183814021f35d7fcbfccc44386bbbdd26cced49fbb86b6fbf231ab6495f",
+    "Homebrew_receipt": "mimo 3.1",
+    "public_manifest": {
+      "path": ".build/observation-parallel/brew31-qualification/published-release-build.json",
+      "sha256": "ee31c43ebd4229e89a8ef6a23a517aab19fb52559613e5b9304db89eff16869c"
+    }
+  },
+  "counts": {
+    "actual_Homebrew_commands_planned": 4,
+    "actual_Homebrew_commands_completed": 4,
+    "actual_Homebrew_commands_passed": 4,
+    "parser_controls_passed": 4,
+    "parser_controls_total": 4,
+    "parser_controls_are_not_VM_lifecycle_steps": true
+  },
+  "scope": {
+    "VM": "mimo-test-macos",
+    "pinned_target_verified": true,
+    "Brew_user": "existing owner jay",
+    "real_public_tap_and_GitHub_download": true,
+    "local_archive_substitution": false,
+    "marketing_version_retained_in_Brew_receipt": true,
+    "no_other_VM_suite_rerun": true
+  },
+  "steps": [
+    {
+      "label": "01-uninstall-old",
+      "brew_status": 0,
+      "command_seconds": 11.738,
+      "verification": {
+        "label": "01-uninstall-old",
+        "kind": "uninstalled",
+        "started_epoch": 1795824177.464732,
+        "configuration_retained": true,
+        "credentials_retained": true,
+        "hosts_retained": true,
+        "trust_retained": true,
+        "app_absent": true,
+        "all_Mimo_jobs_absent": true,
+        "all_Mimo_rules_references_absent": true,
+        "protected_DNS_absent": true,
+        "TUN_absent": true,
+        "native_HTTPS_endpoints": 2,
+        "passed": true
+      },
+      "brew_log_sha256": "c5cbec0d8cd8b4c5408edeef60713d37fe3fab3b68a0f42516922491422e8cdb",
+      "auth_cleanup": {
+        "drop_absent": true,
+        "credential_directory_absent": true,
+        "global_sudo_syntax_valid": true
+      }
+    },
+    {
+      "label": "02-install31",
+      "brew_status": 0,
+      "command_seconds": 43.181,
+      "verification": {
+        "label": "02-install31",
+        "kind": "installed",
+        "started_epoch": 1795824224.644914,
+        "configuration_retained": true,
+        "credentials_retained": true,
+        "hosts_retained": true,
+        "trust_retained": true,
+        "version": "3.1",
+        "build": "12",
+        "core_sha256": "49e2f183814021f35d7fcbfccc44386bbbdd26cced49fbb86b6fbf231ab6495f",
+        "signature_valid": true,
+        "services_running": 3,
+        "healthy_Direct": true,
+        "exact_literal_tracking": true,
+        "settled_seconds": 35,
+        "settled_samples": 27,
+        "passed": true
+      },
+      "brew_log_sha256": "4603023f96ed4554697895a646fa6f82d7a5adcd196e96562faed54b785b0683",
+      "auth_cleanup": {
+        "drop_absent": true,
+        "credential_directory_absent": true,
+        "global_sudo_syntax_valid": true
+      },
+      "settled": {
+        "seconds": 35,
+        "samples": 27,
+        "max_component_age_seconds": 13.804
+      }
+    },
+    {
+      "label": "03-uninstall31",
+      "brew_status": 0,
+      "command_seconds": 10.082,
+      "verification": {
+        "label": "03-uninstall31",
+        "kind": "uninstalled",
+        "started_epoch": 1795824278.801091,
+        "configuration_retained": true,
+        "credentials_retained": true,
+        "hosts_retained": true,
+        "trust_retained": true,
+        "app_absent": true,
+        "all_Mimo_jobs_absent": true,
+        "all_Mimo_rules_references_absent": true,
+        "protected_DNS_absent": true,
+        "TUN_absent": true,
+        "native_HTTPS_endpoints": 2,
+        "passed": true
+      },
+      "brew_log_sha256": "1dbeac00d191c1f28c45eb779c81041b6e24e97881946420b929568887e06f57",
+      "auth_cleanup": {
+        "drop_absent": true,
+        "credential_directory_absent": true,
+        "global_sudo_syntax_valid": true
+      }
+    },
+    {
+      "label": "04-install31-final",
+      "brew_status": 0,
+      "command_seconds": 36.048,
+      "verification": {
+        "label": "04-install31-final",
+        "kind": "installed",
+        "started_epoch": 1795824324.015739,
+        "configuration_retained": true,
+        "credentials_retained": true,
+        "hosts_retained": true,
+        "trust_retained": true,
+        "version": "3.1",
+        "build": "12",
+        "core_sha256": "49e2f183814021f35d7fcbfccc44386bbbdd26cced49fbb86b6fbf231ab6495f",
+        "signature_valid": true,
+        "services_running": 3,
+        "healthy_Direct": true,
+        "exact_literal_tracking": true,
+        "settled_seconds": 35,
+        "settled_samples": 27,
+        "passed": true
+      },
+      "brew_log_sha256": "b465dbdcf21acc7b879a15d217e43235f165ef8e2159d41749c7af7f0b17609e",
+      "auth_cleanup": {
+        "drop_absent": true,
+        "credential_directory_absent": true,
+        "global_sudo_syntax_valid": true
+      },
+      "settled": {
+        "seconds": 35,
+        "samples": 27,
+        "max_component_age_seconds": 12.838
+      }
+    }
+  ],
+  "final_state": {
+    "version": "3.1",
+    "build": "12",
+    "services_running": 3,
+    "healthy_Direct": true,
+    "exact_literal_incoming_TCP_tracking_and_loopback_no_state": true,
+    "saved_settings_retained": true,
+    "saved_local_proxy_passwords_and_tokens_retained": true,
+    "trusted_test_certificate_retained": true
+  },
+  "event_audit": {
+    "whole_event_count": 208,
+    "error_events": [],
+    "installed_settled_windows": 2,
+    "settled_seconds_each": 35,
+    "unexpected_settled_events": 0,
+    "event_counts": {
+      "mimo_infrastructure_check_started": 21,
+      "mimo_infrastructure_check_finished": 21,
+      "mimo_log_maintenance": 5,
+      "mimo_transition_timing": 26,
+      "mimo_pf_policy_installed": 22,
+      "mimo_gate_closed": 4,
+      "mimo_infrastructure_reconcile_requested": 2,
+      "mimo_core_command_started": 4,
+      "mimo_supervisor_command_received": 4,
+      "mimo_process_readback_unavailable": 3,
+      "mimo_core_command_finished": 4,
+      "monitor_stopped": 2,
+      "daemon_stopped": 2,
+      "mimo_infrastructure_stopped": 2,
+      "mimo_startup_guard_closed": 4,
+      "mimo_peer_watch_started": 4,
+      "mimo_installed_app_control_ready": 4,
+      "mimo_legacy_network_controls_removed": 2,
+      "mimo_dns_removed_and_drained": 2,
+      "mimo_direct_tracking_ready": 2,
+      "mimo_native_release_checked": 2,
+      "mimo_supervisor_ready": 2,
+      "mimo_session_observer_ready": 2,
+      "daemon_started": 2,
+      "mimo_infrastructure_started": 2,
+      "monitor_started": 2,
+      "periodic_check_scheduled": 4,
+      "daemon_ready": 2,
+      "refresh_requested": 2,
+      "provider_health_changed": 4,
+      "lookup_started": 2,
+      "lookup_http_request": 2,
+      "mimo_probe_http_started": 2,
+      "mimo_probe_http_finished": 2,
+      "lookup_succeeded": 2,
+      "lookup_finished": 2,
+      "mimo_engine_health_changed": 2,
+      "app_terminating": 2,
+      "daemon_client_stopped": 2,
+      "process_entered": 2,
+      "app_initialized": 2,
+      "application_did_finish_launching": 2,
+      "mimo_access_presentation_changed": 4,
+      "status_item_created": 2,
+      "daemon_client_connecting": 2,
+      "daemon_client_started": 2,
+      "startup_services_ready": 2,
+      "daemon_client_connected": 2,
+      "widget_reload_requested": 2,
+      "app_ready": 2,
+      "login_item_synced": 2
+    }
+  },
+  "authentication_accommodation": {
+    "Homebrew_supported_option": "HOMEBREW_SUDO_THROUGH_SUDO_USER",
+    "temporary_scope": "Command-specific Defaults!/usr/bin/sudo targetpw for nested owner\u2192testadministrator sudo; normal existing administrator authentication.",
+    "NOPASSWD_grant_added": false,
+    "Homebrew_ownership_modified": false,
+    "temporary_askpass_visibility": "Only Brewowner and authorizedtestadministrator; explicitACL on owned temporaryfiles.",
+    "per_command_cleanup": [
+      {
+        "label": "03-uninstall31",
+        "drop_absent": true,
+        "askpass_absent": true
+      },
+      {
+        "label": "01-uninstall-old",
+        "drop_absent": true,
+        "askpass_absent": true
+      },
+      {
+        "label": "04-install31-final",
+        "drop_absent": true,
+        "askpass_absent": true
+      },
+      {
+        "label": "02-install31",
+        "drop_absent": true,
+        "askpass_absent": true
+      }
+    ],
+    "permanent_sudo_configuration_changed": false
+  },
+  "retained_oracle_failure": {
+    "actual_uninstall_command_succeeded": true,
+    "initial_assertion_failed": true,
+    "cause": "Recursive pfctl output expanded empty kernel namespaces into brace headings. Initial substring oracle incorrectly classified headings as active Mimo rules.",
+    "correction": "Enumerate namespace paths; inspect actual filter/NAT readback for each namespace and ancestors. Any actual ownedrule or saved reference still fails.",
+    "repeated_uninstall_command": false,
+    "four_new_parser_controls": {
+      "path": ".build/observation-parallel/brew31-qualification/PF-oracle-correction.json",
+      "sha256": "427f5cf18461d109dde9b703ec41ab12ecda6f82e43235969c7006e8e8c4ee28"
+    },
+    "original_failure": {
+      "path": ".build/observation-parallel/brew31-qualification/failure.json",
+      "sha256": "a7536ad90bf75b73a46a049b2f82d10cd2cf4f01f60689d3d3b08f6279145688"
+    },
+    "original_raw_archive": {
+      "path": ".build/observation-parallel/brew31-qualification/final-private.tar.gz",
+      "sha256": "eb1425b9ed4805b6e78a7e16b987248e9a6cce73577be4133e840f0004da8ede"
+    },
+    "read_only_PF_readback": {
+      "path": ".build/observation-parallel/brew31-qualification/uninstall-PF-readonly.json",
+      "sha256": "ce6d84fb1b3c11ed25a4c8bf0397cd7f1ccf8c3cc4d8edb38d09fa4a65af7dac"
+    }
+  },
+  "support_collection_note": "Fully-qualified brew list --versions lookup returned no entry; supported whole-list metadata query proved exactly mimo3.1. No package operation was repeated.",
+  "raw_archive": {
+    "path": ".build/observation-parallel/brew31-qualification/audited-final-private.tar.gz",
+    "sha256": "4a9447c7100c28610a2d9f7c8e24d5f676e43b7a3c67f6f6a7df35cc703b39e3"
+  },
+  "independent_audit": {
+    "path": ".build/observation-parallel/brew31-qualification/independent-final-audit.json",
+    "sha256": "9eda043d5fb1e9d4afa1ae24a915a3d1a893269ee5dc4bf02874e9040852daf4"
+  },
+  "harness_sha256": "d3f13cc15f95ba257866be4634695163555a8636ab6e2011bceb8f3a1996fa65",
+  "cleanup": {
+    "root_removed": true,
+    "files_removed": 54,
+    "all_hashes_verified": true,
+    "temporary_sudoers_absent": true,
+    "temporary_askpass_absent": true,
+    "owned_helpers_absent": true,
+    "configuration_retained": true,
+    "credentials_retained": true,
+    "certificate_trust_retained": true,
+    "core_sha256": "49e2f183814021f35d7fcbfccc44386bbbdd26cced49fbb86b6fbf231ab6495f",
+    "final_healthy_Direct": true,
+    "exact_literal_tracking": true,
+    "primary_preserved": true,
+    "finished_epoch": 1795824539.0404658
+  },
+  "cleanup_evidence": {
+    "path": ".build/observation-parallel/brew31-qualification/cleanup.json",
+    "sha256": "3bfed66605291d755cf754bee9ba1b9108dd98f733f849ab72610142c26f0d19"
+  },
+  "remaining_VMs": {
+    "mimo-pre-v3-20261125": "stopped",
+    "mimo-test-macos": "running"
+  },
+  "VM_inventory": {
+    "path": ".build/observation-parallel/brew31-qualification/VM-inventory.json",
+    "sha256": "20d7953f2fa4b311e6b996af7ebd94c2d7a15afc3f19bea842f2f281c8824011"
+  },
+  "limits": [
+    "Homebrew install/uninstall lifecycle and two35-second installed Direct observations; not a repeated protected traffic matrix.",
+    "OrdinaryDirect intentionally retains only incomingTCP tracking plusloopbackno-state. Uninstall removes actual Mimo rules/references, DNS andTUN; emptykernel namespace headings are not activecontrols.",
+    "No nativebuttonclick, ScreenSharing, IPv6reachability or genericUDPcontinuity qualification in thisfour-step run.",
+    "Private settings, credentials, detailedstates and logs remain owner-only in ignored local evidence; no credentials are included here."
+  ]
+}

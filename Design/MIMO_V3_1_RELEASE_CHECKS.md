@@ -11,8 +11,9 @@ Source commit: `565016a8888a43fa927b18c8c4d6b0de3a8e7a77`. Homebrew tap commit:
 
 All five uploaded digests match the built artifacts; see
 [distribution evidence](../Tests/ReleaseEvidence/v3.1-build12/distribution.json).
-Post-publication Homebrew lifecycle qualification is in progress on the pinned
-primary VM (`mimo-vm`); no result is claimed in advance.
+Post-publication Homebrew lifecycle qualification completed **4/4 steps** on
+the pinned primary VM (`mimo-vm`). The final state is 3.1/build 12 installed,
+all three services healthy, and ordinary Direct active.
 
 ## Included behavior
 
@@ -69,17 +70,31 @@ Published ZIP SHA-256:
 Installed core target SHA-256:
 `49e2f183814021f35d7fcbfccc44386bbbdd26cced49fbb86b6fbf231ab6495f`.
 
-Four actual Homebrew lifecycle steps on `mimo-vm`:
+Four actual Homebrew lifecycle steps passed on `mimo-vm`:
 
 1. Uninstall the existing cask and verify network/service cleanup.
 2. Install published 3.1; verify artifact identity, all three jobs and healthy Direct.
 3. Uninstall 3.1; verify app/jobs/PF references/DNS/TUN removal and native connectivity.
 4. Install 3.1 again and leave all services healthy with original settings retained.
 
-Observe service/event behavior, preserve private configuration and trusted test
-certificates, and keep raw logs outside Git. Ordinary Direct's incoming tracking
-is expected while installed; full uninstall must remove it. Record failures and
-repairs before claiming completion.
+Both installed states matched the published core hash, passed signature checks,
+reported three running jobs and maintained healthy Direct through 35-second
+settled observations. Both uninstall states had no Mimo app/runtime/jobs, packet
+rules, DNS override or TUN, and ordinary-user HTTPS worked against two endpoints.
+Saved settings, credentials, hosts and trusted test certificates were retained.
+
+The first cleanup oracle incorrectly treated empty PF namespace headings as
+packet rules. Direct namespace and ancestor rule/NAT readback confirmed there
+were no remaining controls. The original false alarm was retained, four new
+parser controls passed, and the completed uninstall was reverified without
+rerunning it. No product repair was needed. Ordinary installed Direct retains
+incoming TCP tracking; full uninstall removes those rules too.
+
+The [Homebrew evidence](../Tests/ReleaseEvidence/v3.1-build12/homebrew-lifecycle.json)
+records commands, artifact/receipt checks, event observations, temporary test
+authentication accommodations and cleanup. Raw logs and private configuration
+remain outside Git. These are actual Homebrew lifecycle operations, not simulated
+RPC calls or a new native UI click campaign.
 
 ## Qualification limits
 
